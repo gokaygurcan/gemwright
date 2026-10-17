@@ -85,7 +85,13 @@ test('flags override defaults and invalid input leaves the target untouched', as
     expansion: 'uor',
     emulator: 'servuo',
     source,
-    servuo: { owner: 'admin', autoCreateAccounts: true }
+    servuo: {
+      owner: 'admin',
+      autoCreateAccounts: true,
+      accountsPerIp: 1,
+      globalChat: true,
+      allowedClients: ['AllowRegular', 'AllowUOTD', 'AllowGod', 'AllowEC']
+    }
   });
 });
 

@@ -8,6 +8,34 @@ import { prepareServuoFiles } from './config';
 
 const settings = { autoCreateAccounts: false, owner: 'admin' };
 
+test('writes account, chat, client and local game-file answers without changing unrelated settings', () => {
+  const files = prepareServuoFiles(
+    upstreamConfig,
+    createConfig({}),
+    {
+      ...settings,
+      accountsPerIp: 3,
+      globalChat: false,
+      allowedClients: ['AllowRegular', 'AllowEC'],
+      clientFiles: '/games/Ultima Online'
+    },
+    'test-password'
+  );
+  expect(files['Config/Accounts.cfg']).toContain('AccountsPerIp=3');
+  expect(files['Config/Chat.cfg']).toBe('# Chat\nEnabled=false\nAllowCreateChannels=True\n');
+  expect(files['Config/Client.cfg']).toBe(
+    'AllowRegular=true\nAllowUOTD=false\nAllowGod=false\nAllowEC=true\nKickDelay=20\n'
+  );
+  expect(files['Config/DataPath.cfg']).toContain('CustomPath=/games/Ultima Online');
+  for (const accountsPerIp of [-1, 1.5, 2147483648])
+    expect(() =>
+      prepareServuoFiles(upstreamConfig, createConfig({}), { ...settings, accountsPerIp }, 'test-password')
+    ).toThrow('whole number');
+  expect(() =>
+    prepareServuoFiles(upstreamConfig, createConfig({}), { ...settings, allowedClients: [] }, 'test-password')
+  ).toThrow('at least one');
+});
+
 test('updates selected settings and preserves unrelated upstream content', () => {
   const files = prepareServuoFiles(
     upstreamConfig,

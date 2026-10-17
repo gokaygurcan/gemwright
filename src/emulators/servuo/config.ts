@@ -11,6 +11,9 @@ export interface ServuoSettings {
   clientFiles?: string;
   autoCreateAccounts: boolean;
   owner: string;
+  accountsPerIp?: number;
+  globalChat?: boolean;
+  allowedClients?: string[];
 }
 
 export async function fetchServuoConfig(source: EmulatorSource): Promise<Record<string, string>> {
@@ -46,7 +49,7 @@ export function configValue(text: string, key: string): string | undefined {
     .trim();
 }
 
-function setConfigValue(text: string, key: string, value: string): string {
+export function setConfigValue(text: string, key: string, value: string): string {
   const newline = text.includes('\r\n') ? '\r\n' : '\n';
   let found = false;
   const lines = text.split(/\r?\n/).map((line) => {
@@ -99,7 +102,33 @@ export function prepareServuoFiles(
     'CurrentExpansion',
     expansionNames[config.expansion]
   );
-  files['Config/DataPath.cfg'] = setConfigValue(files['Config/DataPath.cfg']!, 'CustomPath', 'data/client');
+  files['Config/DataPath.cfg'] = setConfigValue(
+    files['Config/DataPath.cfg']!,
+    'CustomPath',
+    settings.clientFiles ?? 'data/client'
+  );
+  if (settings.accountsPerIp !== undefined) {
+    if (!Number.isInteger(settings.accountsPerIp) || settings.accountsPerIp < 0 || settings.accountsPerIp > 2147483647)
+      throw new Error('Accounts per IP must be a whole number between 0 and 2147483647.');
+    files['Config/Accounts.cfg'] = setConfigValue(
+      files['Config/Accounts.cfg']!,
+      'AccountsPerIp',
+      String(settings.accountsPerIp)
+    );
+  }
+  if (settings.globalChat !== undefined)
+    files['Config/Chat.cfg'] = setConfigValue(files['Config/Chat.cfg'] ?? '', 'Enabled', String(settings.globalChat));
+  if (settings.allowedClients !== undefined) {
+    const keys = ['AllowRegular', 'AllowUOTD', 'AllowGod', 'AllowEC'];
+    if (!settings.allowedClients.length || settings.allowedClients.some((key) => !keys.includes(key)))
+      throw new Error('Choose at least one supported client.');
+    for (const key of keys)
+      files['Config/Client.cfg'] = setConfigValue(
+        files['Config/Client.cfg'] ?? '',
+        key,
+        String(settings.allowedClients.includes(key))
+      );
+  }
   files['Config/Accounts.cfg'] = setConfigValue(
     files['Config/Accounts.cfg']!,
     'AutoCreateAccounts',

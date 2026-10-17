@@ -38,6 +38,59 @@ export async function initializeServuo(config: ShardConfig, yes = false, loadCon
           initialValue: registration.toLowerCase() === 'true'
         })
       );
+  const accountDefault = configValue(upstream['Config/Accounts.cfg'] ?? '', 'AccountsPerIp');
+  if (!accountDefault || !/^\d+$/.test(accountDefault) || Number(accountDefault) > 2147483647)
+    throw new Error('Upstream accounts per IP default is missing or invalid.');
+  const chatDefault = configValue(upstream['Config/Chat.cfg'] ?? '', 'Enabled');
+  if (!chatDefault || !/^(true|false)$/i.test(chatDefault))
+    throw new Error('Upstream global chat default is missing or invalid.');
+  const clientOptions = [
+    { value: 'AllowRegular', label: 'Classic client' },
+    { value: 'AllowUOTD', label: 'Third Dawn client' },
+    { value: 'AllowGod', label: 'God client' },
+    { value: 'AllowEC', label: 'Enhanced client' }
+  ];
+  const clientDefaults = clientOptions
+    .filter(({ value }) => {
+      const enabled = configValue(upstream['Config/Client.cfg'] ?? '', value);
+      if (!enabled || !/^(true|false)$/i.test(enabled))
+        throw new Error(`Upstream client default is missing or invalid: ${value}`);
+      return enabled.toLowerCase() === 'true';
+    })
+    .map(({ value }) => value);
+  const accountsPerIp = yes
+    ? Number(accountDefault)
+    : Number(
+        answer(
+          await prompts.text({
+            message: 'Accounts allowed per IP address',
+            defaultValue: accountDefault,
+            placeholder: accountDefault,
+            validate: (value) =>
+              value && (!/^\d+$/.test(value) || Number(value) > 2147483647)
+                ? 'Enter a whole number between 0 and 2147483647.'
+                : undefined
+          })
+        )
+      );
+  const globalChat = yes
+    ? chatDefault.toLowerCase() === 'true'
+    : answer(
+        await prompts.confirm({
+          message: 'Enable global chat?',
+          initialValue: chatDefault.toLowerCase() === 'true'
+        })
+      );
+  const allowedClients = yes
+    ? clientDefaults
+    : answer(
+        await prompts.multiselect({
+          message: 'Allowed clients',
+          options: clientOptions,
+          initialValues: clientDefaults,
+          required: true
+        })
+      );
   const owner = yes
     ? 'admin'
     : answer(
@@ -60,6 +113,9 @@ export async function initializeServuo(config: ShardConfig, yes = false, loadCon
   const settings: ServuoSettings = {
     ...(clientFiles ? { clientFiles: resolve(clientFiles) } : {}),
     autoCreateAccounts,
+    accountsPerIp,
+    globalChat,
+    allowedClients,
     owner
   };
   return { settings, files: prepareServuoFiles(upstream, config, settings, password), generatedPassword };

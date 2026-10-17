@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 
 import * as prompts from '@clack/prompts';
 
@@ -6,17 +6,17 @@ import {
   configFilename,
   createConfig,
   defaultAdminEmail,
-  defaultWebsite,
-  validateAdminEmail,
-  validateWebsite,
   defaultEmulator,
   defaultExpansion,
   defaultName,
   defaultTimezone,
+  defaultWebsite,
   emulators,
   expansions,
   timezoneOptions,
-  validateName
+  validateAdminEmail,
+  validateName,
+  validateWebsite
 } from './config';
 import { fetchServuoConfig } from './emulators/servuo/config';
 import { initializeServuo } from './emulators/servuo/init';
@@ -175,5 +175,12 @@ export async function initialize(
       `Username: ${config.servuo?.owner ?? config.sphere?.owner}\nPassword: ${generatedPassword}\nSave this password; it will not be shown again.`,
       'Owner account'
     );
-  prompts.outro(`Created ${configFilename} in ${directory}`);
+  const target = relative(process.cwd(), directory);
+  const commands = [];
+  if (target) {
+    const path = /^[\w./-]+$/.test(target) ? target : `'${target.replaceAll("'", "'\\''")}'`;
+    commands.push(`cd -- ${path}`);
+  }
+  commands.push('gemwright deploy');
+  prompts.outro(`Created ${configFilename} in ${directory}\n\nNext steps:\n  ${commands.join('\n  ')}`);
 }

@@ -45,6 +45,12 @@ gemwright deploy
 gemwright deploy --files /path/to/game-files
 ```
 
+### Next steps
+
+- Push your shard configuration and scripts to a private Git repository to track changes.
+- Set up a custom login hostname, such as `login.yourshard.com`. Create a DNS CNAME pointing to your Railway TCP proxy hostname.
+- Keep separate copies of your saves and accounts outside Railway. (Railway's built-in volume backups require the Pro plan)
+
 ## Development
 
 - [x] `init` to initialize shard with a few answers

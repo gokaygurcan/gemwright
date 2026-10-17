@@ -1,11 +1,11 @@
-import { cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { assetPath } from '../../assets';
 import type { ShardConfig } from '../../config';
 import { command } from '../../process';
 import { packageClientFiles as packageFiles } from '../client-files';
-import { configValue } from './config';
+import { configValue, setConfigValue } from './config';
 import { applyServuoCompatibility, servuoSource } from './source';
 
 export async function validateServuoShard(directory: string, config: ShardConfig): Promise<void> {
@@ -23,7 +23,10 @@ export async function validateServuoShard(directory: string, config: ShardConfig
     );
   }
   const data = await readFile(join(directory, 'Config/DataPath.cfg'), 'utf8');
-  if (configValue(data, 'CustomPath') !== 'data/client')
+  if (
+    configValue(data, 'CustomPath') !== 'data/client' &&
+    configValue(data, 'CustomPath') !== config.servuo?.clientFiles
+  )
     throw new Error('Deployment currently supports DataPath.cfg CustomPath=data/client. Config was not changed.');
   const restart = await readFile(join(directory, 'Config/AutoRestart.cfg'), 'utf8').catch(() => 'Enabled=False');
   if (configValue(restart, 'Enabled')?.toLowerCase() === 'true') {
@@ -48,6 +51,8 @@ export async function stageServuo(directory: string, config: ShardConfig): Promi
   await rm(join(server, '.git'), { recursive: true, force: true });
   await rm(join(server, 'Config'), { recursive: true, force: true });
   await cp(join(directory, 'Config'), join(server, 'Config'), { recursive: true });
+  const dataPath = join(server, 'Config/DataPath.cfg');
+  await writeFile(dataPath, setConfigValue(await readFile(dataPath, 'utf8'), 'CustomPath', 'data/client'));
   for (const folder of ['Scripts', 'Data']) {
     if ((await stat(join(directory, folder)).catch(() => undefined))?.isDirectory())
       await cp(join(directory, folder), join(server, folder), { recursive: true });
