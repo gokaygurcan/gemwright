@@ -141,6 +141,7 @@ jobs:
         env:
           TARBALL_SHA256: ${{ needs.verify.outputs.sha256 }}
           NPM_DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
+          NPM_CONFIG_PROVENANCE: ${{ !github.event.repository.private }}
         run: |
           printf '%s  gemwright.tgz\n' "$TARBALL_SHA256" | sha256sum --check
-          npm publish ./gemwright.tgz --ignore-scripts --provenance --access public --tag "$NPM_DIST_TAG" --registry=https://registry.npmjs.org
+          npm publish ./gemwright.tgz --ignore-scripts --access public --tag "$NPM_DIST_TAG" --registry=https://registry.npmjs.org
