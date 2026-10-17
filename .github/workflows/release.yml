@@ -76,7 +76,7 @@ jobs:
           assert.equal(pkg.name, 'gemwright');
           assert.equal(pkg.repository.url, 'git+https://github.com/gokaygurcan/gemwright.git');
           assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
-          assert.equal(process.env.RELEASE_TAG, `v${pkg.version}`, 'Release tag must match package.json');
+          assert.equal(process.env.RELEASE_TAG?.replace(/^v/, ''), pkg.version, 'Release tag must match package.json (optional v prefix)');
           const prerelease = pkg.version.includes('-');
           assert.equal(process.env.PRERELEASE, String(prerelease), 'GitHub prerelease status must match the version');
 
