@@ -1,0 +1,218 @@
+diff --git a/Scripts/Accounting/AccountAttackLimiter.cs b/Scripts/Accounting/AccountAttackLimiter.cs
+index 231f2d5..58e666a 100644
+--- a/Scripts/Accounting/AccountAttackLimiter.cs
++++ b/Scripts/Accounting/AccountAttackLimiter.cs
+@@ -23,6 +23,7 @@ namespace Server.Accounting
+         public static bool Throttle_Callback(byte packetID, NetState ns, out bool drop)
+         {
+             drop = false;
++            if (HostingOptions.IsRailwayProxy(ns.Address)) return true;
+ 
+             InvalidAccountAccessLog accessLog = FindAccessLog(ns);
+ 
+@@ -54,7 +55,7 @@ namespace Server.Accounting
+ 
+         public static void RegisterInvalidAccess(NetState ns)
+         {
+-            if (ns == null || !Enabled)
++            if (ns == null || !Enabled || HostingOptions.IsRailwayProxy(ns.Address))
+                 return;
+ 
+             InvalidAccountAccessLog accessLog = FindAccessLog(ns);
+diff --git a/Scripts/Accounting/IPLimiter.cs b/Scripts/Accounting/IPLimiter.cs
+index f9539ff..e3cfe30 100644
+--- a/Scripts/Accounting/IPLimiter.cs
++++ b/Scripts/Accounting/IPLimiter.cs
+@@ -20,6 +20,7 @@ namespace Server.Misc
+ 
+         public static bool IsExempt(IPAddress ip)
+         {
++            if (HostingOptions.IsRailwayProxy(ip)) return true;
+             for (int i = 0; i < Exemptions.Length; i++)
+             {
+                 if (ip.Equals(Exemptions[i]))
+diff --git a/Scripts/Misc/DataPath.cs b/Scripts/Misc/DataPath.cs
+index 65ddeff..4d830ac 100644
+--- a/Scripts/Misc/DataPath.cs
++++ b/Scripts/Misc/DataPath.cs
+@@ -17,7 +17,7 @@ namespace Server.Misc
+         * Example:
+         *  private static string CustomPath = @"C:\Program Files\Ultima Online";
+         */
+-		private static readonly string CustomPath = Config.Get(@"DataPath.CustomPath", default(string));
++		private static readonly string CustomPath = HostingOptions.ClientDataPath ?? Config.Get(@"DataPath.CustomPath", default(string));
+ 
+ 		static DataPath()
+ 		{
+diff --git a/Scripts/Misc/ServerList.cs b/Scripts/Misc/ServerList.cs
+index f9ee019..c1b7e90 100644
+--- a/Scripts/Misc/ServerList.cs
++++ b/Scripts/Misc/ServerList.cs
+@@ -43,7 +43,7 @@ namespace Server.Misc
+                     address = Address;
+                 }
+ 
+-                e.AddServer(ServerName, new IPEndPoint(address, ipep.Port));
++                e.AddServer(ServerName, HostingOptions.PublicEndpoint ?? new IPEndPoint(address, ipep.Port));
+             }
+ 			catch
+ 			{
+diff --git a/Server/HostingOptions.cs b/Server/HostingOptions.cs
+new file mode 100644
+index 0000000..489eef1
+--- /dev/null
++++ b/Server/HostingOptions.cs
+@@ -0,0 +1,89 @@
++using System;
++using System.Globalization;
++using System.IO;
++using System.Linq;
++using System.Net;
++using System.Net.Sockets;
++
++namespace Server
++{
++    public static class HostingOptions
++    {
++        public static IPEndPoint PublicEndpoint { get; private set; }
++        public static string ClientDataPath { get; private set; }
++        public static string ShutdownFile { get; private set; }
++        public static bool RailwayProxy { get; private set; }
++
++        public static bool TryParse(string[] args, ref int index)
++        {
++            switch (args[index])
++            {
++                case "--public":
++                    PublicEndpoint = ParsePublicEndpoint(NextValue(args, ref index));
++                    return true;
++                case "--client-data":
++                    ClientDataPath = Path.GetFullPath(NextValue(args, ref index));
++                    if (!Directory.Exists(ClientDataPath))
++                        throw new ArgumentException("Client data directory does not exist: " + ClientDataPath);
++                    return true;
++                case "--shutdown-file":
++                    ShutdownFile = Path.GetFullPath(NextValue(args, ref index));
++                    if (!Directory.Exists(Path.GetDirectoryName(ShutdownFile)) || File.Exists(ShutdownFile))
++                        throw new ArgumentException("Shutdown file requires an existing parent directory and must not already exist.");
++                    return true;
++                case "--railway-proxy":
++                    RailwayProxy = true;
++                    return true;
++                default:
++                    return false;
++            }
++        }
++
++        private static string NextValue(string[] args, ref int index)
++        {
++            var option = args[index];
++            if (++index >= args.Length || String.IsNullOrWhiteSpace(args[index]) || args[index].StartsWith("-"))
++                throw new ArgumentException("Missing value for " + option);
++            return args[index];
++        }
++
++        public static IPEndPoint ParsePublicEndpoint(string value)
++        {
++            var separator = value.LastIndexOf(':');
++            int port;
++            if (separator <= 0 || !Int32.TryParse(value.Substring(separator + 1), NumberStyles.None,
++                    CultureInfo.InvariantCulture, out port) || port < 1 || port > 65535)
++                throw new ArgumentException("--public requires an IPv4 address or hostname followed by :port (1-65535).");
++
++            var host = value.Substring(0, separator);
++            var address = Dns.GetHostAddresses(host).FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
++            if (address == null)
++                throw new ArgumentException("--public requires a hostname with an IPv4 address.");
++            return new IPEndPoint(address, port);
++        }
++
++        public static bool IsRailwayProxy(IPAddress address)
++        {
++            if (!RailwayProxy || address == null) return false;
++            if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
++            if (address.AddressFamily != AddressFamily.InterNetwork) return false;
++            var bytes = address.GetAddressBytes();
++            return bytes[0] == 100 && bytes[1] >= 64 && bytes[1] <= 127;
++        }
++
++        public static void WatchShutdown()
++        {
++            if (ShutdownFile == null) return;
++            Timer.DelayCall(TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250), () =>
++            {
++                if (!File.Exists(ShutdownFile)) return;
++                Console.WriteLine("Hosting: Shutdown requested; saving world before exit.");
++                World.WaitForWriteCompletion();
++                World.Save(true, false);
++                World.WaitForWriteCompletion();
++                File.Delete(ShutdownFile);
++                Core.Kill();
++            });
++        }
++    }
++}
+diff --git a/Server/Main.cs b/Server/Main.cs
+index 8230c6b..057d10a 100644
+--- a/Server/Main.cs
++++ b/Server/Main.cs
+@@ -335,8 +335,10 @@ namespace Server
+             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+ 
+-            foreach (string a in args)
++            for (int i = 0; i < args.Length; i++)
+             {
++                if (HostingOptions.TryParse(args, ref i)) continue;
++                var a = args[i];
+                 if (Insensitive.Equals(a, "-debug"))
+                 {
+                     Debug = true;
+@@ -369,6 +371,10 @@ namespace Server
+                 {
+                     Console.WriteLine("An Ultima Online server emulator written in C# - Visit https://www.servuo.com for more information.\n\n");
+                     Console.WriteLine(System.AppDomain.CurrentDomain.FriendlyName + " [Parameter]\n\n");
++                    Console.WriteLine("     --public host:port  Advertise an external IPv4 endpoint without changing the listener.");
++                    Console.WriteLine("     --client-data path  Use client data from this directory without changing config.");
++                    Console.WriteLine("     --railway-proxy     Exempt 100.64.0.0/10 proxy peers from shared IP limits.");
++                    Console.WriteLine("     --shutdown-file path  Save and exit when this file appears.");
+                     Console.WriteLine("     -debug              Starting ServUO in Debug Mode. Debug Mode is being used in Core and Scripts to give extended inforamtion during runtime.");
+                     Console.WriteLine("     -haltonwarning      ServUO halts if any warning is raised during compilation of scripts.");
+                     Console.WriteLine("     -h or -help         Displays this help text.");
+@@ -560,6 +566,7 @@ namespace Server
+             NetState.Initialize();
+ 
+             EventSink.InvokeServerStarted();
++            HostingOptions.WatchShutdown();
+ 
+             try
+             {
+diff --git a/Server/Persistence/FileOperations.cs b/Server/Persistence/FileOperations.cs
+--- a/Server/Persistence/FileOperations.cs
++++ b/Server/Persistence/FileOperations.cs
+@@ -81,7 +81,7 @@
+                 options |= FileOptions.Asynchronous;
+             }
+ 
+-            if (unbuffered)
++            if (unbuffered && Core.Windows)
+             {
+                 options |= NoBuffering;
+             }
+diff --git a/Scripts/Misc/CrashGuard.cs b/Scripts/Misc/CrashGuard.cs
+--- a/Scripts/Misc/CrashGuard.cs
++++ b/Scripts/Misc/CrashGuard.cs
+@@ -30,6 +30,13 @@ namespace Server.Misc
+             if (SaveBackup)
+                 Backup();
+ 
++            if (HostingOptions.ShutdownFile != null)
++            {
++                Console.WriteLine("Crash: Exiting; restart is managed by the host.");
++                e.Close = true;
++                return;
++            }
++
+             /*if ( Core.Service )
+             e.Close = true;
+             else */ if (RestartServer)

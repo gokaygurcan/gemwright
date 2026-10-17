@@ -1,0 +1,269 @@
+diff --git i/src/graysvr/CAccount.cpp w/src/graysvr/CAccount.cpp
+index 2790d82..61ff636 100644
+--- i/src/graysvr/CAccount.cpp
++++ w/src/graysvr/CAccount.cpp
+@@ -525,6 +525,7 @@ bool CAccount::CheckPassword(LPCTSTR pszPassword)
+ bool CAccount::CheckPasswordTries(CSocketAddressIP SockAddr)
+ {
+ 	ADDTOCALLSTACK("CAccount::CheckPasswordTries");
++	if (Gemwright::IsRailwayProxy(SockAddr)) return true;
+ 	bool fReturn = true;
+ 	DWORD dwCurrentIP = SockAddr.GetAddrIP();
+ 	UINT64 uTimeCurrent = CServTime::GetCurrentTime().GetTimeRaw();
+diff --git i/src/graysvr/CClientLog.cpp w/src/graysvr/CClientLog.cpp
+index 70b27a0..e7239c0 100644
+--- i/src/graysvr/CClientLog.cpp
++++ w/src/graysvr/CClientLog.cpp
+@@ -127,6 +127,7 @@ void CClient::addRelay(const CServerDef *pServ)
+ 	}
+ 
+ 	EXC_SET("customer id");
++	if (Gemwright::HasPublic && pServ == &g_Serv) ipAddr = Gemwright::PublicEndpoint;
+ 	DWORD dwAddrIP = ipAddr.GetAddrIP();
+ 	DWORD dwCustomerID = 0x7F000001;
+ 	if ( g_Cfg.m_fUseAuthID )
+@@ -143,7 +144,7 @@ void CClient::addRelay(const CServerDef *pServ)
+ 	DEBUG_MSG(("%lx:Login_Relay to server %s with AuthID %" FMTDWORD "\n", GetSocketID(), ipAddr.GetAddrStr(), dwCustomerID));
+ 
+ 	EXC_SET("server relay packet");
+-	new PacketServerRelay(this, dwAddrIP, pServ->m_ip.GetPort(), dwCustomerID);
++	new PacketServerRelay(this, dwAddrIP, (Gemwright::HasPublic && pServ == &g_Serv) ? Gemwright::PublicEndpoint.GetPort() : pServ->m_ip.GetPort(), dwCustomerID);
+ 
+ 	m_Targ_Mode = CLIMODE_SETUP_RELAY;
+ 	return;
+diff --git i/src/graysvr/CServer.cpp w/src/graysvr/CServer.cpp
+index 266d5dc..735c448 100644
+--- i/src/graysvr/CServer.cpp
++++ w/src/graysvr/CServer.cpp
+@@ -132,7 +132,7 @@ bool CServer::SocketsInit()
+ #endif
+ 
+ 	// Bind socket to specific IP/port
+-	CSocketAddress SockAddr = m_ip;
++	CSocketAddress SockAddr = Gemwright::HasListener ? Gemwright::Listener : m_ip;
+ 	if ( m_SocketMain.Bind(SockAddr) == SOCKET_ERROR )
+ 	{
+ 		g_Log.Event(LOGL_FATAL, "Unable to bind listen socket %s port %hu\n", SockAddr.GetAddrStr(), SockAddr.GetPort());
+@@ -298,6 +298,27 @@ bool CServer::GetPublicIP()
+ void CServer::OnTick()
+ {
+ 	ADDTOCALLSTACK("CServer::OnTick");
++    if (!Gemwright::ShutdownFile.empty() && std::filesystem::exists(Gemwright::ShutdownFile))
++    {
++        g_Log.Event(LOGL_EVENT, "Hosting: Shutdown requested; saving world before exit.\n");
++        const auto previousSave = g_World.m_iSaveCountID;
++        if (!g_World.Save(true) || g_World.IsSaving() || previousSave == g_World.m_iSaveCountID)
++        {
++            g_Log.Event(LOGL_FATAL, "Hosting: Shutdown save failed.\n");
++            SetExitFlag(-10);
++            return;
++        }
++        std::error_code error;
++        if (!std::filesystem::remove(Gemwright::ShutdownFile, error) || error)
++        {
++            g_Log.Event(LOGL_FATAL, "Hosting: Could not acknowledge completed shutdown.\n");
++            SetExitFlag(-10);
++            return;
++        }
++        Gemwright::ShutdownSucceeded = true;
++        SetExitFlag(2);
++        return;
++    }
+ 	EXC_TRY("Tick");
+ 
+ #ifndef _WIN32
+diff --git i/src/graysvr/CUnixTerminal.cpp w/src/graysvr/CUnixTerminal.cpp
+index 1788e12..fbf8b05 100644
+--- i/src/graysvr/CUnixTerminal.cpp
++++ w/src/graysvr/CUnixTerminal.cpp
+@@ -7,7 +7,7 @@
+ 
+ CUnixTerminal g_UnixTerminal;
+ 
+-CUnixTerminal::CUnixTerminal()
++CUnixTerminal::CUnixTerminal() : m_szNextChar(0), m_fPrepared(false)
+ {
+ 	prepare();
+ }
+@@ -20,6 +20,7 @@ CUnixTerminal::~CUnixTerminal()
+ bool CUnixTerminal::isReady()
+ {
+ 	ADDTOCALLSTACK("CUnixTerminal::isReady");
++	if (!m_fPrepared) return false;
+ 	if ( m_szNextChar != '\0' )
+ 		return true;
+ 
+@@ -70,7 +71,7 @@ void CUnixTerminal::print(LPCTSTR pszText)
+ void CUnixTerminal::prepare()
+ {
+ 	ADDTOCALLSTACK("CUnixTerminal::prepare");
+-	ASSERT(!m_fPrepared);
++	if (m_fPrepared || !isatty(STDIN_FILENO)) return;
+ 
+ 	// Save existing attributes
+ 	if ( tcgetattr(STDIN_FILENO, &m_terminal) != 0 )
+@@ -93,7 +94,7 @@ void CUnixTerminal::restore()
+ {
+ 	ADDTOCALLSTACK("CUnixTerminal::restore");
+ 	EXC_TRY("Restore");
+-	ASSERT(m_fPrepared);
++	if (!m_fPrepared) return;
+ 
+ 	// Restore original terminal state
+ 	if ( tcsetattr(STDIN_FILENO, TCSANOW, &m_terminal) != 0 )
+diff --git i/src/graysvr/HostingOptions.h w/src/graysvr/HostingOptions.h
+new file mode 100644
+index 0000000..dfb45c9
+--- /dev/null
++++ w/src/graysvr/HostingOptions.h
+@@ -0,0 +1,77 @@
++#ifndef GEMWRIGHT_HOSTING_OPTIONS_H
++#define GEMWRIGHT_HOSTING_OPTIONS_H
++#include <cstdlib>
++#include <filesystem>
++#include <stdexcept>
++#include <string>
++
++namespace Gemwright
++{
++    inline bool HasPublic = false;
++    inline bool HasListener = false;
++    inline bool RailwayProxy = false;
++    inline bool ShutdownSucceeded = false;
++    inline CSocketAddress PublicEndpoint;
++    inline CSocketAddress Listener;
++    inline std::string ShutdownFile;
++
++    inline CSocketAddress ParseEndpoint(const std::string &value)
++    {
++        const auto separator = value.rfind(':');
++        if (separator == std::string::npos || separator == 0)
++            throw std::invalid_argument("Expected an IPv4 hostname or address followed by :port.");
++        const auto portString = value.substr(separator + 1);
++        if (portString.empty() || portString.find_first_not_of("0123456789") != std::string::npos)
++            throw std::invalid_argument("Endpoint port must be an integer from 1 to 65535.");
++        const auto port = std::stoul(portString);
++        if (port == 0 || port > 65535)
++            throw std::invalid_argument("Endpoint port must be from 1 to 65535.");
++        addrinfo hints = {}, *result = nullptr;
++        hints.ai_family = AF_INET;
++        hints.ai_socktype = SOCK_STREAM;
++        if (getaddrinfo(value.substr(0, separator).c_str(), nullptr, &hints, &result) != 0 || !result)
++            throw std::invalid_argument("Could not resolve endpoint IPv4 address.");
++        CSocketAddress endpoint;
++        endpoint.SetAddrIP(reinterpret_cast<sockaddr_in *>(result->ai_addr)->sin_addr.s_addr);
++        endpoint.SetPortNum(static_cast<WORD>(port));
++        freeaddrinfo(result);
++        return endpoint;
++    }
++
++    inline bool Parse(int argc, char **argv)
++    {
++        for (int index = 1; index < argc; ++index)
++        {
++            const std::string option(argv[index]);
++            if (option == "--help")
++            {
++                std::puts("--listen host:port  Bind without changing shard config.");
++                std::puts("--public host:port  Advertise the public login relay endpoint.");
++                std::puts("--railway-proxy     Exempt shared proxy peers from per-IP limits.");
++                std::puts("--shutdown-file path  Save and exit when this marker appears.");
++                return false;
++            }
++            if (option == "--railway-proxy") { RailwayProxy = true; continue; }
++            if (option != "--listen" && option != "--public" && option != "--shutdown-file")
++                throw std::invalid_argument("Unknown launch option: " + option);
++            if (++index >= argc || !argv[index][0] || argv[index][0] == '-')
++                throw std::invalid_argument("Missing value for " + option);
++            if (option == "--public") { PublicEndpoint = ParseEndpoint(argv[index]); HasPublic = true; }
++            else if (option == "--listen") { Listener = ParseEndpoint(argv[index]); HasListener = true; }
++            else
++            {
++                ShutdownFile = argv[index];
++                const auto path = std::filesystem::path(ShutdownFile);
++                if (!path.is_absolute() || !std::filesystem::is_directory(path.parent_path()) || std::filesystem::exists(path))
++                    throw std::invalid_argument("Shutdown marker needs an absolute, unused path in an existing directory.");
++            }
++        }
++        return true;
++    }
++
++    inline bool IsRailwayProxy(const CSocketAddressIP &address)
++    {
++        return RailwayProxy && (ntohl(address.GetAddrIP()) & 0xffc00000U) == 0x64400000U;
++    }
++}
++#endif
+diff --git i/src/graysvr/graysvr.cpp w/src/graysvr/graysvr.cpp
+index e5dd2dc..85d0aac 100644
+--- i/src/graysvr/graysvr.cpp
++++ w/src/graysvr/graysvr.cpp
+@@ -703,6 +703,10 @@ int _cdecl main( int argc, char * argv[] )
+ {
+ #ifdef EXCEPTIONS_DEBUG
+ 	const char *m_sClassName = SPHERE_TITLE;
++#endif
++#ifndef _WIN32
++    try { if (!Gemwright::Parse(argc, argv)) { std::fflush(stdout); std::_Exit(0); } }
++    catch (const std::exception &error) { std::fprintf(stderr, "Hosting: %s\n", error.what()); std::_Exit(1); }
+ #endif
+ 	EXC_TRY("Main");
+ 
+@@ -744,7 +748,15 @@ int _cdecl main( int argc, char * argv[] )
+ 	WritePidFile(1);
+ 
+ 	EXC_CATCH;
+-	return g_Serv.m_iExitFlag;
++    // Sphere_ExitServer already closes the world, threads and log. Do not re-enter
++    // destroyed subsystems during global teardown in a hosted process.
++    if (!Gemwright::ShutdownFile.empty())
++    {
++        const int status = Gemwright::ShutdownSucceeded ? 0 : (g_Serv.m_iExitFlag ? g_Serv.m_iExitFlag : 1);
++        std::fflush(nullptr);
++        std::_Exit(status);
++    }
++    return g_Serv.m_iExitFlag;
+ }
+ 
+ #define ADD(a,b) const char * a::m_sClassName = b
+diff --git i/src/graysvr/graysvr.h w/src/graysvr/graysvr.h
+index a74c726..6d9a3c7 100644
+--- i/src/graysvr/graysvr.h
++++ w/src/graysvr/graysvr.h
+@@ -3,6 +3,7 @@
+ #pragma once
+ 
+ #include "../common/graycom.h"
++#include "HostingOptions.h"
+ 
+ class CServTime
+ {
+diff --git i/src/network/network.cpp w/src/network/network.cpp
+index 2a1be86..7e3b3ba 100644
+--- i/src/network/network.cpp
++++ w/src/network/network.cpp
+@@ -998,9 +998,9 @@ void NetworkManager::acceptNewConnection(void)
+ 	DEBUGNETWORK(("Incoming connection from '%s' [blocked=%d, ttl=%ld, pings=%ld, connecting=%ld, connected=%ld]\n", ip.m_ip.GetAddrStr(), ip.m_blocked, ip.m_ttl, ip.m_pings, ip.m_connecting, ip.m_connected));
+ 
+ 	// check if ip is allowed to connect
+-	if ( ip.checkPing() ||									// check for ip ban
++	if ( ip.m_blocked || (!Gemwright::IsRailwayProxy(client_addr) && (ip.checkPing() ||									// check for ip ban
+ 			( maxIp > 0 && ip.m_connecting > maxIp ) ||		// check for too many connecting
+-			( climaxIp > 0 && ip.m_connected > climaxIp ) )	// check for too many connected
++			( climaxIp > 0 && ip.m_connected > climaxIp ) )))	// check for too many connected
+ 	{
+ 		EXC_SET("rejected");
+ 		DEBUGNETWORK(("Closing incoming connection [max ip=%ld, clients max ip=%ld]\n", maxIp, climaxIp));
+diff --git i/src/network/send.cpp w/src/network/send.cpp
+index a828090..62fabac 100644
+--- i/src/network/send.cpp
++++ w/src/network/send.cpp
+@@ -2926,7 +2926,7 @@ void PacketServerList::writeServerEntry(const CServerRef &server, WORD index, bo
+ {
+ 	ADDTOCALLSTACK("PacketServerList::writeServerEntry");
+ 
+-	DWORD ip = server->m_ip.GetAddrIP();
++	DWORD ip = (Gemwright::HasPublic && server == &g_Serv) ? Gemwright::PublicEndpoint.GetAddrIP() : server->m_ip.GetAddrIP();
+ 	DWORD dwPercentFull = 0;
+ 	if (server == &g_Serv)
+ 	{

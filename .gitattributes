@@ -1,0 +1,2 @@
+# Preserve upstream line endings and literal diff context in compatibility patches.
+patches/*.patch -text whitespace=-blank-at-eol,-space-before-tab,cr-at-eol

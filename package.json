@@ -1,14 +1,37 @@
 {
   "name": "gemwright",
   "description": "Forge your own shard.",
-  "version": "0.0.0",
-  "module": "src/index.ts",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git"
+  },
+  "bin": {
+    "gemwright": "dist/index.js"
+  },
   "type": "module",
+  "files": [
+    "dist/index.js",
+    "templates/",
+    "patches/"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "start": "bun run src/index.ts",
-    "typecheck": "bun check"
+    "format": "biome format --write",
+    "typecheck": "bun check",
+    "test": "bun test",
+    "build": "bun build src/index.ts --target node --format esm --packages external --outfile dist/index.js",
+    "prepack": "bun run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.8.1",
+    "chalk": "6.0.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@types/bun": "1.4.3",
     "@types/node": "26.6.5",
     "typescript": "7.0.2"

@@ -1,0 +1,38 @@
+{
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "breadcrumbs.enabled": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit",
+    "source.action.useSortedAttributes.biome": "explicit",
+    "source.action.useSortedKeys.biome": "explicit"
+  },
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.folding": true,
+  "editor.foldingStrategy": "auto",
+  "editor.fontFamily": "Geist Mono",
+  "editor.fontLigatures": false,
+  "editor.fontSize": 12,
+  "editor.formatOnPaste": false, // to much noise
+  "editor.formatOnSave": true,
+  "editor.guides.indentation": true,
+  "editor.insertSpaces": true,
+  "editor.lineNumbers": "on",
+  "editor.renderWhitespace": "all",
+  "editor.showFoldingControls": "always",
+  "editor.showUnused": true,
+  "emmet.showExpandedAbbreviation": "never",
+  "explorer.openEditors.visible": 1,
+  "explorer.compactFolders": false
+}
