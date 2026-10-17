@@ -1,7 +1,8 @@
 {
   "name": "gemwright",
-  "description": "Forge your own shard.",
-  "version": "0.1.3",
+  "description": "Forge your own shard",
+  "version": "0.1.4",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gokaygurcan/gemwright.git"
@@ -13,7 +14,8 @@
   "files": [
     "dist/index.js",
     "templates/",
-    "patches/"
+    "patches/",
+    ".github/small-forge.png"
   ],
   "engines": {
     "node": ">=24"

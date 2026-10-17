@@ -85,9 +85,9 @@ jobs:
           assert.equal(pack.version, pkg.version);
           const files = new Set(pack.files.map(file => file.path));
           for (const path of files) {
-            assert.ok(/^(LICENSE|README\.md|package\.json|dist\/index\.js|templates\/(servuo|sphere)\/(Dockerfile|[\w-]+\.sh)|patches\/[\w-]+\.patch)$/.test(path), `Unexpected package file: ${path}`);
+            assert.ok(/^(LICENSE|README\.md|package\.json|\.github\/small-forge\.png|dist\/index\.js|templates\/(servuo|sphere)\/(Dockerfile|[\w-]+\.sh)|patches\/[\w-]+\.patch)$/.test(path), `Unexpected package file: ${path}`);
           }
-          for (const path of [pkg.bin.gemwright, 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`))])
+          for (const path of [pkg.bin.gemwright, '.github/small-forge.png', 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`))])
             assert.ok(files.has(path), `Missing runtime file: ${path}`);
 
           const directory = join(process.env.RUNNER_TEMP, 'npm-release');
