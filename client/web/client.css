@@ -1,6 +1,6 @@
 @font-face { font-family: 'UOFont'; src: url('uofont.ttf') format('truetype'); font-weight: normal; font-style: normal; font-display: swap; }
 :root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; background: #000; color: #e8dfca; }
-body { margin: 0; min-height: 100dvh; display: grid; place-items: center; overflow: hidden; background: #000; }
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center; overflow: hidden; background-color: #000; background-image: url('poster.jpeg'); background-attachment: fixed; background-size: cover; background-position: bottom 0 right 0; }
 canvas { background: #000; display: block; max-width: 100vw; max-height: 100dvh; object-fit: contain; outline-offset: -2px; touch-action: none; }
 canvas.game-ready { cursor: none !important; user-select: none; -webkit-user-select: none; }
 canvas:focus-visible, button:focus-visible { outline: 2px solid #d8b56b; }
