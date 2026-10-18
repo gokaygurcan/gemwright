@@ -193,7 +193,11 @@ test('web deployment uses the existing project and uploads only manifest-listed 
     if (args[1] === 'volume')
       return JSON.stringify({ volumes: [{ id: 'web-data', serviceName: 'gemwright-web', mountPath: '/app/data' }] });
     if (args[1] === 'domain') return JSON.stringify({ domain: 'https://play.example.com' });
-    if (args[1] === 'up') return 'Uploading...\n' + JSON.stringify({ deploymentId: 'current' });
+    if (args[1] === 'up') {
+      expect(args).toContain('--path-as-root');
+      expect(args).toContain('--no-gitignore');
+      return 'Uploading...\n' + JSON.stringify({ deploymentId: 'current' });
+    }
     if (args[1] === 'deployment') {
       polls++;
       if (failed) return JSON.stringify([{ id: 'current', status: 'FAILED' }]);

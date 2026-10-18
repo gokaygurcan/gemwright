@@ -90,7 +90,10 @@ export async function deployClient(directory: string, assets: string, preparedFi
     '--json'
   ]);
   console.log('Deploying the web client...');
-  const upload = await command(['railway', 'up', root, '--path-as-root', ...flags, '--detach', '--json'], root);
+  const upload = await command(
+    ['railway', 'up', root, '--path-as-root', '--no-gitignore', ...flags, '--detach', '--json'],
+    root
+  );
   let deploymentId: string | undefined;
   for (const line of upload.split('\n')) {
     try {
