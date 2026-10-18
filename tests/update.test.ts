@@ -36,7 +36,7 @@ test('shows the update command and reuses the daily cache', async () => {
       return '0.2.2';
     }
   };
-  expect(await checkForUpdate(options)).toContain('npm install --global gemwright@latest');
+  expect(await checkForUpdate(options)).toContain('npm i -g gemwright@latest');
   expect(await checkForUpdate({ ...options, now: 2000 })).toContain('0.1.4 → 0.2.2');
   expect(requests).toBe(1);
   await checkForUpdate({ ...options, now: 1000 + 86400000 });
