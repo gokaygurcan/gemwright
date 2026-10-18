@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gemwright</title>
+    <link rel="stylesheet" href="/client.css">
+    <link rel="icon" href="/favicon.ico">
+    <meta property="og:title" content="Gemwright">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://github.com/gokaygurcan/gemwright">
+    <meta property="og:image" content="/poster.jpeg">
+    <meta property="og:image:width" content="3840">
+    <meta property="og:image:height" content="2160">
+    <meta property="og:image:alt" content="Gemwright">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="Gemwright">
+    <meta property="og:description" content="Forge your own shard">
+  </head>
+  <body>
+    <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="ClassicUO game client"></canvas>
+    <main id="loading" aria-live="polite">
+      <p id="status">Starting...</p>
+      <progress id="progress" aria-label="Preparing game files"></progress>
+      <p id="detail">Game files are stored in this browser for future visits.</p>
+      <button id="retry" type="button" hidden>Reload client</button>
+    </main>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

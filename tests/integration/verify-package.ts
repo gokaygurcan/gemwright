@@ -46,7 +46,21 @@ try {
     '--no-fund'
   ]);
   const cli = join(consumer, 'node_modules/.bin/gemwright');
-  assert.match(run(cli, ['--help']), /gemwright deploy/);
+  assert.match(run(cli, ['--help']), /gemwright deploy.*--client/);
+  for (const path of [
+    'client/Dockerfile',
+    'client/build.ts',
+    'client/.dockerignore',
+    'client/.railwayignore',
+    'client/web/main.ts',
+    'client/runtime/_framework/dotnet.js',
+    'client/runtime/licenses/WebClients.txt'
+  ])
+    assert.ok(
+      pack.files.some((file: { path: string }) => file.path === path),
+      `Missing web client file: ${path}`
+    );
+  assert.ok(pack.files.every((file: { path: string }) => !/^client\/(bundle|gamefiles|deploy\.ts)/.test(file.path)));
 
   await writeFile(
     join(bin, 'railway'),
@@ -64,6 +78,10 @@ else { console.error('STOP_BEFORE_PROVISIONING'); process.exitCode = 1; }
     const config = JSON.parse(await readFile(join(shard, 'gemwright.json'), 'utf8'));
     assert.equal(config.emulator, emulator);
     assert.match(config.source.revision, /^[a-f0-9]{40}$/);
+    assert.throws(
+      () => run(cli, ['deploy', '--client'], shard),
+      (error: unknown) => /requires --files/.test(String((error as { stderr?: string }).stderr))
+    );
     try {
       run(cli, ['deploy'], shard);
       assert.fail('Deployment must stop at the fake Railway CLI');
@@ -102,6 +120,12 @@ await "UO client files directory"
 set timeout 20
 send -- "\r"
 await "Allow players to create accounts"
+send -- "\r"
+await "Accounts allowed per IP address"
+send -- "\r"
+await "Enable global chat?"
+send -- "\r"
+await "Allowed clients"
 send -- "\r"
 await "Owner username"
 send -- "\r"

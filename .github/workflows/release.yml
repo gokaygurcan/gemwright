@@ -69,7 +69,7 @@ jobs:
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { createHash } from 'node:crypto';
-          import { appendFileSync, mkdirSync, readFileSync, renameSync } from 'node:fs';
+          import { appendFileSync, globSync, mkdirSync, readFileSync, renameSync, statSync } from 'node:fs';
           import { join } from 'node:path';
 
           const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -84,10 +84,14 @@ jobs:
           const pack = Array.isArray(result) ? result[0] : result[pkg.name];
           assert.equal(pack.version, pkg.version);
           const files = new Set(pack.files.map(file => file.path));
-          for (const path of files) {
-            assert.ok(/^(LICENSE|README\.md|package\.json|\.github\/small-forge\.png|dist\/index\.js|templates\/(servuo|sphere)\/(Dockerfile|[\w-]+\.sh)|patches\/[\w-]+\.patch)$/.test(path), `Unexpected package file: ${path}`);
+          const expected = new Set(['LICENSE', 'README.md', 'package.json']);
+          for (const pattern of pkg.files) {
+            const matches = globSync(pattern.endsWith('/') ? `${pattern}**/*` : pattern).filter(path => statSync(path).isFile());
+            assert.ok(matches.length, `No package files match: ${pattern}`);
+            for (const path of matches) expected.add(path);
           }
-          for (const path of [pkg.bin.gemwright, '.github/small-forge.png', 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`))])
+          assert.deepEqual(files, expected, 'Package contents must match package.json');
+          for (const path of [pkg.bin.gemwright, '.github/small-forge.png', 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`)), 'client/Dockerfile', 'client/runtime/_framework/dotnet.js', 'client/runtime/licenses/WebClients.txt'])
             assert.ok(files.has(path), `Missing runtime file: ${path}`);
 
           const directory = join(process.env.RUNNER_TEMP, 'npm-release');

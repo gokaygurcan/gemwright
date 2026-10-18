@@ -42,6 +42,11 @@ gemwright deploy
 
 ```bash
 # you need to provide your own game files, we do not ship them.
+
+# deploy both server and web client
+gemwright deploy --files /path/to/game-files --client
+
+# or deploy only server
 gemwright deploy --files /path/to/game-files
 ```
 
@@ -66,11 +71,11 @@ gemwright deploy --files /path/to/game-files
 - - [ ] POL Server?
 - - [ ] Moongate?
 - - [ ] ???
-- [ ] Web client
+- [x] Web client
 
 ## License
 
-Gemwright is licensed under the [MIT License](LICENSE). Server emulators, script packs, dependencies, and game assets retain their respective licenses and terms.
+Gemwright is licensed under the [MIT License](LICENSE). Server emulators, script packs, web clients, dependencies, and game assets retain their respective licenses and terms.
 
 ---
 

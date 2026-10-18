@@ -4,6 +4,8 @@ node_modules
 # output
 out
 dist
+/client/bundle/
+/client/bundle.next/
 *.tgz
 
 # code coverage

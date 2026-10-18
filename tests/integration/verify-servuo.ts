@@ -28,7 +28,7 @@ try {
   await copyFile(join(directory, 'Server/Persistence/FileOperations.cs'), join(harness, 'FileOperations.cs'));
   await copyFile(join(directory, 'Server', 'HostingOptions.cs'), join(harness, 'HostingOptions.cs'));
   await copyFile(
-    fileURLToPath(new URL('../servuo/HostingOptionsTests.cs', import.meta.url)),
+    fileURLToPath(new URL('./servuo/HostingOptionsTests.cs', import.meta.url)),
     join(harness, 'Program.cs')
   );
   await writeFile(

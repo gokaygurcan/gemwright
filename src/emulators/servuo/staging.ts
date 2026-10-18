@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { assetPath } from '../../assets';
 import type { ShardConfig } from '../../config';
 import { command } from '../../process';
-import { packageClientFiles as packageFiles } from '../client-files';
+import { packageClientFiles as packageFiles } from '../../client-files';
 import { configValue, setConfigValue } from './config';
 import { applyServuoCompatibility, servuoSource } from './source';
 

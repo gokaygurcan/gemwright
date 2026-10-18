@@ -109,7 +109,7 @@ try {
   );
   const context = await stageSphere(directory, config);
   await copyFile(
-    fileURLToPath(new URL('../sphere/HostingOptionsTests.cpp', import.meta.url)),
+    fileURLToPath(new URL('./sphere/HostingOptionsTests.cpp', import.meta.url)),
     join(context, 'hosting-options-test.cpp')
   );
   const dockerfile = join(context, 'Dockerfile');
@@ -131,7 +131,7 @@ FROM ubuntu:24.04
   const protocolDirectory = join(root, 'protocol');
   await mkdir(protocolDirectory);
   await copyFile(
-    fileURLToPath(new URL('../sphere/protocol.mjs', import.meta.url)),
+    fileURLToPath(new URL('./sphere/protocol.mjs', import.meta.url)),
     join(protocolDirectory, 'protocol.mjs')
   );
   const compression = await readFile(join(context, 'server/src/common/CEncrypt.cpp'), 'utf8');

@@ -3,10 +3,17 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import type { Emulator } from './config';
-import { deployments } from './emulators/deployment';
+import { deployClient } from './client-deploy';
+import { createManifest } from './client-files';
+import { type Emulator, loadShard } from './config';
+import { packageClientFiles as packageServuoFiles, stageServuo, validateServuoShard } from './emulators/servuo/staging';
+import { packageClientFiles as packageSphereFiles, stageSphere, validateSphereShard } from './emulators/sphere/staging';
 import { command, isAvailable } from './process';
-import { loadShard } from './shard';
+export const deployments = {
+  servuo: { label: 'ServUO', validate: validateServuoShard, stage: stageServuo, packageFiles: packageServuoFiles },
+  sphere: { label: 'Sphere', validate: validateSphereShard, stage: stageSphere, packageFiles: packageSphereFiles }
+};
+
 export interface RailwayState {
   projectName: string;
   emulator?: Emulator;
@@ -139,8 +146,15 @@ export async function ensureRailway(
   ]);
   return state;
 }
-export async function deploy(options: { files?: string }, directory = process.cwd()): Promise<void> {
+export async function deploy(options: { files?: string; client?: boolean }, directory = process.cwd()): Promise<void> {
   directory = resolve(directory);
+  const config = await loadShard(directory);
+  const sourcePath = options.files ?? config[config.emulator]?.clientFiles;
+  const clientPath = sourcePath ? resolve(directory, sourcePath) : undefined;
+  const webClientPath = options.client ? clientPath : undefined;
+  if (options.client && !webClientPath)
+    throw new Error('Deploying the web client requires --files <path> or clientFiles in gemwright.json.');
+  const webFiles = webClientPath ? await createManifest(webClientPath) : undefined;
   if (!(await isAvailable('railway')))
     throw new Error('Railway CLI is missing. Install it and log in before running gemwright deploy.');
   if (!(await isAvailable('git'))) throw new Error('Git is required to stage the recorded emulator source.');
@@ -151,7 +165,6 @@ export async function deploy(options: { files?: string }, directory = process.cw
   } catch {
     throw new Error('Railway is not logged in or cannot be reached. Run railway login and check your connection.');
   }
-  const config = await loadShard(directory);
   const emulator = deployments[config.emulator];
   await emulator.validate(directory, config);
   const recorded = await readFile(join(directory, '.gemwright/railway.json'), 'utf8').then(
@@ -163,10 +176,9 @@ export async function deploy(options: { files?: string }, directory = process.cw
   );
   if (recorded?.emulator && recorded.emulator !== config.emulator)
     throw new Error('The recorded Railway service belongs to another emulator. It was not changed.');
-  const clientPath = options.files ?? config[config.emulator]?.clientFiles;
   console.log(`Staging ${emulator.label} ${config.source!.revision.slice(0, 12)}...`);
   const context = await emulator.stage(directory, config);
-  const client = clientPath ? await emulator.packageFiles(directory, clientPath, config) : undefined;
+  const client = clientPath ? await emulator.packageFiles(directory, clientPath) : undefined;
   const state = await ensureRailway(directory, config.id, run);
   state.emulator = config.emulator;
   await saveState(directory, state);
@@ -237,4 +249,5 @@ export async function deploy(options: { files?: string }, directory = process.cw
   console.log(`Railway deployment active. Shard endpoint: ${proxies.proxies[0]?.endpoint ?? 'pending'}`);
   if (!client && !state.clientDigest)
     console.log('Waiting for client files. Rerun gemwright deploy --files <directory> to import them.');
+  if (webClientPath) await deployClient(directory, webClientPath, webFiles);
 }

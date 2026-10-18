@@ -13,7 +13,7 @@ async function docker(args: string[]): Promise<string> {
 }
 
 const name = `gemwright-recovery-${randomUUID()}`;
-const tests = fileURLToPath(new URL('../servuo', import.meta.url));
+const tests = fileURLToPath(new URL('./servuo', import.meta.url));
 try {
   await docker([
     'run',

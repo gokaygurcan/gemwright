@@ -1,7 +1,7 @@
 {
   "name": "gemwright",
   "description": "Forge your own shard",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -15,7 +15,11 @@
     "dist/index.js",
     "templates/",
     "patches/",
-    ".github/small-forge.png"
+    ".github/small-forge.png",
+    "client/{Dockerfile,railway.json,.dockerignore,.railwayignore}",
+    "client/{build,files,huffman,server}.ts",
+    "client/web/",
+    "client/runtime/"
   ],
   "engines": {
     "node": ">=24"
@@ -25,7 +29,7 @@
     "format": "biome format --write",
     "typecheck": "bun check",
     "test": "bun test",
-    "build": "bun build src/index.ts --target node --format esm --packages external --outfile dist/index.js",
+    "build": "bun client/build.ts && bun build src/index.ts --target node --format esm --packages external --outfile dist/index.js",
     "prepack": "bun run build"
   },
   "dependencies": {

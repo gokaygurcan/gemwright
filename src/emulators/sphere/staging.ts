@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { assetPath } from '../../assets';
 import type { ShardConfig } from '../../config';
 import { command } from '../../process';
-import { packageClientFiles as packageFiles } from '../client-files';
+import { packageClientFiles as packageFiles } from '../../client-files';
 import { sphereConfigValue } from './config';
 import { applySphereCompatibility, sphereSources } from './source';
 

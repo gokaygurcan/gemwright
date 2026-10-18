@@ -11,7 +11,7 @@ import { initialize } from './init';
 import { Cancelled } from './prompts';
 
 const help = `Usage: gemwright init [directory] [options]
-       gemwright deploy [--files <path>]
+       gemwright deploy [--files <path>] [--client]
 
 Options:
   --name <name>          Shard name (default: Gemwright)
@@ -21,6 +21,7 @@ Options:
   --git                 Initialize Git if outside a repository
   --yes                 Accept defaults for unanswered questions
   --files <path>        UO client files to import during deployment
+  --client              Also deploy the web client
   --help                Show this help`;
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
@@ -30,6 +31,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     strict: true,
     options: {
       files: { type: 'string' },
+      client: { type: 'boolean' },
       name: { type: 'string' },
       timezone: { type: 'string' },
       expansion: { type: 'string' },
@@ -45,12 +47,12 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   }
   const [command, directory, ...extra] = positionals;
   if (command === 'deploy') {
-    if (directory || extra.length || Object.keys(values).some((key) => key !== 'files'))
-      throw new Error('Usage: gemwright deploy [--files <path>]');
-    await deploy({ files: values.files });
+    if (directory || extra.length || Object.keys(values).some((key) => key !== 'files' && key !== 'client'))
+      throw new Error('Usage: gemwright deploy [--files <path>] [--client]');
+    await deploy({ files: values.files, client: values.client });
     return;
   }
-  if (values.files) throw new Error('--files is only supported by deploy.');
+  if (values.files || values.client) throw new Error('--files and --client are only supported by deploy.');
   if (command !== 'init') throw new Error(`Unknown command: ${command}. Run gemwright --help.`);
   if (extra.length) throw new Error('Expected at most one directory. Run gemwright --help.');
   await initialize({ directory, ...values });
