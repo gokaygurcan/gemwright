@@ -32,6 +32,7 @@ export interface RailwayState {
   volume?: string;
   clientDigest?: string;
   pendingClientDigest?: string;
+  mysql?: { service?: string; name: string; creating?: boolean };
 }
 export type RailwayCommand = <T>(args: string[]) => Promise<T>;
 async function saveState(directory: string, state: RailwayState): Promise<void> {
@@ -155,6 +156,57 @@ export async function ensureRailway(
   ]);
   return state;
 }
+export async function ensureRailwayMysql(directory: string, state: RailwayState, run: RailwayCommand): Promise<void> {
+  if (!state.project || !state.service) throw new Error('Provision the shard before adding MySQL.');
+  const projectFlags = ['--project', state.project, '--environment', state.environment];
+  const services = await run<{ id: string; name: string }[]>(['service', 'list', ...projectFlags, '--json']);
+  if (!state.mysql) {
+    if (services.some((service) => service.name.toLowerCase() === 'mysql'))
+      throw new Error('An unrecorded MySQL service already exists. It was not reused or replaced.');
+    await run(['link', ...projectFlags, '--service', state.service, '--json']);
+    state.mysql = { name: 'MySQL', creating: true };
+    await saveState(directory, state);
+    const created = await run<{ serviceId: string; serviceName: string }>(['add', '--database', 'mysql', '--json']);
+    if (!created.serviceId || !created.serviceName)
+      throw new Error('MySQL creation returned no service ID. Rerun deploy to discover the created service.');
+    state.mysql = { service: created.serviceId, name: created.serviceName };
+    await saveState(directory, state);
+  } else if (!state.mysql.service) {
+    const matches = services.filter((service) => service.name === state.mysql!.name);
+    if (!state.mysql.creating || matches.length !== 1)
+      throw new Error(
+        'Previous MySQL provisioning is incomplete. Inspect the Railway project before retrying; no duplicate was created.'
+      );
+    state.mysql = { service: matches[0]!.id, name: matches[0]!.name };
+    await saveState(directory, state);
+  } else {
+    const recorded = services.find((service) => service.id === state.mysql!.service);
+    if (!recorded) throw new Error('The recorded MySQL service is missing. It was not recreated automatically.');
+    state.mysql.name = recorded.name;
+    await saveState(directory, state);
+  }
+  const name = state.mysql.name;
+  if (!/^[A-Za-z0-9_-]+$/.test(name))
+    throw new Error(
+      'MySQL service name must contain letters, numbers, underscores or hyphens for reference variables.'
+    );
+  const reference = (key: string) => '${{' + name + '.' + key + '}}';
+  await run([
+    'variable',
+    'set',
+    ...projectFlags,
+    '--service',
+    state.service,
+    'MYSQLHOST=' + reference('RAILWAY_PRIVATE_DOMAIN'),
+    'MYSQLPORT=3306',
+    'MYSQLUSER=' + reference('MYSQLUSER'),
+    'MYSQLPASSWORD=' + reference('MYSQLPASSWORD'),
+    'MYSQLDATABASE=' + reference('MYSQLDATABASE'),
+    '--skip-deploys',
+    '--json'
+  ]);
+}
+
 export async function deploy(options: { files?: string; client?: boolean }, directory = process.cwd()): Promise<void> {
   directory = resolve(directory);
   const config = await loadShard(directory);
@@ -192,6 +244,10 @@ export async function deploy(options: { files?: string; client?: boolean }, dire
   const state = await ensureRailway(directory, config.id, run);
   state.emulator = config.emulator;
   await saveState(directory, state);
+  if (config.sphere?.mysql) {
+    console.log('Provisioning MySQL and linking the shard through Railway private networking...');
+    await ensureRailwayMysql(directory, state, run);
+  }
   const flags = ['--project', state.project!, '--environment', state.environment, '--service', state.service!];
   await run(['variable', 'set', ...flags, `TZ=${config.timezone}`, '--skip-deploys', '--json']);
   console.log('Uploading build context to Railway...');

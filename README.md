@@ -38,7 +38,12 @@ gemwright init --emulator sphere-x
 
 # use defaults for the remaining questions
 gemwright init --emulator sphere-x --yes
+
+# optionally add MySQL for Sphere/Sphere-X scripts
+gemwright init --emulator sphere-x --mysql --yes
 ```
+
+MySQL is off by default. When selected, `deploy` provisions a MySQL service in the same Railway project and supplies its connection details through environment variables. Scripts use `DB.CONNECT`, `DB.QUERY`, and `DB.EXECUTE`; world saves and accounts remain in files.
 
 ### Deploy to Railway
 

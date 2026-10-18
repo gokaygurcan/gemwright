@@ -171,6 +171,7 @@ export function createConfig(input: {
       !['modern', 'legacy'].includes(settings.mapSize) ||
       (settings.clientEncryption !== undefined &&
         !['encrypted', 'both', 'unencrypted'].includes(settings.clientEncryption)) ||
+      (settings.mysql !== undefined && typeof settings.mysql !== 'boolean') ||
       (settings.clientFiles !== undefined && typeof settings.clientFiles !== 'string')
     )
       throw new Error('Invalid Sphere settings or scripts source.');

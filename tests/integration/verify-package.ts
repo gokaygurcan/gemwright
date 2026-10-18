@@ -74,10 +74,21 @@ else { console.error('STOP_BEFORE_PROVISIONING'); process.exitCode = 1; }
   await chmod(join(bin, 'railway'), 0o755);
   for (const emulator of ['servuo', 'sphere', 'sphere-x', 'runuo', 'modernuo']) {
     const shard = join(temporary, emulator);
-    run(cli, ['init', shard, '--emulator', emulator, '--timezone', 'Europe/London', '--yes']);
+    const mysql = emulator === 'sphere' || emulator === 'sphere-x';
+    run(cli, [
+      'init',
+      shard,
+      '--emulator',
+      emulator,
+      '--timezone',
+      'Europe/London',
+      '--yes',
+      ...(mysql ? ['--mysql'] : [])
+    ]);
     const config = JSON.parse(await readFile(join(shard, 'gemwright.json'), 'utf8'));
     assert.equal(config.emulator, emulator);
     assert.match(config.source.revision, /^[a-f0-9]{40}$/);
+    if (mysql) assert.equal(config.sphere.mysql, true);
     assert.throws(
       () => run(cli, ['deploy', '--client'], shard),
       (error: unknown) => /requires --files/.test(String((error as { stderr?: string }).stderr))
@@ -90,6 +101,7 @@ else { console.error('STOP_BEFORE_PROVISIONING'); process.exitCode = 1; }
     }
     const context = join(shard, '.gemwright/deploy');
     assert.match(await readFile(join(context, 'Dockerfile'), 'utf8'), /FROM/);
+    if (mysql) assert.match(await readFile(join(context, 'Dockerfile'), 'utf8'), /ENV GEMWRIGHT_MYSQL=1/);
     assert.match(await readFile(join(context, 'start.sh'), 'utf8'), /^#!\/bin\/sh/);
     const sphere = emulator === 'sphere' || emulator === 'sphere-x';
     const ini = sphere

@@ -9,17 +9,19 @@ import chalk from 'chalk';
 import { deploy } from './deploy';
 import { initialize } from './init';
 import { Cancelled } from './prompts';
+import { updateNotice } from './update';
 
 const help = `Usage: gemwright init [directory] [options]
        gemwright deploy [--files <path>] [--client]
 
 Options:
-  --name <name>          Shard name (default: Gemwright)
+  --name <name>         Shard name (default: Gemwright)
   --timezone <timezone> IANA timezone (default: local zone or Europe/London)
   --expansion <code>    Expansion (default: ej)
   --emulator <name>     Server emulator: servuo, sphere, sphere-x, runuo or modernuo (default: servuo)
   --git                 Initialize Git if outside a repository
   --yes                 Accept defaults for unanswered questions
+  --mysql               Add MySQL for Sphere/Sphere-X scripts during deployment
   --files <path>        UO client files to import during deployment
   --client              Also deploy the web client
   --help                Show this help`;
@@ -38,6 +40,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       emulator: { type: 'string' },
       git: { type: 'boolean' },
       yes: { type: 'boolean' },
+      mysql: { type: 'boolean' },
       help: { type: 'boolean' }
     }
   });
@@ -59,6 +62,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const notice = updateNotice();
   try {
     await main();
   } catch (error) {
@@ -67,5 +71,8 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
       process.exitCode = 1;
     }
+  } finally {
+    const message = await notice;
+    if (message) console.error(`\n${chalk.yellow(message)}\n`);
   }
 }

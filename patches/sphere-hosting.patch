@@ -1,3 +1,39 @@
+diff --git i/src/common/CDataBase.cpp w/src/common/CDataBase.cpp
+index f32fcf5..38e07bd 100644
+--- i/src/common/CDataBase.cpp
++++ w/src/common/CDataBase.cpp
+@@ -1,3 +1,4 @@
++#include "../graysvr/HostingOptions.h"
+ #include "CDataBase.h"
+ #include "../sphere/asyncdb.h"
+ 
+@@ -42,20 +43,20 @@ void CDataBase::Connect()
+ 	mysql_options(m_socket, MYSQL_OPT_GET_SERVER_PUBLIC_KEY, &fGetServerPublicKey);
+ 
+ 	char szHost[CONNECT_STRING_MAXLEN];
+-	strncpy(szHost, g_Cfg.m_sMySqlHost, COUNTOF(szHost));
++	strncpy(szHost, Gemwright::MysqlFromEnv ? Gemwright::MysqlValue("MYSQLHOST") : g_Cfg.m_sMySqlHost.GetPtr(), COUNTOF(szHost));
+ 	szHost[COUNTOF(szHost) - 1] = '\0';
+ 
+-	unsigned int uPort = MYSQL_PORT;
+-	char *pszPort = strchr(szHost, ':');
++	unsigned int uPort = Gemwright::MysqlFromEnv ? Gemwright::MysqlPort : MYSQL_PORT;
++	char *pszPort = Gemwright::MysqlFromEnv ? nullptr : strchr(szHost, ':');
+ 	if ( pszPort )
+ 	{
+ 		*pszPort = '\0';
+ 		uPort = static_cast<unsigned int>(ATOI(pszPort + 1));
+ 	}
+ 
+-	const char *pszUser = g_Cfg.m_sMySqlUser;
+-	const char *pszPass = g_Cfg.m_sMySqlPass;
+-	const char *pszDB = g_Cfg.m_sMySqlDB;
++	const char *pszUser = Gemwright::MysqlFromEnv ? Gemwright::MysqlValue("MYSQLUSER") : g_Cfg.m_sMySqlUser.GetPtr();
++	const char *pszPass = Gemwright::MysqlFromEnv ? Gemwright::MysqlValue("MYSQLPASSWORD") : g_Cfg.m_sMySqlPass.GetPtr();
++	const char *pszDB = Gemwright::MysqlFromEnv ? Gemwright::MysqlValue("MYSQLDATABASE") : g_Cfg.m_sMySqlDB.GetPtr();
+ 
+ 	if ( mysql_real_connect(m_socket, szHost, pszUser, pszPass, pszDB, uPort, NULL, CLIENT_MULTI_STATEMENTS) )
+ 	{
 diff --git i/src/graysvr/CAccount.cpp w/src/graysvr/CAccount.cpp
 index 2790d82..61ff636 100644
 --- i/src/graysvr/CAccount.cpp
@@ -113,12 +149,14 @@ index 1788e12..fbf8b05 100644
  	if ( tcsetattr(STDIN_FILENO, TCSANOW, &m_terminal) != 0 )
 diff --git i/src/graysvr/HostingOptions.h w/src/graysvr/HostingOptions.h
 new file mode 100644
-index 0000000..dfb45c9
+index 0000000..9d2567e
 --- /dev/null
 +++ w/src/graysvr/HostingOptions.h
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,102 @@
 +#ifndef GEMWRIGHT_HOSTING_OPTIONS_H
 +#define GEMWRIGHT_HOSTING_OPTIONS_H
++#include "../common/graycom.h"
++#include "../common/CSocket.h"
 +#include <cstdlib>
 +#include <filesystem>
 +#include <stdexcept>
@@ -126,6 +164,16 @@ index 0000000..dfb45c9
 +
 +namespace Gemwright
 +{
++    inline bool MysqlFromEnv = false;
++    inline unsigned int MysqlPort = 3306;
++
++    inline const char *MysqlValue(const char *name)
++    {
++        const char *value = std::getenv(name);
++        if (!value || !value[0]) throw std::invalid_argument(std::string("Missing MySQL environment variable: ") + name);
++        return value;
++    }
++
 +    inline bool HasPublic = false;
 +    inline bool HasListener = false;
 +    inline bool RailwayProxy = false;
@@ -164,11 +212,24 @@ index 0000000..dfb45c9
 +            const std::string option(argv[index]);
 +            if (option == "--help")
 +            {
++                std::puts("--mysql-env         Read MySQL connection details from MYSQL* environment variables.");
 +                std::puts("--listen host:port  Bind without changing shard config.");
 +                std::puts("--public host:port  Advertise the public login relay endpoint.");
 +                std::puts("--railway-proxy     Exempt shared proxy peers from per-IP limits.");
 +                std::puts("--shutdown-file path  Save and exit when this marker appears.");
 +                return false;
++            }
++            if (option == "--mysql-env")
++            {
++                for (const auto name : {"MYSQLHOST", "MYSQLUSER", "MYSQLPASSWORD", "MYSQLDATABASE"}) MysqlValue(name);
++                const std::string port = MysqlValue("MYSQLPORT");
++                if (port.find_first_not_of("0123456789") != std::string::npos)
++                    throw std::invalid_argument("MySQL port must be an integer from 1 to 65535.");
++                const auto number = std::stoul(port);
++                if (number == 0 || number > 65535) throw std::invalid_argument("MySQL port must be from 1 to 65535.");
++                MysqlPort = static_cast<unsigned int>(number);
++                MysqlFromEnv = true;
++                continue;
 +            }
 +            if (option == "--railway-proxy") { RailwayProxy = true; continue; }
 +            if (option != "--listen" && option != "--public" && option != "--shutdown-file")

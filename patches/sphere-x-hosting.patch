@@ -20,6 +20,33 @@ index 65f345a..2a3db46 100644
          CACHE INTERNAL STRING
      )
      set(custom_link_options_nightly
+diff --git i/src/common/CDataBase.cpp w/src/common/CDataBase.cpp
+index d8b9fd4..a8ca95a 100644
+--- i/src/common/CDataBase.cpp
++++ w/src/common/CDataBase.cpp
+@@ -1,3 +1,4 @@
++#include "../game/HostingOptions.h"
+ #include "../game/CServerConfig.h"
+ #include "../game/CServer.h"
+ #include "../game/CServerTime.h"
+@@ -50,8 +51,16 @@ bool CDataBase::Connect(const char *user, const char *password, const char *base
+ 		return false;
+ 
+ 	int portnum = 0;
++    if (Gemwright::MysqlFromEnv)
++    {
++        user = Gemwright::MysqlValue("MYSQLUSER");
++        password = Gemwright::MysqlValue("MYSQLPASSWORD");
++        base = Gemwright::MysqlValue("MYSQLDATABASE");
++        host = Gemwright::MysqlValue("MYSQLHOST");
++        portnum = static_cast<int>(Gemwright::MysqlPort);
++    }
+ 	const char *port = nullptr;
+-	if ( (port = strchr(host, ':')) != nullptr )
++	if ( !Gemwright::MysqlFromEnv && (port = strchr(host, ':')) != nullptr )
+ 	{
+ 		char *pcTemp = Str_GetTemp();
+ 		Str_CopyLimitNull(pcTemp, host, Str_TempLength());
 diff --git i/src/game/CServer.cpp w/src/game/CServer.cpp
 index 75b496d..ad238f3 100644
 --- i/src/game/CServer.cpp
@@ -96,10 +123,10 @@ index 9720068..2ccbf97 100644
              pObj);
 diff --git i/src/game/HostingOptions.h w/src/game/HostingOptions.h
 new file mode 100644
-index 0000000..f040cd7
+index 0000000..e8106e9
 --- /dev/null
 +++ w/src/game/HostingOptions.h
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,101 @@
 +#ifndef GEMWRIGHT_HOSTING_OPTIONS_H
 +#define GEMWRIGHT_HOSTING_OPTIONS_H
 +#include "../network/CSocket.h"
@@ -110,6 +137,16 @@ index 0000000..f040cd7
 +
 +namespace Gemwright
 +{
++    inline bool MysqlFromEnv = false;
++    inline unsigned int MysqlPort = 3306;
++
++    inline const char *MysqlValue(const char *name)
++    {
++        const char *value = std::getenv(name);
++        if (!value || !value[0]) throw std::invalid_argument(std::string("Missing MySQL environment variable: ") + name);
++        return value;
++    }
++
 +    inline bool HasPublic = false;
 +    inline bool HasListener = false;
 +    inline bool RailwayProxy = false;
@@ -148,11 +185,24 @@ index 0000000..f040cd7
 +            const std::string option(argv[index]);
 +            if (option == "--help")
 +            {
++                std::puts("--mysql-env         Read MySQL connection details from MYSQL* environment variables.");
 +                std::puts("--listen host:port  Bind without changing shard config.");
 +                std::puts("--public host:port  Advertise the public login relay endpoint.");
 +                std::puts("--railway-proxy     Exempt shared proxy peers from per-IP limits.");
 +                std::puts("--shutdown-file path  Save and exit when this marker appears.");
 +                return false;
++            }
++            if (option == "--mysql-env")
++            {
++                for (const auto name : {"MYSQLHOST", "MYSQLUSER", "MYSQLPASSWORD", "MYSQLDATABASE"}) MysqlValue(name);
++                const std::string port = MysqlValue("MYSQLPORT");
++                if (port.find_first_not_of("0123456789") != std::string::npos)
++                    throw std::invalid_argument("MySQL port must be an integer from 1 to 65535.");
++                const auto number = std::stoul(port);
++                if (number == 0 || number > 65535) throw std::invalid_argument("MySQL port must be from 1 to 65535.");
++                MysqlPort = static_cast<unsigned int>(number);
++                MysqlFromEnv = true;
++                continue;
 +            }
 +            if (option == "--railway-proxy") { RailwayProxy = true; continue; }
 +            if (option != "--listen" && option != "--public" && option != "--shutdown-file")

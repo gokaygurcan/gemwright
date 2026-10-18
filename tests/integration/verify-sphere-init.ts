@@ -80,6 +80,8 @@ await "NPC intelligence"
 send -- "\r"
 await "Allow players to create accounts"
 send -- "\r"
+await "Add a MySQL database for scripts?"
+send -- "\r"
 await "Owner username"
 send -- "sphere_owner\r"
 await "Owner password"
@@ -104,6 +106,7 @@ exit [lindex $result 3]
   assert.equal(config.sphere.mapSize, 'legacy');
   assert.equal(config.sphere.owner, 'sphere_owner');
   assert.equal(config.sphere.autoCreateAccounts, false);
+  assert.equal(config.sphere.mysql, undefined);
   assert.match(config.source.revision, /^[a-f0-9]{40}$/);
   assert.match(config.sphere.scriptsSource.revision, /^[a-f0-9]{40}$/);
   assert.equal(await Bun.file(join(target, '.git/HEAD')).exists(), false);
@@ -148,6 +151,10 @@ await "NPC intelligence"
 send -- "a\r"
 await "Allow players to create accounts"
 send -- "\r"
+await "Add a MySQL database for scripts?"
+send -- "\033\[C"
+after 100
+send -- "\r"
 await "Owner username"
 send -- "\r"
 await "Owner password"
@@ -164,6 +171,8 @@ exit [lindex $result 3]
   );
   const customConfig = JSON.parse(await readFile(join(custom, 'gemwright.json'), 'utf8'));
   assert.equal(customConfig.adminEmail, 'owner@example.org');
+  assert.equal(customConfig.sphere.mysql, true);
+  assert.match(await readFile(join(custom, 'sphere.ini'), 'latin1'), /MySQL=1/);
   assert.equal(customConfig.sphere.rules.combatFlags, 0x3fff);
   assert.equal(customConfig.sphere.rules.damageEra, 2);
   assert.equal(customConfig.sphere.rules.hitChanceEra, 2);

@@ -28,6 +28,7 @@ export function sphereFixture(): InstanceFiles {
     AutoAccountCreation: '0',
     Md5Passwords: '0',
     SavePeriod: '20',
+    MySQL: '0',
     FeatureT2A: '01|02',
     FeatureLBR: '0',
     FeatureAOS: '0',

@@ -37,6 +37,7 @@ export interface InitOptions {
   emulator?: string;
   git?: boolean;
   yes?: boolean;
+  mysql?: boolean;
 }
 
 export async function initialize(
@@ -86,6 +87,8 @@ export async function initialize(
             options: [...emulators]
           })
         ));
+  if (options.mysql && emulator !== 'sphere' && emulator !== 'sphere-x')
+    throw new Error('--mysql is only supported by Sphere and Sphere-X.');
   if (emulator === 'sphere' || emulator === 'sphere-x') {
     const error = validateSphereName(name);
     if (error) throw new Error(error);
@@ -167,7 +170,7 @@ export async function initialize(
     files = result.files;
     generatedPassword = result.generatedPassword;
   } else if (sphereSources) {
-    const result = await initializeSphere(config, sphereSources, options.yes, loadSphereFiles);
+    const result = await initializeSphere(config, sphereSources, options.yes, loadSphereFiles, options.mysql);
     config = createConfig({ ...config, sphere: result.settings });
     files = result.files;
     generatedPassword = result.generatedPassword;

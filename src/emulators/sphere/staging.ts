@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
+import { appendFile, cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { assetPath } from '../../assets';
@@ -31,6 +31,8 @@ export async function validateSphereShard(directory: string, config: ShardConfig
     if (sphereConfigValue(ini, key) !== value)
       throw new Error(`Sphere deployment currently requires ${key}=${value}. Config was not changed.`);
   }
+  if (config.sphere?.mysql && sphereConfigValue(ini, 'MySQL') !== '1')
+    throw new Error('MySQL is enabled in gemwright.json but sphere.ini must also contain MySQL=1.');
   for (const folder of ['scripts', 'accounts', 'save']) {
     if (!(await stat(join(directory, folder))).isDirectory()) throw new Error(`Missing Sphere ${folder} directory.`);
   }
@@ -60,6 +62,7 @@ export async function stageSphere(directory: string, config: ShardConfig): Promi
       ),
       join(context, target)
     );
+  if (config.sphere?.mysql) await appendFile(join(context, 'Dockerfile'), '\nENV GEMWRIGHT_MYSQL=1\n');
   return context;
 }
 

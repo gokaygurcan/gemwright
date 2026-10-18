@@ -21,7 +21,8 @@ export async function initializeSphere(
   config: ShardConfig,
   sources: SphereSources,
   yes = false,
-  loadFiles = fetchSphereFiles
+  loadFiles = fetchSphereFiles,
+  mysqlOption?: boolean
 ) {
   let generatedPassword: string | undefined;
 
@@ -126,6 +127,21 @@ export async function initializeSphere(
           initialValue: registration === (config.emulator === 'sphere-x' ? '2' : '1')
         })
       );
+  const mysql =
+    mysqlOption ??
+    (yes
+      ? false
+      : answer(
+          await prompts.confirm({
+            message: 'Add a MySQL database for scripts?',
+            initialValue: false
+          })
+        ));
+  if (mysql && !yes)
+    prompts.note(
+      'Deploy will provision MySQL on Railway and connect it through environment variables. Scripts can use DB.CONNECT, DB.QUERY and DB.EXECUTE. World saves and accounts stay in files.',
+      'MySQL'
+    );
   const owner = yes
     ? 'admin'
     : answer(
@@ -147,6 +163,7 @@ export async function initializeSphere(
   if (!password) password = generatedPassword = generatedOwnerPassword();
   const settings: SphereSettings = {
     scriptsSource: sources.scripts,
+    ...(mysql ? { mysql: true } : {}),
     ...(clientFiles ? { clientFiles: resolve(clientFiles) } : {}),
     autoCreateAccounts,
     clientEncryption,

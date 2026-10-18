@@ -12,6 +12,7 @@ import { type SphereSources, sourcesFor } from './source';
 
 export interface SphereSettings {
   scriptsSource: EmulatorSource;
+  mysql?: boolean;
   clientFiles?: string;
   autoCreateAccounts: boolean;
   owner: string;
@@ -159,6 +160,7 @@ export function prepareSphereFiles(
       : { AutoAccountCreation: settings.autoCreateAccounts ? '1' : '0' }),
     Md5Passwords: '1'
   };
+  if (settings.mysql !== undefined) updates.MySQL = settings.mysql ? '1' : '0';
   if (settings.clientEncryption !== undefined) {
     if (!['encrypted', 'both', 'unencrypted'].includes(settings.clientEncryption))
       throw new Error('Invalid Sphere client encryption mode.');

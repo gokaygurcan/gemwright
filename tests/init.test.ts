@@ -6,12 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 import * as prompts from '@clack/prompts';
 
-import { upstreamConfig } from './servuo/config-fixture';
-import { sphereFixture, sphereSettings } from './sphere/config-fixture';
 import { servuoSource } from '../src/emulators/servuo/source';
 import { defaultRules } from '../src/emulators/sphere/rules-prompts';
 import { sphereSources } from '../src/emulators/sphere/source';
 import { initialize } from '../src/init';
+import { upstreamConfig } from './servuo/config-fixture';
+import { sphereFixture, sphereSettings } from './sphere/config-fixture';
 
 const loadConfig = async () => ({ ...upstreamConfig });
 const source = { repository: servuoSource.repository, ref: 'pub57', revision: 'a'.repeat(40) };
@@ -188,4 +188,23 @@ test('--client is only accepted by deploy and requires game files', async () => 
   const deploy = await run(['deploy', '--client'], directory);
   expect(deploy.code).toBe(1);
   expect(deploy.stderr).toContain('requires --files');
+});
+
+test('--mysql is accepted for Sphere and rejected for other emulators without writing files', async () => {
+  const directory = await temporaryFolder();
+  const rejected = await run(['init', '--emulator', 'servuo', '--mysql', '--yes'], directory);
+  expect(rejected.code).toBe(1);
+  expect(rejected.stderr).toContain('--mysql is only supported by Sphere and Sphere-X');
+  await expect(stat(join(directory, 'gemwright.json'))).rejects.toThrow();
+  const pair = { server: { ...sphereSources.server, revision: 'a'.repeat(40) }, scripts: sphereSettings.scriptsSource };
+  await initialize(
+    { directory, emulator: 'sphere', mysql: true, yes: true },
+    async () => source,
+    loadConfig,
+    async () => pair,
+    async () => sphereFixture()
+  );
+  const config = JSON.parse(await readFile(join(directory, 'gemwright.json'), 'utf8'));
+  expect(config.sphere.mysql).toBe(true);
+  expect(await readFile(join(directory, 'sphere.ini'), 'utf8')).toContain('MySQL=1');
 });

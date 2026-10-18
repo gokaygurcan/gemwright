@@ -1,0 +1,13 @@
+[FUNCTION f_gemwright_mysql_write]
+DB.CONNECT
+DB.EXECUTE CREATE TABLE IF NOT EXISTS gemwright_test (id INT PRIMARY KEY, value VARCHAR(32))
+DB.EXECUTE INSERT INTO gemwright_test VALUES (1, 'persisted') ON DUPLICATE KEY UPDATE value='persisted'
+f_gemwright_mysql_read
+
+[FUNCTION f_gemwright_mysql_read]
+DB.CLOSE
+DB.CONNECT
+DB.QUERY SELECT value FROM gemwright_test WHERE id=1
+SERV.LOG GEMWRIGHT_MYSQL_READ=<DB.ROW.0.value>
+
+[EOF]
