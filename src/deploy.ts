@@ -6,11 +6,20 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { deployClient } from './client-deploy';
 import { createManifest } from './client-files';
 import { type Emulator, loadShard } from './config';
+import { stageDotnet, validateDotnetShard } from './emulators/dotnet/staging';
 import { packageClientFiles as packageServuoFiles, stageServuo, validateServuoShard } from './emulators/servuo/staging';
 import { packageClientFiles as packageSphereFiles, stageSphere, validateSphereShard } from './emulators/sphere/staging';
 import { command, isAvailable } from './process';
 export const deployments = {
+  runuo: { label: 'RunUO', validate: validateDotnetShard, stage: stageDotnet, packageFiles: packageServuoFiles },
+  modernuo: { label: 'ModernUO', validate: validateDotnetShard, stage: stageDotnet, packageFiles: packageServuoFiles },
   servuo: { label: 'ServUO', validate: validateServuoShard, stage: stageServuo, packageFiles: packageServuoFiles },
+  'sphere-x': {
+    label: 'Sphere-X',
+    validate: validateSphereShard,
+    stage: stageSphere,
+    packageFiles: packageSphereFiles
+  },
   sphere: { label: 'Sphere', validate: validateSphereShard, stage: stageSphere, packageFiles: packageSphereFiles }
 };
 
@@ -149,7 +158,8 @@ export async function ensureRailway(
 export async function deploy(options: { files?: string; client?: boolean }, directory = process.cwd()): Promise<void> {
   directory = resolve(directory);
   const config = await loadShard(directory);
-  const sourcePath = options.files ?? config[config.emulator]?.clientFiles;
+  const sourcePath =
+    options.files ?? (config.emulator === 'sphere-x' ? config.sphere : config[config.emulator])?.clientFiles;
   const clientPath = sourcePath ? resolve(directory, sourcePath) : undefined;
   const webClientPath = options.client ? clientPath : undefined;
   if (options.client && !webClientPath)

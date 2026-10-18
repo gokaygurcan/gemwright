@@ -1,11 +1,10 @@
-import { createHash } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { EmulatorSource, Expansion, ShardConfig } from '../../config';
 import { command } from '../../process';
-import { validateOwner, validateOwnerPassword } from '../accounts';
+import { ownerAccountXml, validateOwner, validateOwnerPassword } from '../accounts';
 
 export interface ServuoSettings {
   clientFiles?: string;
@@ -137,21 +136,14 @@ export function prepareServuoFiles(
 
   // Match ServUO's ASCII hash input and BitConverter.ToString output.
   const protection = configValue(files['Config/Accounts.cfg']!, 'ProtectPasswords');
-  const hashes: Record<string, { algorithm: string; element: string; input: string }> = {
-    Crypt: { algorithm: 'md5', element: 'cryptPassword', input: password },
-    NewCrypt: { algorithm: 'sha1', element: 'newCryptPassword', input: settings.owner + password },
-    NewSecureCrypt: { algorithm: 'sha512', element: 'newSecureCryptPassword', input: settings.owner + password }
+  const hashes: Record<string, { algorithm: string; element: string }> = {
+    Crypt: { algorithm: 'md5', element: 'cryptPassword' },
+    NewCrypt: { algorithm: 'sha1', element: 'newCryptPassword' },
+    NewSecureCrypt: { algorithm: 'sha512', element: 'newSecureCryptPassword' }
   };
   const hash = protection ? hashes[protection] : undefined;
   if (!hash) throw new Error(`Unsupported upstream password protection: ${protection}. No files were written.`);
-  const digest = createHash(hash.algorithm)
-    .update(hash.input, 'ascii')
-    .digest('hex')
-    .toUpperCase()
-    .match(/../g)!
-    .join('-');
-  files['Saves/Accounts/accounts.xml'] =
-    `<?xml version="1.0" encoding="utf-8"?>\n<accounts count="1">\n  <account>\n    <username>${settings.owner}</username>\n    <${hash.element}>${digest}</${hash.element}>\n    <accessLevel>Owner</accessLevel>\n  </account>\n</accounts>\n`;
+  files['Saves/Accounts/accounts.xml'] = ownerAccountXml(settings.owner, password, hash.algorithm, hash.element);
   files['.gitignore'] = 'Saves/\nBackups/\nLogs/\ndata/client/\n.gemwright/\n';
   return files;
 }

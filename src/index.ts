@@ -17,7 +17,7 @@ Options:
   --name <name>          Shard name (default: Gemwright)
   --timezone <timezone> IANA timezone (default: local zone or Europe/London)
   --expansion <code>    Expansion (default: ej)
-  --emulator <name>     Server emulator: servuo or sphere (default: servuo)
+  --emulator <name>     Server emulator: servuo, sphere, sphere-x, runuo or modernuo (default: servuo)
   --git                 Initialize Git if outside a repository
   --yes                 Accept defaults for unanswered questions
   --files <path>        UO client files to import during deployment

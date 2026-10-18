@@ -1,0 +1,295 @@
+diff --git i/cmake/CompilerFlagsBase.cmake w/cmake/CompilerFlagsBase.cmake
+index 65f345a..2a3db46 100644
+--- i/cmake/CompilerFlagsBase.cmake
++++ w/cmake/CompilerFlagsBase.cmake
+@@ -122,7 +122,7 @@ if(NOT MSVC)
+ 
+     set(custom_compile_options_release
+         ${local_compile_options_nondebug}
+-        -flto=full
++        -flto
+         -ffunction-sections
+         -fdata-sections
+         #-fno-unique-section-names
+@@ -139,7 +139,7 @@ if(NOT MSVC)
+ 
+     set(custom_link_options_release
+         ${local_link_options_nondebug}
+-        -flto=full
++        -flto
+         CACHE INTERNAL STRING
+     )
+     set(custom_link_options_nightly
+diff --git i/src/game/CServer.cpp w/src/game/CServer.cpp
+index 75b496d..ad238f3 100644
+--- i/src/game/CServer.cpp
++++ w/src/game/CServer.cpp
+@@ -1,3 +1,4 @@
++#include "HostingOptions.h"
+ 
+ #ifdef _WIN32
+ 	#include "../sphere/ntservice.h"    // g_Service
+@@ -2549,7 +2550,7 @@ bool CServer::SocketsInit( CSocket & socket )
+ 	}
+ #endif
+ 	// Bind to just one specific port if they say so.
+-	CSocketAddress SockAddr = m_ip;
++	CSocketAddress SockAddr = Gemwright::HasListener ? Gemwright::Listener : m_ip;
+ 	// if ( fGod )
+ 	//	SockAddr.SetPort(( g_Cfg.m_iUseGodPort > 1 ) ? g_Cfg.m_iUseGodPort : m_ip.GetPort()+1000);
+ 
+@@ -2659,6 +2660,24 @@ void CServer::SocketsClose()
+ void CServer::_OnTick()
+ {
+ 	ADDTOCALLSTACK("CServer::_OnTick");
++    if (!Gemwright::ShutdownFile.empty() && std::filesystem::exists(Gemwright::ShutdownFile))
++    {
++        const auto previousSave = g_World.m_iSaveCountID;
++        if (!g_World.Save(true) || g_World.IsSaving() || previousSave == g_World.m_iSaveCountID)
++        {
++            SetExitFlag(-10);
++            return;
++        }
++        std::error_code error;
++        if (!std::filesystem::remove(Gemwright::ShutdownFile, error) || error)
++        {
++            SetExitFlag(-10);
++            return;
++        }
++        Gemwright::ShutdownSucceeded = true;
++        SetExitFlag(2);
++        return;
++    }
+ 	EXC_TRY("Tick");
+ 
+ #ifndef _WIN32
+diff --git i/src/game/CWorldTicker.cpp w/src/game/CWorldTicker.cpp
+index 9720068..2ccbf97 100644
+--- i/src/game/CWorldTicker.cpp
++++ w/src/game/CWorldTicker.cpp
+@@ -792,7 +792,7 @@ bool CWorldTicker::AddObjStatusUpdate(CObjBase* pObj, bool fNeedsLock) // static
+ 
+     if (pObj->_fIsInStatusUpdatesAddList)
+     {
+-        const auto itEntryInAddList = std::find(
++        [[maybe_unused]] const auto itEntryInAddList = std::find(
+             _vObjStatusUpdatesAddRequests.cbegin(),
+             _vObjStatusUpdatesAddRequests.cend(),
+             pObj);
+@@ -862,7 +862,7 @@ bool CWorldTicker::DelObjStatusUpdate(CObjBase* pObj, bool fNeedsLock) // static
+         // What's happening: it has the flag, so it must be in the add list. Ensure it, and remove it from there.
+         //  We are reasonably sure that there isn't another entry in the main ticking list, because we would have gotten an error
+         //  trying to append a request to the add list.
+-        const auto itEntryInAddList = std::find(
++        [[maybe_unused]] const auto itEntryInAddList = std::find(
+             _vObjStatusUpdatesAddRequests.cbegin(),
+             _vObjStatusUpdatesAddRequests.cend(),
+             pObj);
+@@ -892,7 +892,7 @@ bool CWorldTicker::DelObjStatusUpdate(CObjBase* pObj, bool fNeedsLock) // static
+         pObj);
+     if (_vObjStatusUpdatesEraseRequests.cend() != itEntryInRemoveList)
+     {
+-        const auto itEntryInAddList = std::find(
++        [[maybe_unused]] const auto itEntryInAddList = std::find(
+             _vObjStatusUpdatesAddRequests.cbegin(),
+             _vObjStatusUpdatesAddRequests.cend(),
+             pObj);
+diff --git i/src/game/HostingOptions.h w/src/game/HostingOptions.h
+new file mode 100644
+index 0000000..f040cd7
+--- /dev/null
++++ w/src/game/HostingOptions.h
+@@ -0,0 +1,78 @@
++#ifndef GEMWRIGHT_HOSTING_OPTIONS_H
++#define GEMWRIGHT_HOSTING_OPTIONS_H
++#include "../network/CSocket.h"
++#include <cstdlib>
++#include <filesystem>
++#include <stdexcept>
++#include <string>
++
++namespace Gemwright
++{
++    inline bool HasPublic = false;
++    inline bool HasListener = false;
++    inline bool RailwayProxy = false;
++    inline bool ShutdownSucceeded = false;
++    inline CSocketAddress PublicEndpoint;
++    inline CSocketAddress Listener;
++    inline std::string ShutdownFile;
++
++    inline CSocketAddress ParseEndpoint(const std::string &value)
++    {
++        const auto separator = value.rfind(':');
++        if (separator == std::string::npos || separator == 0)
++            throw std::invalid_argument("Expected an IPv4 hostname or address followed by :port.");
++        const auto portString = value.substr(separator + 1);
++        if (portString.empty() || portString.find_first_not_of("0123456789") != std::string::npos)
++            throw std::invalid_argument("Endpoint port must be an integer from 1 to 65535.");
++        const auto port = std::stoul(portString);
++        if (port == 0 || port > 65535)
++            throw std::invalid_argument("Endpoint port must be from 1 to 65535.");
++        addrinfo hints = {}, *result = nullptr;
++        hints.ai_family = AF_INET;
++        hints.ai_socktype = SOCK_STREAM;
++        if (getaddrinfo(value.substr(0, separator).c_str(), nullptr, &hints, &result) != 0 || !result)
++            throw std::invalid_argument("Could not resolve endpoint IPv4 address.");
++        CSocketAddress endpoint;
++        endpoint.SetAddrIP(reinterpret_cast<sockaddr_in *>(result->ai_addr)->sin_addr.s_addr);
++        endpoint.SetPort(static_cast<word>(port));
++        freeaddrinfo(result);
++        return endpoint;
++    }
++
++    inline bool Parse(int argc, char **argv)
++    {
++        for (int index = 1; index < argc; ++index)
++        {
++            const std::string option(argv[index]);
++            if (option == "--help")
++            {
++                std::puts("--listen host:port  Bind without changing shard config.");
++                std::puts("--public host:port  Advertise the public login relay endpoint.");
++                std::puts("--railway-proxy     Exempt shared proxy peers from per-IP limits.");
++                std::puts("--shutdown-file path  Save and exit when this marker appears.");
++                return false;
++            }
++            if (option == "--railway-proxy") { RailwayProxy = true; continue; }
++            if (option != "--listen" && option != "--public" && option != "--shutdown-file")
++                throw std::invalid_argument("Unknown launch option: " + option);
++            if (++index >= argc || !argv[index][0] || argv[index][0] == '-')
++                throw std::invalid_argument("Missing value for " + option);
++            if (option == "--public") { PublicEndpoint = ParseEndpoint(argv[index]); HasPublic = true; }
++            else if (option == "--listen") { Listener = ParseEndpoint(argv[index]); HasListener = true; }
++            else
++            {
++                ShutdownFile = argv[index];
++                const auto path = std::filesystem::path(ShutdownFile);
++                if (!path.is_absolute() || !std::filesystem::is_directory(path.parent_path()) || std::filesystem::exists(path))
++                    throw std::invalid_argument("Shutdown marker needs an absolute, unused path in an existing directory.");
++            }
++        }
++        return true;
++    }
++
++    inline bool IsRailwayProxy(const CSocketAddressIP &address)
++    {
++        return RailwayProxy && (ntohl(address.GetAddrIP()) & 0xffc00000U) == 0x64400000U;
++    }
++}
++#endif
+diff --git i/src/game/clients/CAccount.cpp w/src/game/clients/CAccount.cpp
+index c125c31..d7b89ad 100644
+--- i/src/game/clients/CAccount.cpp
++++ w/src/game/clients/CAccount.cpp
+@@ -1,3 +1,4 @@
++#include "../HostingOptions.h"
+ #include "../../common/crypto/CMD5.h"
+ #include "../../common/sphere_library/CSRand.h"
+ #include "../../common/CLog.h"
+@@ -843,6 +844,7 @@ bool CAccount::Kick( CTextConsole * pSrc, bool fBlock )
+ 
+ bool CAccount::CheckPasswordTries(CSocketAddress csaPeerName)
+ {
++    if (Gemwright::IsRailwayProxy(csaPeerName)) return true;
+ 	if ( csaPeerName.IsLocalAddr() || (csaPeerName.GetAddrIP() == 0x7F000001) )
+ 	{
+ 		return true;
+diff --git i/src/game/clients/CClientLog.cpp w/src/game/clients/CClientLog.cpp
+index 3c854d1..8a4258f 100644
+--- i/src/game/clients/CClientLog.cpp
++++ w/src/game/clients/CClientLog.cpp
+@@ -1,3 +1,4 @@
++#include "../HostingOptions.h"
+ // Login and low level stuff for the client.
+ 
+ #include "../../common/crypto/CCrypto.h"
+@@ -230,6 +231,7 @@ bool CClient::addRelay( const CServerDef * pServ )
+ 	}
+ 
+ 	EXC_SET_BLOCK("customer id");
++	if (Gemwright::HasPublic && pServ == &g_Serv) ipAddr = Gemwright::PublicEndpoint;
+ 	dword dwAddr = ipAddr.GetAddrIP();
+ 	dword dwCustomerId = 0x7f000001;
+ 	if ( g_Cfg.m_fUseAuthID )
+@@ -246,7 +248,7 @@ bool CClient::addRelay( const CServerDef * pServ )
+ 	DEBUG_MSG(( "%x:Login_Relay to server %s with AuthId %u\n", GetSocketID(), ipAddr.GetAddrStr(), dwCustomerId ));
+ 
+ 	EXC_SET_BLOCK("server relay packet");
+-	new PacketServerRelay(this, dwAddr, pServ->m_ip.GetPort(), dwCustomerId);
++	new PacketServerRelay(this, dwAddr, (Gemwright::HasPublic && pServ == &g_Serv) ? Gemwright::PublicEndpoint.GetPort() : pServ->m_ip.GetPort(), dwCustomerId);
+ 
+ 	m_Targ_Mode = CLIMODE_SETUP_RELAY;
+ 	return true;
+diff --git i/src/game/spheresvr.cpp w/src/game/spheresvr.cpp
+index 5d0f70c..e63a768 100644
+--- i/src/game/spheresvr.cpp
++++ w/src/game/spheresvr.cpp
+@@ -1,3 +1,4 @@
++#include "HostingOptions.h"
+ #ifdef _WIN32
+     #include "../sphere/ntwindow.h"
+     #include <process.h>				// getpid()
+@@ -354,6 +355,9 @@ int main( int argc, char * argv[] )
+     return DocTestMain();
+ #endif
+ 
++    try { if (!Gemwright::Parse(argc, argv)) { std::fflush(stdout); std::_Exit(0); } }
++    catch (const std::exception &error) { std::fprintf(stderr, "Hosting: %s\n", error.what()); std::_Exit(1); }
++    argc = 1;
+     static constexpr lpctstr m_sClassName = "main";
+     EXC_TRY("MAIN");
+ 
+@@ -463,6 +467,12 @@ exit_server:
+     }
+ #endif
+ 
++    if (!Gemwright::ShutdownFile.empty())
++    {
++        const int status = Gemwright::ShutdownSucceeded ? 0 : (g_Serv.GetExitFlag() ? g_Serv.GetExitFlag() : 1);
++        std::fflush(nullptr);
++        std::_Exit(status);
++    }
+ 	return g_Serv.GetExitFlag();
+ 	EXC_CATCH;
+ 
+diff --git i/src/network/CNetworkManager.cpp w/src/network/CNetworkManager.cpp
+index aee45b5..352a2ae 100644
+--- i/src/network/CNetworkManager.cpp
++++ w/src/network/CNetworkManager.cpp
+@@ -1,3 +1,4 @@
++#include "../game/HostingOptions.h"
+ //#include "../common/CScriptParserBufs.h" // included in the precompiled header via CExpression.h
+ #include "../game/clients/CClient.h"
+ #include "../game/CServer.h"
+@@ -155,10 +156,10 @@ void CNetworkManager::acceptNewConnection(void)
+     };
+ 
+     // check if ip is allowed to connect
+-    if (ip.checkPing() ||								                // check for ip ban and connection attempts (decaying)
++    if (ip.m_fBlocked || (!Gemwright::IsRailwayProxy(client_addr) && (ip.checkPing() ||								                // check for ip ban and connection attempts (decaying)
+         (maxIp > 0 && ip.m_iPendingConnectionRequests > maxIp) ||       // check for too many connecting
+         (climaxIp > 0 && ip.m_iAliveSuccessfulConnections > climaxIp) ||// check for too many connected
+-        (g_Cfg._iMaxConnectRequestsPerIP > 0) && (ip.m_iConnectionRequests >= g_Cfg._iMaxConnectRequestsPerIP)) // connection attempts (not decaying)
++        (g_Cfg._iMaxConnectRequestsPerIP > 0) && (ip.m_iConnectionRequests >= g_Cfg._iMaxConnectRequestsPerIP)))) // connection attempts (not decaying)
+     {
+         EXC_SET_BLOCK("rejected");
+         //DEBUGNETWORK(("Closing incoming connection [max ip=%d, clients max ip=%d].\n", maxIp, climaxIp));
+diff --git i/src/network/send.cpp w/src/network/send.cpp
+index 62bf0fe..44b9cda 100644
+--- i/src/network/send.cpp
++++ w/src/network/send.cpp
+@@ -1,3 +1,4 @@
++#include "../game/HostingOptions.h"
+ 
+ #include "../common/resource/CResourceLock.h"
+ //#include "../common/CExpression.h" // included in the precompiled header
+@@ -3334,7 +3335,7 @@ void PacketServerList::writeServerEntry(const CServerRef& server, int index, boo
+ 	else
+ 		percentFull = (uint)(minimum(servClients, 100));
+ 
+-	dword ip = server->m_ip.GetAddrIP();
++	dword ip = (Gemwright::HasPublic && server == &g_Serv) ? Gemwright::PublicEndpoint.GetAddrIP() : server->m_ip.GetAddrIP();
+ 
+ 
+ 	writeInt16((word)index);

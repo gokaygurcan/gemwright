@@ -18,6 +18,8 @@ import {
   validateName,
   validateWebsite
 } from './config';
+import { initializeDotnet } from './emulators/dotnet/init';
+import { resolveDotnetSource } from './emulators/dotnet/source';
 import { fetchServuoConfig } from './emulators/servuo/config';
 import { initializeServuo } from './emulators/servuo/init';
 import { resolveLatestServuoSource } from './emulators/servuo/source';
@@ -84,7 +86,7 @@ export async function initialize(
             options: [...emulators]
           })
         ));
-  if (emulator === 'sphere') {
+  if (emulator === 'sphere' || emulator === 'sphere-x') {
     const error = validateSphereName(name);
     if (error) throw new Error(error);
   }
@@ -111,7 +113,7 @@ export async function initialize(
             initialValue: defaultExpansion,
             options: expansions.map((option) => ({
               ...option,
-              ...(emulator === 'sphere' && option.value === 'ej'
+              ...((emulator === 'sphere' || emulator === 'sphere-x') && option.value === 'ej'
                 ? { hint: 'Uses Time of Legends features in Sphere' }
                 : {})
             }))
@@ -131,23 +133,37 @@ export async function initialize(
     ? defaultWebsite
     : answer(
         await prompts.text({
-          message: emulator === 'sphere' ? 'Shard website (optional; omit http(s)://)' : 'Shard website (optional)',
+          message:
+            emulator === 'sphere' || emulator === 'sphere-x'
+              ? 'Shard website (optional; omit http(s)://)'
+              : 'Shard website (optional)',
           placeholder: defaultWebsite,
           defaultValue: defaultWebsite,
           validate: (value) =>
-            emulator === 'sphere' && value?.includes('//')
+            (emulator === 'sphere' || emulator === 'sphere-x') && value?.includes('//')
               ? 'Sphere requires a hostname/path without http(s):// or //.'
               : validateWebsite(value || defaultWebsite)
         })
       );
-  const sphereSources = emulator === 'sphere' ? await resolveSphereSources() : undefined;
-  const source = emulator === 'servuo' ? await resolveServuoSource() : sphereSources?.server;
+  const sphereSources =
+    emulator === 'sphere' || emulator === 'sphere-x' ? await resolveSphereSources(undefined, emulator) : undefined;
+  const source =
+    emulator === 'servuo'
+      ? await resolveServuoSource()
+      : emulator === 'runuo' || emulator === 'modernuo'
+        ? await resolveDotnetSource(emulator)
+        : sphereSources?.server;
   let files: InstanceFiles = {};
   let generatedPassword: string | undefined;
   let config = createConfig({ name, emulator, timezone, expansion, source, adminEmail, url });
   if (emulator === 'servuo') {
     const result = await initializeServuo(config, options.yes, loadServuoConfig);
     config = createConfig({ ...config, servuo: result.settings });
+    files = result.files;
+    generatedPassword = result.generatedPassword;
+  } else if (emulator === 'runuo' || emulator === 'modernuo') {
+    const result = await initializeDotnet(config, options.yes);
+    config = createConfig({ ...config, [emulator]: result.settings });
     files = result.files;
     generatedPassword = result.generatedPassword;
   } else if (sphereSources) {
@@ -172,7 +188,7 @@ export async function initialize(
   await saveInstance(directory, config, initializeGit, files);
   if (generatedPassword)
     prompts.note(
-      `Username: ${config.servuo?.owner ?? config.sphere?.owner}\nPassword: ${generatedPassword}\nSave this password; it will not be shown again.`,
+      `Username: ${config.servuo?.owner ?? config.sphere?.owner ?? config.runuo?.owner ?? config.modernuo?.owner}\nPassword: ${generatedPassword}\nSave this password; it will not be shown again.`,
       'Owner account'
     );
   const target = relative(process.cwd(), directory);

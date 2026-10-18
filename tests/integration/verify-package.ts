@@ -72,7 +72,7 @@ else { console.error('STOP_BEFORE_PROVISIONING'); process.exitCode = 1; }
 `
   );
   await chmod(join(bin, 'railway'), 0o755);
-  for (const emulator of ['servuo', 'sphere']) {
+  for (const emulator of ['servuo', 'sphere', 'sphere-x', 'runuo', 'modernuo']) {
     const shard = join(temporary, emulator);
     run(cli, ['init', shard, '--emulator', emulator, '--timezone', 'Europe/London', '--yes']);
     const config = JSON.parse(await readFile(join(shard, 'gemwright.json'), 'utf8'));
@@ -91,8 +91,17 @@ else { console.error('STOP_BEFORE_PROVISIONING'); process.exitCode = 1; }
     const context = join(shard, '.gemwright/deploy');
     assert.match(await readFile(join(context, 'Dockerfile'), 'utf8'), /FROM/);
     assert.match(await readFile(join(context, 'start.sh'), 'utf8'), /^#!\/bin\/sh/);
-    const ini = emulator === 'sphere' ? 'sphere.ini' : 'Config/Server.cfg';
-    const staged = emulator === 'sphere' ? join(context, 'shard', ini) : join(context, 'server', ini);
+    const sphere = emulator === 'sphere' || emulator === 'sphere-x';
+    const ini = sphere
+      ? 'sphere.ini'
+      : emulator === 'runuo'
+        ? 'Scripts/Misc/DataPath.cs'
+        : emulator === 'modernuo'
+          ? 'Configuration/modernuo.json'
+          : 'Config/Server.cfg';
+    const staged = sphere
+      ? join(context, 'shard', ini)
+      : join(context, 'server', ...(emulator === 'modernuo' ? ['Distribution'] : []), ini);
     assert.deepEqual(await readFile(staged), await readFile(join(shard, ini)));
     console.log(`${emulator}: installed CLI initialized and staged successfully under Node without Bun.`);
   }
@@ -147,7 +156,7 @@ exit [lindex $result 3]
   assert.equal(questionnaire.servuo.owner, 'admin');
   console.log('Interactive installed CLI questionnaire passed under Node without Bun.');
   console.log(
-    'npm package installation, executable, both emulator patches and runtime assets passed; no Railway resources created.'
+    'npm package installation, executable, all enabled emulator patches and runtime assets passed; no Railway resources created.'
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });

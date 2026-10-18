@@ -31,6 +31,13 @@ gemwright init [directory]
 
 # or with default values
 gemwright init --yes
+
+# choose an emulator; answer the remaining questions
+# options: sphere-x, servuo, sphere, runuo, modernuo
+gemwright init --emulator sphere-x
+
+# use defaults for the remaining questions
+gemwright init --emulator sphere-x --yes
 ```
 
 ### Deploy to Railway
@@ -62,15 +69,12 @@ gemwright deploy --files /path/to/game-files
 - [x] `deploy` to deploy initialized shard to Railway
 - - [x] to Railway
 - - [ ] to VPS (Digital Ocean, Hetzner, etc.)
-- [ ] Multiple server emulators
+- [x] Multiple server emulators
 - - [x] ServUO [pub57]
 - - [x] Sphere (with Script pack) [master]
-- - [ ] RunUO
-- - [ ] Sphere-X (with Script-X pack)
-- - [ ] ModernUO
-- - [ ] POL Server?
-- - [ ] Moongate?
-- - [ ] ???
+- - [x] RunUO [master]
+- - [x] Sphere-X (with Script-X pack) [master]
+- - [x] ModernUO [main]
 - [x] Web client
 
 ## License

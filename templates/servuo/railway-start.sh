@@ -1,6 +1,13 @@
 #!/bin/sh
 set -eu
 
+for other in .sphere-initialized .runuo-initialized .modernuo-initialized .sphere-x-initialized; do
+    if [ -e "/app/data/$other" ]; then
+        echo 'This volume belongs to another emulator; refusing to reuse it.' >&2
+        exit 1
+    fi
+done
+
 mkdir -p /app/data/server
 for directory in Config Scripts Data Server Ultima; do
     rm -rf "/app/data/server/$directory"

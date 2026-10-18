@@ -1,10 +1,10 @@
-import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { assetPath } from '../../assets';
-import type { ShardConfig } from '../../config';
-import { command } from '../../process';
 import { packageClientFiles as packageFiles } from '../../client-files';
+import type { ShardConfig } from '../../config';
+import { checkoutSource, removeSourceHistory } from '../source';
 import { configValue, setConfigValue } from './config';
 import { applyServuoCompatibility, servuoSource } from './source';
 
@@ -40,15 +40,9 @@ export async function stageServuo(directory: string, config: ShardConfig): Promi
   const context = join(directory, '.gemwright/deploy');
   await rm(context, { recursive: true, force: true });
   const server = join(context, 'server');
-  await mkdir(server, { recursive: true });
-  await command(['git', 'init', '--quiet'], server);
-  await command(
-    ['git', 'fetch', '--quiet', '--depth', '1', config.source!.repository, config.source!.revision],
-    server
-  );
-  await command(['git', 'checkout', '--quiet', '--detach', 'FETCH_HEAD'], server);
+  await checkoutSource(server, config.source!);
   await applyServuoCompatibility(server, config.source!.revision);
-  await rm(join(server, '.git'), { recursive: true, force: true });
+  await removeSourceHistory(server);
   await rm(join(server, 'Config'), { recursive: true, force: true });
   await cp(join(directory, 'Config'), join(server, 'Config'), { recursive: true });
   const dataPath = join(server, 'Config/DataPath.cfg');

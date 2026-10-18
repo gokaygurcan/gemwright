@@ -1,6 +1,15 @@
 #!/bin/sh
 set -eu
 
+emulator=${GEMWRIGHT_EMULATOR:-sphere}
+marker="/app/data/.$emulator-initialized"
+for other in .runuo-initialized .modernuo-initialized .sphere-initialized .sphere-x-initialized; do
+    if [ "/app/data/$other" != "$marker" ] && [ -e "/app/data/$other" ]; then
+        echo 'This volume belongs to another emulator; refusing to reuse it.' >&2
+        exit 1
+    fi
+done
+
 if [ -e /app/data/.initialized ]; then
     echo 'This volume belongs to a ServUO shard; refusing to reuse it for Sphere.' >&2
     exit 1
@@ -10,13 +19,13 @@ cd /app/data/server
 rm -rf scripts
 cp -a /opt/shard/. .
 if [ ! -e data ]; then ln -s /app/data data; fi
-if [ ! -e /app/data/.sphere-initialized ]; then
+if [ ! -e "$marker" ]; then
     if [ -e accounts ] || [ -e save ]; then
         echo 'Existing Sphere state found without initialization marker; refusing to replace it.' >&2
         exit 1
     fi
     cp -a /opt/seed/accounts /opt/seed/save .
-    touch /app/data/.sphere-initialized
+    touch "$marker"
 fi
 mkdir -p logs
 

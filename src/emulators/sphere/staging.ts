@@ -2,14 +2,15 @@ import { cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { assetPath } from '../../assets';
-import type { ShardConfig } from '../../config';
-import { command } from '../../process';
 import { packageClientFiles as packageFiles } from '../../client-files';
+import type { ShardConfig } from '../../config';
+import { checkoutSource, removeSourceHistory } from '../source';
 import { sphereConfigValue } from './config';
-import { applySphereCompatibility, sphereSources } from './source';
+import { applySphereCompatibility, sourcesFor } from './source';
 
 export async function validateSphereShard(directory: string, config: ShardConfig): Promise<void> {
   const scripts = config.sphere?.scriptsSource;
+  const sphereSources = sourcesFor(config.emulator);
   if (
     config.source?.repository !== sphereSources.server.repository ||
     config.source.ref !== sphereSources.server.ref ||
@@ -40,15 +41,9 @@ export async function stageSphere(directory: string, config: ShardConfig): Promi
   const context = join(directory, '.gemwright/deploy');
   await rm(context, { recursive: true, force: true });
   const server = join(context, 'server');
-  await mkdir(server, { recursive: true });
-  await command(['git', 'init', '--quiet'], server);
-  await command(
-    ['git', 'fetch', '--quiet', '--depth', '1', config.source!.repository, config.source!.revision],
-    server
-  );
-  await command(['git', 'checkout', '--quiet', '--detach', 'FETCH_HEAD'], server);
-  await applySphereCompatibility(server, config.source!.revision);
-  await rm(join(server, '.git'), { recursive: true, force: true });
+  await checkoutSource(server, config.source!);
+  await applySphereCompatibility(server, config.source!.revision, config.emulator);
+  await removeSourceHistory(server);
   await mkdir(join(context, 'shard'));
   for (const name of ['sphere.ini', 'sphereCrypt.ini', 'scripts'])
     await cp(join(directory, name), join(context, 'shard', name), { recursive: true });
@@ -59,7 +54,12 @@ export async function stageSphere(directory: string, config: ShardConfig): Promi
     ['railway-start.sh', 'start.sh'],
     ['start.sh', 'run-server.sh']
   ] as const)
-    await cp(assetPath(`templates/sphere/${source}`), join(context, target));
+    await cp(
+      assetPath(
+        `templates/${source === 'Dockerfile' && config.emulator === 'sphere-x' ? 'sphere-x' : 'sphere'}/${source}`
+      ),
+      join(context, target)
+    );
   return context;
 }
 

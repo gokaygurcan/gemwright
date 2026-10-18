@@ -1,6 +1,7 @@
 import { assetPath } from '../../assets';
 import type { EmulatorSource } from '../../config';
 import { applyCompatibility } from '../compatibility';
+import { resolveSource } from '../source';
 
 export const sphereSources = {
   server: { repository: 'https://github.com/Sphereserver/Source.git', ref: 'master' },
@@ -12,42 +13,43 @@ export interface SphereSources {
   scripts: EmulatorSource;
 }
 
-export async function resolveLatestSphereSources(
-  fetcher: (url: string, options: RequestInit) => Promise<Response> = fetch
-): Promise<SphereSources> {
-  async function resolve(kind: keyof SphereSources): Promise<EmulatorSource> {
-    const source = sphereSources[kind];
-    const repository = kind === 'server' ? 'Source' : 'Scripts';
-    try {
-      const response = await fetcher(`https://api.github.com/repos/Sphereserver/${repository}/commits/${source.ref}`, {
-        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'gemwright' },
-        signal: AbortSignal.timeout(15_000)
-      });
-      if (!response.ok) throw new Error(`GitHub returned HTTP ${response.status}`);
-      const result: unknown = await response.json();
-      if (
-        !result ||
-        typeof result !== 'object' ||
-        !('sha' in result) ||
-        typeof result.sha !== 'string' ||
-        !/^[a-f0-9]{40}$/.test(result.sha)
-      ) {
-        throw new Error('GitHub returned an invalid commit revision');
-      }
-      return { ...source, revision: result.sha };
-    } catch (error) {
-      throw new Error(
-        `Could not resolve the latest Sphere ${repository} ${source.ref} revision. Check your connection and retry. ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
+export const sphereXSources = {
+  server: { repository: 'https://github.com/Sphereserver/Source-X.git', ref: 'master' },
+  scripts: { repository: 'https://github.com/Sphereserver/Scripts-X.git', ref: 'main' }
+} as const;
 
-  const [server, scripts] = await Promise.all([resolve('server'), resolve('scripts')]);
+export function sourcesFor(emulator: string) {
+  return emulator === 'sphere-x' ? sphereXSources : sphereSources;
+}
+
+export async function resolveLatestSphereSources(
+  fetcher: (url: string, options: RequestInit) => Promise<Response> = fetch,
+  emulator = 'sphere'
+): Promise<SphereSources> {
+  const sources = sourcesFor(emulator);
+  const label = emulator === 'sphere-x' ? 'Sphere-X' : 'Sphere';
+  const [server, scripts] = await Promise.all([
+    resolveSource(
+      sources.server,
+      `${label} ${sources.server.repository.split('/').pop()!.replace('.git', '')}`,
+      fetcher
+    ),
+    resolveSource(
+      sources.scripts,
+      `${label} ${sources.scripts.repository.split('/').pop()!.replace('.git', '')}`,
+      fetcher
+    )
+  ]);
   return { server, scripts };
 }
 
 export const spherePatch = assetPath('patches/sphere-hosting.patch');
 
-export function applySphereCompatibility(directory: string, expectedRevision: string) {
-  return applyCompatibility(directory, expectedRevision, spherePatch, 'Sphere');
+export function applySphereCompatibility(directory: string, expectedRevision: string, emulator = 'sphere') {
+  return applyCompatibility(
+    directory,
+    expectedRevision,
+    emulator === 'sphere-x' ? assetPath('patches/sphere-x-hosting.patch') : spherePatch,
+    'Sphere'
+  );
 }

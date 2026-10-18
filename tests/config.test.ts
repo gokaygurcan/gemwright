@@ -41,10 +41,10 @@ describe('shard identity', () => {
 
 describe('shard settings', () => {
   test('accepts enabled emulators and rejects unavailable ones', () => {
-    for (const emulator of ['servuo', 'sphere'] as const) {
+    for (const emulator of ['servuo', 'sphere', 'sphere-x', 'runuo', 'modernuo'] as const) {
       expect(createConfig({ emulator }).emulator).toBe(emulator);
     }
-    for (const emulator of ['sphere-x', 'runuo', 'pol', 'unknown']) {
+    for (const emulator of ['pol', 'unknown']) {
       expect(() => createConfig({ emulator })).toThrow('Unsupported emulator');
     }
   });

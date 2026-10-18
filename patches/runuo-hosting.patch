@@ -1,0 +1,145 @@
+diff --git i/Scripts/Accounting/AccountAttackLimiter.cs w/Scripts/Accounting/AccountAttackLimiter.cs
+index 892d032..fbaf06c 100644
+--- i/Scripts/Accounting/AccountAttackLimiter.cs
++++ w/Scripts/Accounting/AccountAttackLimiter.cs
+@@ -25,6 +25,7 @@ namespace Server.Accounting
+ 
+ 		public static bool Throttle_Callback( NetState ns )
+ 		{
++			if (GemwrightHosting.IsProxy(ns.Address)) return true;
+ 			InvalidAccountAccessLog accessLog = FindAccessLog( ns );
+ 
+ 			if ( accessLog == null )
+diff --git i/Scripts/Accounting/AccountHandler.cs w/Scripts/Accounting/AccountHandler.cs
+index e82e4e9..9abdaf0 100644
+--- i/Scripts/Accounting/AccountHandler.cs
++++ w/Scripts/Accounting/AccountHandler.cs
+@@ -222,7 +222,7 @@ namespace Server.Misc
+ 
+ 		public static bool CanCreate( IPAddress ip )
+ 		{
+-			if ( !IPTable.ContainsKey( ip ) )
++			if ( GemwrightHosting.IsProxy(ip) || !IPTable.ContainsKey( ip ) )
+ 				return true;
+ 
+ 			return ( IPTable[ip] < MaxAccountsPerIP );
+diff --git i/Scripts/Accounting/IPLimiter.cs w/Scripts/Accounting/IPLimiter.cs
+index f43c2e5..d56ad68 100644
+--- i/Scripts/Accounting/IPLimiter.cs
++++ w/Scripts/Accounting/IPLimiter.cs
+@@ -33,7 +33,7 @@ namespace Server.Misc
+ 
+ 		public static bool Verify( IPAddress ourAddress )
+ 		{
+-			if ( !Enabled || IsExempt( ourAddress ) )
++			if ( GemwrightHosting.IsProxy(ourAddress) || !Enabled || IsExempt( ourAddress ) )
+ 				return true;
+ 
+ 			List<NetState> netStates = NetState.Instances;
+diff --git i/Scripts/Misc/ServerList.cs w/Scripts/Misc/ServerList.cs
+index f0060ac..9ccaca6 100644
+--- i/Scripts/Misc/ServerList.cs
++++ w/Scripts/Misc/ServerList.cs
+@@ -76,7 +76,7 @@ namespace Server.Misc
+ 						localAddress = m_PublicAddress;
+ 				}
+ 
+-				e.AddServer( ServerName, new IPEndPoint( localAddress, localPort ) );
++				e.AddServer( ServerName, GemwrightHosting.PublicEndpoint ?? new IPEndPoint( localAddress, localPort ) );
+ 			}
+ 			catch
+ 			{
+diff --git i/Server/GemwrightHosting.cs w/Server/GemwrightHosting.cs
+new file mode 100644
+index 0000000..0503d07
+--- /dev/null
++++ w/Server/GemwrightHosting.cs
+@@ -0,0 +1,52 @@
++using System;
++using System.IO;
++using System.Net;
++using System.Net.Sockets;
++
++namespace Server
++{
++    public static class GemwrightHosting
++    {
++        public static readonly string ShutdownFile = Environment.GetEnvironmentVariable("GEMWRIGHT_SHUTDOWN_FILE");
++        public static readonly IPEndPoint PublicEndpoint = ResolvePublic();
++        public static volatile bool SaveCompleted;
++        private static bool requested;
++
++        private static IPEndPoint ResolvePublic()
++        {
++            var hostname = Environment.GetEnvironmentVariable("RAILWAY_TCP_PROXY_DOMAIN");
++            if (String.IsNullOrEmpty(hostname)) return null;
++            int port;
++            if (!Int32.TryParse(Environment.GetEnvironmentVariable("RAILWAY_TCP_PROXY_PORT"), out port) || port < 1 || port > 65535)
++                throw new ArgumentException("Invalid public TCP proxy port.");
++            foreach (var address in Dns.GetHostAddresses(hostname))
++                if (address.AddressFamily == AddressFamily.InterNetwork) return new IPEndPoint(address, port);
++            throw new ArgumentException("Public TCP proxy has no IPv4 address.");
++        }
++
++        public static bool IsProxy(IPAddress address)
++        {
++            if (PublicEndpoint == null || address.AddressFamily != AddressFamily.InterNetwork) return false;
++            var bytes = address.GetAddressBytes();
++            return bytes[0] == 100 && bytes[1] >= 64 && bytes[1] <= 127;
++        }
++
++        public static void Poll()
++        {
++            if (String.IsNullOrEmpty(ShutdownFile) || !File.Exists(ShutdownFile)) return;
++            if (World.Saving) return;
++            try
++            {
++                World.Save(false, false);
++                World.WaitForWriteCompletion();
++                File.Delete(ShutdownFile);
++                Environment.Exit(0);
++            }
++            catch (Exception error)
++            {
++                Console.Error.WriteLine("Shutdown save failed: " + error);
++                Environment.Exit(1);
++            }
++        }
++    }
++}
+diff --git i/Server/Main.cs w/Server/Main.cs
+index 0babf8c..fa24287 100644
+--- i/Server/Main.cs
++++ w/Server/Main.cs
+@@ -422,7 +422,7 @@ namespace Server
+ 					if( !Directory.Exists( "Logs" ) )
+ 						Directory.CreateDirectory( "Logs" );
+ 
+-					Console.SetOut( m_MultiConOut = new MultiTextWriter( new FileLogger( "Logs/Console.log" ) ) );
++					Console.SetOut( m_MultiConOut = new MultiTextWriter( Console.Out, new FileLogger( "Logs/Console.log" ) ) );
+ 				}
+ 				else
+ 				{
+@@ -533,6 +533,7 @@ namespace Server
+ 					Mobile.ProcessDeltaQueue();
+ 					Item.ProcessDeltaQueue();
+ 
++					GemwrightHosting.Poll();
+ 					Timer.Slice();
+ 					messagePump.Slice();
+ 
+diff --git i/Server/ScriptCompiler.cs w/Server/ScriptCompiler.cs
+index e72111f..fb2ae04 100644
+--- i/Server/ScriptCompiler.cs
++++ w/Server/ScriptCompiler.cs
+@@ -236,8 +236,8 @@ namespace Server
+ #if !MONO
+ 				CompilerResults results = provider.CompileAssemblyFromFile( parms, files );
+ #else
+-				parms.CompilerOptions = String.Format( "{0} /nowarn:169,219,414 /recurse:Scripts/*.cs", parms.CompilerOptions );
+-				CompilerResults results = provider.CompileAssemblyFromFile( parms, "" );
++				parms.CompilerOptions = String.Format( "{0} /nowarn:169,219,414", parms.CompilerOptions );
++				CompilerResults results = provider.CompileAssemblyFromFile( parms, files );
+ #endif
+ 				m_AdditionalReferences.Add( path );
+ 

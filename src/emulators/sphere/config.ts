@@ -8,7 +8,7 @@ import type { InstanceFiles } from '../../instance';
 import { command } from '../../process';
 import { validateOwner, validateOwnerPassword } from '../accounts';
 import { atLeast, expansionFlags, flagValue, type SphereRules, sphereNumber, validateRules } from './rules';
-import { type SphereSources, sphereSources } from './source';
+import { type SphereSources, sourcesFor } from './source';
 
 export interface SphereSettings {
   scriptsSource: EmulatorSource;
@@ -41,6 +41,7 @@ export function validateSphereOwner(value: string): string | undefined {
 }
 
 export async function fetchSphereFiles(sources: SphereSources): Promise<InstanceFiles> {
+  const sphereSources = sourcesFor(sources.server.repository.includes('Source-X') ? 'sphere-x' : 'sphere');
   for (const kind of ['server', 'scripts'] as const) {
     const source = sources[kind];
     if (
@@ -53,7 +54,7 @@ export async function fetchSphereFiles(sources: SphereSources): Promise<Instance
   const temporary = await mkdtemp(join(tmpdir(), 'gemwright-sphere-config-'));
   try {
     async function extract(kind: keyof SphereSources): Promise<string> {
-      const repository = kind === 'server' ? 'Source' : 'Scripts';
+      const repository = sources[kind].repository.split('/').pop()!.replace('.git', '');
       const revision = sources[kind].revision;
       const response = await fetch(`https://codeload.github.com/Sphereserver/${repository}/tar.gz/${revision}`, {
         signal: AbortSignal.timeout(60_000)
@@ -97,16 +98,17 @@ function text(files: InstanceFiles, filename: string): string {
 export function sphereConfigValue(ini: string, key: string): string | undefined {
   return ini
     .split(/\r?\n/)
-    .find((line) => line.startsWith(`${key}=`))
-    ?.slice(key.length + 1)
-    .split('//')[0]
+    .map((line) => /^\s*([^/\s=]+)\s*=\s*(.*)$/.exec(line))
+    .find((match) => match?.[1] === key)?.[2]
+    ?.split('//')[0]
     ?.trim();
 }
 
 function setValue(ini: string, key: string, value: string): string {
   const lines = ini.split(/\r?\n/);
-  let candidates = lines.flatMap((line, index) => (line.startsWith(`${key}=`) ? [index] : []));
-  if (!candidates.length) candidates = lines.flatMap((line, index) => (line.startsWith(`//${key}=`) ? [index] : []));
+  let candidates = lines.flatMap((line, index) => (new RegExp(`^${key}\\s*=`).test(line) ? [index] : []));
+  if (!candidates.length)
+    candidates = lines.flatMap((line, index) => (new RegExp(`^//${key}\\s*=`).test(line) ? [index] : []));
   if (candidates.length !== 1)
     throw new Error(`Missing or duplicate upstream Sphere setting: ${key}. No files were written.`);
   const index = candidates[0]!;
@@ -152,7 +154,9 @@ export function prepareSphereFiles(
     AcctFiles: 'accounts/',
     MulFiles: 'data/client/',
     Log: 'logs/',
-    AutoAccountCreation: settings.autoCreateAccounts ? '1' : '0',
+    ...(config.emulator === 'sphere-x'
+      ? { AccApp: settings.autoCreateAccounts ? '2' : '0', LocalIPAdmin: '0' }
+      : { AutoAccountCreation: settings.autoCreateAccounts ? '1' : '0' }),
     Md5Passwords: '1'
   };
   if (settings.clientEncryption !== undefined) {
@@ -166,6 +170,8 @@ export function prepareSphereFiles(
   if (optionFlags === undefined || extraFlags === undefined)
     throw new Error('Missing upstream Sphere option or extra feature flags.');
   Object.assign(updates, expansionFlags(config.expansion, sphereNumber(optionFlags), sphereNumber(extraFlags)));
+  if (settings.rules && config.emulator === 'sphere-x')
+    throw new Error('Sphere-X rules are configured in sphere.ini; classic Sphere rule presets are not supported.');
   if (settings.rules) {
     const rules = settings.rules;
     validateRules(rules);
@@ -221,6 +227,20 @@ export function prepareSphereFiles(
   tables = tables
     .split(/\r?\n/)
     .map((line) => {
+      if (config.emulator === 'sphere-x') {
+        const match = /^(\/\/)?(maps\/map([0-5])\/[^\s]+\.scp)$/.exec(line);
+        if (!match) return line;
+        const map = Number(match[3]);
+        found.add(map);
+        if (upstream[`scripts/${match[2]}`] === undefined) throw new Error(`Missing upstream map script: ${match[2]}`);
+        const era = /_(se|aos|ml|sa|hs|tol)(?:_|\.)/.exec(match[2]!);
+        const enabled =
+          map < count &&
+          (!match[2]!.includes('_aos_old_haven') || !atLeast(config.expansion, 'ml')) &&
+          (!era || atLeast(config.expansion, era[1] as Expansion)) &&
+          (!era || settings.mapSize === 'modern' || ['aos', 'se'].includes(era[1]!));
+        return `${enabled ? '' : '//'}${match[2]}`;
+      }
       const match = /^(\/\/)?(scripts\/maps\/sphere_map(?:_points)?([0-5])(?:_([a-z]+))?\.scp)$/.exec(line);
       if (!match) return line;
       const map = Number(match[3]);

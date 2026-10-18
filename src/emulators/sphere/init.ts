@@ -40,9 +40,9 @@ export async function initializeSphere(
   const defaultEncryption = useCrypt === '0' ? 'unencrypted' : useNoCrypt === '0' ? 'encrypted' : 'both';
   const registration = sphereConfigValue(
     typeof ini === 'string' ? ini : Buffer.from(ini).toString('latin1'),
-    'AutoAccountCreation'
+    config.emulator === 'sphere-x' ? 'AccApp' : 'AutoAccountCreation'
   );
-  if (registration !== '0' && registration !== '1')
+  if (!(config.emulator === 'sphere-x' ? ['0', '2'] : ['0', '1']).includes(registration ?? ''))
     throw new Error('Upstream Sphere registration default is missing or invalid.');
   if (!yes)
     prompts.note(
@@ -117,13 +117,13 @@ export async function initializeSphere(
             ]
           })
         );
-  const rules = await askSphereRules(iniText, yes);
+  const rules = config.emulator === 'sphere-x' ? undefined : await askSphereRules(iniText, yes);
   const autoCreateAccounts = yes
-    ? registration === '1'
+    ? registration === (config.emulator === 'sphere-x' ? '2' : '1')
     : answer(
         await prompts.confirm({
           message: 'Allow players to create accounts on first login?',
-          initialValue: registration === '1'
+          initialValue: registration === (config.emulator === 'sphere-x' ? '2' : '1')
         })
       );
   const owner = yes

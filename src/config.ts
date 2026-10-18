@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import type { DotnetSettings } from './emulators/dotnet/init';
 import type { ServuoSettings } from './emulators/servuo/config';
 import type { SphereSettings } from './emulators/sphere/config';
 import { validateRules } from './emulators/sphere/rules';
@@ -25,9 +26,9 @@ export type Expansion = (typeof expansions)[number]['value'];
 export const emulators = [
   { value: 'servuo', label: 'ServUO', disabled: false },
   { value: 'sphere', label: 'Sphere', disabled: false },
-  { value: 'sphere-x', label: 'Sphere-X', disabled: true },
-  { value: 'runuo', label: 'RunUO', disabled: true },
-  { value: 'pol', label: 'POL', disabled: true }
+  { value: 'sphere-x', label: 'Sphere-X', disabled: false },
+  { value: 'runuo', label: 'RunUO', disabled: false },
+  { value: 'modernuo', label: 'ModernUO', disabled: false }
 ] as const;
 
 export type Emulator = Extract<(typeof emulators)[number], { disabled: false }>['value'];
@@ -47,6 +48,8 @@ export interface ShardConfig {
   expansion: Expansion;
   emulator: Emulator;
   source?: EmulatorSource;
+  runuo?: DotnetSettings;
+  modernuo?: DotnetSettings;
   servuo?: ServuoSettings;
   sphere?: SphereSettings;
 }
@@ -116,6 +119,8 @@ export function createConfig(input: {
   expansion?: string;
   emulator?: string;
   source?: EmulatorSource;
+  runuo?: DotnetSettings;
+  modernuo?: DotnetSettings;
   servuo?: ServuoSettings;
   sphere?: SphereSettings;
 }): ShardConfig {
@@ -141,7 +146,7 @@ export function createConfig(input: {
   }
   const emulator = input.emulator ?? defaultEmulator;
   if (!emulators.some((option) => option.value === emulator && !option.disabled)) {
-    throw new Error(`Unsupported emulator: ${emulator}. Choose servuo or sphere.`);
+    throw new Error(`Unsupported emulator: ${emulator}. Choose servuo, sphere, sphere-x, runuo or modernuo.`);
   }
   if (
     input.source &&
@@ -149,13 +154,13 @@ export function createConfig(input: {
   ) {
     throw new Error('Invalid emulator source: repository, ref and a full commit revision are required.');
   }
-  if (emulator === 'sphere' && input.url?.includes('//'))
+  if ((emulator === 'sphere' || emulator === 'sphere-x') && input.url?.includes('//'))
     throw new Error('Sphere websites must omit http(s):// and contain no //; use www.example.com.');
   if (input.sphere) {
     const settings = input.sphere;
     if (settings.rules !== undefined) validateRules(settings.rules);
     if (
-      emulator !== 'sphere' ||
+      !['sphere', 'sphere-x'].includes(emulator) ||
       !settings.scriptsSource ||
       !/^[a-f0-9]{40}$/.test(settings.scriptsSource.revision) ||
       !settings.scriptsSource.repository ||
@@ -170,7 +175,20 @@ export function createConfig(input: {
     )
       throw new Error('Invalid Sphere settings or scripts source.');
   }
+  for (const key of ['runuo', 'modernuo'] as const) {
+    const settings = input[key];
+    if (
+      settings &&
+      (emulator !== key ||
+        !/^[A-Za-z0-9_-]{1,16}$/.test(settings.owner) ||
+        typeof settings.autoCreateAccounts !== 'boolean' ||
+        (settings.clientFiles !== undefined && typeof settings.clientFiles !== 'string'))
+    )
+      throw new Error(`Invalid ${key} settings.`);
+  }
   return {
+    ...(input.runuo ? { runuo: { ...input.runuo } } : {}),
+    ...(input.modernuo ? { modernuo: { ...input.modernuo } } : {}),
     ...(input.servuo ? { servuo: { ...input.servuo } } : {}),
     ...(input.sphere
       ? {
