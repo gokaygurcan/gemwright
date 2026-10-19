@@ -216,3 +216,53 @@ diff --git a/Scripts/Misc/CrashGuard.cs b/Scripts/Misc/CrashGuard.cs
              /*if ( Core.Service )
              e.Close = true;
              else */ if (RestartServer)
+diff --git a/Server/Persistence/SaveStrategy.cs b/Server/Persistence/SaveStrategy.cs
+--- a/Server/Persistence/SaveStrategy.cs
++++ b/Server/Persistence/SaveStrategy.cs
+@@ -7,30 +7,9 @@
+         public abstract string Name { get; }
+         public static SaveStrategy Acquire()
+         {
+-            if (Core.MultiProcessor)
+-            {
+-                int processorCount = Core.ProcessorCount;
+-
+-#if DynamicSaveStrategy
+-                if (processorCount > 2)
+-                {
+-                    return new DynamicSaveStrategy();
+-                }
+-#else
+-                if (processorCount > 16)
+-                {
+-                    return new ParallelSaveStrategy(processorCount);
+-                }
+-#endif
+-                else
+-                {
+-                    return new DualSaveStrategy();
+-                }
+-            }
+-            else
+-            {
+-                return new StandardSaveStrategy();
+-            }
++            // Script serializers can mutate shared state (for example escort destinations).
++            // Serialize on one thread regardless of the host CPU count.
++            return new StandardSaveStrategy();
+         }
+ 
+         public abstract void Save(SaveMetrics metrics, bool permitBackgroundWrite);
+diff --git a/Scripts/Services/Seasonal Events/TreasuresOfKhaldun/Generate.cs b/Scripts/Services/Seasonal Events/TreasuresOfKhaldun/Generate.cs
+--- a/Scripts/Services/Seasonal Events/TreasuresOfKhaldun/Generate.cs
++++ b/Scripts/Services/Seasonal Events/TreasuresOfKhaldun/Generate.cs
+@@ -31,7 +31,8 @@
+ 
+         private static void OnWorldSave(WorldSaveEventArgs e)
+         {
+-            CheckEnabled(true);
++            // Quest generation adds entities; run it on the next game tick after saving.
++            Timer.DelayCall(TimeSpan.Zero, () => CheckEnabled(true));
+         }
+ 
+         public static void CheckEnabled(bool timed = false)
