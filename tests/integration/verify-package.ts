@@ -46,6 +46,8 @@ try {
     '--no-fund'
   ]);
   const cli = join(consumer, 'node_modules/.bin/gemwright');
+  const installed = JSON.parse(await readFile(join(consumer, 'node_modules/gemwright/package.json'), 'utf8'));
+  assert.equal(run(cli, ['--version']).trim(), installed.version);
   assert.match(run(cli, ['--help']), /gemwright deploy.*--client/);
   for (const path of [
     'client/Dockerfile',

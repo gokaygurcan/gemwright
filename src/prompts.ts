@@ -4,7 +4,7 @@ export class Cancelled extends Error {}
 
 export function answer<T>(value: T): Exclude<T, symbol> {
   if (prompts.isCancel(value)) {
-    prompts.cancel('Initialization cancelled.');
+    prompts.cancel('Operation cancelled.');
     throw new Cancelled();
   }
   return value as Exclude<T, symbol>;

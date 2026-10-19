@@ -38,6 +38,9 @@ while [ ! -e /app/data/.client-ready ]; do
     fi
 done
 
-: "${RAILWAY_TCP_PROXY_DOMAIN:?Railway TCP proxy is missing}"
-: "${RAILWAY_TCP_PROXY_PORT:?Railway TCP proxy port is missing}"
+if [ -n "${GEMWRIGHT_PUBLIC_HOST:-}" ]; then
+    exec /opt/gemwright/run-server.sh --public "$GEMWRIGHT_PUBLIC_HOST:2593" -noconsole
+fi
+: "${RAILWAY_TCP_PROXY_DOMAIN:?Public hostname is missing}"
+: "${RAILWAY_TCP_PROXY_PORT:?Public port is missing}"
 exec /opt/gemwright/run-server.sh --public "$RAILWAY_TCP_PROXY_DOMAIN:$RAILWAY_TCP_PROXY_PORT" --railway-proxy -noconsole

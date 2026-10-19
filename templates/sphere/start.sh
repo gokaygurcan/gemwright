@@ -8,7 +8,7 @@ trap ': > "$shutdown_file"' TERM INT
 
 if [ "${GEMWRIGHT_MYSQL:-0}" = 1 ]; then set -- "$@" --mysql-env; fi
 
-stdbuf -oL -eL /opt/sphere/spheresvr "$@" --shutdown-file "$shutdown_file" &
+stdbuf -oL -eL "${GEMWRIGHT_SPHERE_BINARY:-/opt/sphere/spheresvr}" "$@" --shutdown-file "$shutdown_file" &
 server_pid=$!
 while :; do
     wait "$server_pid"

@@ -2,15 +2,17 @@
 
 ## Motivation
 
-Gemwright makes it easier to start an Ultima Online shard and share it with friends. It brings emulator setup and Railway deployment into a small CLI, leaving more time to shape your world.
+Gemwright makes it easier to start an Ultima Online shard and share it with friends. It brings emulator setup and deployment into a small CLI, leaving more time to shape your world.
 
 ## Setup
 
-### Sign up to Railway
+You need Node.js 24 or newer and your own Ultima Online game files.
+
+### Sign up to Railway (if deploying to Railway)
 
 Create a [Railway account](https://railway.com?referralCode=gokaygurcan) to host your shard. Using this affiliate link helps support Gemwright.
 
-### Install and authenticate Railway CLI
+### Install and authenticate Railway CLI (Railway only)
 
 ```bash
 npm i -g @railway/cli
@@ -21,6 +23,7 @@ railway login
 
 ```bash
 npm i -g gemwright
+gemwright --help
 ```
 
 ### Initialize a new shard
@@ -43,43 +46,56 @@ gemwright init --emulator sphere-x --yes
 gemwright init --emulator sphere-x --mysql --yes
 ```
 
-MySQL is off by default. When selected, `deploy` provisions a MySQL service in the same Railway project and supplies its connection details through environment variables. Scripts use `DB.CONNECT`, `DB.QUERY`, and `DB.EXECUTE`; world saves and accounts remain in files.
+MySQL is off by default. On Railway, enabling it provisions a MySQL service in the same project and supplies its connection details through environment variables. Scripts use `DB.CONNECT`, `DB.QUERY`, and `DB.EXECUTE`; world saves and accounts remain in files.
 
-### Deploy to Railway
+### Deploy your shard
+
+Run this from your shard directory and choose Railway or VPS in the questionnaire:
 
 ```bash
-# go into the project directory
+# in the project directory
 gemwright deploy
 ```
 
 ```bash
-# you need to provide your own game files, we do not ship them.
+# deploy to Railway with your game files
 
 # deploy both server and web client
-gemwright deploy --files /path/to/game-files --client
+gemwright deploy --target railway --files /path/to/game-files --client
 
 # or deploy only server
-gemwright deploy --files /path/to/game-files
+gemwright deploy --target railway --files /path/to/game-files
+```
+
+For a VPS, the questionnaire asks for Docker Compose or native systemd (Ubuntu), SSH access, game files, and an optional browser-client domain:
+
+```bash
+gemwright deploy --target vps
 ```
 
 ### Next steps
 
 - Push your shard configuration and scripts to a private Git repository to track changes.
-- Set up a custom login hostname, such as `login.yourshard.com`. Create a DNS CNAME pointing to your Railway TCP proxy hostname.
-- Keep separate copies of your saves and accounts outside Railway. (Railway's built-in volume backups require the Pro plan)
+- Set up a custom login hostname, such as `login.yourshard.com`. On Railway, use a CNAME pointing to your TCP proxy hostname; on a VPS, use an A record pointing to its public IPv4 address.
+- Keep separate copies of your saves and accounts outside your hosting service.
+- Log in with your owner/admin account to populate your world:
+  - ServUO: `[createworld` opens the world-generation menu.
+  - RunUO: `[Decorate` adds world decoration; spawning depends on your chosen spawn scripts.
+  - Sphere-X: `.add i_world_decorator` and `.add i_world_spawner`, then double-click each item.
+  - Sphere: world generation depends on your chosen script pack.
 
 ## Development
 
 - [x] `init` to initialize shard with a few answers
-- [x] `deploy` to deploy initialized shard to Railway
-- - [x] to Railway
-- - [ ] to VPS (Digital Ocean, Hetzner, etc.)
+- [x] `deploy` to deploy an initialized shard
+  - [x] to Railway
+  - [x] to VPS (Digital Ocean, Hetzner, etc.)
 - [x] Multiple server emulators
-- - [x] ServUO [pub57]
-- - [x] Sphere (with Script pack) [master]
-- - [x] RunUO [master]
-- - [x] Sphere-X (with Script-X pack) [master]
-- - [x] ModernUO [main]
+  - [x] ServUO [pub57]
+  - [x] Sphere (with Script pack) [master]
+  - [x] RunUO [master]
+  - [x] Sphere-X (with Script-X pack) [master]
+  - [x] ModernUO [main]
 - [x] Web client
 
 ## License

@@ -17,6 +17,7 @@ export interface ClientConfig {
   bundle: string;
   assets: string;
   listenPort: number;
+  listenHost?: string;
 }
 
 function port(value: string, name: string, allowZero = false): number {
@@ -53,7 +54,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     publicOrigin,
     bundle: resolve(env.CLIENT_BUNDLE_PATH ?? fileURLToPath(new URL('./bundle/public', import.meta.url))),
     assets: resolve(env.GAMEFILES_PATH),
-    listenPort: port(env.PORT ?? '3000', 'PORT', true)
+    listenPort: port(env.PORT ?? '3000', 'PORT', true),
+    listenHost: env.CLIENT_LISTEN_HOST ?? '::'
   };
 }
 
@@ -131,7 +133,7 @@ export function startClient(config: ClientConfig) {
     }
   }
   const server = Bun.serve<Connection>({
-    hostname: '::',
+    hostname: config.listenHost ?? '::',
     port: config.listenPort,
     async fetch(request, server) {
       const url = new URL(request.url);

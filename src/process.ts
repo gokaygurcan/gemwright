@@ -39,3 +39,14 @@ export async function isAvailable(executable: string): Promise<boolean> {
     throw error;
   }
 }
+
+export function attachedCommand(args: string[], cwd = process.cwd()): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(args[0]!, args.slice(1), { cwd, stdio: 'inherit' });
+    child.once('error', reject);
+    child.once('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${args[0]} ${args[1] ?? ''} exited with code ${code ?? 1}.`));
+    });
+  });
+}
