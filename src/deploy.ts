@@ -312,8 +312,13 @@ export async function deploy(options: { files?: string; client?: boolean }, dire
     await saveState(directory, state);
   }
   const proxies = await run<{ proxies: { endpoint: string }[] }>(['tcp-proxy', 'list', ...flags, '--json']);
-  console.log(`Railway deployment active. Shard endpoint: ${proxies.proxies[0]?.endpoint ?? 'pending'}`);
-  if (!client && !state.clientDigest)
+  if (!client && !state.clientDigest) {
     console.log('Waiting for client files. Rerun gemwright deploy --files <directory> to import them.');
-  if (webClientPath) await deployClient(directory, webClientPath, webFiles);
+    return;
+  }
+  if (webClientPath) {
+    console.log('Server deployed. Web client deployment is still in progress...');
+    await deployClient(directory, webClientPath, webFiles);
+  }
+  console.log(`Deployment complete. Shard endpoint: ${proxies.proxies[0]?.endpoint ?? 'pending'}`);
 }

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { copyFile, link, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, cp, link, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
@@ -90,10 +91,30 @@ export async function deployClient(directory: string, assets: string, preparedFi
     '--json'
   ]);
   console.log('Deploying the web client...');
-  const upload = await command(
-    ['railway', 'up', root, '--path-as-root', '--no-gitignore', ...flags, '--detach', '--json'],
-    root
-  );
+  // Railway skips every path containing node_modules, including installed package assets.
+  const context = await mkdtemp(join(tmpdir(), 'gemwright-web-deploy-'));
+  let upload: string;
+  try {
+    for (const path of [
+      'Dockerfile',
+      'railway.json',
+      '.dockerignore',
+      '.railwayignore',
+      'build.ts',
+      'files.ts',
+      'huffman.ts',
+      'server.ts',
+      'web',
+      'runtime'
+    ])
+      await cp(join(root, path), join(context, path), { recursive: true });
+    upload = await command(
+      ['railway', 'up', context, '--path-as-root', '--no-gitignore', ...flags, '--detach', '--json'],
+      context
+    );
+  } finally {
+    await rm(context, { recursive: true, force: true });
+  }
   let deploymentId: string | undefined;
   for (const line of upload.split('\n')) {
     try {
@@ -129,7 +150,8 @@ export async function deployClient(directory: string, assets: string, preparedFi
               return copyFile(join(assets, file.path), target);
             });
           }
-          await writeFile(join(upload, 'manifest.json'), `${JSON.stringify({ files })}\n`);
+          const manifest = join(staging, 'manifest.json');
+          await writeFile(manifest, `${JSON.stringify({ files })}\n`);
           await run([
             'volume',
             ...flags,
@@ -140,6 +162,39 @@ export async function deployClient(directory: string, assets: string, preparedFi
             upload,
             '/',
             '--overwrite',
+            '--concurrency',
+            '4',
+            '--json'
+          ]);
+          console.log(`Verifying ${files.length} uploaded game files...`);
+          for (const parent of new Set(files.map((file) => dirname(file.path)))) {
+            const remote = await run<{ files: { name: string; size: number; type: string }[] }>([
+              'volume',
+              ...flags,
+              'files',
+              '--volume',
+              state.volume,
+              'list',
+              parent === '.' ? '/gamefiles' : `/gamefiles/${parent}`,
+              '--json'
+            ]);
+            const stored = new Map(remote.files.map((file) => [file.name, file]));
+            for (const file of files.filter((file) => dirname(file.path) === parent)) {
+              const entry = stored.get(file.path.slice(parent === '.' ? 0 : parent.length + 1));
+              if (entry?.type !== 'file' || entry.size !== file.bytes)
+                throw new Error(`Incomplete game-file upload: ${file.path}. Rerun gemwright deploy --client to retry.`);
+            }
+          }
+          await run([
+            'volume',
+            ...flags,
+            'files',
+            '--volume',
+            state.volume,
+            'upload',
+            manifest,
+            '/gamefiles/manifest.json',
+            '--overwrite',
             '--json'
           ]);
         } finally {
@@ -148,9 +203,11 @@ export async function deployClient(directory: string, assets: string, preparedFi
         state.assets = digest;
         await save();
       }
+      console.log('Checking web client readiness...');
       const health = await fetch(`${origin}/healthz`);
       if (!health.ok) throw new Error(`The deployed client health check returned ${health.status}.`);
-      console.log(`ClassicUO: ${origin}`);
+      if ((await health.json()).ready !== true) throw new Error('The deployed web client is not ready.');
+      console.log(`Web client ready: ${origin}`);
       return origin;
     }
     if (status && ['FAILED', 'CRASHED', 'REMOVED'].includes(status))

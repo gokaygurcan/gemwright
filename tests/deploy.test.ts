@@ -99,7 +99,13 @@ test('--client uses the server game files after deployment; server-only skips th
     })
   );
   const calls: string[][] = [];
+  const output = spyOn(console, 'log').mockImplementation(() => {});
+  const webDeploy = spyOn(web, 'deployClient').mockImplementation(async () => {
+    expect(output.mock.calls.flat().some((line) => String(line).includes('Deployment complete.'))).toBe(false);
+    return 'https://play.example.com';
+  });
   const mocks = [
+    output,
     spyOn(process, 'isAvailable').mockResolvedValue(true),
     spyOn(deployments.servuo, 'validate').mockResolvedValue(),
     spyOn(deployments.servuo, 'stage').mockResolvedValue(join(directory, 'context')),
@@ -108,7 +114,7 @@ test('--client uses the server game files after deployment; server-only skips th
       digest: 'digest',
       bytes: 3
     }),
-    spyOn(web, 'deployClient').mockResolvedValue('https://play.example.com'),
+    webDeploy,
     spyOn(process, 'command').mockImplementation(async (args) => {
       calls.push(args);
       if (args[1] === 'volume' && args.includes('files')) return JSON.stringify({ files: [] });
@@ -131,9 +137,14 @@ test('--client uses the server game files after deployment; server-only skips th
     ]);
     expect(deployments.servuo.packageFiles).toHaveBeenCalledWith(directory, assets);
     expect(calls.some((args) => args[1] === 'up')).toBe(true);
+    expect(output.mock.calls.flat().at(-1)).toContain('Deployment complete.');
     await deploy({ files: assets }, directory);
     expect(web.deployClient).toHaveBeenCalledTimes(1);
     expect(calls.filter((args) => args[1] === 'up')).toHaveLength(2);
+    output.mockClear();
+    webDeploy.mockRejectedValueOnce(new Error('Upload timed out'));
+    await expect(deploy({ files: assets, client: true }, directory)).rejects.toThrow('Upload timed out');
+    expect(output.mock.calls.flat().some((line) => String(line).includes('Deployment complete.'))).toBe(false);
   } finally {
     for (const mock of mocks) mock.mockRestore();
   }
@@ -174,7 +185,9 @@ test('web deployment uses the existing project and uploads only manifest-listed 
   const calls: string[][] = [];
   let polls = 0;
   let failed = false;
-  const cli = spyOn(process, 'command').mockImplementation(async (args) => {
+  let incomplete = false;
+  const contexts: string[] = [];
+  const cli = spyOn(process, 'command').mockImplementation(async (args, cwd) => {
     calls.push(args);
     expect(args).toContain('project');
     if (args[1] === 'service')
@@ -185,17 +198,43 @@ test('web deployment uses the existing project and uploads only manifest-listed 
     if (args[1] === 'volume' && args.includes('upload')) {
       expect(polls).toBeGreaterThanOrEqual(2);
       const staged = args[args.indexOf('upload') + 1];
-      expect(staged).toBe(join(directory, '.gemwright/webclient-files/gamefiles'));
-      expect(args[args.indexOf('upload') + 2]).toBe('/');
-      expect((await readdir(staged!)).sort()).toEqual(['manifest.json', 'map0.mul']);
+      if (staged?.endsWith('/manifest.json')) {
+        expect(args[args.indexOf('upload') + 2]).toBe('/gamefiles/manifest.json');
+        expect(calls.at(-2)).toContain('/gamefiles');
+      } else {
+        expect(staged).toBe(join(directory, '.gemwright/webclient-files/gamefiles'));
+        expect(args[args.indexOf('upload') + 2]).toBe('/');
+        expect((await readdir(staged!)).sort()).toEqual(['map0.mul']);
+        expect(args[args.indexOf('--concurrency') + 1]).toBe('4');
+      }
       return '{}';
     }
+    if (args[1] === 'volume' && args.includes('files') && args.includes('list'))
+      return JSON.stringify({ files: [{ name: 'map0.mul', size: incomplete ? 2 : 3, type: 'file' }] });
     if (args[1] === 'volume')
       return JSON.stringify({ volumes: [{ id: 'web-data', serviceName: 'gemwright-web', mountPath: '/app/data' }] });
     if (args[1] === 'domain') return JSON.stringify({ domain: 'https://play.example.com' });
     if (args[1] === 'up') {
       expect(args).toContain('--path-as-root');
       expect(args).toContain('--no-gitignore');
+      const context = args[2]!;
+      contexts.push(context);
+      expect(cwd).toBe(context);
+      expect(context.split('/')).not.toContain('node_modules');
+      expect((await readdir(context)).sort()).toEqual([
+        '.dockerignore',
+        '.railwayignore',
+        'Dockerfile',
+        'build.ts',
+        'files.ts',
+        'huffman.ts',
+        'railway.json',
+        'runtime',
+        'server.ts',
+        'web'
+      ]);
+      expect(await readFile(join(context, 'Dockerfile'), 'utf8')).toContain('RUN bun build.ts');
+      await stat(join(context, 'runtime/_framework/dotnet.js'));
       return 'Uploading...\n' + JSON.stringify({ deploymentId: 'current' });
     }
     if (args[1] === 'deployment') {
@@ -210,14 +249,25 @@ test('web deployment uses the existing project and uploads only manifest-listed 
   const fetch = spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ ready: true }));
   try {
     await deployClient(directory, assets);
+    fetch.mockResolvedValue(Response.json({ ready: true }));
     await deployClient(directory, assets);
     expect(polls).toBe(3);
-    expect(calls.filter((args) => args.includes('upload'))).toHaveLength(1);
+    expect(calls.filter((args) => args.includes('upload'))).toHaveLength(2);
     expect(calls.some((args) => args[1] === 'add')).toBe(false);
     expect(calls.find((args) => args[1] === 'variable')).toContain('UO_HOST=${{gemwright.RAILWAY_PRIVATE_DOMAIN}}');
     await expect(stat(join(directory, '.gemwright/webclient-files'))).rejects.toThrow();
+    const statePath = join(directory, '.gemwright/webclient.json');
+    const state = JSON.parse(await readFile(statePath, 'utf8'));
+    delete state.assets;
+    await writeFile(statePath, JSON.stringify(state));
+    incomplete = true;
+    const uploads = calls.filter((args) => args.includes('upload')).length;
+    await expect(deployClient(directory, assets)).rejects.toThrow('Incomplete game-file upload: map0.mul');
+    expect(calls.filter((args) => args.includes('upload'))).toHaveLength(uploads + 1);
+    expect(JSON.parse(await readFile(statePath, 'utf8')).assets).toBeUndefined();
     failed = true;
     await expect(deployClient(directory, assets)).rejects.toThrow('Client deployment failed');
+    for (const context of contexts) await expect(stat(context)).rejects.toThrow();
   } finally {
     cli.mockRestore();
     fetch.mockRestore();
