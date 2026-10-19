@@ -5,7 +5,14 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /source
 COPY server/ ./
-RUN cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2 && \
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+        amd64) toolchain=Linux-GNU-x86_64 ;; \
+        arm64) toolchain=Linux-GNU-AArch64 ;; \
+        *) echo "Unsupported target architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_TOOLCHAIN_FILE="cmake/toolchains/$toolchain.cmake" && cmake --build build -j2 && \
     find build -type f -name 'SphereSvr*' -executable -exec cp {} /source/spheresvr \; && ./spheresvr --help
 
 FROM debian:trixie-slim
