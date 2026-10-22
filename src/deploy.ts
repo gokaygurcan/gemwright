@@ -3,9 +3,10 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import { deployAi } from './ai-deploy';
 import { deployClient } from './client-deploy';
 import { createManifest } from './client-files';
-import { type Emulator, loadShard } from './config';
+import { type Emulator, loadShard, type ShardConfig } from './config';
 import { stageDotnet, validateDotnetShard } from './emulators/dotnet/staging';
 import { packageClientFiles as packageServuoFiles, stageServuo, validateServuoShard } from './emulators/servuo/staging';
 import { packageClientFiles as packageSphereFiles, stageSphere, validateSphereShard } from './emulators/sphere/staging';
@@ -33,6 +34,8 @@ export interface RailwayState {
   clientDigest?: string;
   pendingClientDigest?: string;
   mysql?: { service?: string; name: string; creating?: boolean };
+  // The server build includes the AI patch (gemwright deploy --server --ai).
+  aiPatched?: boolean;
 }
 export type RailwayCommand = <T>(args: string[]) => Promise<T>;
 async function saveState(directory: string, state: RailwayState): Promise<void> {
@@ -207,9 +210,18 @@ export async function ensureRailwayMysql(directory: string, state: RailwayState,
   ]);
 }
 
-export async function deploy(options: { files?: string; client?: boolean }, directory = process.cwd()): Promise<void> {
+// Parts deployed: exactly the ones named, or the server alone when none is named.
+export interface DeployParts {
+  files?: string;
+  server?: boolean;
+  client?: boolean;
+  ai?: boolean;
+}
+
+export async function deploy(options: DeployParts, directory = process.cwd()): Promise<void> {
   directory = resolve(directory);
   const config = await loadShard(directory);
+  const server = options.server || (!options.client && !options.ai);
   const sourcePath =
     options.files ?? (config.emulator === 'sphere-x' ? config.sphere : config[config.emulator])?.clientFiles;
   const clientPath = sourcePath ? resolve(directory, sourcePath) : undefined;
@@ -227,6 +239,14 @@ export async function deploy(options: { files?: string; client?: boolean }, dire
   } catch {
     throw new Error('Railway is not logged in or cannot be reached. Run railway login and check your connection.');
   }
+  if (options.ai && !clientPath)
+    throw new Error('Deploying AI residents requires --files <path> or clientFiles in gemwright.json.');
+  if (!server) {
+    // Parts beside an already deployed shard; deployClient and deployAi check it exists.
+    if (options.client) await deployClient(directory, webClientPath as string, webFiles);
+    if (options.ai) await deployAi(directory, clientPath as string);
+    return;
+  }
   const emulator = deployments[config.emulator];
   await emulator.validate(directory, config);
   const recorded = await readFile(join(directory, '.gemwright/railway.json'), 'utf8').then(
@@ -239,11 +259,19 @@ export async function deploy(options: { files?: string; client?: boolean }, dire
   if (recorded?.emulator && recorded.emulator !== config.emulator)
     throw new Error('The recorded Railway service belongs to another emulator. It was not changed.');
   console.log(`Staging ${emulator.label} ${config.source!.revision.slice(0, 12)}...`);
-  const context = await emulator.stage(directory, config);
+  // Once the AI is deployed, every later server build keeps the AI patch.
+  const aiPatch = config.emulator === 'servuo' && (!!options.ai || !!recorded?.aiPatched);
+  const stage = emulator.stage as (
+    directory: string,
+    config: ShardConfig,
+    options?: { ai?: boolean }
+  ) => Promise<string>;
+  const context = await stage(directory, config, { ai: aiPatch });
   const client = clientPath ? await emulator.packageFiles(directory, clientPath) : undefined;
   const state = await ensureRailway(directory, config.id, run);
   state.emulator = config.emulator;
   await saveState(directory, state);
+  if (options.ai && config.emulator !== 'servuo') throw new Error('AI residents support ServUO shards only.');
   if (config.sphere?.mysql) {
     console.log('Provisioning MySQL and linking the shard through Railway private networking...');
     await ensureRailwayMysql(directory, state, run);
@@ -290,6 +318,10 @@ export async function deploy(options: { files?: string; client?: boolean }, dire
     await sleep(5000);
   }
   if (!active) throw new Error('Railway build is still pending. Resources are recorded; rerun deploy to resume.');
+  if (aiPatch && !state.aiPatched) {
+    state.aiPatched = true;
+    await saveState(directory, state);
+  }
   if (client && state.clientDigest !== client.digest) {
     const volumeFlags = ['volume', ...flags, 'files', '--volume', state.volume!];
     const root = await run<{ files: { name: string }[] }>([...volumeFlags, 'list', '/', '--json']);
@@ -320,5 +352,6 @@ export async function deploy(options: { files?: string; client?: boolean }, dire
     console.log('Server deployed. Web client deployment is still in progress...');
     await deployClient(directory, webClientPath, webFiles);
   }
+  if (options.ai && clientPath) await deployAi(directory, clientPath);
   console.log(`Deployment complete. Shard endpoint: ${proxies.proxies[0]?.endpoint ?? 'pending'}`);
 }

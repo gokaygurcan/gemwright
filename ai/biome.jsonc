@@ -1,0 +1,13 @@
+{
+  "extends": "//",
+  "files": {
+    "includes": [
+      "src/**/*.ts",
+      "tests/**/*.ts",
+      "templates/**/*.json",
+      "decisions/**/*.json",
+      "*.json",
+      "*.jsonc"
+    ]
+  }
+}

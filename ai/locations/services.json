@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "facet": 1,
+  "cities": {
+    "Britain": {
+      "banker": [
+        {
+          "name": "First Bank Of Britain"
+        },
+        {
+          "name": "East Britain Bank"
+        }
+      ],
+      "healer": [
+        {
+          "name": "Healer of Britain"
+        }
+      ],
+      "alchemist": [
+        {
+          "name": "Ethereal Goods"
+        },
+        {
+          "name": "The Sorcerer's Delight"
+        }
+      ],
+      "tailor": [
+        {
+          "name": "The Lord's Clothiers"
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "The Hammer and Anvil"
+        }
+      ],
+      "jeweler": [
+        {
+          "name": "Premier Gems"
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "Britain carpenter spawn",
+          "x": 1430,
+          "y": 1597
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "The Miner's Guild"
+        },
+        {
+          "name": "Tinker's Guild"
+        },
+        {
+          "name": "The Hammer and Anvil"
+        }
+      ],
+      "graveyard": [
+        {
+          "name": "Britain Cemetery"
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "Lord British's Stables"
+        },
+        {
+          "name": "The Bucking Horse Stables"
+        },
+        {
+          "name": "Sosarian Steeds"
+        }
+      ],
+      "tinker": [
+        {
+          "name": "Tinker's Guild"
+        }
+      ]
+    },
+    "Minoc": {
+      "banker": [
+        {
+          "name": "Minoc bank approach",
+          "x": 2503,
+          "y": 552
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "Minoc tool-shop approach",
+          "x": 2535,
+          "y": 571
+        },
+        {
+          "name": "Minoc western shop approach",
+          "x": 2468,
+          "y": 555
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "Minoc stable approach",
+          "x": 2526,
+          "y": 375
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "Minoc blacksmith spawn",
+          "x": 2471,
+          "y": 564
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,697 @@
+{
+ "schemaVersion": 1,
+ "source": "ServUO Scripts/Spells (SpellInfo words and reagents, Initializer ids)",
+ "spells": [
+  {
+   "name": "Clumsy",
+   "circle": 1,
+   "words": "Uus Jux",
+   "reagents": [
+    "Bloodmoss",
+    "Nightshade"
+   ],
+   "id": 1
+  },
+  {
+   "name": "Create Food",
+   "circle": 1,
+   "words": "In Mani Ylem",
+   "reagents": [
+    "Garlic",
+    "Ginseng",
+    "MandrakeRoot"
+   ],
+   "id": 2
+  },
+  {
+   "name": "Feeblemind",
+   "circle": 1,
+   "words": "Rel Wis",
+   "reagents": [
+    "Ginseng",
+    "Nightshade"
+   ],
+   "id": 3
+  },
+  {
+   "name": "Heal",
+   "circle": 1,
+   "words": "In Mani",
+   "reagents": [
+    "Garlic",
+    "Ginseng",
+    "SpidersSilk"
+   ],
+   "id": 4
+  },
+  {
+   "name": "Magic Arrow",
+   "circle": 1,
+   "words": "In Por Ylem",
+   "reagents": [
+    "SulfurousAsh"
+   ],
+   "id": 5
+  },
+  {
+   "name": "Night Sight",
+   "circle": 1,
+   "words": "In Lor",
+   "reagents": [
+    "SulfurousAsh",
+    "SpidersSilk"
+   ],
+   "id": 6
+  },
+  {
+   "name": "Reactive Armor",
+   "circle": 1,
+   "words": "Flam Sanct",
+   "reagents": [
+    "Garlic",
+    "SpidersSilk",
+    "SulfurousAsh"
+   ],
+   "id": 7
+  },
+  {
+   "name": "Weaken",
+   "circle": 1,
+   "words": "Des Mani",
+   "reagents": [
+    "Garlic",
+    "Nightshade"
+   ],
+   "id": 8
+  },
+  {
+   "name": "Agility",
+   "circle": 2,
+   "words": "Ex Uus",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot"
+   ],
+   "id": 9
+  },
+  {
+   "name": "Cunning",
+   "circle": 2,
+   "words": "Uus Wis",
+   "reagents": [
+    "MandrakeRoot",
+    "Nightshade"
+   ],
+   "id": 10
+  },
+  {
+   "name": "Cure",
+   "circle": 2,
+   "words": "An Nox",
+   "reagents": [
+    "Garlic",
+    "Ginseng"
+   ],
+   "id": 11
+  },
+  {
+   "name": "Harm",
+   "circle": 2,
+   "words": "An Mani",
+   "reagents": [
+    "Nightshade",
+    "SpidersSilk"
+   ],
+   "id": 12
+  },
+  {
+   "name": "Magic Trap",
+   "circle": 2,
+   "words": "In Jux",
+   "reagents": [
+    "Garlic",
+    "SpidersSilk",
+    "SulfurousAsh"
+   ],
+   "id": 13
+  },
+  {
+   "name": "Remove Trap",
+   "circle": 2,
+   "words": "An Jux",
+   "reagents": [
+    "Bloodmoss",
+    "SulfurousAsh"
+   ],
+   "id": 14
+  },
+  {
+   "name": "Protection",
+   "circle": 2,
+   "words": "Uus Sanct",
+   "reagents": [
+    "Garlic",
+    "Ginseng",
+    "SulfurousAsh"
+   ],
+   "id": 15
+  },
+  {
+   "name": "Strength",
+   "circle": 2,
+   "words": "Uus Mani",
+   "reagents": [
+    "MandrakeRoot",
+    "Nightshade"
+   ],
+   "id": 16
+  },
+  {
+   "name": "Bless",
+   "circle": 3,
+   "words": "Rel Sanct",
+   "reagents": [
+    "Garlic",
+    "MandrakeRoot"
+   ],
+   "id": 17
+  },
+  {
+   "name": "Fireball",
+   "circle": 3,
+   "words": "Vas Flam",
+   "reagents": [
+    "BlackPearl"
+   ],
+   "id": 18
+  },
+  {
+   "name": "Magic Lock",
+   "circle": 3,
+   "words": "An Por",
+   "reagents": [
+    "Garlic",
+    "Bloodmoss",
+    "SulfurousAsh"
+   ],
+   "id": 19
+  },
+  {
+   "name": "Poison",
+   "circle": 3,
+   "words": "In Nox",
+   "reagents": [
+    "Nightshade"
+   ],
+   "id": 20
+  },
+  {
+   "name": "Telekinesis",
+   "circle": 3,
+   "words": "Ort Por Ylem",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot"
+   ],
+   "id": 21
+  },
+  {
+   "name": "Teleport",
+   "circle": 3,
+   "words": "Rel Por",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot"
+   ],
+   "id": 22
+  },
+  {
+   "name": "Unlock",
+   "circle": 3,
+   "words": "Ex Por",
+   "reagents": [
+    "Bloodmoss",
+    "SulfurousAsh"
+   ],
+   "id": 23
+  },
+  {
+   "name": "Wall of Stone",
+   "circle": 3,
+   "words": "In Sanct Ylem",
+   "reagents": [
+    "Bloodmoss",
+    "Garlic"
+   ],
+   "id": 24
+  },
+  {
+   "name": "Arch Cure",
+   "circle": 4,
+   "words": "Vas An Nox",
+   "reagents": [
+    "Garlic",
+    "Ginseng",
+    "MandrakeRoot"
+   ],
+   "id": 25
+  },
+  {
+   "name": "Arch Protection",
+   "circle": 4,
+   "words": "Vas Uus Sanct",
+   "reagents": [
+    "Garlic",
+    "Ginseng",
+    "MandrakeRoot",
+    "SulfurousAsh"
+   ],
+   "id": 26
+  },
+  {
+   "name": "Curse",
+   "circle": 4,
+   "words": "Des Sanct",
+   "reagents": [
+    "Nightshade",
+    "Garlic",
+    "SulfurousAsh"
+   ],
+   "id": 27
+  },
+  {
+   "name": "Fire Field",
+   "circle": 4,
+   "words": "In Flam Grav",
+   "reagents": [
+    "BlackPearl",
+    "SpidersSilk",
+    "SulfurousAsh"
+   ],
+   "id": 28
+  },
+  {
+   "name": "Greater Heal",
+   "circle": 4,
+   "words": "In Vas Mani",
+   "reagents": [
+    "Garlic",
+    "Ginseng",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 29
+  },
+  {
+   "name": "Lightning",
+   "circle": 4,
+   "words": "Por Ort Grav",
+   "reagents": [
+    "MandrakeRoot",
+    "SulfurousAsh"
+   ],
+   "id": 30
+  },
+  {
+   "name": "Mana Drain",
+   "circle": 4,
+   "words": "Ort Rel",
+   "reagents": [
+    "BlackPearl",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 31
+  },
+  {
+   "name": "Recall",
+   "circle": 4,
+   "words": "Kal Ort Por",
+   "reagents": [
+    "BlackPearl",
+    "Bloodmoss",
+    "MandrakeRoot"
+   ],
+   "id": 32
+  },
+  {
+   "name": "Blade Spirits",
+   "circle": 5,
+   "words": "In Jux Hur Ylem",
+   "reagents": [
+    "BlackPearl",
+    "MandrakeRoot",
+    "Nightshade"
+   ],
+   "id": 33
+  },
+  {
+   "name": "Dispel Field",
+   "circle": 5,
+   "words": "An Grav",
+   "reagents": [
+    "BlackPearl",
+    "SpidersSilk",
+    "SulfurousAsh",
+    "Garlic"
+   ],
+   "id": 34
+  },
+  {
+   "name": "Incognito",
+   "circle": 5,
+   "words": "Kal In Ex",
+   "reagents": [
+    "Bloodmoss",
+    "Garlic",
+    "Nightshade"
+   ],
+   "id": 35
+  },
+  {
+   "name": "Magic Reflection",
+   "circle": 5,
+   "words": "In Jux Sanct",
+   "reagents": [
+    "Garlic",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 36
+  },
+  {
+   "name": "Mind Blast",
+   "circle": 5,
+   "words": "Por Corp Wis",
+   "reagents": [
+    "BlackPearl",
+    "MandrakeRoot",
+    "Nightshade",
+    "SulfurousAsh"
+   ],
+   "id": 37
+  },
+  {
+   "name": "Paralyze",
+   "circle": 5,
+   "words": "An Ex Por",
+   "reagents": [
+    "Garlic",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 38
+  },
+  {
+   "name": "Poison Field",
+   "circle": 5,
+   "words": "In Nox Grav",
+   "reagents": [
+    "BlackPearl",
+    "Nightshade",
+    "SpidersSilk"
+   ],
+   "id": 39
+  },
+  {
+   "name": "Summon Creature",
+   "circle": 5,
+   "words": "Kal Xen",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 40
+  },
+  {
+   "name": "Dispel",
+   "circle": 6,
+   "words": "An Ort",
+   "reagents": [
+    "Garlic",
+    "MandrakeRoot",
+    "SulfurousAsh"
+   ],
+   "id": 41
+  },
+  {
+   "name": "Energy Bolt",
+   "circle": 6,
+   "words": "Corp Por",
+   "reagents": [
+    "BlackPearl",
+    "Nightshade"
+   ],
+   "id": 42
+  },
+  {
+   "name": "Explosion",
+   "circle": 6,
+   "words": "Vas Ort Flam",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot"
+   ],
+   "id": 43
+  },
+  {
+   "name": "Invisibility",
+   "circle": 6,
+   "words": "An Lor Xen",
+   "reagents": [
+    "Bloodmoss",
+    "Nightshade"
+   ],
+   "id": 44
+  },
+  {
+   "name": "Mark",
+   "circle": 6,
+   "words": "Kal Por Ylem",
+   "reagents": [
+    "BlackPearl",
+    "Bloodmoss",
+    "MandrakeRoot"
+   ],
+   "id": 45
+  },
+  {
+   "name": "Mass Curse",
+   "circle": 6,
+   "words": "Vas Des Sanct",
+   "reagents": [
+    "Garlic",
+    "Nightshade",
+    "MandrakeRoot",
+    "SulfurousAsh"
+   ],
+   "id": 46
+  },
+  {
+   "name": "Paralyze Field",
+   "circle": 6,
+   "words": "In Ex Grav",
+   "reagents": [
+    "BlackPearl",
+    "Ginseng",
+    "SpidersSilk"
+   ],
+   "id": 47
+  },
+  {
+   "name": "Reveal",
+   "circle": 6,
+   "words": "Wis Quas",
+   "reagents": [
+    "Bloodmoss",
+    "SulfurousAsh"
+   ],
+   "id": 48
+  },
+  {
+   "name": "Chain Lightning",
+   "circle": 7,
+   "words": "Vas Ort Grav",
+   "reagents": [
+    "BlackPearl",
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SulfurousAsh"
+   ],
+   "id": 49
+  },
+  {
+   "name": "Energy Field",
+   "circle": 7,
+   "words": "In Sanct Grav",
+   "reagents": [
+    "BlackPearl",
+    "MandrakeRoot",
+    "SpidersSilk",
+    "SulfurousAsh"
+   ],
+   "id": 50
+  },
+  {
+   "name": "Flame Strike",
+   "circle": 7,
+   "words": "Kal Vas Flam",
+   "reagents": [
+    "SpidersSilk",
+    "SulfurousAsh"
+   ],
+   "id": 51
+  },
+  {
+   "name": "Gate Travel",
+   "circle": 7,
+   "words": "Vas Rel Por",
+   "reagents": [
+    "BlackPearl",
+    "MandrakeRoot",
+    "SulfurousAsh"
+   ],
+   "id": 52
+  },
+  {
+   "name": "Mana Vampire",
+   "circle": 7,
+   "words": "Ort Sanct",
+   "reagents": [
+    "BlackPearl",
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 53
+  },
+  {
+   "name": "Mass Dispel",
+   "circle": 7,
+   "words": "Vas An Ort",
+   "reagents": [
+    "Garlic",
+    "MandrakeRoot",
+    "BlackPearl",
+    "SulfurousAsh"
+   ],
+   "id": 54
+  },
+  {
+   "name": "Meteor Swarm",
+   "circle": 7,
+   "words": "Flam Kal Des Ylem",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SulfurousAsh",
+    "SpidersSilk"
+   ],
+   "id": 55
+  },
+  {
+   "name": "Polymorph",
+   "circle": 7,
+   "words": "Vas Ylem Rel",
+   "reagents": [
+    "Bloodmoss",
+    "SpidersSilk",
+    "MandrakeRoot"
+   ],
+   "id": 56
+  },
+  {
+   "name": "Earthquake",
+   "circle": 8,
+   "words": "In Vas Por",
+   "reagents": [
+    "Bloodmoss",
+    "Ginseng",
+    "MandrakeRoot",
+    "SulfurousAsh"
+   ],
+   "id": 57
+  },
+  {
+   "name": "Energy Vortex",
+   "circle": 8,
+   "words": "Vas Corp Por",
+   "reagents": [
+    "Bloodmoss",
+    "BlackPearl",
+    "MandrakeRoot",
+    "Nightshade"
+   ],
+   "id": 58
+  },
+  {
+   "name": "Resurrection",
+   "circle": 8,
+   "words": "An Corp",
+   "reagents": [
+    "Bloodmoss",
+    "Garlic",
+    "Ginseng"
+   ],
+   "id": 59
+  },
+  {
+   "name": "Air Elemental",
+   "circle": 8,
+   "words": "Kal Vas Xen Hur",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 60
+  },
+  {
+   "name": "Summon Daemon",
+   "circle": 8,
+   "words": "Kal Vas Xen Corp",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SpidersSilk",
+    "SulfurousAsh"
+   ],
+   "id": 61
+  },
+  {
+   "name": "Earth Elemental",
+   "circle": 8,
+   "words": "Kal Vas Xen Ylem",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 62
+  },
+  {
+   "name": "Fire Elemental",
+   "circle": 8,
+   "words": "Kal Vas Xen Flam",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SpidersSilk",
+    "SulfurousAsh"
+   ],
+   "id": 63
+  },
+  {
+   "name": "Water Elemental",
+   "circle": 8,
+   "words": "Kal Vas Xen An Flam",
+   "reagents": [
+    "Bloodmoss",
+    "MandrakeRoot",
+    "SpidersSilk"
+   ],
+   "id": 64
+  }
+ ]
+}

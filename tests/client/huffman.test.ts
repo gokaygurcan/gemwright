@@ -24,3 +24,15 @@ test('bounds decoded output', () => {
   const decoder = new Huffman();
   expect(() => decoder.decompress(Buffer.from(vectors[3][1], 'hex'), 8)).toThrow('maxOut');
 });
+
+test('reuses caller storage while preserving split-symbol decoding and output bounds', () => {
+  const bytes = Buffer.from(vectors[2][1], 'hex');
+  const storage = Buffer.alloc(65536);
+  for (let split = 0; split <= bytes.length; split++) {
+    const decoder = new Huffman();
+    const first = Buffer.from(decoder.decompress(bytes.subarray(0, split), storage.length, storage));
+    const second = decoder.decompress(bytes.subarray(split), storage.length, storage);
+    expect(Buffer.concat([first, second])).toEqual(Buffer.from(vectors[2][0], 'hex'));
+  }
+  expect(() => new Huffman().decompress(bytes, 32, Buffer.alloc(8))).toThrow('smaller');
+});

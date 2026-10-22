@@ -1,0 +1,109 @@
+diff --git a/Scripts/Accounting/AccountAttackLimiter.cs b/Scripts/Accounting/AccountAttackLimiter.cs
+index 58e666a..913a9a8 100644
+--- a/Scripts/Accounting/AccountAttackLimiter.cs
++++ b/Scripts/Accounting/AccountAttackLimiter.cs
+@@ -23,7 +23,7 @@ namespace Server.Accounting
+         public static bool Throttle_Callback(byte packetID, NetState ns, out bool drop)
+         {
+             drop = false;
+-            if (HostingOptions.IsRailwayProxy(ns.Address)) return true;
++            if (HostingOptions.IsRailwayProxy(ns.Address) || TrustedHosts.Contains(ns.Address)) return true;
+ 
+             InvalidAccountAccessLog accessLog = FindAccessLog(ns);
+ 
+@@ -55,7 +55,7 @@ namespace Server.Accounting
+ 
+         public static void RegisterInvalidAccess(NetState ns)
+         {
+-            if (ns == null || !Enabled || HostingOptions.IsRailwayProxy(ns.Address))
++            if (ns == null || !Enabled || HostingOptions.IsRailwayProxy(ns.Address) || TrustedHosts.Contains(ns.Address))
+                 return;
+ 
+             InvalidAccountAccessLog accessLog = FindAccessLog(ns);
+diff --git a/Scripts/Accounting/IPLimiter.cs b/Scripts/Accounting/IPLimiter.cs
+index e3cfe30..b7f35fe 100644
+--- a/Scripts/Accounting/IPLimiter.cs
++++ b/Scripts/Accounting/IPLimiter.cs
+@@ -20,7 +20,7 @@ namespace Server.Misc
+ 
+         public static bool IsExempt(IPAddress ip)
+         {
+-            if (HostingOptions.IsRailwayProxy(ip)) return true;
++            if (HostingOptions.IsRailwayProxy(ip) || TrustedHosts.Contains(ip)) return true;
+             for (int i = 0; i < Exemptions.Length; i++)
+             {
+                 if (ip.Equals(Exemptions[i]))
+diff --git a/Server/HostingOptions.cs b/Server/HostingOptions.cs
+index 489eef1..b3a07bf 100644
+--- a/Server/HostingOptions.cs
++++ b/Server/HostingOptions.cs
+@@ -34,6 +34,9 @@ namespace Server
+                 case "--railway-proxy":
+                     RailwayProxy = true;
+                     return true;
++                case "--trusted-host":
++                    TrustedHosts.Add(NextValue(args, ref index));
++                    return true;
+                 default:
+                     return false;
+             }
+diff --git a/Server/TrustedHosts.cs b/Server/TrustedHosts.cs
+new file mode 100644
+index 0000000..d010b53
+--- /dev/null
++++ b/Server/TrustedHosts.cs
+@@ -0,0 +1,54 @@
++using System;
++using System.Collections.Generic;
++using System.Linq;
++using System.Net;
++
++namespace Server
++{
++    // Hosts exempt from per-address account, connection and failed-login limits: Gemwright's AI
++    // residents, which all log in from one service. Names are resolved, not trusted by spelling,
++    // and re-resolved every minute because private-network addresses change on redeploy.
++    public static class TrustedHosts
++    {
++        private static readonly List<string> m_Names = new List<string>();
++        private static readonly object m_Lock = new object();
++        private static HashSet<IPAddress> m_Addresses = new HashSet<IPAddress>();
++        private static DateTime m_ResolvedAt = DateTime.MinValue;
++
++        public static void Add(string name)
++        {
++            if (Uri.CheckHostName(name) != UriHostNameType.Dns)
++                throw new ArgumentException("--trusted-host requires a host name: " + name);
++            lock (m_Lock)
++                m_Names.Add(name);
++        }
++
++        public static bool Contains(IPAddress address)
++        {
++            if (address == null || m_Names.Count == 0) return false;
++            if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
++            lock (m_Lock)
++            {
++                if (DateTime.UtcNow - m_ResolvedAt > TimeSpan.FromMinutes(1))
++                {
++                    var resolved = new HashSet<IPAddress>();
++                    foreach (var name in m_Names)
++                    {
++                        try
++                        {
++                            foreach (var ip in Dns.GetHostAddresses(name))
++                                resolved.Add(ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip);
++                        }
++                        catch (Exception e)
++                        {
++                            Console.WriteLine("Hosting: Could not resolve trusted host {0}: {1}", name, e.Message);
++                        }
++                    }
++                    m_Addresses = resolved;
++                    m_ResolvedAt = DateTime.UtcNow;
++                }
++                return m_Addresses.Contains(address);
++            }
++        }
++    }
++}

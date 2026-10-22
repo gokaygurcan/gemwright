@@ -1,0 +1,22 @@
+{"schemaVersion":1,"source":"ServUO DefAlchemy.cs and the Alchemist's SB* sell lists","skill":"Alchemy","material":"Reagent","graphic":3973,"vendor":"alchemist","recipes":[
+  {"name":"refresh potion","group":1116348,"label":1044538,"min":-25,"max":25,"amount":1,"pays":7,"material":3962,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"night sight potion","group":1116349,"label":1044542,"min":-25,"max":25,"amount":1,"pays":7,"material":3981,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"lesser heal potion","group":1116348,"label":1044543,"min":-25,"max":25,"amount":1,"pays":7,"material":3973,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"lesser cure potion","group":1116348,"label":1044552,"min":-10,"max":40,"amount":1,"pays":7,"material":3972,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"lesser poison potion","group":1116350,"label":1044548,"min":-5,"max":45,"amount":1,"pays":7,"material":3976,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"lesser explosion potion","group":1116351,"label":1044555,"min":5,"max":55,"amount":3,"pays":10,"material":3980,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"agility potion","group":1116349,"label":1044540,"min":15,"max":65,"amount":1,"pays":7,"material":3963,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"heal potion","group":1116348,"label":1044544,"min":15,"max":65,"amount":3,"pays":11,"material":3973,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"poison potion","group":1116350,"label":1044549,"min":15,"max":65,"amount":2,"pays":9,"material":3976,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"total refresh potion","group":1116348,"label":1044539,"min":25,"max":75,"amount":5,"pays":0,"material":3962,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"strength potion","group":1116349,"label":1044546,"min":25,"max":75,"amount":2,"pays":7,"material":3974,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"cure potion","group":1116348,"label":1044553,"min":25,"max":75,"amount":3,"pays":11,"material":3972,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"greater agility potion","group":1116349,"label":1044541,"min":35,"max":85,"amount":3,"pays":0,"material":3963,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"explosion potion","group":1116351,"label":1044556,"min":35,"max":85,"amount":5,"pays":15,"material":3980,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"greater strength potion","group":1116349,"label":1044547,"min":45,"max":95,"amount":5,"pays":0,"material":3974,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"greater heal potion","group":1116348,"label":1044545,"min":55,"max":105,"amount":7,"pays":15,"material":3973,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"greater poison potion","group":1116350,"label":1044550,"min":55,"max":105,"amount":4,"pays":13,"material":3976,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"greater cure potion","group":1116348,"label":1044554,"min":65,"max":115,"amount":6,"pays":15,"material":3972,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"greater explosion potion","group":1116351,"label":1044557,"min":65,"max":115,"amount":10,"pays":25,"material":3980,"extra":[{"graphic":3854,"amount":1}]},
+  {"name":"deadly poison potion","group":1116350,"label":1044551,"min":90,"max":140,"amount":8,"pays":21,"material":3976,"extra":[{"graphic":3854,"amount":1}]}
+]}

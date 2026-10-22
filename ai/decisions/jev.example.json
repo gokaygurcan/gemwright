@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "provider": "jev",
+  "model": "jev-1.13.0",
+  "credentialEnv": "TYPESAFE_API_KEY",
+  "timeoutMs": 1500,
+  "minIntervalMs": 5000,
+  "maxRequestsPerRun": 100,
+  "maxRequestsPerDay": 1000,
+  "maxDailyCostUsd": 0.5,
+  "maxRequestBytes": 12000
+}

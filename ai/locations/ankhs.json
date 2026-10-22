@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "facet": 1,
+  "note": "Resurrection ankhs from ServUO Data/Decoration (Britannia, Trammel, Magincia/Trammel)",
+  "ankhs": [
+    {
+      "x": 634,
+      "y": 816,
+      "z": 0,
+      "source": "yew.cfg"
+    },
+    {
+      "x": 1456,
+      "y": 843,
+      "z": 5,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 1857,
+      "y": 877,
+      "z": -1,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 4208,
+      "y": 561,
+      "z": 42,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 4208,
+      "y": 565,
+      "z": 42,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 4272,
+      "y": 3696,
+      "z": 0,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 1723,
+      "y": 3527,
+      "z": 8,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 1300,
+      "y": 629,
+      "z": 21,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 2489,
+      "y": 3930,
+      "z": 2,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 3354,
+      "y": 287,
+      "z": 4,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 1592,
+      "y": 2489,
+      "z": 20,
+      "source": "shrines.cfg"
+    },
+    {
+      "x": 3606,
+      "y": 2582,
+      "z": 10,
+      "source": "haven.cfg"
+    },
+    {
+      "x": 3526,
+      "y": 2516,
+      "z": 25,
+      "source": "haven.cfg"
+    },
+    {
+      "x": 3685,
+      "y": 2066,
+      "z": 9,
+      "source": "Decoration.cfg"
+    }
+  ]
+}

@@ -1,0 +1,1501 @@
+{
+  "Bet-Lem Reg": [
+    {
+      "name": "Bet-Lem Reg",
+      "x": 1249,
+      "y": 947
+    }
+  ],
+  "Britain": [
+    {
+      "name": "Britain Public Library",
+      "x": 1420,
+      "y": 1595
+    },
+    {
+      "name": "Castle Britannia",
+      "x": 1352,
+      "y": 1625
+    },
+    {
+      "name": "The Chamber of Virtue",
+      "x": 1556,
+      "y": 1613
+    },
+    {
+      "name": "East Side Park",
+      "x": 1614,
+      "y": 1637
+    },
+    {
+      "name": "First Bank Of Britain",
+      "x": 1436,
+      "y": 1693
+    },
+    {
+      "name": "Lord Blackthorn's Castle",
+      "x": 1530,
+      "y": 1428
+    },
+    {
+      "name": "Lord British's Throne",
+      "x": 1323,
+      "y": 1624
+    },
+    {
+      "name": "Ethereal Goods",
+      "x": 1498,
+      "y": 1659
+    },
+    {
+      "name": "Incantations & Enchantments",
+      "x": 1590,
+      "y": 1654
+    },
+    {
+      "name": "The Sorcerer's Delight",
+      "x": 1485,
+      "y": 1550
+    },
+    {
+      "name": "The Cleaver",
+      "x": 1449,
+      "y": 1723
+    },
+    {
+      "name": "Good Eats",
+      "x": 1450,
+      "y": 1617
+    },
+    {
+      "name": "Cypress Bridge",
+      "x": 1523,
+      "y": 1673
+    },
+    {
+      "name": "The Great Northern Bridge",
+      "x": 1552,
+      "y": 1529
+    },
+    {
+      "name": "Gung Farmer's Bridge",
+      "x": 1386,
+      "y": 1499
+    },
+    {
+      "name": "Mage's Bridge",
+      "x": 1528,
+      "y": 1579
+    },
+    {
+      "name": "The Main Gate",
+      "x": 1475,
+      "y": 1644
+    },
+    {
+      "name": "Poor Gate",
+      "x": 1420,
+      "y": 1638
+    },
+    {
+      "name": "River's Gate Bridge",
+      "x": 1512,
+      "y": 1705
+    },
+    {
+      "name": "Virtue's Pass",
+      "x": 1527,
+      "y": 1629
+    },
+    {
+      "name": "Quality Fletching",
+      "x": 1472,
+      "y": 1584
+    },
+    {
+      "name": "The Saw Horse",
+      "x": 1430,
+      "y": 1597
+    },
+    {
+      "name": "Artist's Guild",
+      "x": 1444,
+      "y": 1670
+    },
+    {
+      "name": "Britain's Blacksmith's Guild",
+      "x": 1360,
+      "y": 1776
+    },
+    {
+      "name": "Cavalry Guild",
+      "x": 1592,
+      "y": 1562
+    },
+    {
+      "name": "Counselor's Guild (East Britain)",
+      "x": 1633,
+      "y": 1672
+    },
+    {
+      "name": "Counselor's Guild (West Britain)",
+      "x": 1505,
+      "y": 1528
+    },
+    {
+      "name": "The Merchant's Guild",
+      "x": 1477,
+      "y": 1600
+    },
+    {
+      "name": "The Miner's Guild",
+      "x": 1425,
+      "y": 1584
+    },
+    {
+      "name": "Tinker's Guild",
+      "x": 1432,
+      "y": 1656
+    },
+    {
+      "name": "Warrior's Guild",
+      "x": 1342,
+      "y": 1744
+    },
+    {
+      "name": "Healer of Britain",
+      "x": 1480,
+      "y": 1610
+    },
+    {
+      "name": "The Blue Boar",
+      "x": 1502,
+      "y": 1689
+    },
+    {
+      "name": "The Cat's Lair",
+      "x": 1432,
+      "y": 1730
+    },
+    {
+      "name": "The North Side Inn",
+      "x": 1474,
+      "y": 1520
+    },
+    {
+      "name": "The Salty Dog",
+      "x": 1610,
+      "y": 1592
+    },
+    {
+      "name": "Sweet Dreams",
+      "x": 1500,
+      "y": 1626
+    },
+    {
+      "name": "The Unicorn's Horn",
+      "x": 1549,
+      "y": 1776
+    },
+    {
+      "name": "The Wayfarer's Inn",
+      "x": 1600,
+      "y": 1589
+    },
+    {
+      "name": "Premier Provisioners and Fish Shop",
+      "x": 1468,
+      "y": 1676
+    },
+    {
+      "name": "Profuse Provisions",
+      "x": 1602,
+      "y": 1720
+    },
+    {
+      "name": "The Bucking Horse Stables",
+      "x": 1515,
+      "y": 1552
+    },
+    {
+      "name": "Lord British's Stables",
+      "x": 1386,
+      "y": 1664
+    },
+    {
+      "name": "Sosarian Steeds",
+      "x": 1304,
+      "y": 1488
+    },
+    {
+      "name": "The Best Hides Of Britain",
+      "x": 1440,
+      "y": 1611
+    },
+    {
+      "name": "Lord British's Tailor",
+      "x": 1385,
+      "y": 1608
+    },
+    {
+      "name": "The Lord's Clothiers",
+      "x": 1470,
+      "y": 1696
+    },
+    {
+      "name": "The Right Fit",
+      "x": 1554,
+      "y": 1664
+    },
+    {
+      "name": "A Girl's Best Friend",
+      "x": 1660,
+      "y": 1648
+    },
+    {
+      "name": "Premier Gems",
+      "x": 1458,
+      "y": 1683
+    },
+    {
+      "name": "The Hammer and Anvil",
+      "x": 1428,
+      "y": 1546
+    },
+    {
+      "name": "Heavy Metal Armorer",
+      "x": 1446,
+      "y": 1654
+    },
+    {
+      "name": "The Lord's Arms",
+      "x": 1370,
+      "y": 1584
+    },
+    {
+      "name": "Strength and Steel",
+      "x": 1488,
+      "y": 1586
+    },
+    {
+      "name": "Britain Cemetery",
+      "x": 1386,
+      "y": 1495
+    },
+    {
+      "name": "Britain Gazebo",
+      "x": 1635,
+      "y": 1563
+    },
+    {
+      "name": "Britain Sewers",
+      "x": 1491,
+      "y": 1641
+    },
+    {
+      "name": "Britain Watch Tower",
+      "x": 1618,
+      "y": 1768
+    },
+    {
+      "name": "Britannia Animal Care",
+      "x": 1505,
+      "y": 1576
+    },
+    {
+      "name": "Customs",
+      "x": 1480,
+      "y": 1746
+    },
+    {
+      "name": "East Britain Bank",
+      "x": 1656,
+      "y": 1509
+    },
+    {
+      "name": "First Library of Britain",
+      "x": 1493,
+      "y": 1724
+    },
+    {
+      "name": "The King's Men Theater",
+      "x": 1454,
+      "y": 1600
+    },
+    {
+      "name": "Lord British's Conservatory",
+      "x": 1454,
+      "y": 1561
+    },
+    {
+      "name": "The Oaken Oar",
+      "x": 1424,
+      "y": 1747
+    },
+    {
+      "name": "Sage Advice",
+      "x": 1574,
+      "y": 1721
+    }
+  ],
+  "Buccaneer's Den": [
+    {
+      "name": "A Place Fer Yer Stuff",
+      "x": 2731,
+      "y": 2192
+    },
+    {
+      "name": "Buccaneer's Den Tunnels",
+      "x": 2685,
+      "y": 2063
+    },
+    {
+      "name": "Magical Gate to the Mainland",
+      "x": 2728,
+      "y": 2133
+    },
+    {
+      "name": "Violente Woodworks",
+      "x": 2627,
+      "y": 2100
+    },
+    {
+      "name": "Pirate's Den",
+      "x": 2659,
+      "y": 2194
+    },
+    {
+      "name": "Healer of Buccaneer's Den",
+      "x": 2709,
+      "y": 2130
+    },
+    {
+      "name": "The Peg Leg Inn",
+      "x": 2715,
+      "y": 2098
+    },
+    {
+      "name": "The Pirate's Plunder",
+      "x": 2680,
+      "y": 2238
+    },
+    {
+      "name": "Pirate's Provisioners",
+      "x": 2735,
+      "y": 2254
+    },
+    {
+      "name": "Buccaneer's Den Leatherworks",
+      "x": 2707,
+      "y": 2178
+    },
+    {
+      "name": "Cutlass Smithing",
+      "x": 2634,
+      "y": 2088
+    },
+    {
+      "name": "Buccaneer's Den Docks",
+      "x": 2752,
+      "y": 2155
+    },
+    {
+      "name": "Buccaneer's Bath",
+      "x": 2667,
+      "y": 2087
+    }
+  ],
+  "Cove": [
+    {
+      "name": "Cove Orc Fort",
+      "x": 2176,
+      "y": 1372
+    },
+    {
+      "name": "The Healing Hand",
+      "x": 2245,
+      "y": 1231
+    },
+    {
+      "name": "The Farmer's Market",
+      "x": 2216,
+      "y": 1181
+    },
+    {
+      "name": "The Warrior's Supplies",
+      "x": 2217,
+      "y": 1170
+    },
+    {
+      "name": "Cove Dock",
+      "x": 2256,
+      "y": 1181
+    },
+    {
+      "name": "Watchtower",
+      "x": 2212,
+      "y": 1115
+    },
+    {
+      "name": "Town Gate",
+      "x": 2281,
+      "y": 1210
+    }
+  ],
+  "Delucia": [
+    {
+      "name": "Delucia Passage",
+      "x": 1630,
+      "y": 3321
+    }
+  ],
+  "Desert Outpost (East)": [
+    {
+      "name": "Desert Outpost (East)",
+      "x": 1602,
+      "y": 545
+    }
+  ],
+  "Fishing Village": [],
+  "Heartwood (City)": [],
+  "Holy City": [
+    {
+      "name": "Shrine of Singularity",
+      "x": 995,
+      "y": 3803
+    },
+    {
+      "name": "Tomb of Kings",
+      "x": 998,
+      "y": 3842
+    }
+  ],
+  "Jhelom": [
+    {
+      "name": "Jhelom Bank and Jeweler",
+      "x": 1328,
+      "y": 3771
+    },
+    {
+      "name": "Jhelom Dueling Pit",
+      "x": 1376,
+      "y": 3752
+    },
+    {
+      "name": "Jhelom Moongate",
+      "x": 1499,
+      "y": 3771
+    },
+    {
+      "name": "Jhelom Teleporters",
+      "x": 1414,
+      "y": 3829
+    },
+    {
+      "name": "Jhelom Mage",
+      "x": 1426,
+      "y": 3992
+    },
+    {
+      "name": "Baker's Dozen",
+      "x": 1368,
+      "y": 3733
+    },
+    {
+      "name": "Finest Cuts",
+      "x": 1464,
+      "y": 4024
+    },
+    {
+      "name": "From Tree To Yew",
+      "x": 1425,
+      "y": 3824
+    },
+    {
+      "name": "Brothers In Arms",
+      "x": 1368,
+      "y": 3713
+    },
+    {
+      "name": "Counselor's Guild (Jhelom)",
+      "x": 1425,
+      "y": 3640
+    },
+    {
+      "name": "Hand of Death",
+      "x": 1440,
+      "y": 3864
+    },
+    {
+      "name": "Jhelom Healer",
+      "x": 1409,
+      "y": 3792
+    },
+    {
+      "name": "The Horse's Head",
+      "x": 1433,
+      "y": 3776
+    },
+    {
+      "name": "Morning Star Inn",
+      "x": 1376,
+      "y": 3814
+    },
+    {
+      "name": "Needful Things",
+      "x": 1434,
+      "y": 3800
+    },
+    {
+      "name": "Adventurer's Needle",
+      "x": 1360,
+      "y": 3786
+    },
+    {
+      "name": "Jhelom's Fine Tailoring",
+      "x": 1458,
+      "y": 4008
+    },
+    {
+      "name": "Gadgets and Things",
+      "x": 1411,
+      "y": 3808
+    },
+    {
+      "name": "The Pearl of Jhelom",
+      "x": 1442,
+      "y": 3992
+    },
+    {
+      "name": "Call to Arms",
+      "x": 1472,
+      "y": 3872
+    },
+    {
+      "name": "Deadly Intentions",
+      "x": 1368,
+      "y": 3752
+    },
+    {
+      "name": "First Defense",
+      "x": 1385,
+      "y": 3712
+    },
+    {
+      "name": "Jhelom Armory",
+      "x": 1464,
+      "y": 3849
+    },
+    {
+      "name": "Second Skin",
+      "x": 1448,
+      "y": 3721
+    },
+    {
+      "name": "Warrior's Bounty",
+      "x": 1424,
+      "y": 3859
+    },
+    {
+      "name": "Farmer's Market",
+      "x": 1391,
+      "y": 3832
+    },
+    {
+      "name": "Jhelom Cemetary",
+      "x": 1353,
+      "y": 3720
+    },
+    {
+      "name": "Jhelom City Gates",
+      "x": 1370,
+      "y": 3868
+    },
+    {
+      "name": "Jhelom City Gates",
+      "x": 1475,
+      "y": 3690
+    },
+    {
+      "name": "Jhelom Docks",
+      "x": 1372,
+      "y": 3908
+    },
+    {
+      "name": "Jhelom Docks",
+      "x": 1504,
+      "y": 3693
+    },
+    {
+      "name": "Jhelom Docks",
+      "x": 1512,
+      "y": 3989
+    },
+    {
+      "name": "Jhelom Docks",
+      "x": 1521,
+      "y": 3687
+    },
+    {
+      "name": "Jhelom Library",
+      "x": 1400,
+      "y": 3769
+    },
+    {
+      "name": "The Ocean's Treasure",
+      "x": 1440,
+      "y": 3746
+    },
+    {
+      "name": "Performing Arts Centre",
+      "x": 1440,
+      "y": 4009
+    },
+    {
+      "name": "Sailor's Keeper",
+      "x": 1449,
+      "y": 3752
+    }
+  ],
+  "Lakeshire": [
+    {
+      "name": "Lakeshire",
+      "x": 1200,
+      "y": 1127
+    }
+  ],
+  "Luna": [],
+  "Magincia": [],
+  "Minoc": [],
+  "Mistas": [],
+  "Moonglow": [
+    {
+      "name": "Moonglow Royal Zoo",
+      "x": 4537,
+      "y": 1376
+    },
+    {
+      "name": "First Bank of Moonglow",
+      "x": 4471,
+      "y": 1156
+    },
+    {
+      "name": "Lycaeum",
+      "x": 4308,
+      "y": 1012
+    },
+    {
+      "name": "Moonglow Cemetary",
+      "x": 4545,
+      "y": 1336
+    },
+    {
+      "name": "Moonglow Moongate",
+      "x": 4467,
+      "y": 1283
+    },
+    {
+      "name": "Moonglow Telescope",
+      "x": 4707,
+      "y": 1122
+    },
+    {
+      "name": "Encyclopedia Magicka",
+      "x": 4547,
+      "y": 872
+    },
+    {
+      "name": "Herbal Splendor",
+      "x": 4419,
+      "y": 1136
+    },
+    {
+      "name": "Moonglow's Finest Alchemy",
+      "x": 4451,
+      "y": 1096
+    },
+    {
+      "name": "Moonglow Reagent Shop",
+      "x": 4424,
+      "y": 1108
+    },
+    {
+      "name": "The Fatted Calf",
+      "x": 4395,
+      "y": 1137
+    },
+    {
+      "name": "Mage's Bread",
+      "x": 4392,
+      "y": 1068
+    },
+    {
+      "name": "The Mage's Seat",
+      "x": 4416,
+      "y": 1085
+    },
+    {
+      "name": "First Bank of Moonglow and Tinker's Guild",
+      "x": 4471,
+      "y": 1156
+    },
+    {
+      "name": "Masters of Illusion",
+      "x": 4626,
+      "y": 1207
+    },
+    {
+      "name": "Moonglow Counselor's Guild",
+      "x": 4478,
+      "y": 1126
+    },
+    {
+      "name": "The Sorcerer's Guild",
+      "x": 4684,
+      "y": 1412
+    },
+    {
+      "name": "Moonglow Healer",
+      "x": 4392,
+      "y": 1089
+    },
+    {
+      "name": "Moonglow Student Hostel",
+      "x": 4484,
+      "y": 1064
+    },
+    {
+      "name": "The Scholar's Inn",
+      "x": 4401,
+      "y": 1165
+    },
+    {
+      "name": "The Scholar's Goods",
+      "x": 4417,
+      "y": 1064
+    },
+    {
+      "name": "Scholar's Cut",
+      "x": 4458,
+      "y": 1060
+    },
+    {
+      "name": "The Mighty Axe",
+      "x": 4392,
+      "y": 1117
+    },
+    {
+      "name": "Second Defense Armory",
+      "x": 4440,
+      "y": 1162
+    },
+    {
+      "name": "Academy Of Arts",
+      "x": 4525,
+      "y": 1060
+    },
+    {
+      "name": "Farmer's Market",
+      "x": 4481,
+      "y": 1085
+    },
+    {
+      "name": "Moonglow Docks",
+      "x": 4406,
+      "y": 1038
+    },
+    {
+      "name": "Moonglow Teleporter Park",
+      "x": 4442,
+      "y": 1122
+    }
+  ],
+  "New Haven": [],
+  "Nujel'm": [],
+  "Ocllo": [],
+  "Old Haven": [
+    {
+      "name": "Companion Hall",
+      "x": 3599,
+      "y": 2491
+    },
+    {
+      "name": "Haven Moongate",
+      "x": 3763,
+      "y": 2771
+    },
+    {
+      "name": "Haven Waterfall Garden",
+      "x": 3633,
+      "y": 2597
+    },
+    {
+      "name": "The Second Bank of Haven",
+      "x": 3620,
+      "y": 2617
+    },
+    {
+      "name": "Uzeraan's Mansion",
+      "x": 3610,
+      "y": 2585
+    },
+    {
+      "name": "The Little Shop of Magic",
+      "x": 3632,
+      "y": 2573
+    },
+    {
+      "name": "The Prime Cut Butcher Shop",
+      "x": 3714,
+      "y": 2651
+    },
+    {
+      "name": "The Shakin' Bakery",
+      "x": 3628,
+      "y": 2540
+    },
+    {
+      "name": "Bowyers of Haven",
+      "x": 3745,
+      "y": 2585
+    },
+    {
+      "name": "Carpenters of Haven",
+      "x": 3642,
+      "y": 2504
+    },
+    {
+      "name": "Bardic Guild",
+      "x": 3666,
+      "y": 2531
+    },
+    {
+      "name": "The Haven Thieves' Guild",
+      "x": 3693,
+      "y": 2509
+    },
+    {
+      "name": "The Healers of Haven",
+      "x": 3665,
+      "y": 2581
+    },
+    {
+      "name": "The Albatross Bar and Grill",
+      "x": 3668,
+      "y": 2652
+    },
+    {
+      "name": "The Bountiful Harvest",
+      "x": 3671,
+      "y": 2615
+    },
+    {
+      "name": "Last Chance Provisioners",
+      "x": 3673,
+      "y": 2595
+    },
+    {
+      "name": "A Stitch in Time Tailor Shop",
+      "x": 3687,
+      "y": 2477
+    },
+    {
+      "name": "Haven Clockworks and Tinker Shop",
+      "x": 3667,
+      "y": 2506
+    },
+    {
+      "name": "The Haven Blacksmith",
+      "x": 3645,
+      "y": 2617
+    },
+    {
+      "name": "Ankh of Sacrifice (Haven)",
+      "x": 3359,
+      "y": 2679
+    },
+    {
+      "name": "Haven Docks",
+      "x": 3655,
+      "y": 2665
+    },
+    {
+      "name": "Haven Graveyard",
+      "x": 3411,
+      "y": 2653
+    },
+    {
+      "name": "Haven Lighthouse",
+      "x": 3457,
+      "y": 3056
+    },
+    {
+      "name": "Haven Public Library",
+      "x": 3615,
+      "y": 2476
+    },
+    {
+      "name": "Haven Rangers Cabin",
+      "x": 3740,
+      "y": 2692
+    },
+    {
+      "name": "Hunters Cabin",
+      "x": 3715,
+      "y": 2838
+    },
+    {
+      "name": "Mapmaker's of Haven",
+      "x": 3636,
+      "y": 2642
+    },
+    {
+      "name": "Mongbat Tower",
+      "x": 3589,
+      "y": 2808
+    }
+  ],
+  "Papua": [],
+  "Paws": [],
+  "Reg Volom": [],
+  "Royal City": [
+    {
+      "name": "Queen's Palace",
+      "x": 740,
+      "y": 3376
+    },
+    {
+      "name": "Museum of Wonders",
+      "x": 669,
+      "y": 3410
+    },
+    {
+      "name": "Royal City Public [[Soulforge]]",
+      "x": 797,
+      "y": 3433
+    },
+    {
+      "name": "Royal City Moongate",
+      "x": 854,
+      "y": 3524
+    },
+    {
+      "name": "Royal Bank",
+      "x": 839,
+      "y": 3440
+    },
+    {
+      "name": "Jeweler",
+      "x": 786,
+      "y": 3430
+    },
+    {
+      "name": "Baker",
+      "x": 808,
+      "y": 3487
+    },
+    {
+      "name": "Butcher",
+      "x": 815,
+      "y": 3465
+    },
+    {
+      "name": "Farmers",
+      "x": 794,
+      "y": 3449
+    },
+    {
+      "name": "Stone Crafter",
+      "x": 813,
+      "y": 3429
+    },
+    {
+      "name": "Tinker",
+      "x": 812,
+      "y": 3442
+    },
+    {
+      "name": "Provisioner",
+      "x": 798,
+      "y": 3487
+    },
+    {
+      "name": "Tavern",
+      "x": 711,
+      "y": 3440
+    },
+    {
+      "name": "Inn",
+      "x": 739,
+      "y": 3484
+    },
+    {
+      "name": "Mysterious Magics",
+      "x": 826,
+      "y": 3352
+    },
+    {
+      "name": "Zosilem the Alchemist",
+      "x": 775,
+      "y": 3477
+    },
+    {
+      "name": "Healer",
+      "x": 783,
+      "y": 3487
+    },
+    {
+      "name": "Mage & MysticShop",
+      "x": 779,
+      "y": 3485
+    },
+    {
+      "name": "Scribe",
+      "x": 777,
+      "y": 3464
+    },
+    {
+      "name": "Tailor",
+      "x": 806,
+      "y": 3401
+    },
+    {
+      "name": "Tanner",
+      "x": 807,
+      "y": 3389
+    },
+    {
+      "name": "Blacksmith",
+      "x": 813,
+      "y": 3429
+    },
+    {
+      "name": "Ter Mur Stables",
+      "x": 851,
+      "y": 3417
+    }
+  ],
+  "Sanctuary": [
+    {
+      "name": "Sanctuary",
+      "x": 796,
+      "y": 1613
+    }
+  ],
+  "Sea Market": [
+    {
+      "name": "Sea Market",
+      "x": 4553,
+      "y": 2334
+    }
+  ],
+  "Serpent's Hold": [
+    {
+      "name": "Serpent's Hold Bank",
+      "x": 2890,
+      "y": 3476
+    },
+    {
+      "name": "Counselor's Guild",
+      "x": 2948,
+      "y": 3349
+    },
+    {
+      "name": "Passage to [[Fire Dungeon]]",
+      "x": 2922,
+      "y": 3402
+    },
+    {
+      "name": "Britannian Herbs",
+      "x": 3011,
+      "y": 3360
+    },
+    {
+      "name": "Serpent's Spells",
+      "x": 3003,
+      "y": 3360
+    },
+    {
+      "name": "Plenty O' Dough",
+      "x": 2976,
+      "y": 3360
+    },
+    {
+      "name": "Serpent Hold Meats",
+      "x": 2907,
+      "y": 3496
+    },
+    {
+      "name": "Silver Serpent Bows",
+      "x": 3052,
+      "y": 3376
+    },
+    {
+      "name": "Serpent Warriors",
+      "x": 3029,
+      "y": 3360
+    },
+    {
+      "name": "Warriors' Guild",
+      "x": 3055,
+      "y": 3408
+    },
+    {
+      "name": "Serpent's Hold Healer",
+      "x": 2995,
+      "y": 3440
+    },
+    {
+      "name": "Fisherman's Brew",
+      "x": 3013,
+      "y": 3464
+    },
+    {
+      "name": "The Broken Arrow Inn",
+      "x": 2976,
+      "y": 3408
+    },
+    {
+      "name": "The Dog and Lion Pub",
+      "x": 2971,
+      "y": 3432
+    },
+    {
+      "name": "Supplies",
+      "x": 3016,
+      "y": 3387
+    },
+    {
+      "name": "Serpent's Hold Stablery (West)",
+      "x": 2912,
+      "y": 3515
+    },
+    {
+      "name": "Serpent's Hold Stablery (East)",
+      "x": 3042,
+      "y": 3467
+    },
+    {
+      "name": "Silver Serpent Tailor",
+      "x": 2888,
+      "y": 3503
+    },
+    {
+      "name": "Tinker of the Isle",
+      "x": 2932,
+      "y": 3512
+    },
+    {
+      "name": "Blacksmith",
+      "x": 3007,
+      "y": 3416
+    },
+    {
+      "name": "Serpent's Arms",
+      "x": 3024,
+      "y": 3431
+    },
+    {
+      "name": "Serpent's Hold Docks (North)",
+      "x": 2940,
+      "y": 3410
+    },
+    {
+      "name": "Serpent's Hold Docks (South)",
+      "x": 3001,
+      "y": 3466
+    },
+    {
+      "name": "Serpent's Hold Training Grounds",
+      "x": 3033,
+      "y": 3385
+    }
+  ],
+  "Skara Brae": [],
+  "Trinsic": [
+    {
+      "name": "Trinsic Moongate",
+      "x": 1828,
+      "y": 2948
+    },
+    {
+      "name": "Mess Hall",
+      "x": 1947,
+      "y": 2691
+    },
+    {
+      "name": "Marketplace",
+      "x": 2030,
+      "y": 2879
+    },
+    {
+      "name": "Ankh",
+      "x": 2029,
+      "y": 2720
+    },
+    {
+      "name": "Smuggler's Gate",
+      "x": 2003,
+      "y": 2915
+    }
+  ],
+  "Umbra": [],
+  "Ver Lor Reg": [],
+  "Vesper": [],
+  "Wind": [
+    {
+      "name": "Wind Park",
+      "x": 5210,
+      "y": 18
+    },
+    {
+      "name": "The Alchemist of Wind",
+      "x": 5318,
+      "y": 95
+    },
+    {
+      "name": "Magical Supplies",
+      "x": 5211,
+      "y": 124
+    },
+    {
+      "name": "Wind Alchemy",
+      "x": 5160,
+      "y": 79
+    },
+    {
+      "name": "Mage's Appetite",
+      "x": 5361,
+      "y": 64
+    },
+    {
+      "name": "Wind Healer",
+      "x": 5272,
+      "y": 133
+    },
+    {
+      "name": "Seeker's Inn",
+      "x": 5172,
+      "y": 37
+    },
+    {
+      "name": "Wind Tavern",
+      "x": 5230,
+      "y": 184
+    },
+    {
+      "name": "Windy Inn",
+      "x": 5314,
+      "y": 43
+    },
+    {
+      "name": "Mage's Things",
+      "x": 5154,
+      "y": 103
+    },
+    {
+      "name": "Windy Clothes",
+      "x": 5194,
+      "y": 95
+    },
+    {
+      "name": "The Learned Mage",
+      "x": 5245,
+      "y": 155
+    },
+    {
+      "name": "Seat of Knowledge",
+      "x": 5262,
+      "y": 185
+    },
+    {
+      "name": "Teleporter to the surface",
+      "x": 5179,
+      "y": 152
+    },
+    {
+      "name": "Teleporter into [[Wind Park]]",
+      "x": 5198,
+      "y": 71
+    }
+  ],
+  "Yew": [
+    {
+      "name": "Court of Truth",
+      "x": 363,
+      "y": 907
+    },
+    {
+      "name": "Empath Abbey",
+      "x": 641,
+      "y": 859
+    },
+    {
+      "name": "Ye Olde Winery",
+      "x": 628,
+      "y": 887
+    },
+    {
+      "name": "Yew Moongate",
+      "x": 775,
+      "y": 753
+    },
+    {
+      "name": "The Jolly Baker",
+      "x": 564,
+      "y": 994
+    },
+    {
+      "name": "Yew's Finest Cuts",
+      "x": 549,
+      "y": 1016
+    },
+    {
+      "name": "Bloody Thumb Woodworks",
+      "x": 581,
+      "y": 1016
+    },
+    {
+      "name": "Great Oak Bowyer",
+      "x": 623,
+      "y": 1148
+    },
+    {
+      "name": "The Sturdy Bow",
+      "x": 571,
+      "y": 980
+    },
+    {
+      "name": "Counselors Guild",
+      "x": 615,
+      "y": 981
+    },
+    {
+      "name": "Deep Forest Healing",
+      "x": 647,
+      "y": 1087
+    },
+    {
+      "name": "Healer of Yew",
+      "x": 548,
+      "y": 971
+    },
+    {
+      "name": "The Tanned Hide",
+      "x": 525,
+      "y": 992
+    },
+    {
+      "name": "Cave of the [[Candle of Love]] (Beneath [[Ye Olde Winery]])",
+      "x": 612,
+      "y": 875
+    },
+    {
+      "name": "Passage to the [[Lighthouse (location)]]",
+      "x": 313,
+      "y": 797
+    },
+    {
+      "name": "Yew Bank",
+      "x": 650,
+      "y": 821
+    },
+    {
+      "name": "Yew Cemetary",
+      "x": 723,
+      "y": 1129
+    },
+    {
+      "name": "Yew Crypts",
+      "x": 971,
+      "y": 766
+    },
+    {
+      "name": "Yew Mill",
+      "x": 556,
+      "y": 836
+    },
+    {
+      "name": "Yew Orc Fort",
+      "x": 633,
+      "y": 1496
+    }
+  ],
+  "Zento": [
+    {
+      "name": "Rockuon Cultural Center",
+      "x": 676,
+      "y": 1281
+    },
+    {
+      "name": "Makoto-Jima Moongate",
+      "x": 802,
+      "y": 1204
+    },
+    {
+      "name": "No Name Imperial Bank",
+      "x": 732,
+      "y": 1255
+    },
+    {
+      "name": "Good Fortune Jewelers",
+      "x": 721,
+      "y": 1302
+    },
+    {
+      "name": "Koku Kitchens",
+      "x": 710,
+      "y": 1274
+    },
+    {
+      "name": "Kagome Bowyer",
+      "x": 789,
+      "y": 1301
+    },
+    {
+      "name": "Zento Provides",
+      "x": 737,
+      "y": 1282
+    },
+    {
+      "name": "Sake Saka Tavern",
+      "x": 695,
+      "y": 1230
+    },
+    {
+      "name": "Miyabi Inn",
+      "x": 677,
+      "y": 1218
+    },
+    {
+      "name": "Sasara Magical Supplies and Remedies",
+      "x": 707,
+      "y": 1299
+    },
+    {
+      "name": "Satori Healing Garden",
+      "x": 781,
+      "y": 1227
+    },
+    {
+      "name": "Suteki Na Craftworks",
+      "x": 730,
+      "y": 1228
+    },
+    {
+      "name": "Iroha Armorer",
+      "x": 768,
+      "y": 1299
+    },
+    {
+      "name": "Mibu Blacksmith",
+      "x": 770,
+      "y": 1249
+    },
+    {
+      "name": "Musha-Sugyo Dojo",
+      "x": 768,
+      "y": 1299
+    }
+  ]
+}

@@ -55,8 +55,8 @@ export class Huffman {
   private treePos = 0;
 
   // Preserve partial symbols across TCP chunks and bound each decoded block.
-  decompress(src: Buffer, maxOut: number = 65536): Buffer {
-    const dest = Buffer.alloc(maxOut);
+  decompress(src: Buffer, maxOut: number = 65536, dest: Buffer = Buffer.alloc(maxOut)): Buffer {
+    if (dest.length < maxOut) throw new Error('Huffman output buffer is smaller than maxOut');
     let destIndex = 0;
     let srcIndex = 0;
     let bitNum = this.bitNum;

@@ -18,7 +18,7 @@ import { deployVps } from './vps-deploy';
 import { deployVpsRemote } from './vps-remote';
 
 const help = `Usage: gemwright init [directory] [options]
-       gemwright deploy [--files <path>] [--client]
+       gemwright deploy [--files <path>] [--server] [--client] [--ai]
        gemwright deploy --target vps --public-host <host> [--client --domain <host>] [--prepare]
 
 Options:
@@ -30,7 +30,9 @@ Options:
   --yes                 Accept defaults for unanswered questions
   --mysql               Add MySQL for Sphere/Sphere-X scripts during deployment
   --files <path>        UO client files to import during deployment
-  --client              Also deploy the web client
+  --server              Deploy the shard server (the default when no part is named)
+  --client              Deploy the web client
+  --ai                  Deploy AI residents (ServUO; settings under "ai" in gemwright.json)
   --target <target>     Deployment target: railway (default) or vps
   --public-host <host>  VPS public IPv4 address or hostname for native clients
   --domain <host>       Browser client HTTPS hostname
@@ -49,6 +51,8 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     strict: true,
     options: {
       files: { type: 'string' },
+      server: { type: 'boolean' },
+      ai: { type: 'boolean' },
       client: { type: 'boolean' },
       target: { type: 'string' },
       'public-host': { type: 'string' },
@@ -82,7 +86,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   if (command === 'deploy') {
     const allowed = [
       'files',
+      'server',
       'client',
+      'ai',
       'target',
       'public-host',
       'domain',
@@ -94,7 +100,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       'yes'
     ];
     if (directory || extra.length || Object.keys(values).some((key) => !allowed.includes(key)))
-      throw new Error('Usage: gemwright deploy [--files <path>] [--client]');
+      throw new Error('Usage: gemwright deploy [--files <path>] [--server] [--client] [--ai]');
     const options = await deploymentOptions({
       target: values.target,
       files: values.files,
@@ -109,6 +115,8 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       yes: values.yes
     });
     if (options.target === 'vps') {
+      if (values.ai) throw new Error('AI residents deploy to Railway only for now.');
+      if (values.client && !values.server) console.log('VPS deployments always include the server for now.');
       if (options.ssh) await deployVpsRemote(options);
       else await deployVps(options);
       await mkdir(join(process.cwd(), '.gemwright'), { recursive: true });
@@ -117,11 +125,15 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       });
       return;
     }
-    await deploy({ files: values.files, client: values.client });
+    if ((values.client || values.ai) && !values.server)
+      console.log('Deploying only the named parts; add --server to deploy the shard as well.');
+    await deploy({ files: values.files, server: values.server, client: values.client, ai: values.ai });
     return;
   }
   if (
     values.files ||
+    values.server ||
+    values.ai ||
     values.client ||
     values.target ||
     values['public-host'] ||

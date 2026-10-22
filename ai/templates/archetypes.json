@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "archetypes": [
+    {
+      "id": "pure-mage",
+      "version": 1,
+      "primarySkills": ["Magery", "Eval Int"],
+      "supportingSkills": [
+        "Meditation",
+        "Magic Resist",
+        "Wrestling",
+        "Anatomy",
+        "Healing",
+        "Inscription"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 25,
+        "int": 100
+      }
+    },
+    {
+      "id": "tank-mage",
+      "version": 1,
+      "primarySkills": ["Magery", "Tactics"],
+      "supportingSkills": [
+        "Magic Resist",
+        "Meditation",
+        "Swordsmanship",
+        "Anatomy",
+        "Healing",
+        "Eval Int"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 45,
+        "int": 80
+      }
+    },
+    {
+      "id": "swordsman",
+      "version": 1,
+      "primarySkills": ["Swordsmanship", "Tactics"],
+      "supportingSkills": [
+        "Anatomy",
+        "Healing",
+        "Magic Resist",
+        "Parrying",
+        "Arms Lore",
+        "Lumberjacking"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 100,
+        "int": 25
+      }
+    },
+    {
+      "id": "mace-fighter",
+      "version": 1,
+      "primarySkills": ["Mace Fighting", "Tactics"],
+      "supportingSkills": [
+        "Anatomy",
+        "Healing",
+        "Magic Resist",
+        "Parrying",
+        "Arms Lore",
+        "Wrestling"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 100,
+        "int": 25
+      }
+    },
+    {
+      "id": "fencer",
+      "version": 1,
+      "primarySkills": ["Fencing", "Tactics"],
+      "supportingSkills": [
+        "Anatomy",
+        "Healing",
+        "Magic Resist",
+        "Parrying",
+        "Arms Lore",
+        "Poisoning"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 100,
+        "int": 25
+      }
+    },
+    {
+      "id": "archer",
+      "version": 1,
+      "primarySkills": ["Archery", "Tactics"],
+      "supportingSkills": [
+        "Anatomy",
+        "Healing",
+        "Magic Resist",
+        "Arms Lore",
+        "Hiding",
+        "Tracking"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 100,
+        "int": 25
+      }
+    },
+    {
+      "id": "bard",
+      "version": 1,
+      "primarySkills": ["Provocation", "Musicianship"],
+      "supportingSkills": [
+        "Discordance",
+        "Peacemaking",
+        "Magery",
+        "Magic Resist",
+        "Meditation",
+        "Eval Int"
+      ],
+      "stats": {
+        "str": 90,
+        "dex": 45,
+        "int": 90
+      }
+    },
+    {
+      "id": "tamer",
+      "version": 1,
+      "primarySkills": ["Animal Taming", "Animal Lore"],
+      "supportingSkills": [
+        "Magery",
+        "Magic Resist",
+        "Meditation",
+        "Eval Int",
+        "Veterinary",
+        "Musicianship"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 25,
+        "int": 100
+      }
+    },
+    {
+      "id": "archer-tamer",
+      "version": 1,
+      "primarySkills": ["Animal Taming", "Archery"],
+      "supportingSkills": [
+        "Animal Lore",
+        "Veterinary",
+        "Tactics",
+        "Anatomy",
+        "Healing"
+      ],
+      "stats": {
+        "str": 90,
+        "dex": 90,
+        "int": 45
+      }
+    },
+    {
+      "id": "thief",
+      "version": 1,
+      "primarySkills": ["Stealing", "Snooping"],
+      "supportingSkills": [
+        "Magery",
+        "Magic Resist",
+        "Meditation",
+        "Hiding",
+        "Stealth",
+        "Detect Hidden"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 80,
+        "int": 45
+      }
+    },
+    {
+      "id": "craftsman",
+      "version": 1,
+      "primarySkills": ["Blacksmithy", "Mining"],
+      "supportingSkills": [
+        "Magery",
+        "Tinkering",
+        "Arms Lore",
+        "Tailoring",
+        "Carpentry",
+        "Imbuing"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 25,
+        "int": 100
+      }
+    },
+    {
+      "id": "fisherman",
+      "version": 1,
+      "primarySkills": ["Fishing", "Cooking"],
+      "supportingSkills": [
+        "Tactics",
+        "Swordsmanship",
+        "Healing",
+        "Anatomy",
+        "Magic Resist",
+        "Arms Lore"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 50,
+        "int": 75
+      }
+    },
+    {
+      "id": "tailor",
+      "version": 1,
+      "primarySkills": ["Tailoring", "Arms Lore"],
+      "supportingSkills": [
+        "Magery",
+        "Meditation",
+        "Tinkering",
+        "Carpentry",
+        "Anatomy",
+        "Imbuing"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 25,
+        "int": 100
+      }
+    },
+    {
+      "id": "alchemist",
+      "version": 1,
+      "primarySkills": ["Alchemy", "Magery"],
+      "supportingSkills": [
+        "Meditation",
+        "Magic Resist",
+        "Eval Int",
+        "Inscription",
+        "Taste ID",
+        "Healing"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 25,
+        "int": 100
+      }
+    },
+    {
+      "id": "bowyer",
+      "version": 1,
+      "primarySkills": ["Fletching", "Archery"],
+      "supportingSkills": [
+        "Tactics",
+        "Anatomy",
+        "Healing",
+        "Lumberjacking",
+        "Carpentry",
+        "Magic Resist"
+      ],
+      "stats": {
+        "str": 100,
+        "dex": 100,
+        "int": 25
+      }
+    }
+  ]
+}

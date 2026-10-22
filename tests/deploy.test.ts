@@ -130,7 +130,7 @@ test('--client uses the server game files after deployment; server-only skips th
     })
   ];
   try {
-    await deploy({ files: assets, client: true }, directory);
+    await deploy({ files: assets, server: true, client: true }, directory);
     expect(web.deployClient).toHaveBeenCalledTimes(1);
     expect(web.deployClient).toHaveBeenCalledWith(directory, assets, [
       expect.objectContaining({ path: 'map0.mul', bytes: 3 })
@@ -141,6 +141,26 @@ test('--client uses the server game files after deployment; server-only skips th
     await deploy({ files: assets }, directory);
     expect(web.deployClient).toHaveBeenCalledTimes(1);
     expect(calls.filter((args) => args[1] === 'up')).toHaveLength(2);
+    // Only the named part: the web client alone neither stages nor uploads the server.
+    output.mockClear();
+    await deploy({ files: assets, client: true }, directory);
+    expect(web.deployClient).toHaveBeenCalledTimes(2);
+    expect(calls.filter((args) => args[1] === 'up')).toHaveLength(2);
+    // AI residents: the server build gains the AI patch and keeps it on later server deploys.
+    const ai = await import('../src/ai-deploy');
+    const aiDeploy = spyOn(ai, 'deployAi').mockResolvedValue();
+    mocks.push(aiDeploy);
+    const ups = () => calls.filter((args) => args[1] === 'up').length;
+    const before = ups();
+    await deploy({ files: assets, server: true, ai: true }, directory);
+    expect(deployments.servuo.stage).toHaveBeenLastCalledWith(directory, expect.anything(), { ai: true });
+    expect(aiDeploy).toHaveBeenCalledWith(directory, assets);
+    expect(JSON.parse(await readFile(join(directory, '.gemwright/railway.json'), 'utf8')).aiPatched).toBe(true);
+    await deploy({ files: assets }, directory);
+    expect(deployments.servuo.stage).toHaveBeenLastCalledWith(directory, expect.anything(), { ai: true });
+    await deploy({ files: assets, ai: true }, directory);
+    expect(ups()).toBe(before + 2);
+    expect(aiDeploy).toHaveBeenCalledTimes(2);
     output.mockClear();
     webDeploy.mockRejectedValueOnce(new Error('Upload timed out'));
     await expect(deploy({ files: assets, client: true }, directory)).rejects.toThrow('Upload timed out');

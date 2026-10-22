@@ -36,12 +36,16 @@ export async function validateServuoShard(directory: string, config: ShardConfig
   }
 }
 
-export async function stageServuo(directory: string, config: ShardConfig): Promise<string> {
+export async function stageServuo(
+  directory: string,
+  config: ShardConfig,
+  options: { ai?: boolean } = {}
+): Promise<string> {
   const context = join(directory, '.gemwright/deploy');
   await rm(context, { recursive: true, force: true });
   const server = join(context, 'server');
   await checkoutSource(server, config.source!);
-  await applyServuoCompatibility(server, config.source!.revision);
+  await applyServuoCompatibility(server, config.source!.revision, options.ai);
   await removeSourceHistory(server);
   await rm(join(server, 'Config'), { recursive: true, force: true });
   await cp(join(directory, 'Config'), join(server, 'Config'), { recursive: true });

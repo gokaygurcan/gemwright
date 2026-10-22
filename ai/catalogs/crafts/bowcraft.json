@@ -1,0 +1,13 @@
+{"schemaVersion":1,"source":"ServUO DefBowFletching.cs and the Bowyer's SB* sell lists","skill":"Bowcraft","material":"Board","graphic":7127,"vendor":"bowyer","recipes":[
+  {"name":"kindling","group":1044457,"label":1023553,"min":0,"max":0,"amount":1,"pays":0},
+  {"name":"shaft","group":1044457,"label":1027124,"min":0,"max":40,"amount":1,"pays":1},
+  {"name":"bow","group":1044566,"label":1025042,"min":30,"max":70,"amount":7,"pays":17},
+  {"name":"fukiya darts","group":1044565,"label":1030246,"min":50,"max":73.8,"amount":1,"pays":1},
+  {"name":"crossbow","group":1044566,"label":1023919,"min":60,"max":100,"amount":7,"pays":25},
+  {"name":"composite bow","group":1044566,"label":1029922,"min":70,"max":110,"amount":7,"pays":23},
+  {"name":"heavy crossbow","group":1044566,"label":1025117,"min":80,"max":120,"amount":10,"pays":27},
+  {"name":"magical shortbow","group":1044566,"label":1031551,"min":85,"max":135,"amount":15,"pays":0},
+  {"name":"repeating crossbow","group":1044566,"label":1029923,"min":90,"max":130,"amount":10,"pays":22},
+  {"name":"yumi","group":1044566,"label":1030224,"min":90,"max":130,"amount":10,"pays":26},
+  {"name":"elven composite longbow","group":1044566,"label":1031562,"min":95,"max":145,"amount":20,"pays":0}
+]}

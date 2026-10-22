@@ -1,7 +1,7 @@
 {
   "name": "gemwright",
   "description": "Forge your own shard",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -19,7 +19,13 @@
     "client/{Dockerfile,railway.json,.dockerignore,.railwayignore}",
     "client/{build,files,huffman,server}.ts",
     "client/web/",
-    "client/runtime/"
+    "client/runtime/",
+    "ai/{Dockerfile,railway.json,start.sh,package.json,bun.lock,tsconfig.json}",
+    "ai/src/",
+    "ai/world/",
+    "ai/templates/",
+    "ai/locations/",
+    "ai/catalogs/"
   ],
   "engines": {
     "node": ">=24"
@@ -37,7 +43,7 @@
     "chalk": "6.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.2",
     "@types/bun": "1.4.3",
     "@types/node": "26.6.5",
     "typescript": "7.0.2"

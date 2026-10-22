@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "shardId": "example-shard",
+  "emulator": "servuo",
+  "profile": "classic-7.0.45.1",
+  "host": "127.0.0.1",
+  "port": 2593,
+  "serverIndex": 0,
+  "timeoutMs": 20000
+}

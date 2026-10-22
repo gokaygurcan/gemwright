@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "shardId": "example-shard",
+  "targetPopulation": 4,
+  "templates": [
+    {
+      "id": "britain-miner",
+      "version": 4,
+      "label": "Minoc miner",
+      "creation": {
+        "namePrefix": "Miner",
+        "city": "Minoc",
+        "skills": {
+          "Mining": 50,
+          "Blacksmith": 50
+        },
+        "equipment": [],
+        "provisioning": "normal-character-creation"
+      },
+      "behavior": {
+        "activities": ["mine", "smelt", "bank", "sell", "restock", "socialize"],
+        "trainingGoals": {
+          "Mining": 100,
+          "Blacksmith": 100
+        },
+        "riskTolerance": 0.2,
+        "sociability": 0.4,
+        "cooperation": 0.7,
+        "supplies": {
+          "pickaxe": 1
+        },
+        "bankAtWeightRatio": 0.8,
+        "corpseRecovery": "seek-help"
+      },
+      "archetype": {
+        "id": "craftsman",
+        "version": 1
+      }
+    },
+    {
+      "id": "britain-swordsman",
+      "version": 2,
+      "label": "Britain swordsman",
+      "creation": {
+        "namePrefix": "Adventurer",
+        "city": "Britain",
+        "skills": {
+          "Swordsmanship": 50,
+          "Tactics": 50
+        },
+        "equipment": [],
+        "provisioning": "normal-character-creation"
+      },
+      "behavior": {
+        "activities": ["hunt", "train", "bank", "restock", "socialize"],
+        "trainingGoals": {
+          "Swordsmanship": 100,
+          "Healing": 100,
+          "Tactics": 100
+        },
+        "riskTolerance": 0.5,
+        "sociability": 0.6,
+        "cooperation": 0.8,
+        "supplies": {
+          "bandage": 30
+        },
+        "bankAtWeightRatio": 0.75,
+        "corpseRecovery": "recover-if-safe"
+      },
+      "archetype": {
+        "id": "swordsman",
+        "version": 1
+      }
+    },
+    {
+      "id": "britain-lumberjack",
+      "version": 4,
+      "label": "Britain lumberjack",
+      "creation": {
+        "namePrefix": "Woodcutter",
+        "city": "Britain",
+        "skills": {
+          "Lumberjacking": 50,
+          "Carpentry": 50
+        },
+        "equipment": [],
+        "provisioning": "normal-character-creation"
+      },
+      "behavior": {
+        "activities": ["chop", "cut", "sell", "bank", "restock", "socialize"],
+        "trainingGoals": {
+          "Lumberjacking": 100,
+          "Carpentry": 100
+        },
+        "riskTolerance": 0.2,
+        "sociability": 0.4,
+        "cooperation": 0.7,
+        "supplies": {
+          "hatchet": 1
+        },
+        "bankAtWeightRatio": 0.8,
+        "corpseRecovery": "seek-help"
+      },
+      "archetype": {
+        "id": "craftsman",
+        "version": 1
+      }
+    }
+  ],
+  "allocation": {
+    "mode": "weighted",
+    "entries": [
+      {
+        "templateId": "britain-miner",
+        "weight": 1
+      },
+      {
+        "templateId": "britain-swordsman",
+        "weight": 1
+      }
+    ]
+  }
+}

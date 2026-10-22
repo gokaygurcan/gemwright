@@ -38,9 +38,16 @@ while [ ! -e /app/data/.client-ready ]; do
     fi
 done
 
+# GEMWRIGHT_TRUSTED_HOSTS (comma-separated host names) is set when AI residents are deployed; the
+# server build then includes the AI patch that exempts those hosts from per-address limits.
+set --
+for host in $(printf '%s' "${GEMWRIGHT_TRUSTED_HOSTS:-}" | tr ',' ' '); do
+    set -- "$@" --trusted-host "$host"
+done
+
 if [ -n "${GEMWRIGHT_PUBLIC_HOST:-}" ]; then
-    exec /opt/gemwright/run-server.sh --public "$GEMWRIGHT_PUBLIC_HOST:2593" -noconsole
+    exec /opt/gemwright/run-server.sh --public "$GEMWRIGHT_PUBLIC_HOST:2593" "$@" -noconsole
 fi
 : "${RAILWAY_TCP_PROXY_DOMAIN:?Public hostname is missing}"
 : "${RAILWAY_TCP_PROXY_PORT:?Public port is missing}"
-exec /opt/gemwright/run-server.sh --public "$RAILWAY_TCP_PROXY_DOMAIN:$RAILWAY_TCP_PROXY_PORT" --railway-proxy -noconsole
+exec /opt/gemwright/run-server.sh --public "$RAILWAY_TCP_PROXY_DOMAIN:$RAILWAY_TCP_PROXY_PORT" --railway-proxy "$@" -noconsole

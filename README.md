@@ -60,12 +60,28 @@ gemwright deploy
 ```bash
 # deploy to Railway with your game files
 
-# deploy both server and web client
+# deploy only the server (the default; --server says the same)
+gemwright deploy --target railway --files /path/to/game-files
+
+# deploy the server and the web client
+gemwright deploy --target railway --files /path/to/game-files --server --client
+
+# deploy only the web client, next to an already deployed server
 gemwright deploy --target railway --files /path/to/game-files --client
 
-# or deploy only server
-gemwright deploy --target railway --files /path/to/game-files
+# add AI residents (ServUO): the server is rebuilt once with the AI patch
+gemwright deploy --target railway --files /path/to/game-files --server --ai
 ```
+
+AI residents are ordinary players run by a separate service. Configure them in `gemwright.json`:
+
+```json
+"ai": { "population": 20, "decisions": "local" }
+```
+
+`decisions` is `local` (built-in rules) or `jev` (TypeSafe's Jev; set `TYPESAFE_API_KEY` in the environment you deploy from). AI residents deploy to Railway only for now.
+
+Name the parts to deploy: with no part flags `gemwright deploy` deploys the server; with any, it deploys exactly those.
 
 For a VPS, the questionnaire asks for Docker Compose or native systemd (Ubuntu), SSH access, game files, and an optional browser-client domain:
 

@@ -1,0 +1,674 @@
+{
+  "schemaVersion": 1,
+  "note": "Single world configuration: which facets and cities are in play, which professions exist, where each lives and works, and the population mix. Templates and allocation are generated from it (src/world.ts). Lore: Minoc mines (Britannian Mining Company), Yew timber and rangers, Vesper port and fishing, Moonglow mages, Britain bards, Trinsic paladins (Honor), Jhelom fighters (Valor), Skara Brae rangers (Spirituality).",
+  "facets": [
+    {
+      "id": 1,
+      "name": "Trammel",
+      "enabled": true
+    },
+    {
+      "id": 0,
+      "name": "Felucca",
+      "enabled": false,
+      "note": "Same coordinates as Trammel; needs its own map file and PvP-aware behavior."
+    },
+    {
+      "id": 2,
+      "name": "Ilshenar",
+      "enabled": false
+    },
+    {
+      "id": 3,
+      "name": "Malas",
+      "enabled": false
+    },
+    {
+      "id": 4,
+      "name": "Tokuno",
+      "enabled": false
+    }
+  ],
+  "cities": {
+    "Britain": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Minoc": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Yew": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Vesper": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Trinsic": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Jhelom": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Moonglow": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Skara Brae": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Magincia": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": true
+    },
+    "Cove": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": false
+    },
+    "Serpent's Hold": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": false
+    },
+    "Nujel'm": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": false
+    },
+    "Buccaneer's Den": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": false
+    },
+    "New Haven": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": false
+    },
+    "Wind": {
+      "facet": 1,
+      "enabled": true,
+      "startingCity": false
+    }
+  },
+  "professions": {
+    "miner": {
+      "archetype": "craftsman",
+      "behavior": "miner",
+      "share": 10,
+      "creation": {
+        "namePrefix": "Miner",
+        "skills": {
+          "Mining": 50,
+          "Blacksmith": 50
+        }
+      },
+      "homes": {
+        "Minoc": 1
+      },
+      "trainingGoals": {
+        "Mining": 100,
+        "Blacksmith": 100
+      },
+      "riskTolerance": 0.2,
+      "supplies": {
+        "pickaxe": 1
+      }
+    },
+    "lumberjack": {
+      "archetype": "craftsman",
+      "behavior": "lumberjack",
+      "share": 8,
+      "creation": {
+        "namePrefix": "Woodsman",
+        "skills": {
+          "Lumberjacking": 50,
+          "Carpentry": 50
+        }
+      },
+      "homes": {
+        "Yew": 3,
+        "Britain": 1
+      },
+      "trainingGoals": {
+        "Lumberjacking": 100,
+        "Carpentry": 100
+      },
+      "riskTolerance": 0.2,
+      "supplies": {
+        "hatchet": 1
+      }
+    },
+    "fisherman": {
+      "archetype": "fisherman",
+      "behavior": "fisher",
+      "share": 6,
+      "creation": {
+        "namePrefix": "Fisher",
+        "skills": {
+          "Fishing": 50,
+          "Cooking": 50
+        }
+      },
+      "homes": {
+        "Vesper": 3,
+        "Moonglow": 1,
+        "Jhelom": 1
+      },
+      "trainingGoals": {
+        "Fishing": 100,
+        "Cooking": 100
+      },
+      "riskTolerance": 0.2,
+      "supplies": {
+        "fishing pole": 1
+      }
+    },
+    "tailor": {
+      "archetype": "tailor",
+      "behavior": "tailor",
+      "share": 4,
+      "creation": {
+        "namePrefix": "Tailor",
+        "skills": {
+          "Tailoring": 50,
+          "Arms Lore": 50
+        }
+      },
+      "homes": {
+        "Britain": 2,
+        "Magincia": 1,
+        "Moonglow": 1
+      },
+      "trainingGoals": {
+        "Tailoring": 100
+      },
+      "riskTolerance": 0.2,
+      "supplies": {
+        "sewing kit": 1
+      }
+    },
+    "swordsman": {
+      "archetype": "swordsman",
+      "share": 10,
+      "behavior": "fighter",
+      "creation": {
+        "namePrefix": "Swordsman",
+        "skills": {
+          "Swordsmanship": 50,
+          "Tactics": 50
+        }
+      },
+      "homes": {
+        "Trinsic": 3,
+        "Jhelom": 2,
+        "Britain": 2
+      },
+      "grounds": {
+        "Britain": 2,
+        "Jhelom": 2,
+        "Cove": 1,
+        "Vesper": 1
+      },
+      "trainingGoals": {
+        "Swordsmanship": 100,
+        "Healing": 100,
+        "Tactics": 100
+      },
+      "riskTolerance": 0.5,
+      "supplies": {
+        "bandage": 30
+      }
+    },
+    "fencer": {
+      "archetype": "fencer",
+      "share": 7,
+      "behavior": "fighter",
+      "creation": {
+        "namePrefix": "Fencer",
+        "skills": {
+          "Fencing": 50,
+          "Tactics": 50
+        }
+      },
+      "homes": {
+        "Jhelom": 3,
+        "Trinsic": 2,
+        "Britain": 1
+      },
+      "grounds": {
+        "Jhelom": 2,
+        "Britain": 1,
+        "Moonglow": 1,
+        "Cove": 1
+      },
+      "trainingGoals": {
+        "Fencing": 100,
+        "Healing": 100,
+        "Tactics": 100
+      },
+      "riskTolerance": 0.5,
+      "supplies": {
+        "bandage": 30
+      }
+    },
+    "macer": {
+      "archetype": "mace-fighter",
+      "share": 7,
+      "behavior": "fighter",
+      "creation": {
+        "namePrefix": "Macer",
+        "skills": {
+          "Mace Fighting": 50,
+          "Tactics": 50
+        }
+      },
+      "homes": {
+        "Trinsic": 2,
+        "Jhelom": 2,
+        "Minoc": 1,
+        "Britain": 1
+      },
+      "grounds": {
+        "Cove": 2,
+        "Vesper": 1,
+        "Britain": 1,
+        "Jhelom": 1
+      },
+      "trainingGoals": {
+        "Mace Fighting": 100,
+        "Healing": 100,
+        "Tactics": 100
+      },
+      "riskTolerance": 0.5,
+      "supplies": {
+        "bandage": 30
+      }
+    },
+    "archer": {
+      "archetype": "archer",
+      "share": 7,
+      "behavior": "fighter",
+      "creation": {
+        "namePrefix": "Archer",
+        "skills": {
+          "Archery": 50,
+          "Tactics": 50
+        }
+      },
+      "homes": {
+        "Skara Brae": 3,
+        "Yew": 3,
+        "Britain": 1
+      },
+      "grounds": {
+        "Yew": 3,
+        "Britain": 1,
+        "Vesper": 1
+      },
+      "trainingGoals": {
+        "Archery": 100,
+        "Healing": 100,
+        "Tactics": 100
+      },
+      "riskTolerance": 0.5,
+      "supplies": {
+        "bandage": 30
+      }
+    },
+    "tank-mage": {
+      "archetype": "tank-mage",
+      "share": 5,
+      "behavior": "fighter",
+      "creation": {
+        "namePrefix": "Battlemage",
+        "skills": {
+          "Magery": 50,
+          "Tactics": 50
+        }
+      },
+      "homes": {
+        "Jhelom": 2,
+        "Moonglow": 2,
+        "Trinsic": 1
+      },
+      "grounds": {
+        "Moonglow": 2,
+        "Jhelom": 1,
+        "Britain": 1
+      },
+      "trainingGoals": {
+        "Magery": 100,
+        "Tactics": 100,
+        "Swordsmanship": 100
+      },
+      "riskTolerance": 0.5,
+      "supplies": {
+        "bandage": 20
+      }
+    },
+    "pure-mage": {
+      "archetype": "pure-mage",
+      "share": 6,
+      "behavior": "fighter",
+      "creation": {
+        "namePrefix": "Mage",
+        "skills": {
+          "Magery": 50,
+          "Eval Int": 50
+        }
+      },
+      "homes": {
+        "Moonglow": 4,
+        "Britain": 1,
+        "Magincia": 1
+      },
+      "grounds": {
+        "Moonglow": 3,
+        "Britain": 1,
+        "Yew": 1
+      },
+      "trainingGoals": {
+        "Magery": 100,
+        "Eval Int": 100,
+        "Meditation": 100
+      },
+      "riskTolerance": 0.4,
+      "supplies": {
+        "bandage": 10
+      }
+    },
+    "bard": {
+      "archetype": "bard",
+      "behavior": "bard",
+      "share": 5,
+      "creation": {
+        "namePrefix": "Bard",
+        "skills": {
+          "Musicianship": 50,
+          "Provocation": 50
+        }
+      },
+      "homes": {
+        "Britain": 4,
+        "Minoc": 1,
+        "Vesper": 1
+      },
+      "grounds": {
+        "Britain": 2,
+        "Vesper": 1,
+        "Yew": 1
+      },
+      "trainingGoals": {
+        "Musicianship": 100,
+        "Provocation": 100,
+        "Peacemaking": 100,
+        "Discordance": 100
+      },
+      "riskTolerance": 0.4,
+      "supplies": {
+        "instrument": 1,
+        "bandage": 20
+      }
+    },
+    "tamer": {
+      "archetype": "tamer",
+      "behavior": "tamer",
+      "share": 5,
+      "creation": {
+        "namePrefix": "Tamer",
+        "skills": {
+          "Animal Taming": 50,
+          "Animal Lore": 50
+        }
+      },
+      "homes": {
+        "Yew": 2,
+        "Skara Brae": 2,
+        "Vesper": 1
+      },
+      "trainingGoals": {
+        "Animal Taming": 100,
+        "Animal Lore": 100,
+        "Veterinary": 100
+      },
+      "riskTolerance": 0.4,
+      "supplies": {
+        "bandage": 20
+      }
+    },
+    "thief": {
+      "archetype": "thief",
+      "behavior": "thief",
+      "share": 3,
+      "creation": {
+        "namePrefix": "Rogue",
+        "skills": {
+          "Stealing": 50,
+          "Hiding": 50
+        }
+      },
+      "homes": {
+        "Britain": 2,
+        "Vesper": 1,
+        "Magincia": 1
+      },
+      "trainingGoals": {
+        "Stealing": 100,
+        "Snooping": 100,
+        "Hiding": 100,
+        "Stealth": 100
+      },
+      "riskTolerance": 0.6,
+      "supplies": {},
+      "mount": false,
+      "note": "Snooping and stealing are an owner-written extension (src/thief-actions.ts); until then thieves live in town and train Hiding, Stealth, Detect Hidden and their supporting skills."
+    },
+    "archer-tamer": {
+      "archetype": "archer-tamer",
+      "behavior": "tamer",
+      "share": 4,
+      "creation": {
+        "namePrefix": "Ranger",
+        "skills": {
+          "Animal Taming": 50,
+          "Archery": 50
+        }
+      },
+      "homes": {
+        "Yew": 2,
+        "Skara Brae": 1
+      },
+      "trainingGoals": {
+        "Animal Taming": 100,
+        "Archery": 100,
+        "Veterinary": 100
+      },
+      "riskTolerance": 0.4,
+      "supplies": {
+        "bandage": 30
+      }
+    },
+    "alchemist": {
+      "archetype": "alchemist",
+      "behavior": "alchemist",
+      "share": 2,
+      "creation": {
+        "namePrefix": "Alchemist",
+        "skills": {
+          "Alchemy": 50,
+          "Magery": 50
+        }
+      },
+      "homes": {
+        "Moonglow": 2,
+        "Britain": 1,
+        "Vesper": 1
+      },
+      "trainingGoals": {
+        "Alchemy": 100
+      },
+      "riskTolerance": 0.2,
+      "supplies": {
+        "mortar and pestle": 1
+      }
+    },
+    "bowyer": {
+      "archetype": "bowyer",
+      "behavior": "bowyer",
+      "share": 2,
+      "creation": {
+        "namePrefix": "Bowyer",
+        "skills": {
+          "Fletching": 50,
+          "Archery": 50
+        }
+      },
+      "homes": {
+        "Yew": 2,
+        "Skara Brae": 1,
+        "Britain": 1
+      },
+      "trainingGoals": {
+        "Fletching": 100
+      },
+      "riskTolerance": 0.3,
+      "supplies": {
+        "fletcher's tools": 1
+      }
+    }
+  },
+  "workAreas": {
+    "schemaVersion": 1,
+    "facet": 1,
+    "note": "Work areas scanned from the Trammel map and weighted by lore: Minoc is the mining town (Britannian Mining Company, Covetous), Yew the timber town; Trinsic (Honor) and Jhelom (Valor) are left to fighters. Cove buys tools in Britain (no tool vendor).",
+    "mining": [
+      {
+        "city": "Minoc",
+        "x": 2560,
+        "y": 500,
+        "weight": 4
+      },
+      {
+        "city": "Cove",
+        "x": 2185,
+        "y": 1195,
+        "weight": 1,
+        "toolCity": "Britain"
+      }
+    ],
+    "woods": [
+      {
+        "city": "Yew",
+        "x": 571,
+        "y": 1041,
+        "weight": 4
+      },
+      {
+        "city": "Britain",
+        "x": 1230,
+        "y": 1470,
+        "weight": 1
+      },
+      {
+        "city": "Minoc",
+        "x": 2353,
+        "y": 652,
+        "weight": 1
+      },
+      {
+        "city": "Vesper",
+        "x": 2798,
+        "y": 651,
+        "weight": 1
+      },
+      {
+        "city": "Moonglow",
+        "x": 4346,
+        "y": 1128,
+        "weight": 1
+      },
+      {
+        "city": "Skara Brae",
+        "x": 647,
+        "y": 2080,
+        "weight": 1
+      }
+    ]
+  },
+  "population": {
+    "max": 250
+  },
+  "lifecycle": {
+    "note": "Each resident moves between life phases at natural break points (back in town, after banking). `mix` names the time split in `mixes` (shares of time); temperament shifts each resident around it. `minutes` bounds each phase's length; at most `maxSwitchesPerMinute` residents per 50 in the runtime change phase in any minute.",
+    "mix": "balanced",
+    "mixes": {
+      "mostly-work": {
+        "work": 60,
+        "dungeon": 10,
+        "errands": 10,
+        "leisure": 10,
+        "visit": 5,
+        "practice": 5
+      },
+      "balanced": {
+        "work": 40,
+        "dungeon": 15,
+        "errands": 10,
+        "leisure": 15,
+        "visit": 10,
+        "practice": 10
+      },
+      "social": {
+        "work": 30,
+        "dungeon": 10,
+        "errands": 10,
+        "leisure": 25,
+        "visit": 15,
+        "practice": 10
+      }
+    },
+    "minutes": {
+      "work": [
+        20,
+        45
+      ],
+      "dungeon": [
+        20,
+        45
+      ],
+      "errands": [
+        3,
+        10
+      ],
+      "leisure": [
+        5,
+        15
+      ],
+      "visit": [
+        15,
+        40
+      ],
+      "practice": [
+        5,
+        15
+      ]
+    },
+    "maxSwitchesPerMinute": 5
+  }
+}

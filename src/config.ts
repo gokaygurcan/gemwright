@@ -52,6 +52,17 @@ export interface ShardConfig {
   modernuo?: DotnetSettings;
   servuo?: ServuoSettings;
   sphere?: SphereSettings;
+  ai?: AiSettings;
+}
+
+// AI residents (gemwright deploy --ai): how many, and whether Jev or the local rules decide.
+export interface AiSettings {
+  population?: number;
+  decisions?: 'local' | 'jev';
+  // Replies in each resident's own voice by Claude Haiku 5.5, guarded; authored lines otherwise.
+  speech?: 'authored' | 'claude';
+  // Races new residents are created as; human and elf by default (gargoyles need their own gear).
+  races?: ('human' | 'elf' | 'gargoyle')[];
 }
 
 export const configFilename = 'gemwright.json';
@@ -123,6 +134,7 @@ export function createConfig(input: {
   modernuo?: DotnetSettings;
   servuo?: ServuoSettings;
   sphere?: SphereSettings;
+  ai?: AiSettings;
 }): ShardConfig {
   const name = input.name || defaultName;
   const error = validateName(name);
@@ -176,6 +188,30 @@ export function createConfig(input: {
     )
       throw new Error('Invalid Sphere settings or scripts source.');
   }
+  if (input.ai) {
+    const { population, decisions, speech, races } = input.ai;
+    if (
+      emulator !== 'servuo' ||
+      (population !== undefined && (!Number.isInteger(population) || population < 0 || population > 250)) ||
+      (decisions !== undefined && !['local', 'jev'].includes(decisions)) ||
+      (speech !== undefined && !['authored', 'claude'].includes(speech)) ||
+      (races !== undefined &&
+        (!Array.isArray(races) || !races.length || races.some((r) => !['human', 'elf', 'gargoyle'].includes(r))))
+    )
+      throw new Error(
+        'Invalid ai settings: ServUO only, population 0-250, decisions local or jev, speech authored or claude, races human, elf or gargoyle.'
+      );
+    // Elves arrive with Mondain's Legacy, gargoyles with Stygian Abyss.
+    const era = expansions.findIndex((option) => option.value === expansion);
+    const since = { human: 'base', elf: 'ml', gargoyle: 'sa' } as const;
+    const unavailable = (races ?? []).filter(
+      (race) => era < expansions.findIndex((option) => option.value === since[race])
+    );
+    if (unavailable.length)
+      throw new Error(
+        `ai.races lists ${unavailable.join(', ')}, which the ${expansion} expansion does not have (elves need ml, gargoyles sa).`
+      );
+  }
   for (const key of ['runuo', 'modernuo'] as const) {
     const settings = input[key];
     if (
@@ -201,6 +237,7 @@ export function createConfig(input: {
         }
       : {}),
     ...(input.source ? { source: { ...input.source } } : {}),
+    ...(input.ai ? { ai: { ...input.ai } } : {}),
     ...(input.adminEmail !== undefined ? { adminEmail: input.adminEmail } : {}),
     ...(input.url !== undefined ? { url: input.url } : {}),
     name,

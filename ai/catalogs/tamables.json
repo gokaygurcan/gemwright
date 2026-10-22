@@ -1,0 +1,864 @@
+{
+ "schemaVersion": 1,
+ "source": "ServUO Scripts/Mobiles (MinTameSkill, Body, BaseMount)",
+ "creatures": [
+  {
+   "name": "a ferret",
+   "type": "Ferret",
+   "bodies": [
+    279
+   ],
+   "minTame": -21.3,
+   "mount": false
+  },
+  {
+   "name": "a squirrel",
+   "type": "Squirrel",
+   "bodies": [
+    278
+   ],
+   "minTame": -21.3,
+   "mount": false
+  },
+  {
+   "name": "a dog",
+   "type": "Dog",
+   "bodies": [
+    217
+   ],
+   "minTame": -21.3,
+   "mount": false
+  },
+  {
+   "name": "a gorilla",
+   "type": "Gorilla",
+   "bodies": [
+    29
+   ],
+   "minTame": -18.9,
+   "mount": false
+  },
+  {
+   "name": "a mongbat",
+   "type": "Mongbat",
+   "bodies": [
+    39
+   ],
+   "minTame": -18.9,
+   "mount": false
+  },
+  {
+   "name": "a rabbit",
+   "type": "Rabbit",
+   "bodies": [
+    205
+   ],
+   "minTame": -18.9,
+   "mount": false
+  },
+  {
+   "name": "a jack rabbit",
+   "type": "JackRabbit",
+   "bodies": [
+    205
+   ],
+   "minTame": -18.9,
+   "mount": false
+  },
+  {
+   "name": "a skittering hopper",
+   "type": "SkitteringHopper",
+   "bodies": [
+    302
+   ],
+   "minTame": -12.9,
+   "mount": false
+  },
+  {
+   "name": "a crow",
+   "type": "Bird",
+   "bodies": [
+    6
+   ],
+   "minTame": -6.9,
+   "mount": false
+  },
+  {
+   "name": "a cat",
+   "type": "Cat",
+   "bodies": [
+    201
+   ],
+   "minTame": -0.9,
+   "mount": false
+  },
+  {
+   "name": "a sewer rat",
+   "type": "Sewerrat",
+   "bodies": [
+    238
+   ],
+   "minTame": -0.9,
+   "mount": false
+  },
+  {
+   "name": "a mountain goat",
+   "type": "MountainGoat",
+   "bodies": [
+    88
+   ],
+   "minTame": -0.9,
+   "mount": false
+  },
+  {
+   "name": "a rat",
+   "type": "Rat",
+   "bodies": [
+    238
+   ],
+   "minTame": -0.9,
+   "mount": false
+  },
+  {
+   "name": "a chicken",
+   "type": "Chicken",
+   "bodies": [
+    208
+   ],
+   "minTame": -0.9,
+   "mount": false
+  },
+  {
+   "name": "a chicken lizard",
+   "type": "ChickenLizard",
+   "bodies": [
+    716
+   ],
+   "minTame": 0.0,
+   "mount": false
+  },
+  {
+   "name": "hungry coconut crab",
+   "type": "HungryCoconutCrabStatue",
+   "bodies": [
+    1511
+   ],
+   "minTame": 0.0,
+   "mount": false
+  },
+  {
+   "name": "a battle chicken lizard",
+   "type": "BattleChickenLizard",
+   "bodies": [
+    716
+   ],
+   "minTame": 0.0,
+   "mount": false
+  },
+  {
+   "name": "Parrot",
+   "type": "Parrot",
+   "bodies": [
+    831
+   ],
+   "minTame": 0.0,
+   "mount": false
+  },
+  {
+   "name": "a goat",
+   "type": "Goat",
+   "bodies": [
+    209
+   ],
+   "minTame": 11.1,
+   "mount": false
+  },
+  {
+   "name": "a sheep",
+   "type": "Sheep",
+   "bodies": [
+    207
+   ],
+   "minTame": 11.1,
+   "mount": false
+  },
+  {
+   "name": "a pig",
+   "type": "Pig",
+   "bodies": [
+    203
+   ],
+   "minTame": 11.1,
+   "mount": false
+  },
+  {
+   "name": "an eagle",
+   "type": "Eagle",
+   "bodies": [
+    5
+   ],
+   "minTame": 17.1,
+   "mount": false
+  },
+  {
+   "name": "a ruddy boura",
+   "type": "RuddyBoura",
+   "bodies": [
+    715
+   ],
+   "minTame": 19.1,
+   "mount": false
+  },
+  {
+   "name": "a lowland boura",
+   "type": "LowlandBoura",
+   "bodies": [
+    715
+   ],
+   "minTame": 19.1,
+   "mount": false
+  },
+  {
+   "name": "a hind",
+   "type": "Hind",
+   "bodies": [
+    237
+   ],
+   "minTame": 23.1,
+   "mount": false
+  },
+  {
+   "name": "a bull frog",
+   "type": "BullFrog",
+   "bodies": [
+    81
+   ],
+   "minTame": 23.1,
+   "mount": false
+  },
+  {
+   "name": "a corrosive slime",
+   "type": "CorrosiveSlime",
+   "bodies": [
+    51
+   ],
+   "minTame": 23.1,
+   "mount": false
+  },
+  {
+   "name": "a timber wolf",
+   "type": "TimberWolf",
+   "bodies": [
+    225
+   ],
+   "minTame": 23.1,
+   "mount": false
+  },
+  {
+   "name": "a slime",
+   "type": "Slime",
+   "bodies": [
+    51
+   ],
+   "minTame": 23.1,
+   "mount": false
+  },
+  {
+   "name": "a boar",
+   "type": "Boar",
+   "bodies": [
+    290
+   ],
+   "minTame": 29.1,
+   "mount": false
+  },
+  {
+   "name": "a pack horse",
+   "type": "PackHorse",
+   "bodies": [
+    291
+   ],
+   "minTame": 29.1,
+   "mount": false
+  },
+  {
+   "name": "a pack llama",
+   "type": "PackLlama",
+   "bodies": [
+    292
+   ],
+   "minTame": 29.1,
+   "mount": false
+  },
+  {
+   "name": "a giant rat",
+   "type": "GiantRat",
+   "bodies": [
+    215
+   ],
+   "minTame": 29.1,
+   "mount": false
+  },
+  {
+   "name": "a horse",
+   "type": "Horse",
+   "bodies": [
+    200,
+    226,
+    228,
+    204
+   ],
+   "minTame": 29.1,
+   "mount": true
+  },
+  {
+   "name": "a desert ostard",
+   "type": "DesertOstard",
+   "bodies": [
+    210
+   ],
+   "minTame": 29.1,
+   "mount": true
+  },
+  {
+   "name": "a forest ostard",
+   "type": "ForestOstard",
+   "bodies": [
+    219
+   ],
+   "minTame": 29.1,
+   "mount": true
+  },
+  {
+   "name": "a ridable llama",
+   "type": "RidableLlama",
+   "bodies": [
+    220
+   ],
+   "minTame": 29.1,
+   "mount": true
+  },
+  {
+   "name": "a walrus",
+   "type": "Walrus",
+   "bodies": [
+    221
+   ],
+   "minTame": 35.1,
+   "mount": false
+  },
+  {
+   "name": "a polar bear",
+   "type": "PolarBear",
+   "bodies": [
+    213
+   ],
+   "minTame": 35.1,
+   "mount": false
+  },
+  {
+   "name": "a black bear",
+   "type": "BlackBear",
+   "bodies": [
+    211
+   ],
+   "minTame": 35.1,
+   "mount": false
+  },
+  {
+   "name": "a llama",
+   "type": "Llama",
+   "bodies": [
+    220
+   ],
+   "minTame": 35.1,
+   "mount": false
+  },
+  {
+   "name": "a deathwatch beetle",
+   "type": "DeathwatchBeetle",
+   "bodies": [
+    242
+   ],
+   "minTame": 41.1,
+   "mount": false
+  },
+  {
+   "name": "a cougar",
+   "type": "Cougar",
+   "bodies": [
+    63
+   ],
+   "minTame": 41.1,
+   "mount": false
+  },
+  {
+   "name": "a brown bear",
+   "type": "BrownBear",
+   "bodies": [
+    167
+   ],
+   "minTame": 41.1,
+   "mount": false
+  },
+  {
+   "name": "an alligator",
+   "type": "Alligator",
+   "bodies": [
+    202
+   ],
+   "minTame": 47.1,
+   "mount": false
+  },
+  {
+   "name": "a scorpion",
+   "type": "Scorpion",
+   "bodies": [
+    48
+   ],
+   "minTame": 47.1,
+   "mount": false
+  },
+  {
+   "name": "a high plains boura",
+   "type": "HighPlainsBoura",
+   "bodies": [
+    715
+   ],
+   "minTame": 47.1,
+   "mount": false
+  },
+  {
+   "name": "a panther",
+   "type": "Panther",
+   "bodies": [
+    214
+   ],
+   "minTame": 53.1,
+   "mount": false
+  },
+  {
+   "name": "a grizzly bear",
+   "type": "GrizzlyBear",
+   "bodies": [
+    212
+   ],
+   "minTame": 59.1,
+   "mount": false
+  },
+  {
+   "name": "a snake",
+   "type": "Snake",
+   "bodies": [
+    52
+   ],
+   "minTame": 59.1,
+   "mount": false
+  },
+  {
+   "name": "a giant spider",
+   "type": "GiantSpider",
+   "bodies": [
+    28
+   ],
+   "minTame": 59.1,
+   "mount": false
+  },
+  {
+   "name": "a great hart",
+   "type": "GreatHart",
+   "bodies": [
+    234
+   ],
+   "minTame": 59.1,
+   "mount": false
+  },
+  {
+   "name": "a Wolf spider",
+   "type": "WolfSpider",
+   "bodies": [
+    736
+   ],
+   "minTame": 59.1,
+   "mount": false
+  },
+  {
+   "name": "a gargoyle pet",
+   "type": "GargoylePet",
+   "bodies": [
+    730
+   ],
+   "minTame": 65.1,
+   "mount": false
+  },
+  {
+   "name": "a stone slith",
+   "type": "StoneSlith",
+   "bodies": [
+    734
+   ],
+   "minTame": 65.1,
+   "mount": false
+  },
+  {
+   "name": "a gaman",
+   "type": "Gaman",
+   "bodies": [
+    248
+   ],
+   "minTame": 68.7,
+   "mount": false
+  },
+  {
+   "name": "a greater mongbat",
+   "type": "GreaterMongbat",
+   "bodies": [
+    39
+   ],
+   "minTame": 71.1,
+   "mount": false
+  },
+  {
+   "name": "a hell cat",
+   "type": "HellCat",
+   "bodies": [
+    201
+   ],
+   "minTame": 71.1,
+   "mount": false
+  },
+  {
+   "name": "a giant ice worm",
+   "type": "GiantIceWorm",
+   "bodies": [
+    89
+   ],
+   "minTame": 71.1,
+   "mount": false
+  },
+  {
+   "name": "a mongbat",
+   "type": "StrongMongbat",
+   "bodies": [
+    39
+   ],
+   "minTame": 71.1,
+   "mount": false
+  },
+  {
+   "name": "an iron beetle",
+   "type": "IronBeetle",
+   "bodies": [
+    714
+   ],
+   "minTame": 71.1,
+   "mount": false
+  },
+  {
+   "name": "Blood Fox",
+   "type": "BloodFox",
+   "bodies": [
+    1423
+   ],
+   "minTame": 72.0,
+   "mount": false
+  },
+  {
+   "name": "Ossein Ram",
+   "type": "OsseinRam",
+   "bodies": [
+    1425
+   ],
+   "minTame": 72.0,
+   "mount": false
+  },
+  {
+   "name": "a frost spider",
+   "type": "FrostSpider",
+   "bodies": [
+    20
+   ],
+   "minTame": 74.7,
+   "mount": false
+  },
+  {
+   "name": "a giant toad",
+   "type": "GiantToad",
+   "bodies": [
+    80
+   ],
+   "minTame": 77.1,
+   "mount": false
+  },
+  {
+   "name": "a frenzied ostard",
+   "type": "FrenziedOstard",
+   "bodies": [
+    218
+   ],
+   "minTame": 77.1,
+   "mount": true
+  },
+  {
+   "name": "a lava lizard",
+   "type": "LavaLizard",
+   "bodies": [
+    206
+   ],
+   "minTame": 80.7,
+   "mount": false
+  },
+  {
+   "name": "a bake kitsune",
+   "type": "BakeKitsune",
+   "bodies": [
+    246
+   ],
+   "minTame": 80.7,
+   "mount": false
+  },
+  {
+   "name": "a slith",
+   "type": "Slith",
+   "bodies": [
+    734
+   ],
+   "minTame": 80.7,
+   "mount": false
+  },
+  {
+   "name": "a dire wolf",
+   "type": "DireWolf",
+   "bodies": [
+    23
+   ],
+   "minTame": 83.1,
+   "mount": false
+  },
+  {
+   "name": "an imp",
+   "type": "Imp",
+   "bodies": [
+    74
+   ],
+   "minTame": 83.1,
+   "mount": false
+  },
+  {
+   "name": "Crimson Drake",
+   "type": "CrimsonDrake",
+   "bodies": [
+    1419
+   ],
+   "minTame": 85.0,
+   "mount": false
+  },
+  {
+   "name": "Platinum Drake",
+   "type": "PlatinumDrake",
+   "bodies": [
+    1417
+   ],
+   "minTame": 85.0,
+   "mount": false
+  },
+  {
+   "name": "Stygian Drake",
+   "type": "StygianDrake",
+   "bodies": [
+    1422
+   ],
+   "minTame": 85.0,
+   "mount": false
+  },
+  {
+   "name": "a hell hound",
+   "type": "HellHound",
+   "bodies": [
+    98
+   ],
+   "minTame": 85.5,
+   "mount": false
+  },
+  {
+   "name": "an ice hound",
+   "type": "IceHound",
+   "bodies": [
+    98
+   ],
+   "minTame": 85.5,
+   "mount": false
+  },
+  {
+   "name": "a predator hellcat",
+   "type": "PredatorHellCat",
+   "bodies": [
+    127
+   ],
+   "minTame": 90.0,
+   "mount": false
+  },
+  {
+   "name": "a rune beetle",
+   "type": "RuneBeetle",
+   "bodies": [
+    244
+   ],
+   "minTame": 93.9,
+   "mount": false
+  },
+  {
+   "name": "FireBeetle",
+   "type": "FireBeetle",
+   "bodies": [
+    169
+   ],
+   "minTame": 93.9,
+   "mount": false
+  },
+  {
+   "name": "a skree",
+   "type": "Skree",
+   "bodies": [
+    733
+   ],
+   "minTame": 95.1,
+   "mount": false
+  },
+  {
+   "name": "a tsuki wolf",
+   "type": "TsukiWolf",
+   "bodies": [
+    250
+   ],
+   "minTame": 96.0,
+   "mount": false
+  },
+  {
+   "name": "Triton",
+   "type": "TritonStatue",
+   "bodies": [
+    720
+   ],
+   "minTame": 96.0,
+   "mount": false
+  },
+  {
+   "name": "Lion",
+   "type": "Lion",
+   "bodies": [
+    1426
+   ],
+   "minTame": 96.0,
+   "mount": false
+  },
+  {
+   "name": "a dread spider",
+   "type": "DreadSpider",
+   "bodies": [
+    11
+   ],
+   "minTame": 96.0,
+   "mount": false
+  },
+  {
+   "name": "Hiryu",
+   "type": "Hiryu",
+   "bodies": [
+    243
+   ],
+   "minTame": 98.7,
+   "mount": false
+  },
+  {
+   "name": "LesserHiryu",
+   "type": "LesserHiryu",
+   "bodies": [
+    243
+   ],
+   "minTame": 98.7,
+   "mount": false
+  },
+  {
+   "name": "Reptalon",
+   "type": "Reptalon",
+   "bodies": [
+    276
+   ],
+   "minTame": 101.1,
+   "mount": false
+  },
+  {
+   "name": "Frost Mite",
+   "type": "FrostMite",
+   "bodies": [
+    1424
+   ],
+   "minTame": 102.0,
+   "mount": false
+  },
+  {
+   "name": "Triceratops",
+   "type": "Triceratops",
+   "bodies": [
+    1415
+   ],
+   "minTame": 102.0,
+   "mount": false
+  },
+  {
+   "name": "a phoenix",
+   "type": "Phoenix",
+   "bodies": [
+    832
+   ],
+   "minTame": 102.0,
+   "mount": false
+  },
+  {
+   "name": "a dragon wolf",
+   "type": "DragonWolf",
+   "bodies": [
+    719
+   ],
+   "minTame": 102.0,
+   "mount": false
+  },
+  {
+   "name": "saber-toothed tiger",
+   "type": "SabertoothedTiger",
+   "bodies": [
+    1416
+   ],
+   "minTame": 102.0,
+   "mount": false
+  },
+  {
+   "name": "a shadow wyrm",
+   "type": "ShadowWyrm",
+   "bodies": [
+    106
+   ],
+   "minTame": 105.0,
+   "mount": false
+  },
+  {
+   "name": "BaneDragon",
+   "type": "BaneDragon",
+   "bodies": [
+    794
+   ],
+   "minTame": 107.1,
+   "mount": false
+  },
+  {
+   "name": "a serpentine dragon",
+   "type": "SerpentineDragon",
+   "bodies": [
+    103
+   ],
+   "minTame": 108.0,
+   "mount": false
+  }
+ ]
+}

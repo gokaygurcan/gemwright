@@ -1,0 +1,1126 @@
+{
+  "schemaVersion": 1,
+  "facet": 1,
+  "cities": {
+    "Britain": {
+      "mage": [
+        {
+          "name": "guide",
+          "x": 1491,
+          "y": 1552
+        },
+        {
+          "name": "guide",
+          "x": 1592,
+          "y": 1665
+        }
+      ],
+      "bowyer": [
+        {
+          "name": "guide",
+          "x": 1474,
+          "y": 1586
+        }
+      ],
+      "weaponsmith": [
+        {
+          "name": "guide",
+          "x": 1644,
+          "y": 1690
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 1436,
+          "y": 1760
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 1504,
+          "y": 1687
+        },
+        {
+          "name": "guide",
+          "x": 1435,
+          "y": 1730
+        }
+      ]
+    },
+    "Minoc": {
+      "tinker": [
+        {
+          "name": "guide",
+          "x": 2468,
+          "y": 460
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 2514,
+          "y": 484
+        }
+      ],
+      "bard": [
+        {
+          "name": "guide",
+          "x": 2423,
+          "y": 560
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 2476,
+          "y": 407
+        }
+      ]
+    },
+    "Buccaneer's Den": {
+      "healer": [
+        {
+          "name": "guide",
+          "x": 2707,
+          "y": 2154
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 2730,
+          "y": 2193
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 2637,
+          "y": 2099
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 2636,
+          "y": 2090
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 2751,
+          "y": 2167
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 2690,
+          "y": 2235
+        }
+      ]
+    },
+    "Cove": {
+      "healer": [
+        {
+          "name": "guide",
+          "x": 2250,
+          "y": 1230
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 2235,
+          "y": 1195
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 2252,
+          "y": 1190
+        }
+      ]
+    },
+    "Delucia": {
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 5233,
+          "y": 4030
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 5226,
+          "y": 4004
+        }
+      ],
+      "weaponsmith": [
+        {
+          "name": "guide",
+          "x": 5226,
+          "y": 4004
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "guide",
+          "x": 5285,
+          "y": 4007
+        },
+        {
+          "name": "guide",
+          "x": 5307,
+          "y": 3998
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 5292,
+          "y": 3983
+        }
+      ],
+      "alchemist": [
+        {
+          "name": "guide",
+          "x": 5292,
+          "y": 3983
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 5272,
+          "y": 3990
+        }
+      ],
+      "healer": [
+        {
+          "name": "guide",
+          "x": 5197,
+          "y": 3994
+        }
+      ]
+    },
+    "Jhelom": {
+      "weaponsmith": [
+        {
+          "name": "guide",
+          "x": 1371,
+          "y": 3754
+        },
+        {
+          "name": "guide",
+          "x": 1364,
+          "y": 3770
+        },
+        {
+          "name": "guide",
+          "x": 1466,
+          "y": 3851
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 1363,
+          "y": 3787
+        },
+        {
+          "name": "guide",
+          "x": 1460,
+          "y": 4010
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 1329,
+          "y": 3777
+        }
+      ],
+      "jeweler": [
+        {
+          "name": "guide",
+          "x": 1329,
+          "y": 3777
+        },
+        {
+          "name": "guide",
+          "x": 1444,
+          "y": 3994
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 1387,
+          "y": 3715
+        }
+      ],
+      "tinker": [
+        {
+          "name": "guide",
+          "x": 1412,
+          "y": 3811
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "guide",
+          "x": 1412,
+          "y": 3811
+        }
+      ],
+      "healer": [
+        {
+          "name": "guide",
+          "x": 1411,
+          "y": 3794
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 1427,
+          "y": 3826
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 1428,
+          "y": 3995
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 1488,
+          "y": 3696
+        },
+        {
+          "name": "guide",
+          "x": 1498,
+          "y": 3994
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 1435,
+          "y": 3779
+        }
+      ]
+    },
+    "Moonglow": {
+      "healer": [
+        {
+          "name": "guide",
+          "x": 4397,
+          "y": 1090
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 4416,
+          "y": 1099
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 4428,
+          "y": 1111
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 4455,
+          "y": 1073
+        }
+      ],
+      "alchemist": [
+        {
+          "name": "guide",
+          "x": 4455,
+          "y": 1090
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 4471,
+          "y": 1178
+        }
+      ],
+      "weaponsmith": [
+        {
+          "name": "guide",
+          "x": 4401,
+          "y": 1117
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 4407,
+          "y": 1048
+        }
+      ]
+    },
+    "New Haven": {
+      "healer": [
+        {
+          "name": "guide",
+          "x": 3457,
+          "y": 2558
+        },
+        {
+          "name": "guide",
+          "x": 3469,
+          "y": 2559
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "guide",
+          "x": 3520,
+          "y": 2576
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 3495,
+          "y": 2572
+        }
+      ],
+      "tinker": [
+        {
+          "name": "guide",
+          "x": 3458,
+          "y": 2533
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "guide",
+          "x": 3458,
+          "y": 2533
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 3497,
+          "y": 2557
+        }
+      ],
+      "alchemist": [
+        {
+          "name": "guide",
+          "x": 3469,
+          "y": 2567
+        },
+        {
+          "name": "guide",
+          "x": 3501,
+          "y": 2534
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 3469,
+          "y": 2540
+        },
+        {
+          "name": "guide",
+          "x": 3531,
+          "y": 2540
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 3485,
+          "y": 2506
+        }
+      ],
+      "bowyer": [
+        {
+          "name": "guide",
+          "x": 3531,
+          "y": 2540
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 3449,
+          "y": 2636
+        }
+      ],
+      "bard": [
+        {
+          "name": "guide",
+          "x": 3422,
+          "y": 2602
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 3517,
+          "y": 2589
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 3469,
+          "y": 2577
+        },
+        {
+          "name": "guide",
+          "x": 3506,
+          "y": 2531
+        }
+      ]
+    },
+    "Nujel'm": {
+      "banker": [
+        {
+          "name": "guide",
+          "x": 3770,
+          "y": 1313
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 3786,
+          "y": 1267
+        }
+      ],
+      "jeweler": [
+        {
+          "name": "guide",
+          "x": 3775,
+          "y": 1178
+        }
+      ],
+      "bowyer": [
+        {
+          "name": "guide",
+          "x": 3555,
+          "y": 1195
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 3555,
+          "y": 1195
+        },
+        {
+          "name": "guide",
+          "x": 3554,
+          "y": 1187
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 3786,
+          "y": 1227
+        },
+        {
+          "name": "guide",
+          "x": 3746,
+          "y": 1259
+        }
+      ]
+    },
+    "Papua": {
+      "alchemist": [
+        {
+          "name": "guide",
+          "x": 5730,
+          "y": 3207
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 5730,
+          "y": 3207
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 5707,
+          "y": 3211
+        }
+      ],
+      "tinker": [
+        {
+          "name": "guide",
+          "x": 5726,
+          "y": 3250
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "guide",
+          "x": 5726,
+          "y": 3250
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "guide",
+          "x": 5681,
+          "y": 3284
+        }
+      ],
+      "jeweler": [
+        {
+          "name": "guide",
+          "x": 5671,
+          "y": 3148
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 5677,
+          "y": 3141
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 5799,
+          "y": 3290
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 5759,
+          "y": 3270
+        }
+      ],
+      "healer": [
+        {
+          "name": "guide",
+          "x": 5742,
+          "y": 3218
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 5818,
+          "y": 3263
+        }
+      ]
+    },
+    "Serpent's Hold": {
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 3004,
+          "y": 3420
+        },
+        {
+          "name": "guide",
+          "x": 3027,
+          "y": 3432
+        }
+      ],
+      "tinker": [
+        {
+          "name": "guide",
+          "x": 2932,
+          "y": 3514
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "guide",
+          "x": 2932,
+          "y": 3514
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 2932,
+          "y": 3514
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "guide",
+          "x": 2913,
+          "y": 3516
+        },
+        {
+          "name": "guide",
+          "x": 3044,
+          "y": 3467
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 2890,
+          "y": 3504
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 2892,
+          "y": 3475
+        }
+      ],
+      "healer": [
+        {
+          "name": "guide",
+          "x": 2996,
+          "y": 3443
+        }
+      ],
+      "bowyer": [
+        {
+          "name": "guide",
+          "x": 3052,
+          "y": 3379
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 3004,
+          "y": 3362
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 2949,
+          "y": 3402
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 2972,
+          "y": 3434
+        },
+        {
+          "name": "guide",
+          "x": 3013,
+          "y": 3466
+        }
+      ]
+    },
+    "Skara Brae": {
+      "healer": [
+        {
+          "name": "guide",
+          "x": 623,
+          "y": 2226
+        }
+      ],
+      "bowyer": [
+        {
+          "name": "guide",
+          "x": 596,
+          "y": 2219
+        },
+        {
+          "name": "guide",
+          "x": 602,
+          "y": 2211
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 650,
+          "y": 2194
+        }
+      ],
+      "alchemist": [
+        {
+          "name": "guide",
+          "x": 658,
+          "y": 2146
+        }
+      ],
+      "weaponsmith": [
+        {
+          "name": "guide",
+          "x": 651,
+          "y": 2170
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 635,
+          "y": 2170
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 636,
+          "y": 2187
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 611,
+          "y": 2186
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "guide",
+          "x": 581,
+          "y": 2131
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 597,
+          "y": 2155
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 640,
+          "y": 2231
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 570,
+          "y": 2180
+        }
+      ]
+    },
+    "Trinsic": {
+      "banker": [
+        {
+          "name": "guide",
+          "x": 1821,
+          "y": 2822
+        },
+        {
+          "name": "guide",
+          "x": 1906,
+          "y": 2688
+        }
+      ],
+      "jeweler": [
+        {
+          "name": "guide",
+          "x": 1899,
+          "y": 2817
+        }
+      ],
+      "healer": [
+        {
+          "name": "guide",
+          "x": 1915,
+          "y": 2818
+        }
+      ],
+      "weaponsmith": [
+        {
+          "name": "guide",
+          "x": 1934,
+          "y": 2779
+        }
+      ],
+      "tinker": [
+        {
+          "name": "guide",
+          "x": 1857,
+          "y": 2691
+        },
+        {
+          "name": "guide",
+          "x": 1841,
+          "y": 2691
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "guide",
+          "x": 1857,
+          "y": 2691
+        },
+        {
+          "name": "guide",
+          "x": 1841,
+          "y": 2691
+        }
+      ],
+      "animal-trainer": [
+        {
+          "name": "guide",
+          "x": 1829,
+          "y": 2736
+        },
+        {
+          "name": "guide",
+          "x": 2003,
+          "y": 2817
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 1854,
+          "y": 2710
+        }
+      ],
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 1987,
+          "y": 2849
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 2062,
+          "y": 2856
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 1944,
+          "y": 2793
+        }
+      ]
+    },
+    "Vesper": {
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 2972,
+          "y": 625
+        },
+        {
+          "name": "guide",
+          "x": 2842,
+          "y": 875
+        }
+      ],
+      "alchemist": [
+        {
+          "name": "guide",
+          "x": 2915,
+          "y": 682
+        },
+        {
+          "name": "guide",
+          "x": 2883,
+          "y": 658
+        },
+        {
+          "name": "guide",
+          "x": 2930,
+          "y": 854
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 2915,
+          "y": 682
+        },
+        {
+          "name": "guide",
+          "x": 3002,
+          "y": 835
+        }
+      ],
+      "banker": [
+        {
+          "name": "guide",
+          "x": 2898,
+          "y": 676
+        }
+      ],
+      "mining-tools": [
+        {
+          "name": "guide",
+          "x": 2866,
+          "y": 735
+        },
+        {
+          "name": "guide",
+          "x": 2906,
+          "y": 796
+        }
+      ],
+      "blacksmith": [
+        {
+          "name": "guide",
+          "x": 2859,
+          "y": 858
+        }
+      ],
+      "weaponsmith": [
+        {
+          "name": "guide",
+          "x": 2842,
+          "y": 803
+        }
+      ],
+      "bowyer": [
+        {
+          "name": "guide",
+          "x": 2862,
+          "y": 803
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 2915,
+          "y": 810
+        }
+      ],
+      "tinker": [
+        {
+          "name": "guide",
+          "x": 2906,
+          "y": 796
+        }
+      ],
+      "jeweler": [
+        {
+          "name": "guide",
+          "x": 2890,
+          "y": 723
+        }
+      ],
+      "healer": [
+        {
+          "name": "guide",
+          "x": 2930,
+          "y": 854
+        }
+      ],
+      "fisherman": [
+        {
+          "name": "guide",
+          "x": 3012,
+          "y": 827
+        }
+      ],
+      "cook": [
+        {
+          "name": "guide",
+          "x": 2917,
+          "y": 907
+        }
+      ]
+    },
+    "Wind": {
+      "tailor": [
+        {
+          "name": "guide",
+          "x": 5202,
+          "y": 99
+        }
+      ],
+      "mage": [
+        {
+          "name": "guide",
+          "x": 5154,
+          "y": 79
+        },
+        {
+          "name": "guide",
+          "x": 5307,
+          "y": 95
+        }
+      ],
+      "alchemist": [
+        {
+          "name": "guide",
+          "x": 5215,
+          "y": 125
+        }
+      ],
+      "healer": [
+        {
+          "name": "guide",
+          "x": 5268,
+          "y": 133
+        }
+      ]
+    },
+    "Yew": {
+      "healer": [
+        {
+          "name": "guide",
+          "x": 546,
+          "y": 966
+        },
+        {
+          "name": "guide",
+          "x": 650,
+          "y": 1091
+        }
+      ],
+      "bowyer": [
+        {
+          "name": "guide",
+          "x": 567,
+          "y": 978
+        },
+        {
+          "name": "guide",
+          "x": 620,
+          "y": 1154
+        }
+      ],
+      "carpenter": [
+        {
+          "name": "guide",
+          "x": 578,
+          "y": 1011
+        }
+      ]
+    }
+  }
+}
