@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import { Blocked, type BlockedReason, blockedReason } from './blocked';
 import { atGround, groundOf, nearAnyGround, nextGround, patrolPoints, returnHome, travelToGround } from './cemeteries';
 import type { CharacterTemplate } from './config';
@@ -287,6 +288,7 @@ export async function runFighter(options: {
     trip.killsSinceBank++;
     persist();
     const death = session.world.deaths.get(opponent.serial);
+    if (death) tally(session, 'kills');
     phase('looting', 'Collecting valuables from the defeated undead');
     await Bun.sleep(600);
     if (death) await lootCorpse(death.corpse);

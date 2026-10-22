@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import { chargedPurchase, offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
@@ -8,6 +9,7 @@ import { treeStatics } from './lumber-trees';
 import { approachVendor } from './mobile-approach';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
+import { createPackAnimal } from './pack-animal';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
@@ -22,6 +24,7 @@ import { reachRegion, workArea } from './work-areas';
 
 const log = 0x1bdd;
 const board = 0x1bd7;
+const woodSet = new Set([board]);
 const hatchets = new Set([0x0f43, 0x0f44, 0x0f47, 0x0f48, 0x0f49, 0x0f4a, 0x13fa, 0x13fb]);
 // Lumberjacking.cs replies: AOS resource messages 1072540-1072546 or the classic 500498 on
 // success, 500495 on a failed chop, 500493 depleted tree, 500446 too far, 500497 pack full,
@@ -127,6 +130,8 @@ export async function runLumberjack(options: {
   };
   const blocked = new Set<string>();
   let mounts: ReturnType<typeof createMountController> | undefined;
+  let packs: ReturnType<typeof createPackAnimal> | undefined;
+  const heavy = () => status().weight >= status().maxWeight * template.behavior.bankAtWeightRatio;
   const groundNavigate = createNavigator({ session, terrain, check, phase, log: say, blocked });
   const navigate = mountedNavigator(groundNavigate, () => mounts, undefined, position);
   const backpackSerial = () => {
@@ -182,45 +187,49 @@ export async function runLumberjack(options: {
   const town = async () => {
     await cutBoards();
     const carpenter = serviceLocations(city, 'carpenter')[0];
-    if (carpenter && count(board) > 0) {
-      phase('selling', `Taking ${count(board)} boards to the carpenter`);
-      await navigate(carpenter, 4);
-      for (const mobile of [...session.world.entities.values()]) {
-        if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-        const entry = await vendorMenu(mobile, 3006104);
-        if (!entry) continue;
-        await approachVendor({ session, terrain, position, navigate, check, serial }, mobile.serial);
-        session.world.sellOffers.delete(mobile.serial);
-        const current = await vendorMenu(mobile, 3006104);
-        if (!current) continue;
-        session.selectContext(mobile.serial, current.index);
-        const offered = await session
-          .waitFor(() => session.world.sellOffers.has(mobile.serial), 'carpenter buying list', 2500)
-          .then(() => true)
-          .catch(() => false);
-        if (!offered) continue;
-        const sale = (session.world.sellOffers.get(mobile.serial) ?? []).filter((offer) => {
-          const item = session.world.entities.get(offer.serial);
-          return (
-            item?.parent === backpackSerial() && item.graphic === board && !item.hue && offer.amount === item.amount
+    // Pack animal boards sell a load at a time.
+    const room = () => status().maxWeight - 20 - status().weight;
+    for (let load = 0; load < 20; load++) {
+      if (carpenter && count(board) > 0) {
+        phase('selling', `Taking ${count(board)} boards to the carpenter`);
+        await navigate(carpenter, 4);
+        for (const mobile of [...session.world.entities.values()]) {
+          if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
+          const entry = await vendorMenu(mobile, 3006104);
+          if (!entry) continue;
+          await approachVendor({ session, terrain, position, navigate, check, serial }, mobile.serial);
+          session.world.sellOffers.delete(mobile.serial);
+          const current = await vendorMenu(mobile, 3006104);
+          if (!current) continue;
+          session.selectContext(mobile.serial, current.index);
+          const offered = await session
+            .waitFor(() => session.world.sellOffers.has(mobile.serial), 'carpenter buying list', 2500)
+            .then(() => true)
+            .catch(() => false);
+          if (!offered) continue;
+          const sale = (session.world.sellOffers.get(mobile.serial) ?? []).filter((offer) => {
+            const item = session.world.entities.get(offer.serial);
+            return (
+              item?.parent === backpackSerial() && item.graphic === board && !item.hue && offer.amount === item.amount
+            );
+          });
+          if (!sale.length) continue;
+          const gold = status().gold;
+          await session.sell(
+            mobile.serial,
+            sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
           );
-        });
-        if (!sale.length) continue;
-        const gold = status().gold;
-        await session.sell(
-          mobile.serial,
-          sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
-        );
-        await session.refreshStatus();
-        progress.sold += sale.reduce((sum, offer) => sum + offer.amount, 0);
-        progress.earned += status().gold - gold;
-        phase('sold', `Sold boards for ${status().gold - gold} gold`);
-        break;
+          await session.refreshStatus();
+          progress.sold += sale.reduce((sum, offer) => sum + offer.amount, 0);
+          progress.earned += status().gold - gold;
+          phase('sold', `Sold boards for ${status().gold - gold} gold`);
+          break;
+        }
       }
+      if (!(await packs?.unload(woodSet, 1, room))) break;
     }
     const bank = serviceLocations(city, 'banker')[0];
     // Boards no carpenter bought would keep the pack at its limit; a player stores them in the bank.
-    const heavy = () => status().weight >= status().maxWeight * template.behavior.bankAtWeightRatio;
     if (bank && (status().gold > 0 || heavy())) {
       phase('bank-travel', heavy() ? 'Storing unsold wood and banking the earnings' : 'Banking the earnings');
       await navigate(bank, 4);
@@ -238,6 +247,7 @@ export async function runLumberjack(options: {
       }
     }
     if (!tool()) await buyHatchet();
+    await packs?.acquire();
     progress.trips++;
   };
 
@@ -279,25 +289,24 @@ export async function runLumberjack(options: {
     const opened = session.world.received.get(0x3c) ?? 0;
     session.use(pack);
     await session.waitFor(() => (session.world.received.get(0x3c) ?? 0) > opened, 'backpack contents');
-    mounts = createMountController(
-      {
-        session,
-        terrain,
-        checkpoint,
-        serial,
-        position,
-        status,
-        check,
-        phase,
-        log: say,
-        navigate: groundNavigate,
-        persist,
-        backpack: backpackSerial
-      },
-      city,
-      150
-    );
+    const animals = {
+      session,
+      terrain,
+      checkpoint,
+      serial,
+      position,
+      status,
+      check,
+      phase,
+      log: say,
+      navigate: groundNavigate,
+      persist,
+      backpack: backpackSerial
+    };
+    mounts = createMountController(animals, city, 150);
+    packs = createPackAnimal(animals, city);
     await mounts.acquire();
+    await packs.acquire();
     await reachRegion({ session, position, navigate, phase }, woods);
     // Each lumberjack favours its own stand of trees in its woods.
     const offset = template.behavior.temperament?.miningAnchor;
@@ -338,13 +347,16 @@ export async function runLumberjack(options: {
         if (!tool()) await buyHatchet();
         // Logs weigh 2 stones and boards 1: cut early, go to town only when even boards fill the pack.
         if (status().weight >= status().maxWeight * 0.7 && count(log)) await cutBoards();
-        if (status().weight >= status().maxWeight * template.behavior.bankAtWeightRatio) {
+        await packs.keepUp();
+        // A full pack goes onto the pack animal while it has room.
+        if (heavy() && (await packs.stow(woodSet))) continue;
+        if (heavy()) {
           await town();
           // Back from town: a life break point (life.ts); errands are another town trip.
           const life = { session, terrain, template, checkpoint, city, position, check, phase, log: say, persist };
           if (await lifeTurn({ ...life, navigate, decisions: options.decisions, practise, errands: town })) continue;
           // A trip that could not lighten the pack must not spin straight back into town.
-          if (status().weight >= status().maxWeight * template.behavior.bankAtWeightRatio) {
+          if (heavy()) {
             phase('resting', 'The pack is still full after town; resting before trying again');
             const resumeAt = Math.min(deadline, Date.now() + 60_000);
             while (Date.now() < resumeAt) {
@@ -395,7 +407,10 @@ export async function runLumberjack(options: {
           const replies = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);
           const has = (clilocs: number[]) => replies.some((entry) => clilocs.includes(entry.cliloc ?? 0));
           progress.chops++;
-          if (has(CHOPPED)) progress.logs++;
+          if (has(CHOPPED)) {
+            progress.logs++;
+            tally(session, 'chopped');
+          }
           if (has(DEPLETED)) {
             deplete(`tree:${tree.x},${tree.y}`);
             break;

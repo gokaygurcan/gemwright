@@ -322,7 +322,9 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     }
     const endAt =
       Date.now() +
-      (options.minerAssets || options.fighterAssets || options.lumberjackAssets ? 0 : options.durationSeconds * 1000);
+      (options.minerAssets || options.fighterAssets || options.lumberjackAssets || options.profession
+        ? 0
+        : options.durationSeconds * 1000);
     let recoveryAttempts = behaviorRecoveryAttempts;
     while (Date.now() < endAt && !stopping()) {
       ownership.assert();
@@ -349,7 +351,8 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       active.phase !== 'ready' &&
       !options.minerAssets &&
       !options.fighterAssets &&
-      !options.lumberjackAssets
+      !options.lumberjackAssets &&
+      !options.profession
     )
       throw new Error('Session ended before the observation interval completed');
     const result = {
@@ -394,6 +397,16 @@ export async function withRuntime<T>(
     throw new Error('Connection and population belong to different shards');
   const store = new ResidentStore(options.dbPath, options.population.shardId);
   const sessions = new Map<string, PlayerSession>();
+  const activity = store.activityRecorder();
+  // Reports are never worth a resident: a failed save is logged and skipped.
+  const recordActivity = () => {
+    try {
+      activity.save(sessions);
+    } catch (error) {
+      console.error(`[activity] save failed: ${error instanceof Error ? error.message : error}`);
+    }
+  };
+  const saveActivity = setInterval(recordActivity, 5 * 60_000);
   let ownership: RuntimeOwnership | null = null;
   let stopping = false;
   const controller = new AbortController();
@@ -416,6 +429,8 @@ export async function withRuntime<T>(
       ownership,
       stopping: () => stopping,
       track: (id, session) => {
+        const previous = sessions.get(id);
+        if (previous && previous !== session) activity.collect(id, previous);
         if (session) sessions.set(id, session);
         else sessions.delete(id);
       }
@@ -424,6 +439,8 @@ export async function withRuntime<T>(
     if (stopping) return { stoppedBySignal: true };
     throw error;
   } finally {
+    clearInterval(saveActivity);
+    recordActivity();
     closeAll();
     PathPool.closeAll();
     ownership?.close();

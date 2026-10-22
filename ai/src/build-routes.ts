@@ -12,7 +12,8 @@ const { values } = parseArgs({
 if (!values.assets || !values.output) throw new Error('--assets and --output are required');
 const terrain = Terrain.shared(resolve(values.assets), 1);
 // The larger workspace is only for this offline public-map build, never for live sessions.
-const search = new RouteSearch(1048576, 20000, 2000000);
+// Off-road steps cost two road steps, so corridors keep to the roads between towns.
+const search = new RouteSearch(1048576, 60000, 4000000, 2);
 const hubs = {
   bank: { x: 1434, y: 1694, z: 0 },
   britain: { x: 1369, y: 1475, z: 0 },
@@ -29,7 +30,8 @@ const hubs = {
   jhelomGate: { x: 1499, y: 3771, z: 5 },
   jhelom: { x: 1285, y: 3731, z: 0 },
   moonglowGate: { x: 4467, y: 1283, z: 5 },
-  moonglow: { x: 4545, y: 1317, z: 0 }
+  moonglow: { x: 4545, y: 1317, z: 0 },
+  trinsic: { x: 1823, y: 2821, z: 0 }
 } satisfies Record<string, Point>;
 const pairs: [keyof typeof hubs, keyof typeof hubs][] = [
   ['bank', 'britain'],
@@ -45,7 +47,11 @@ const pairs: [keyof typeof hubs, keyof typeof hubs][] = [
   ['minocBank', 'mine'],
   ['minocGate', 'minocBank'],
   ['jhelomGate', 'jhelom'],
-  ['moonglowGate', 'moonglow']
+  ['moonglowGate', 'moonglow'],
+  ['bank', 'cove'],
+  ['cove', 'vesper'],
+  ['vesper', 'minocBank'],
+  ['bank', 'trinsic']
 ];
 const corridors: { name: string; both: boolean; points: number[][] }[] = [];
 const startFor = (point: Point) => {

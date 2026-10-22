@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import { chargedPurchase } from './bank-gold';
 import { craftRecipes } from './craft-training';
 import { serviceLocations } from './locations';
@@ -196,7 +197,10 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
         log(`Smithing stopped by server reply ${result}`);
         break;
       }
-      if (CREATED.includes(result)) made++;
+      if (CREATED.includes(result)) {
+        made++;
+        tally(session, 'crafted');
+      }
       await Bun.sleep(600);
       if (EXCEPTIONAL.includes(result)) {
         const piece = carried(backpack).filter((item) => !prior.has(item.serial) && item.graphic !== ingot);

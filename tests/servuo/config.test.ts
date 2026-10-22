@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 
-import { upstreamConfig } from './config-fixture';
 import { createConfig } from '../../src/config';
 import { generatedOwnerPassword, validateOwner, validateOwnerPassword } from '../../src/emulators/accounts';
 import { prepareServuoFiles } from '../../src/emulators/servuo/config';
+import { upstreamConfig } from './config-fixture';
 
 const settings = { autoCreateAccounts: false, owner: 'admin' };
 

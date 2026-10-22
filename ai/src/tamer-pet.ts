@@ -1,4 +1,5 @@
 import { distance } from './navigation';
+import { petSource } from './pets';
 import type { ProfessionContext } from './profession';
 import type { Entity } from './protocol/world';
 import { buyFrom } from './vendor-trade';
@@ -63,6 +64,7 @@ export async function readyBow(ctx: ProfessionContext) {
 
 // The kept companion, or undefined once it has been missing too long.
 export function companion(ctx: ProfessionContext) {
+  petSource(ctx.session, 'companion', () => (ctx.checkpoint.companion ? [ctx.checkpoint.companion.serial] : []));
   const memo = ctx.checkpoint.companion;
   if (!memo) return undefined;
   const pet = ctx.session.world.entities.get(memo.serial);

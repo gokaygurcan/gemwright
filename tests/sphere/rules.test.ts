@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { sphereFixture, sphereSettings } from './config-fixture';
 import { createConfig, expansions } from '../../src/config';
 import { prepareSphereFiles, sphereConfigValue } from '../../src/emulators/sphere/config';
 import { expansionFlags, flagValue, sphereNumber, validateRules } from '../../src/emulators/sphere/rules';
 import { defaultRules } from '../../src/emulators/sphere/rules-prompts';
+import { sphereFixture, sphereSettings } from './config-fixture';
 
 function fixtureRules() {
   return defaultRules(String(sphereFixture()['sphere.ini']));

@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 
-import { sphereFixture, sphereSettings } from './config-fixture';
 import { createConfig, expansions } from '../../src/config';
-import type { InstanceFiles } from '../../src/instance';
 import {
   fetchSphereFiles,
   prepareSphereFiles,
@@ -13,6 +11,8 @@ import {
   validateSphereOwner
 } from '../../src/emulators/sphere/config';
 import { sphereSources } from '../../src/emulators/sphere/source';
+import type { InstanceFiles } from '../../src/instance';
+import { sphereFixture, sphereSettings } from './config-fixture';
 
 function decoded(files: InstanceFiles, filename: string): string {
   const value = files[filename]!;

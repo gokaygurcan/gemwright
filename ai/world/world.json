@@ -73,7 +73,7 @@
     "Magincia": {
       "facet": 1,
       "enabled": true,
-      "startingCity": true
+      "startingCity": false
     },
     "Cove": {
       "facet": 1,

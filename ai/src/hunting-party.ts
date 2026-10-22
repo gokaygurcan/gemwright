@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import { type DecisionCoordinator, decisionState } from './decisions';
 import { type FighterContext, weaponSkill } from './fighter-context';
 import { distance } from './navigation';
@@ -108,6 +109,7 @@ export async function organizeParty(ctx: FighterContext, decisions?: DecisionCoo
       declined.set(serial, Date.now() + DECLINE_QUIET);
       try {
         session.say('Thanks, but I will hunt alone for now.');
+        tally(session, 'speech');
       } catch {
         // The refusal stands without the words.
       }

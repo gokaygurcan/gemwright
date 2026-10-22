@@ -12,7 +12,7 @@ import { ResidentStore } from './store';
 import { applyWorld } from './world';
 
 // The deployed AI service (gemwright deploy --ai): builds the population from world.json and the
-// shard's AI settings, reconciles the roster, and runs it in hour-long rounds for as long as the
+// shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
 // container lives, creating accounts by ordinary login as needed. Configuration comes from the
 // environment the deployment sets; all state lives on the /app/data volume.
 const data = process.env.AI_DATA ?? '/app/data';
@@ -91,10 +91,11 @@ while (!stopping) {
       dbPath,
       create: true,
       reconnectAttempts: 5,
-      durationSeconds: 3600,
+      durationSeconds: Number.POSITIVE_INFINITY,
       decisionConfig,
       assets: join(data, 'assets'),
-      staggerSeconds: 20
+      staggerSeconds: 2,
+      continuous: true
     });
   } catch (error) {
     console.error(`[serve] population round failed: ${error instanceof Error ? error.message : error}`);

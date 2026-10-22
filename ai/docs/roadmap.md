@@ -54,7 +54,7 @@ Player-facing cooperation (players inviting and being followed by residents, com
 
 - [x] ServUO AI patch (`patches/servuo-pub57-ai.patch`): `--trusted-host` names are resolved every minute and exempt from per-IP account, connection and failed-login limits; applied only when the AI is deployed.
 - [x] `gemwright deploy` parts: no flags or `--server` deploy the server; `--client` and `--ai` deploy exactly the named parts.
-- [x] `--ai` on Railway (`src/ai-deploy.ts`): a `<shard>-ai` service and volume, built from `ai/Dockerfile`; `ai/src/serve.ts` runs the population in hour-long rounds; map files are uploaded to its volume; the shard trusts its private address.
+- [x] `--ai` on Railway (`src/ai-deploy.ts`): a `<shard>-ai` service and volume, built from `ai/Dockerfile`; `ai/src/serve.ts` keeps every resident online indefinitely (2-second login stagger; a finished or failed session logs back in); map files are uploaded to its volume; the shard trusts its private address.
 - [x] `ai` settings in `gemwright.json`: `population` (0–250) and `decisions` (`local` or `jev`).
 - [x] First live Railway deployment (2026-10-22): `gemwright deploy --server --ai` with 250 residents and local decisions; the AI service keeps its own resident database on its volume, so the population started fresh. Later changes ship with `--ai` alone.
 - [ ] `gemwright ai <command>`; profession shares from `gemwright.json`.
@@ -74,7 +74,9 @@ The AI reaches ServUO over Railway's private network, and the deployment writes 
 
 Residents are ordinary players: everything they do is something any player can do over the protocol, and the other way round. No spawning, deleting, teleporting or server-side help; stragglers catch up or use party chat, ghosts find their own way. Residents stay online all the time; there are no login sessions or daily curves.
 
-- [ ] Pets for archetypes other than the tamer.
+- [ ] Pack animals for gatherers (`pack-animal.ts`, built, awaiting live evidence): miners and lumberjacks buy a pack horse or llama from the animal trainer once they ride, load ore and boards into its pack, and unload at the forge or carpenter. Every character gathers its pets (pack animal, unridden horse, tamer's companion) within 2 tiles before a public moongate (`pets.ts`), since only pets within 3 tiles go through.
+- [ ] Mage summons: summon creature, the elementals and daemon are controlled pets and are commanded like a tamer's; blade spirits and energy vortex pick their own targets, so they are cast only where nothing friendly stands nearby, never near residents, players or the caster's own pets.
+- Not planned: combat companions for fighters and mages. A companion is a liability, and waiting for it to catch up slows the character down.
 - [x] Activity lifecycle ([life phases](population.md#life-phases)): work, dungeon, errands, leisure, visits and practice, configured time split (default balanced), temperament-shaded, at most five switches a minute.
 - [x] Population spread and variety ([spread](population.md#spread)): homes, weighted grounds, life phases and visits, and destination choices that weigh how many residents are already there.
 - [x] Calling guards on criminals and murderers in guarded towns (`guards.ts`): "guards" (keyword 0x0007) when a grey or red player is within twelve tiles inside a guarded region, as the server last reported it (500112/500113); bolder residents shout more readily.
@@ -85,7 +87,7 @@ Residents are ordinary players: everything they do is something any player can d
 - [x] Crafters choose recipes for profit (`chooseRecipe`): below their skill goal they train on the highest recipe, the loss capped by the hourly training budget; at the goal they craft only what pays (chance × vendor price − material, failures wasting half). At ServUO vendor prices bought cloth never pays, so a tailor at its goal waits for player trade. Thieves sell each kind of taking only where the offer is within a tenth of the best price seen.
 - [x] Recipe catalogs (`catalogs/crafts/`, built by `src/build-crafts.ts` from ServUO's Def* craft systems and vendor sell lists): Blacksmithy 108 recipes, Carpentry 103, Tailoring 70, Tinkering 59, Alchemy 20, Bowcraft 11, each with skill range, material, extras (bottles) and vendor price. Alchemist and bowyer professions buy reagents and bottles, or boards, craft, and sell to their trades. Cartography, Inscription (reagents per scroll), Cooking beyond fish steaks and arrows and bolts (shafts and feathers) are not covered.
 - [ ] Crafters sell to players; waits for trading by shout.
-- [ ] Travel by the actual roads between towns on the same landmass, not the shortest cross-country line: today road tiles are only slightly cheaper (1 against 1.12 in `path-search.ts`) and the stored corridors are fastest routes.
+- [x] Travel by the actual roads between towns: the offline corridor build (`build-routes.ts`) charges an off-road step twice a road step, so stored routes between Britain, Yew, Cove, Vesper, Minoc and Trinsic keep to the roads (about half their steps on road tiles, against 13–31% before); walks over 96 tiles join those corridors before trying a straight line.
 - [ ] Backups and restore drills.
 - [ ] Measure and collect data: model cost, shard impact, outcomes of long-running populations. Short runs pass at 100–250 clients ([population](population.md)).
 

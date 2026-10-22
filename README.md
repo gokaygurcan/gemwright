@@ -55,6 +55,9 @@ Run this from your shard directory and choose Railway or VPS in the questionnair
 ```bash
 # in the project directory
 gemwright deploy
+
+# after the initial deployment you can deploy services independently or in combination
+gemwright deploy [--server] [--client] [--ai]
 ```
 
 ```bash
@@ -113,6 +116,12 @@ gemwright deploy --target vps
   - [x] Sphere-X (with Script-X pack) [master]
   - [x] ModernUO [main]
 - [x] Web client
+- [ ] AI
+  - [x] Profession templates
+  - [x] Interactions
+  - [x] Dungeon runs
+  - [x] Economy
+  - [ ] Housing, boat, guild and storage
 
 ## License
 

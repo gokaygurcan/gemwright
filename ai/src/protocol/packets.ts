@@ -282,6 +282,7 @@ const keywords = new Map([
   ['bank', 2],
   ['claim', 9],
   ['guards', 7],
+  ['i renounce my young player status', 0x35],
   ['all stop', 0x167],
   ['all kill', 0x168],
   ['all guard me', 0x16b],
@@ -292,7 +293,7 @@ export function speech(text: string): Buffer {
   if (!text.trim() || text.length > 200 || [...text].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127))
     throw new Error('Speech must contain 1–200 characters without controls');
   // Speech IDs: 0x0000 withdraw, 0x0001 balance, 0x0002 bank (Banker.OnSpeech); 0x0007 guards
-  // (GuardedRegion.OnSpeech); 0x0009 claim (AnimalTrainer);
+  // (GuardedRegion.OnSpeech); 0x0009 claim (AnimalTrainer); 0x0035 young renouncement (Keywords.cs);
   // pet orders from BaseAI.OnSpeech: 0x167 all stop, 0x168 all kill, 0x16B all guard me, 0x16C all follow me.
   const keyword = /^withdraw [1-9]\d{0,4}$/i.test(text) ? 0 : keywords.get(text.toLowerCase());
   if (keyword !== undefined) {

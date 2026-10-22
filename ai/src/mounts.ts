@@ -3,6 +3,7 @@ import { MOUNT_TOO_ILL, recoverMissingMount } from './mount-care';
 import { createMountServices } from './mount-services';
 import { horseBodies, type MountContext, mountEquipment } from './mount-types';
 import { distance } from './navigation';
+import { petSource } from './pets';
 import type { Entity } from './protocol/world';
 
 export function createMountController(ctx: MountContext, city: string, reserve = 250) {
@@ -13,6 +14,10 @@ export function createMountController(ctx: MountContext, city: string, reserve =
   const services = createMountServices(ctx, city, reserve);
   const verified = new Set<number>();
   let nextAttempt = 0;
+  // An unridden horse is a pet to gather before a moongate; a ridden one travels with its rider.
+  petSource(session, 'horse', () =>
+    memory.horse !== undefined && memory.state !== 'riding' && !mountEquipment(session.world) ? [memory.horse] : []
+  );
   const observe = () => {
     const equipment = mountEquipment(session.world);
     if (equipment) {

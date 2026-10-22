@@ -25,6 +25,16 @@ const directions = [
   [-1, -1]
 ] as const;
 const coordinate = (x: number, y: number, z: number) => (x * 4096 + y) * 512 + z + 256;
+// Land tiles that read as a road or path, by tile id; tile names do not change while running.
+const roads = new Map<number, boolean>();
+const isRoad = (terrain: Pick<Terrain, 'tile'>, id: number) => {
+  let road = roads.get(id);
+  if (road === undefined) {
+    road = /cobble|flagstone|pavement|paver|road|dirt/i.test(terrain.tile(id).name);
+    roads.set(id, road);
+  }
+  return road;
+};
 
 // One reusable workspace per worker. Both the discovered set and heap have a hard bound.
 export class RouteSearch {
@@ -45,7 +55,10 @@ export class RouteSearch {
   constructor(
     private readonly capacity = 65536,
     private readonly budgetMs = 500,
-    private readonly expansionBudget?: number
+    private readonly expansionBudget?: number,
+    // Cost of a step off the road; live searches prefer roads mildly, the offline corridor build
+    // (build-routes.ts) strongly, so stored town-to-town routes follow the actual roads.
+    private readonly offRoad = 1.12
   ) {
     if (!Number.isInteger(capacity) || capacity < 1024 || capacity > 1048576 || capacity & (capacity - 1))
       throw new Error('Search capacity must be a power of two from 1024 to 1048576');
@@ -176,12 +189,12 @@ export class RouteSearch {
         const key = coordinate(x, y, nextZ);
         const slot = this.slot(key);
         let other = this.hash[slot]! - 1;
-        const road = /cobble|flagstone|pavement|paver|road|dirt/i.test(terrain.tile(terrain.cell(x, y).land.id).name);
+        const road = isRoad(terrain, terrain.cell(x, y).land.id);
         const parent = this.parents[index]!;
         const turn =
           parent >= 0 &&
           (Math.sign(current.x - this.x[parent]!) !== dx || Math.sign(current.y - this.y[parent]!) !== dy);
-        const cost = this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : 1.12) + (turn ? 0.08 : 0);
+        const cost = this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : this.offRoad) + (turn ? 0.08 : 0);
         if (other >= 0 && this.costs[other]! <= cost) continue;
         if (other < 0) {
           if (this.count === this.capacity) {

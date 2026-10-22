@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import type { DecisionCoordinator } from './decisions';
 import { decisionState } from './decisions';
 import { bandage, type FighterContext, weaponSkill } from './fighter-context';
@@ -26,6 +27,7 @@ const rank = (mobile: Entity) => ['common', 'brute', 'caster', 'knight'].indexOf
 const say = (ctx: FighterContext, line: string) => {
   try {
     ctx.session.say(line);
+    tally(ctx.session, 'speech');
   } catch {
     // Speech is flavour; the plan still stands without it.
   }

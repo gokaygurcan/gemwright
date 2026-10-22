@@ -55,7 +55,9 @@ export async function superviseBehavior<S extends RecoverableSession, R>(options
         const connected = await Promise.race([
           options.connect(),
           new Promise<null>((resolve) => {
-            timer = setTimeout(() => resolve(null), Math.max(0, options.deadline - now()));
+            // An open-ended run (Infinity) never times out its reconnect.
+            if (Number.isFinite(options.deadline))
+              timer = setTimeout(() => resolve(null), Math.max(0, options.deadline - now()));
           })
         ]);
         if (connected === null) {

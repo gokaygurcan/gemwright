@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import { tally } from './activity';
 import { Blocked } from './blocked';
 import { recognised } from './fighter-prey';
 import { mountEquipment } from './mount-types';
@@ -158,6 +159,7 @@ const tamerDungeon: DungeonRole = {
     const before = ctx.progress.petKills ?? 0;
     const fought = await fightWithPet(ctx, (m) => !recognised(m.graphic));
     run.kills += (ctx.progress.petKills ?? 0) - before;
+    tally(ctx.session, 'kills', (ctx.progress.petKills ?? 0) - before);
     return fought;
   }
 };

@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import type { CharacterTemplate } from './config';
 import { worldAnswer } from './conversation-answers';
 import type { DecisionCoordinator } from './decisions';
@@ -173,6 +174,7 @@ async function listen(listener: Listener) {
       const asked = ['where', 'help', 'follow'].includes(baselineIntent(entry.text));
       if (asked && !open.brushedOff && session.phase === 'ready') {
         open.brushedOff = true;
+        tally(session, 'speech');
         session.say(`We have spoken already, ${name}. I must return to my work.`);
       }
       log(session, `${name}: "${entry.text}" -> ignored, conversation already ended${asked ? '' : ' (small talk)'}`);
@@ -350,6 +352,7 @@ async function answer(listener: Listener, thread: Thread, entry: JournalEntry, h
     await Bun.sleep(1200 + Math.random() * 1300 + Math.max(0, listener.lastSpoke + 2500 - Date.now()));
     if (session.phase !== 'ready') return;
     session.say(line.slice(0, 200));
+    tally(session, 'speech');
     listener.lastSpoke = Date.now();
     thread.turns.push({ from: 'me', text: line, intent, reply: chosen.id, at: Date.now() });
     thread.lastAt = Date.now();

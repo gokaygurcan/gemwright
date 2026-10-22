@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import { noteSpoken, quietNow } from './conversation';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
@@ -55,6 +56,7 @@ export function noticePeers(
       try {
         const line = greeting(name, seen) ?? `Hail, ${name}.`;
         session.say(line);
+        tally(session, 'speech');
         noteSpoken(checkpoint, mobile.serial, name, line, true);
       } catch {
         // Not ready to speak; the encounter is still recorded.

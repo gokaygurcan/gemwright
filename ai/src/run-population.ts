@@ -13,6 +13,8 @@ export async function runPopulation(
     assets: string;
     staggerSeconds: number;
     limit?: number;
+    // Residents stay online: a finished or failed session logs back in after a pause.
+    continuous?: boolean;
   }
 ) {
   return withRuntime(options, async (shared) => {
@@ -41,33 +43,50 @@ export async function runPopulation(
       if (shared.stopping()) return { residentId: resident.id, outcome: 'not-started' as const };
       const template = shared.store.template(resident.templateId, resident.policyVersion);
       const activities = template?.behavior.activities ?? [];
-      // Newer professions run through the profession runtime, chosen by the template's activities.
+      // Newer professions run through the profession runtime, chosen by the template's activities;
+      // world templates name the behavior (`miner`), hand-written ones may name the activity (`mine`).
       const profession = (['tamer', 'thief', 'bard', 'fisher', 'tailor', 'alchemist', 'bowyer'] as const).find(
         (behavior) => activities.includes(behavior)
       );
       const role =
-        profession ?? (activities.includes('mine') ? 'miner' : activities.includes('chop') ? 'lumberjack' : 'fighter');
+        profession ??
+        (activities.includes('miner') || activities.includes('mine')
+          ? 'miner'
+          : activities.includes('lumberjack') || activities.includes('chop')
+            ? 'lumberjack'
+            : 'fighter');
       const log = (text: string) => console.error(`[population] ${resident.proposedName}: ${text}`);
       log(`arriving as ${role}`);
-      try {
-        await runResident(
-          shared,
-          {
-            ...options,
-            exercise: false,
-            reconnect: false,
-            ...(profession
-              ? { profession: { behavior: profession, assets: options.assets } }
-              : { [`${role}Assets`]: options.assets })
-          },
-          resident.id
-        );
-        log('session finished');
-        return { residentId: resident.id, outcome: 'finished' as const };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        log(`session failed: ${message}`);
-        return { residentId: resident.id, outcome: 'failed' as const, error: message };
+      let failures = 0;
+      while (true) {
+        try {
+          await runResident(
+            shared,
+            {
+              ...options,
+              exercise: false,
+              reconnect: false,
+              ...(profession
+                ? { profession: { behavior: profession, assets: options.assets } }
+                : { [`${role}Assets`]: options.assets })
+            },
+            resident.id
+          );
+          log('session finished');
+          failures = 0;
+          if (!options.continuous || shared.stopping())
+            return { residentId: resident.id, outcome: 'finished' as const };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          log(`session failed: ${message}`);
+          if (!options.continuous || shared.stopping())
+            return { residentId: resident.id, outcome: 'failed' as const, error: message };
+          failures++;
+        }
+        const retryAt = Date.now() + Math.min(15_000 * 2 ** failures, 300_000);
+        log('logging back in');
+        while (Date.now() < retryAt && !shared.stopping()) await Bun.sleep(250);
+        if (shared.stopping()) return { residentId: resident.id, outcome: 'finished' as const };
       }
     });
     const outcomes = await Promise.all(runs);

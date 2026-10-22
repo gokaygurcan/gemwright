@@ -1,6 +1,7 @@
 import { Blocked } from './blocked';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
+import { gatherPets } from './pets';
 import { moongateDestination } from './protocol/gumps';
 import type { PlayerSession } from './protocol/session';
 import type { Position } from './protocol/world';
@@ -64,6 +65,8 @@ export async function travelByMoongate(
   );
   if (!item?.position) throw new Error(`The ${from} public moongate is not observed nearby`);
   const self = session.world.serial === null ? undefined : session.world.entities.get(session.world.serial);
+  // Pets go along only with a living master standing next to them.
+  if (!(self && ghosts.has(self.graphic))) await gatherPets(session, position, navigate, phase, moongates[from]);
   if (self && ghosts.has(self.graphic)) {
     // A ghost cannot double-click ("I am dead and cannot do that"); walking onto the gate opens
     // the same menu (PublicMoongate.OnMoveOver), so step off it first if already standing there.

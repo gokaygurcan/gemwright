@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import type { DungeonContext } from './dungeon-context';
 import type { CrawlParty } from './dungeon-crawl';
 import { runMinutes } from './dungeon-crawl';
@@ -41,6 +42,7 @@ const nameOf = (ctx: DungeonContext) => ctx.session.world.entities.get(ctx.seria
 export const say = (ctx: DungeonContext, line: string) => {
   try {
     ctx.session.say(line);
+    tally(ctx.session, 'speech');
   } catch {
     // Speech is flavour; the plan stands without it.
   }

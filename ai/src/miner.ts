@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import { Blocked, blockedReason } from './blocked';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
@@ -6,11 +7,13 @@ import { reconcileExperience } from './experience';
 import { lifeTurn } from './life';
 import { serviceLocations } from './locations';
 import { createMinerPastimes } from './miner-pastimes';
+import { minerPlan } from './miner-plan';
 import { createMinerServices, forges, ingot, tools } from './miner-services';
 import { findMiningSite } from './miner-sites';
 import { travelMinerHome } from './miner-travel';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator } from './navigation';
+import { createPackAnimal } from './pack-animal';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import { noticePeers } from './relationships';
@@ -21,6 +24,8 @@ import { type Point, Terrain } from './terrain';
 import { reachRegion, workArea } from './work-areas';
 
 const ore = new Set([0x19b7, 0x19b8, 0x19b9, 0x19ba]);
+const oreIn = (items: { graphic: number; amount?: number }[]) =>
+  items.reduce((sum, item) => sum + (ore.has(item.graphic) ? (item.amount ?? 1) : 0), 0);
 const distance = (a: Point, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 export async function runMiner(options: {
@@ -66,39 +71,7 @@ export async function runMiner(options: {
   options.decisions?.reconcile(checkpoint);
   let activeDecision: DecisionPick | null = null;
   let decisionAttemptsBefore = 0;
-  checkpoint.landmarks ??= { forges: [] };
-  // ServUO ore veins respawn 10-20 minutes after depletion (Mining.cs), so a depleted spot is
-  // remembered across restarts for the longest respawn and then tried again.
-  const depleted = new Map(
-    (checkpoint.landmarks.depleted ?? []).filter((entry) => entry.until > Date.now()).map((e) => [e.key, e.until])
-  );
-  const exhausted = {
-    has: (key: string) => (depleted.get(key) ?? 0) > Date.now(),
-    add: (key: string) => {
-      depleted.set(key, Date.now() + 20 * 60_000);
-      if (checkpoint.landmarks)
-        checkpoint.landmarks.depleted = [...depleted]
-          .filter(([, until]) => until > Date.now())
-          .slice(-300)
-          .map(([k, until]) => ({ key: k, until }));
-      options.save(checkpoint);
-    }
-  };
-  const newTrip = () => {
-    const roll = Math.random();
-    const ceiling = Math.min(0.9, template.behavior.bankAtWeightRatio);
-    return {
-      smeltsSinceBank: 0,
-      smeltsBeforeBank: roll < 0.2 ? 1 : roll < 0.75 ? 2 : roll < 0.95 ? 3 : 4,
-      smeltAtWeightRatio: ceiling * (0.8 + Math.random() * 0.2),
-      bankAtWeightRatio: ceiling * (0.9 + Math.random() * 0.1)
-    };
-  };
-  checkpoint.mining ??= newTrip();
-  const plan = () => {
-    if (!checkpoint.mining) throw new Error('Miner trip plan is missing');
-    return checkpoint.mining;
-  };
+  const { exhausted, newTrip, plan } = minerPlan(checkpoint, template, () => options.save(checkpoint));
   const unsmeltable = new Set<number>();
   let attempts = 0;
   let blockedSites = 0;
@@ -135,6 +108,7 @@ export async function runMiner(options: {
     }
   };
   let mounts: ReturnType<typeof createMountController> | undefined;
+  let packs: ReturnType<typeof createPackAnimal> | undefined;
   const groundNavigate = createNavigator({
     session,
     terrain,
@@ -189,7 +163,13 @@ export async function runMiner(options: {
     progress,
     persist: () => options.save(checkpoint)
   };
-  const { smelt, bank, resupply, smithFromBank, withdrawIngots } = createMinerServices(servicesCtx);
+  const { smelt: smeltCarried, bank, resupply, smithFromBank, withdrawIngots } = createMinerServices(servicesCtx);
+  // Smelts what is carried, then what the pack animal carries, a load at a time.
+  const room = () => status().maxWeight - 30 - status().weight;
+  const smelt = async (backpack: number) => {
+    await smeltCarried(backpack);
+    while (await packs?.unload(ore, 12, room)) await smeltCarried(backpack);
+  };
   let backpackSerial = 0;
   const { pastime, setback, resupplyOrPass, life, pickUp } = createMinerPastimes(servicesCtx, {
     smithFromBank,
@@ -205,27 +185,25 @@ export async function runMiner(options: {
     if (options.decisions) await session.refreshSkills();
     const backpack = await openBackpack();
     backpackSerial = backpack;
-    mounts = createMountController(
-      {
-        session,
-        terrain,
-        checkpoint,
-        serial,
-        position,
-        status,
-        check,
-        phase,
-        log,
-        navigate: groundNavigate,
-        persist: () => options.save(checkpoint),
-        backpack: () => backpack
-      },
-      city,
-      150
-    );
+    const animals = {
+      session,
+      terrain,
+      checkpoint,
+      serial,
+      position,
+      status,
+      check,
+      phase,
+      log,
+      navigate: groundNavigate,
+      persist: () => options.save(checkpoint),
+      backpack: () => backpack
+    };
+    mounts = createMountController(animals, city, 150);
+    packs = createPackAnimal(animals, city);
     await reachRegion({ session, position, navigate, phase }, home);
     await travelMinerHome({ session, position, navigate, phase, checkpoint, city, home, newTrip });
-    if (distance(position(), home) < 180) await mounts.acquire();
+    if (distance(position(), home) < 180) await mounts.acquire().then(() => packs?.acquire());
     rememberObservedForges();
     if (plan().pending === 'smelt' && !smeltable(backpack).length) {
       if (carried(backpack).some((item) => item.graphic === ingot)) plan().smeltsSinceBank++;
@@ -252,6 +230,9 @@ export async function runMiner(options: {
         const miningLimit = () => Math.min(status().maxWeight * plan().smeltAtWeightRatio, status().maxWeight - 30);
         const hasTool = () => carried(backpack).some((item) => tools.has(item.graphic));
         const needsSpace = () => progress.packRejected || carried(backpack).length >= 110;
+        await packs.keepUp();
+        // A full pack goes onto the pack animal while it has room; mining goes on.
+        if (status().weight >= miningLimit() && (await packs.stow(ore))) continue;
         if (
           smeltable(backpack).length &&
           (status().weight >= miningLimit() || needsSpace() || !hasTool() || plan().pending === 'smelt')
@@ -272,7 +253,7 @@ export async function runMiner(options: {
           // A healthy banked iron stock: sometimes smith a batch for profit.
           if ((checkpoint.stock?.ingots ?? 0) >= 200 && Math.random() < 0.4) await smithFromBank(backpack);
           await resupplyOrPass(backpack);
-          await mounts.acquire();
+          await mounts.acquire().then(() => packs?.acquire());
           if (await lifeTurn(life(bank, options.decisions))) continue;
         }
         if (status().weight >= miningLimit() || needsSpace()) {
@@ -397,6 +378,7 @@ export async function runMiner(options: {
           await session.refreshStatus();
           if (status().weight >= miningLimit() || needsSpace()) break;
           const last = session.world.journal.at(-1);
+          const oreBefore = oreIn(carried(backpack));
           session.use(tool.serial);
           await session.waitFor(() => session.world.target !== null, 'mining tool cursor', 4000);
           const tile = site.graphic ? terrain.tile(site.graphic, true) : null;
@@ -409,6 +391,7 @@ export async function runMiner(options: {
           });
           attempts++;
           await Bun.sleep(2500);
+          if (oreIn(carried(backpack)) > oreBefore) tally(session, 'mined');
           const since = last
             ? session.world.journal.slice(session.world.journal.indexOf(last) + 1)
             : session.world.journal;
@@ -432,9 +415,7 @@ export async function runMiner(options: {
           checkpoint,
           activeDecision,
           'completed',
-          `Mining batch made ${attempts - decisionAttemptsBefore} tool attempts; ${carried(backpack)
-            .filter((item) => ore.has(item.graphic))
-            .reduce((sum, item) => sum + (item.amount ?? 1), 0)} ore units are now observed in the backpack.`
+          `Mining batch made ${attempts - decisionAttemptsBefore} tool attempts; ${oreIn(carried(backpack))} ore units are now observed in the backpack.`
         );
         activeDecision = null;
         if (!carried(backpack).some((item) => ore.has(item.graphic))) exhausted.add(`tile:${site.x},${site.y}`);

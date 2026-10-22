@@ -3,13 +3,13 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { sphereFixture, sphereSettings } from './config-fixture';
 import { createConfig } from '../../src/config';
-import { saveInstance } from '../../src/instance';
-import { command } from '../../src/process';
 import { prepareSphereFiles } from '../../src/emulators/sphere/config';
 import { sphereSources } from '../../src/emulators/sphere/source';
 import { packageClientFiles, stageSphere, validateSphereShard } from '../../src/emulators/sphere/staging';
+import { saveInstance } from '../../src/instance';
+import { command } from '../../src/process';
+import { sphereFixture, sphereSettings } from './config-fixture';
 
 const folders: string[] = [];
 afterEach(async () => {

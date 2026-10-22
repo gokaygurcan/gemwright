@@ -1,3 +1,4 @@
+import { tally } from './activity';
 import { Blocked } from './blocked';
 import { type CraftSkill, trainCraft } from './craft-training';
 import { allServiceLocations, serviceLocations } from './locations';
@@ -143,7 +144,10 @@ export const runFisher = (options: ProfessionOptions) => {
         log('The fish are not biting here; finding another spot');
         break;
       }
-      if (!replies.includes(FAILED)) ctx.progress.catches = (ctx.progress.catches ?? 0) + 1;
+      if (!replies.includes(FAILED)) {
+        ctx.progress.catches = (ctx.progress.catches ?? 0) + 1;
+        tally(ctx.session, 'fished');
+      }
     }
     // Cooking trains on the catch: carve and cook a batch now and then before selling.
     if (ctx.count(0x09cc) + ctx.count(0x09cd) + ctx.count(0x09ce) + ctx.count(0x09cf) >= 10 && Math.random() < 0.4)

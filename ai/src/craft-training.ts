@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import { tally } from './activity';
 import { canSpendOnTraining, chargedPurchase, offersBank, openBankBox, recordTrainingSpend } from './bank-gold';
 import { type ServiceType, serviceLocations } from './locations';
 import { buttonFor, CREATED, EXCEPTIONAL, FAILED, STOP } from './miner-crafting';
@@ -233,6 +234,7 @@ export async function trainCraft(
         !needs.some((need) => need.graphic === item.graphic) &&
         !craft.tools.has(item.graphic)
       ) {
+        tally(session, 'crafted');
         // Exceptional pieces are banked, not sold.
         if (EXCEPTIONAL.includes(reply() ?? 0)) {
           ctx.checkpoint.keep = [...new Set([...(ctx.checkpoint.keep ?? []), item.serial])];

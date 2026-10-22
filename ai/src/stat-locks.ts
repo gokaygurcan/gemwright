@@ -1,5 +1,5 @@
 import type { CharacterArchetype } from './archetypes';
-import { readyForDungeons } from './progression';
+import { outgrewYoung, readyForDungeons, renounceYoung } from './progression';
 import type { PlayerSession } from './protocol/session';
 import { skillId } from './skills';
 
@@ -16,6 +16,7 @@ export function maintainLocks(session: PlayerSession, archetype: CharacterArchet
   const build = new Set([...archetype.primarySkills, ...archetype.supportingSkills, ...goals].map(skillId));
   const sentStats: number[] = [];
   let announced = false;
+  let renounced = false;
   const applyStats = () => {
     const status = session.world.status;
     if (session.phase !== 'ready' || !status) return;
@@ -35,6 +36,11 @@ export function maintainLocks(session: PlayerSession, archetype: CharacterArchet
       announced = true;
       const name = session.world.serial === null ? '' : session.world.entities.get(session.world.serial)?.name;
       console.log(`[progression] ${name ?? 'resident'} has 80.0 primaries; ready for dungeons once designed`);
+    }
+    // Once per session: a character that is no longer Young is offered no gump.
+    if (!renounced && outgrewYoung(session, archetype)) {
+      renounced = true;
+      if (await renounceYoung(session)) console.log('[progression] renounced Young status at 60.0 primary skill');
     }
     for (const [id, skill] of session.world.skills) {
       const lock = build.has(id) ? (skill.base >= skill.cap ? 2 : 0) : 1;

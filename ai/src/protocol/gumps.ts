@@ -40,5 +40,3 @@ export function moongateDestination(layout: string, destination: number): number
   const label = labels.find((item) => item.id === String(destination));
   return trammel && label ? radios.get(`${label.page}:${label.y}`) : undefined;
 }
-
-export const minocDestination = (layout: string) => moongateDestination(layout, 1012007);

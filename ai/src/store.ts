@@ -2,6 +2,7 @@ import { Database } from 'bun:sqlite';
 import { chmodSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
+import { ActivityRecorder, activitySchema } from './activity';
 import { migrateCheckpoint } from './checkpoint-migrations';
 import { allocatePopulation, type CharacterTemplate, type PopulationConfig, validateConfig } from './config';
 import type { DecisionMemory } from './decisions';
@@ -23,6 +24,7 @@ export interface Checkpoint {
   decisions?: DecisionMemory;
   experience?: ExperienceMemory;
   mount?: MountMemory;
+  packAnimal?: MountMemory & { load?: number };
   // Last banker-reported balance; vendors on the verified profile can charge it directly.
   funds?: { bank: number; at: number };
   // Ingots last counted in the bank box; guides whether surplus is sold for working funds.
@@ -186,7 +188,7 @@ export class ResidentStore {
       this.db
         .transaction(() => {
           const version = this.db.query<{ user_version: number }, []>('PRAGMA user_version').get()?.user_version;
-          if (version !== 0 && version !== 1 && version !== 2 && version !== 3 && version !== 4)
+          if (version === undefined || version < 0 || version > 5)
             throw new Error(`Unsupported resident database version: ${version}`);
           if (version === 0) {
             this.db.exec(`
@@ -246,6 +248,8 @@ export class ResidentStore {
             );
             PRAGMA user_version = 4;`);
           }
+          // Version 5: activity totals and position samples for population reports (activity.ts).
+          if (version < 5) this.db.exec(`${activitySchema}\nPRAGMA user_version = 5;`);
           const existing = this.db
             .query<{ value: string }, [string]>('SELECT value FROM metadata WHERE key = ?')
             .get('shardId');
@@ -340,6 +344,10 @@ export class ResidentStore {
 
   list(): Resident[] {
     return this.db.query<ResidentRow, []>('SELECT * FROM residents ORDER BY template_id, ordinal').all().map(decode);
+  }
+
+  activityRecorder() {
+    return new ActivityRecorder(this.db, (id) => this.get(id)?.checkpoint);
   }
 
   get(id: string): Resident | undefined {
