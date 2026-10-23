@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { setPopulationChaos } from './chaos';
 import { type PopulationConfig, validateConfig } from './config';
 import { validateConnection } from './connection';
 import { validateDecisionConfig } from './decision-provider';
@@ -9,7 +10,7 @@ import { CLIENT_VERSION } from './protocol/packets';
 import { runPopulation } from './run-population';
 import { checkProvisioning, loadShardProfile } from './shard-profile';
 import { ResidentStore } from './store';
-import { applyWorld } from './world';
+import { applyWorld, world } from './world';
 
 // The deployed AI service (gemwright deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
@@ -24,9 +25,11 @@ const required = (name: string) => {
 
 const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
   id: string;
-  ai?: { population?: number; decisions?: string; speech?: string };
+  ai?: { population?: number; decisions?: string; speech?: string; chaos?: number };
 };
 enablePhrasing(shard.ai?.speech === 'claude');
+// How unpredictable residents are (chaos.ts): the shard's setting, else the world's, else 0.3.
+setPopulationChaos(shard.ai?.chaos ?? world.lifecycle?.chaos ?? 0.3);
 const shardFile = join(data, 'gemwright.json');
 await mkdir(data, { recursive: true });
 await writeFile(shardFile, JSON.stringify(shard));
@@ -59,9 +62,11 @@ const decisionConfig = validateDecisionConfig(
         provider: 'jev',
         model: 'jev-1.13.0',
         minIntervalMs: 5000,
+        // Every resident shares one daily budget: $0.16 a day keeps the population under $5 a month.
         maxRequestsPerRun: 1000,
-        maxRequestsPerDay: 5000,
-        maxDailyCostUsd: 0.5
+        maxRequestsPerDay: 200,
+        maxDailyCostUsd: 0.02,
+        maxPopulationDailyCostUsd: 0.16
       }
     : { provider: 'local' }
 );

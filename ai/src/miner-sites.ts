@@ -1,3 +1,4 @@
+import { unsafeCheck } from './danger';
 import { miningCatalog } from './mining-catalog';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
@@ -28,10 +29,13 @@ export async function findMiningSite(options: {
   );
   const crowding = (point: { x: number; y: number }) =>
     people.some((mobile) => mobile.position && distance(mobile.position, point) <= 4) ? 40 : 0;
+  // Rocks within reach of monsters, or where they were lately seen, are left alone (danger.ts).
+  const risky = unsafeCheck(session);
   const candidates = (await miningCatalog(terrain, origin, miningArea))
     .filter(
       (point) =>
         distance(origin, point) <= 180 &&
+        !risky(point) &&
         !exhausted.has(`${point.x >> 3},${point.y >> 3}`) &&
         !exhausted.has(`tile:${point.x},${point.y}`)
     )

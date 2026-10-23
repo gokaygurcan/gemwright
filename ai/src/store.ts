@@ -9,6 +9,7 @@ import type { DecisionMemory } from './decisions';
 import type { ExperienceMemory } from './experience';
 import type { MountMemory } from './mount-types';
 import { playerName } from './names';
+import { SpendLedger } from './spend-ledger';
 import { timed } from './stall-probe';
 
 // One skill as the server reported it: base and modified value, cap, and lock (0 up, 1 down, 2 locked).
@@ -24,7 +25,7 @@ export interface Checkpoint {
   decisions?: DecisionMemory;
   experience?: ExperienceMemory;
   mount?: MountMemory;
-  packAnimal?: MountMemory & { load?: number };
+  packAnimal?: MountMemory & { load?: number; searches?: number; abandoned?: number };
   // Last banker-reported balance; vendors on the verified profile can charge it directly.
   funds?: { bank: number; at: number };
   // Ingots last counted in the bank box; guides whether surplus is sold for working funds.
@@ -344,6 +345,10 @@ export class ResidentStore {
 
   list(): Resident[] {
     return this.db.query<ResidentRow, []>('SELECT * FROM residents ORDER BY template_id, ordinal').all().map(decode);
+  }
+
+  spendLedger() {
+    return new SpendLedger(this.db);
   }
 
   activityRecorder() {

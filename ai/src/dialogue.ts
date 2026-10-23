@@ -1,7 +1,18 @@
 // Conversation threads and authored replies, free of any session: what a line means (intent), who
 // it continues (thread), and which truthful replies are legal. conversation.ts hears and speaks;
 // Jev (when configured) reads the intent and picks among the replies offered here.
-export type Intent = 'greet' | 'doing' | 'where' | 'help' | 'follow' | 'acknowledge' | 'clarify' | 'bye' | 'chatter';
+export type Intent =
+  | 'greet'
+  | 'doing'
+  | 'where'
+  | 'help'
+  | 'follow'
+  | 'wait'
+  | 'trade'
+  | 'acknowledge'
+  | 'clarify'
+  | 'bye'
+  | 'chatter';
 
 export const intents: Record<Intent, { pattern?: RegExp; description: string }> = {
   where: {
@@ -29,8 +40,19 @@ export const intents: Record<Intent, { pattern?: RegExp; description: string }> 
   },
   bye: {
     pattern:
-      /\b(?:bye|farewell|see (?:you|ya)|take care|safe travels|good ?night|stop|enough|quiet|shut up|leave me alone|go away|not now)\b/i,
+      /\b(?:bye|farewell|see (?:you|ya)|take care|safe travels|good ?night|stop talking|enough|quiet|shut up|leave me alone|go away|not now)\b/i,
     description: 'Ends the conversation: says goodbye, or asks the listener to stop talking or leave them alone.'
+  },
+  // A bare "stop" or "wait" asks the listener to stop walking, not to stop talking.
+  wait: {
+    pattern: /^\W*(?:stop|wait|hold on|hang on|hold up|one moment|a moment)\b/i,
+    description: 'Asks the listener to stop walking and wait ("stop", "wait", "hold on").'
+  },
+  trade: {
+    // "vendor buy" and "vendor sell" are said to NPC shopkeepers, not to traders.
+    pattern:
+      /\b(?:trade|(?<!vendor )buy|(?<!vendor )sell|wares|wtb|wts|what (?:do|dost) (?:you|thou) (?:have|sell)|what are you selling)\b/i,
+    description: 'Wants to trade: asks what the listener sells or offers to buy or sell something.'
   },
   acknowledge: {
     pattern:
@@ -177,9 +199,11 @@ export function replyOptions(
         return {
           options: [
             { ...quiet, description: 'Say nothing more; we have already greeted each other.' },
-            { id: 'ask-after', description: 'Ask what they are up to.', text: `What brings thee here, ${name}?` }
+            { id: 'ask-after', description: 'Ask what they are up to.', text: `What brings thee here, ${name}?` },
+            { id: 'yes', description: 'Answer a player greeting me again.', text: `Yes, ${name}?` }
           ],
-          baseline: 'stay-quiet'
+          // A player greeting again wants attention; a resident's returned greeting needs nothing.
+          baseline: thread.peer ? 'stay-quiet' : 'yes'
         };
       return {
         options: [
@@ -263,6 +287,15 @@ export function replyOptions(
         ],
         baseline: 'farewell'
       };
+    case 'wait':
+      return {
+        options: [{ id: 'wait', description: 'Stop and ask what they want.', text: `Aye, ${name}? What is it?` }],
+        baseline: 'wait'
+      };
+    case 'trade':
+      return answer
+        ? { options: [{ id: 'quote', description: 'Say what I can trade.', text: answer }], baseline: 'quote' }
+        : { options: [quiet], baseline: 'stay-quiet' };
     case 'chatter':
       return {
         options: [

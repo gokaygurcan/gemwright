@@ -1,3 +1,4 @@
+import { lootProvoked } from './bard-loot';
 import { Blocked } from './blocked';
 import { cemeteries } from './cemeteries';
 import { prey, recognised } from './fighter-prey';
@@ -89,6 +90,8 @@ export const runBard = (options: ProfessionOptions) =>
       } else if (undead[0]) {
         phase('discordance', `Discording ${undead[0].name ?? 'an undead'}`);
         if (await play(ctx, 'Discordance', [undead[0]])) ctx.progress.discorded = (ctx.progress.discorded ?? 0) + 1;
+      } else if (await lootProvoked(ctx)) {
+        // Coins from the undead it set on each other (bard-loot.ts).
       } else {
         phase('bard-patrol', 'Walking the cemetery for an audience');
         const from = ground.center;

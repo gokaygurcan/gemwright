@@ -64,7 +64,7 @@ ai/
     decisions.ts, decision-provider.ts, experience.ts   decisions and memory
     dialogue.ts, conversation.ts, relationships.ts      speech
     dungeon*.ts                   dungeons
-    load-test.ts, stall-probe.ts, build-routes.ts, build-dungeons.ts, build-monsters.ts, build-crafts.ts   measurement, routes and catalogs
+    load-test.ts, stall-probe.ts, build-routes.ts, build-dungeons.ts, build-monsters.ts, build-crafts.ts, build-aggression.ts, report.ts   measurement, routes and catalogs
 ```
 
 Related: [sessions](sessions.md) · [templates](templates.md).

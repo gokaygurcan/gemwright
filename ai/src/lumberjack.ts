@@ -1,18 +1,21 @@
 import { tally } from './activity';
-import { chargedPurchase, offersBank, openBankBox, queryBankBalance } from './bank-gold';
+import { openOwnBackpack } from './backpack';
+import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
+import { threatsNear, unsafeCheck } from './danger';
 import type { DecisionCoordinator } from './decisions';
 import { lifeTurn } from './life';
 import { serviceLocations } from './locations';
+import { buyHatchetFrom, hatchets, vendorMenu } from './lumber-shop';
 import { treeStatics } from './lumber-trees';
+import { sellAtMarket } from './market';
 import { approachVendor } from './mobile-approach';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
 import { createPackAnimal } from './pack-animal';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { noticePeers } from './relationships';
 import { isGhost, resurrectGhost } from './resurrection';
 import { scavenge } from './scavenge';
@@ -25,7 +28,6 @@ import { reachRegion, workArea } from './work-areas';
 const log = 0x1bdd;
 const board = 0x1bd7;
 const woodSet = new Set([board]);
-const hatchets = new Set([0x0f43, 0x0f44, 0x0f47, 0x0f48, 0x0f49, 0x0f4a, 0x13fa, 0x13fb]);
 // Lumberjacking.cs replies: AOS resource messages 1072540-1072546 or the classic 500498 on
 // success, 500495 on a failed chop, 500493 depleted tree, 500446 too far, 500497 pack full,
 // 500499 broken axe.
@@ -178,14 +180,17 @@ export async function runLumberjack(options: {
     progress.boards += count(board) - before;
   };
 
-  const vendorMenu = async (mobile: Entity, cliloc: number) =>
-    (mobile.notoriety === 7 ? await session.context(mobile.serial).catch(() => []) : []).find(
-      (entry) => entry.cliloc === cliloc && !(entry.flags & 1)
-    );
-
   // Town trip: sell boards to the carpenter, bank the gold, replace a broken hatchet.
   const town = async () => {
     await cutBoards();
+    // Boards go to fellow residents at the bank first (market.ts); the carpenter takes the rest.
+    const market = { session, template, checkpoint, city, position, navigate, phase, backpack: backpackSerial };
+    await sellAtMarket(
+      { ...market, decisions: options.decisions },
+      'boards',
+      count(board),
+      count(board) >= 100 ? 8 : 4
+    );
     const carpenter = serviceLocations(city, 'carpenter')[0];
     // Pack animal boards sell a load at a time.
     const room = () => status().maxWeight - 20 - status().weight;
@@ -195,11 +200,11 @@ export async function runLumberjack(options: {
         await navigate(carpenter, 4);
         for (const mobile of [...session.world.entities.values()]) {
           if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-          const entry = await vendorMenu(mobile, 3006104);
+          const entry = await vendorMenu(session, mobile, 3006104);
           if (!entry) continue;
           await approachVendor({ session, terrain, position, navigate, check, serial }, mobile.serial);
           session.world.sellOffers.delete(mobile.serial);
-          const current = await vendorMenu(mobile, 3006104);
+          const current = await vendorMenu(session, mobile, 3006104);
           if (!current) continue;
           session.selectContext(mobile.serial, current.index);
           const offered = await session
@@ -251,44 +256,26 @@ export async function runLumberjack(options: {
     progress.trips++;
   };
 
-  const buyHatchet = async () => {
-    const smith = serviceLocations(city, 'blacksmith')[0];
-    if (!smith) throw new Error('No blacksmith landmark for a replacement hatchet');
-    phase('resupply', 'Buying a replacement hatchet');
-    await navigate(smith, 4);
-    for (const mobile of [...session.world.entities.values()]) {
-      if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-      const entry = await vendorMenu(mobile, 3006103);
-      if (!entry) continue;
-      await approachVendor({ session, terrain, position, navigate, check, serial }, mobile.serial);
-      const before = session.world.received.get(0x74) ?? 0;
-      session.world.buyOffers.clear();
-      const current = await vendorMenu(mobile, 3006103);
-      if (!current) continue;
-      session.selectContext(mobile.serial, current.index);
-      await session
-        .waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'smith stock', 2500)
-        .catch(() => {});
-      const offer = [...session.world.buyOffers.values()]
-        .flat()
-        .find((item) => hatchets.has(session.world.entities.get(item.serial)?.graphic ?? 0) && item.price <= 60);
-      if (!offer) continue;
-      await chargedPurchase({ session, checkpoint, backpack: backpackSerial }, offer.price, () =>
-        session.purchaseItem(mobile.serial, offer.serial, backpackSerial(), 1, 60)
-      );
-      return;
-    }
-    throw new Error('No vendor sold a replacement hatchet');
-  };
+  const buyHatchet = () =>
+    buyHatchetFrom({
+      session,
+      terrain,
+      position,
+      navigate,
+      check,
+      serial,
+      phase,
+      checkpoint,
+      city,
+      backpack: backpackSerial
+    });
 
   let stopped = 'Lumberjack run duration reached';
   try {
     phase('reconcile', 'Reading current inventory; previous transactions are never replayed');
     await session.refreshStatus();
-    const pack = backpackSerial();
-    const opened = session.world.received.get(0x3c) ?? 0;
-    session.use(pack);
-    await session.waitFor(() => (session.world.received.get(0x3c) ?? 0) > opened, 'backpack contents');
+    // A ghost cannot open its pack; the work loop resurrects it first and the pack is observed after.
+    if (!isGhost({ session, serial })) await openOwnBackpack(session);
     const animals = {
       session,
       terrain,
@@ -367,9 +354,17 @@ export async function runLumberjack(options: {
           continue;
         }
         const crowd = people();
+        // Never work, or practise, within reach of monsters (danger.ts): leave for town instead.
+        if (distance(position(), anchor) < 80 && threatsNear(session, position(), 8).length) {
+          phase('avoiding', 'Monsters about; leaving the woods for town');
+          await town();
+          continue;
+        }
+        const risky = unsafeCheck(session);
         const tree = terrain
           .findStatics(treeStatics, distance(position(), anchor) > 60 ? { ...anchor, z: 0 } : position(), 40)
           .filter((candidate) => (depleted.get(`tree:${candidate.x},${candidate.y}`) ?? 0) <= Date.now())
+          .filter((candidate) => !risky(candidate))
           .sort((a, b) => {
             const cost = (point: { x: number; y: number }) =>
               distance(position(), point) +
@@ -378,10 +373,12 @@ export async function runLumberjack(options: {
             return cost(a) - cost(b);
           })[0];
         // A quiet stand, or now and then by choice: practise a supporting skill before chopping on.
-        if (!tree || Math.random() < 0.04) await practise();
+        if (tree && Math.random() < 0.04) await practise();
         if (!tree) {
-          phase('searching', 'Every nearby tree is chopped out; walking to my usual stand');
-          await navigate(anchor, 3);
+          // Chopped out or unsafe: town business, then a safe practice there.
+          phase('searching', 'No safe tree to chop nearby; going to town');
+          await town();
+          await practise();
           continue;
         }
         phase('chop-travel', `Walking to a tree at ${tree.x},${tree.y}`);

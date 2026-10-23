@@ -16,6 +16,9 @@ test('player lines map to supported intents', () => {
   expect(intentOf('what?')).toBe('clarify');
   expect(intentOf('What brings thee here, Martin?')).toBe('doing');
   expect(intentOf('And thou?')).toBe('doing');
+  expect(intentOf('stop')).toBe('wait');
+  expect(intentOf('stop talking')).toBe('bye');
+  expect(intentOf('wtb boards')).toBe('trade');
 });
 
 test('activity lines come from the persisted goal, not invention', () => {

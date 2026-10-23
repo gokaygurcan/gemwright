@@ -11,8 +11,11 @@ import {
   weaponsFor
 } from './fighter-context';
 import { poisonPotion, poisons } from './fighter-poison';
+import { learnQuality, shopSafe } from './item-quality';
 import { combatReagents } from './mage-combat';
+import { buyAtMarket, goodMatch, goods } from './market';
 import { approachVendor } from './mobile-approach';
+import { Layer } from './protocol/layers';
 import type { Entity } from './protocol/world';
 import { createServiceExperience } from './service-experience';
 
@@ -97,9 +100,32 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     if (poisons(ctx)) table.set(poisonPotion, [10, 3, 40]);
     return table;
   };
+  const upgradeBow = async () => {
+    const exceptionalBow = goodMatch('exceptional bows');
+    const wielded = [...session.world.entities.values()].find(
+      (item) => item.parent === ctx.serial && (item.layer === Layer.OneHanded || item.layer === Layer.TwoHanded)
+    );
+    if (wielded) await learnQuality(session, [wielded]);
+    if (wielded && exceptionalBow(wielded)) return;
+    if (!(await buyAtMarket({ ...ctx, city: ctx.home.city }, 'exceptional bows', 1, 3).catch(() => 0))) return;
+    await learnQuality(session, contents());
+    const bow = contents().find(exceptionalBow);
+    if (!bow) return;
+    if (wielded) await session.moveItem(wielded.serial, ctx.backpack()).catch(() => {});
+    await session.equipItem(bow.serial, ctx.terrain.tile(bow.graphic, true).layer || Layer.TwoHanded).catch(() => {});
+    log('Wielding an exceptional bow bought from a bowyer');
+  };
   const restock = async () => {
-    phase('restocking', 'Looking for supplies sold by ordinary vendors');
     const table = supplies();
+    // Fighters living in a potion market town try fellow residents first (market.ts).
+    for (const good of ['heal potions', 'cure potions', 'poison potions'] as const) {
+      const [want = 0, enough = 0] = table.get(goods[good].graphic) ?? [];
+      if (goods[good].market !== ctx.home.city.toLowerCase() || count(goods[good].graphic) >= enough) continue;
+      await buyAtMarket({ ...ctx, city: ctx.home.city }, good, want - count(goods[good].graphic), 3).catch(() => 0);
+    }
+    // Now and then an archer looks for an exceptional bow at the bow market (market.ts).
+    if (weaponSkill(ctx.template) === 'Archery' && Math.random() < 0.25) await upgradeBow();
+    phase('restocking', 'Looking for supplies sold by ordinary vendors');
     const stops = [
       ...(weaponSkill(ctx.template) === 'Archery' ? ctx.home.all('bowyer') : []),
       ...(casts() ? ctx.home.all('mage') : []),
@@ -173,6 +199,11 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
         ? [ctx.home.one('jeweler')]
         : [])
     ];
+    // Magic, blessed, artifact and exceptional loot is kept, never sold at base price (item-quality.ts).
+    await learnQuality(
+      session,
+      contents().filter((item) => trip.loot.includes(item.serial))
+    );
     for (const shop of saleStops) {
       if (!contents().some((item) => trip.loot.includes(item.serial) && item.graphic !== gold)) break;
       await navigate(shop, 5);
@@ -195,6 +226,7 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
                 (owned) =>
                   owned.serial === item.serial &&
                   owned.graphic !== gold &&
+                  shopSafe(owned) &&
                   ![bandage, healPotion, curePotion].includes(owned.graphic)
               )
           )

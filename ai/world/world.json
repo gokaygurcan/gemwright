@@ -539,11 +539,7 @@
           "Archery": 50
         }
       },
-      "homes": {
-        "Yew": 2,
-        "Skara Brae": 1,
-        "Britain": 1
-      },
+      "homes": { "Yew": 2, "Britain": 1 },
       "trainingGoals": {
         "Fletching": 100
       },
@@ -615,7 +611,7 @@
     "max": 250
   },
   "lifecycle": {
-    "note": "Each resident moves between life phases at natural break points (back in town, after banking). `mix` names the time split in `mixes` (shares of time); temperament shifts each resident around it. `minutes` bounds each phase's length; at most `maxSwitchesPerMinute` residents per 50 in the runtime change phase in any minute.",
+    "note": "Each resident moves between life phases at natural break points (back in town, after banking). `mix` names the time split in `mixes` (shares of time); temperament shifts each resident around it. `minutes` bounds each phase's length; at most `maxSwitchesPerMinute` residents per 50 in the runtime change phase in any minute. `chaos` (0-1) is how unpredictable residents are: detours by real places, passing greetings, changes of plan; a shard's `ai.chaos` overrides it.",
     "mix": "balanced",
     "mixes": {
       "mostly-work": {
@@ -669,6 +665,7 @@
         15
       ]
     },
-    "maxSwitchesPerMinute": 5
+    "maxSwitchesPerMinute": 5,
+    "chaos": 0.3
   }
 }

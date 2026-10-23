@@ -1,5 +1,6 @@
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
 import { atVendor, type CraftContext } from './craft-training';
+import { learnQuality, shopSafe } from './item-quality';
 import type { ServiceType } from './locations';
 import type { Entity } from './protocol/world';
 
@@ -21,7 +22,11 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
       const graphic = session.world.entities.get(offer.serial)?.graphic ?? 0;
       const amount = Math.min(wanted.get(graphic) ?? 0, session.world.entities.get(offer.serial)?.amount ?? 1);
       const cost = amount * offer.price;
-      if (amount < 1 || offer.price > maxPrice || !canSpendOnTraining(session, ctx.backpack(), ctx.checkpoint, cost))
+      if (
+        amount < 1 ||
+        offer.price > maxPrice ||
+        !canSpendOnTraining(session, ctx.backpack(), ctx.checkpoint, cost, ctx.limits)
+      )
         continue;
       await chargedPurchase(ctx, cost, () => session.purchaseItem(vendor, offer.serial, ctx.backpack(), amount, cost));
       recordTrainingSpend(ctx.checkpoint, cost);
@@ -47,10 +52,16 @@ export async function sellTo(
     session.world.sellOffers.delete(vendor);
     session.selectContext(vendor, entry.index);
     await session.waitFor(() => session.world.sellOffers.has(vendor), 'vendor buying list', 2500).catch(() => {});
+    // Only plain goods go to a shop (item-quality.ts): special pieces are kept or traded.
+    await learnQuality(
+      session,
+      (session.world.sellOffers.get(vendor) ?? []).flatMap((offer) => session.world.entities.get(offer.serial) ?? [])
+    );
     const sale = (session.world.sellOffers.get(vendor) ?? []).filter((offer) => {
       const item = session.world.entities.get(offer.serial);
       return (
         !!item &&
+        shopSafe(item) &&
         item.parent === ctx.backpack() &&
         offer.price > 0 &&
         offer.amount === item.amount &&

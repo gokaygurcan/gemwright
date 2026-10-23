@@ -64,6 +64,27 @@ export function createMountServices(
     discover: (excluded: readonly number[]) => Promise<Entity | undefined>
   ) => {
     if (memory.pending || memory.horse) return;
+    // The follower count proves whether an animal this memory has lost track of still exists:
+    // more followers than the known horse and pack animal means it is alive somewhere, so it is
+    // found, never replaced. A tamer's companion takes an unknown number of slots, so it is skipped.
+    const known = (() => {
+      const { mount, packAnimal, companion } = ctx.checkpoint;
+      if (companion) return undefined;
+      const horse = mount?.horse !== undefined || mount?.state === 'riding' ? 1 : 0;
+      const pack = packAnimal?.horse !== undefined ? 1 : 0;
+      // A pack animal given up as lost (pack-animal.ts) still counts as a follower somewhere.
+      return animal.bodies === horseBodies ? pack : horse + (packAnimal?.abandoned ?? 0);
+    })();
+    await session.refreshStatus();
+    const followers = ctx.status().followers;
+    if (followers === undefined || (known !== undefined && followers > known)) {
+      memory.state = 'missing';
+      memory.retryAfter = Date.now() + 10 * 60_000;
+      memory.note = `My ${animal.name} still counts as a follower; finding it instead of buying another`;
+      persist();
+      log(memory.note);
+      return;
+    }
     await fund();
     if (spendable() <= reserve) {
       memory.retryAfter = Date.now() + 5 * 60_000;

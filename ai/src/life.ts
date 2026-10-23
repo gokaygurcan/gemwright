@@ -1,11 +1,16 @@
 import { Blocked } from './blocked';
+import { chaosOf } from './chaos';
 import type { CharacterTemplate } from './config';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
 import { cityLandmarks, serviceLocations } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import { type createNavigator, distance } from './navigation';
+import { playerPull } from './player-insight';
+import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import type { Position } from './protocol/world';
+import { scavenge } from './scavenge';
+import { skillId } from './skills';
 import { crowdFactor, pickWeighted, residentsNear } from './spread';
 import type { Checkpoint } from './store';
 import type { Terrain } from './terrain';
@@ -73,11 +78,29 @@ const mean = ([low, high]: [number, number]) => (low + high) / 2;
 
 // Picks from the time split: a phase's chance is its share of time over its mean length, so the
 // time spent comes out at the configured shares.
+// How far a resident's build has come: the mean base of its primary skills, 0 to 1.
+export function skillProgress(ctx: Pick<LifeContext, 'session' | 'template'>): number {
+  const primaries = ctx.template.archetype?.primarySkills ?? [];
+  if (!primaries.length) return 0.5;
+  const sum = primaries.reduce((n, name) => n + (ctx.session.world.skills.get(skillId(name))?.base ?? 0), 0);
+  return Math.min(1, sum / primaries.length / 100);
+}
+
+// The skill curve: the lower the skills, the more the time goes to work and practice (where skills
+// rise); the higher, the more to leisure and visits (long trips, nearly none early on). At progress
+// p: work x(1 + 0.5(1-p)), practice x(1 + (1-p)), leisure x(0.3 + 0.7p), visit x p^2.
+export function skillCurve(p: number): Partial<Record<LifePhase, number>> {
+  return { work: 1 + 0.5 * (1 - p), practice: 2 - p, leisure: 0.3 + 0.7 * p, visit: p * p };
+}
+
 function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
   const { sociability, riskTolerance } = ctx.template.behavior;
+  const curve = skillCurve(skillProgress(ctx));
   const shade: Partial<Record<LifePhase, number>> = {
-    leisure: 0.5 + sociability,
-    visit: 0.5 + sociability,
+    work: curve.work,
+    practice: curve.practice,
+    leisure: (0.5 + sociability) * (curve.leisure ?? 1),
+    visit: (0.5 + sociability) * (curve.visit ?? 1),
     dungeon: 0.5 + riskTolerance
   };
   const weights = valid.map((p) => ((mix?.[p] ?? 0) / mean(config.minutes[p])) * (shade[p] ?? 1));
@@ -91,7 +114,16 @@ function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
 
 async function choose(ctx: LifeContext): Promise<LifePhase> {
   const valid = phases.filter((p) => (p === 'dungeon' ? !!ctx.dungeon && !!ctx.dungeonReady?.() : true));
-  const baseline = localPick(ctx, valid);
+  let baseline = localPick(ctx, valid);
+  // A change of plans (chaos.ts): a planned visit or leisure sometimes becomes something else.
+  if (['visit', 'leisure'].includes(baseline) && Math.random() < chaosOf(ctx.session) / 3) {
+    const instead = localPick(
+      ctx,
+      valid.filter((p) => p !== baseline)
+    );
+    ctx.log(`Changed my mind: ${instead} instead of ${baseline}`);
+    baseline = instead;
+  }
   if (!ctx.decisions) return baseline;
   const pick = await ctx.decisions.choose({
     kind: 'life-phase',
@@ -100,6 +132,8 @@ async function choose(ctx: LifeContext): Promise<LifePhase> {
     state: decisionState(ctx.session, ctx.template, ctx.checkpoint, {
       previous: ctx.checkpoint.life?.phase ?? 'none',
       timeSplit: mix,
+      // How far the build has come (0-1): low means train, high means enjoy (skillCurve).
+      skillProgress: Number(skillProgress(ctx).toFixed(2)),
       home: ctx.city
     }),
     candidates: valid.map((p) => ({ id: p, description: describe[p], valid: () => true })),
@@ -122,6 +156,16 @@ async function goTo(ctx: LifeContext, point: { x: number; y: number }) {
 
 // Passes time somewhere people gather in `city`: its bank or an inn or tavern, shifting about now
 // and then. Conversation runs on its own whenever someone speaks.
+// Loose valuables nearby are picked up in town too (scavenge.ts), between any other moves.
+function pickUp(ctx: LifeContext) {
+  const { session } = ctx;
+  const serial = session.world.serial;
+  const status = session.world.status;
+  const pack = serial === null ? undefined : session.world.childrenOf(serial).find((i) => i.layer === Layer.Backpack);
+  if (serial === null || !status || !pack) return Promise.resolve(false);
+  return scavenge({ ...ctx, serial, status: () => session.world.status ?? status, backpack: () => pack.serial });
+}
+
 async function linger(ctx: LifeContext, city: string, until: number) {
   const spots = [...serviceLocations(city, 'banker'), ...cityLandmarks(city, /\b(inn|tavern|pub|saloon)\b/i)];
   // Somewhere with company, not a crowd (spread.ts).
@@ -138,6 +182,7 @@ async function linger(ctx: LifeContext, city: string, until: number) {
   while (Date.now() < until) {
     ctx.check();
     await Bun.sleep(4000);
+    if (await pickUp(ctx).catch(() => false)) continue;
     if (Math.random() < 0.08) {
       const here = ctx.position();
       const step = ctx.terrain.stand(
@@ -169,9 +214,10 @@ function destination(ctx: LifeContext): string | undefined {
     .flatMap(([name]) => {
       const bank = serviceLocations(name, 'banker')[0];
       if (!bank) return [];
-      // Nearer towns, and towns with fewer residents about (spread.ts), are likelier.
+      // Nearer towns, towns with fewer residents about (spread.ts) and towns where players were
+      // lately heard (player-insight.ts) are likelier.
       const busy = crowdFactor(residentsNear(bank, 60, ctx.session.world.serial ?? undefined), 4, 15);
-      return [{ name, weight: busy / Math.max(200, home ? distance(home, bank) : 1000) }];
+      return [{ name, weight: (busy * playerPull(bank)) / Math.max(200, home ? distance(home, bank) : 1000) }];
     });
   return pickWeighted(towns, (t) => t.weight)?.name;
 }
@@ -181,6 +227,7 @@ function destination(ctx: LifeContext): string | undefined {
 // phase lasts at least a second and always yields, even when the phase found nothing to do.
 export async function lifeTurn(ctx: LifeContext): Promise<boolean> {
   const started = Date.now();
+  if (await pickUp(ctx).catch(() => false)) return true;
   const other = await phaseTurn(ctx);
   if (other) await Bun.sleep(Math.max(0, 1000 - (Date.now() - started)));
   return other;
@@ -205,7 +252,9 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
     } else {
       const phase = await choose(ctx);
       const restless = ctx.template.behavior.temperament?.restlessness ?? 1;
-      life = { phase, until: now + (between(config.minutes[phase]) / restless) * 60_000 };
+      // Chaos (chaos.ts) stretches or cuts a phase short by up to half its length either way.
+      const swing = 1 + (Math.random() * 2 - 1) * 0.5 * chaosOf(ctx.session);
+      life = { phase, until: now + ((between(config.minutes[phase]) * swing) / restless) * 60_000 };
       if (phase === 'visit') life.city = destination(ctx);
       ctx.checkpoint.life = life;
       switches.push(now);
@@ -257,8 +306,14 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
       case 'practice': {
         const started = Date.now();
         await ctx.practise(Math.min(5, Math.max(1, (life.until - Date.now()) / 60_000)));
-        // Nothing to practise right now (no usable skill or tool): the phase is over.
-        if (Date.now() - started < 5000) done();
+        // Nothing to practise right now (no usable skill, tool or material): the rest of the phase
+        // goes to the resident's own work, which trains its primary skills, so the time the skill
+        // curve gave to training is not lost to a leisure or visit pick.
+        if (Date.now() - started < 5000) {
+          life.phase = 'work';
+          ctx.persist();
+          return false;
+        }
         return true;
       }
       default:

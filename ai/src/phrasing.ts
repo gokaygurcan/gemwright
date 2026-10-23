@@ -16,6 +16,8 @@ export function enablePhrasing(enabled: boolean) {
   return client !== null;
 }
 export const phrasingEnabled = () => client !== null;
+// The same client for other small Haiku tasks (player-trade.ts), when phrasing is enabled.
+export const haikuClient = () => client;
 
 // Long enough (over 512 tokens) to be cached: every resident shares this prefix, so after the first
 // request it is read from cache at a tenth of the input price.

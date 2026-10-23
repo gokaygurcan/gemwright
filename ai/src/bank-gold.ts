@@ -1,3 +1,4 @@
+import { serviceLocations } from './locations';
 import { approachMobile } from './mobile-approach';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
@@ -38,20 +39,23 @@ export const spendableGold = (session: MountContext['session'], backpack: number
 // Runs a confirmed vendor purchase and debits the known bank balance by whatever the
 // vendor charged beyond the observed carried-gold decrease.
 // Training purchases (tools, reagents, spellbooks) are optional: they keep a 500-gold reserve and
-// spend at most 300 gold per hour. With an unknown bank balance only carried gold counts.
-const TRAINING_RESERVE = 500;
-const TRAINING_PER_HOUR = 300;
+// spend at most 300 gold per hour. A crafter buying materials to sell (`business`) is earning, not
+// just training: it keeps 100 back and may spend 1,000 an hour, so a poor crafter can start out.
+// With an unknown bank balance only carried gold counts.
+export const TRAINING = { reserve: 500, perHour: 300 };
+export const BUSINESS = { reserve: 100, perHour: 1000 };
 const trainingSpend = new WeakMap<Checkpoint, { since: number; total: number }>();
 export function canSpendOnTraining(
   session: MountContext['session'],
   backpack: number,
   checkpoint: Checkpoint,
-  cost: number
+  cost: number,
+  limits = TRAINING
 ): boolean {
   const window = trainingSpend.get(checkpoint);
   const spent = window && Date.now() - window.since < 3_600_000 ? window.total : 0;
   const funds = fundsStale(checkpoint) ? carriedGold(session, backpack) : spendableGold(session, backpack, checkpoint);
-  return spent + cost <= TRAINING_PER_HOUR && funds - cost >= TRAINING_RESERVE;
+  return spent + cost <= limits.perHour && funds - cost >= limits.reserve;
 }
 export function recordTrainingSpend(checkpoint: Checkpoint, cost: number) {
   const window = trainingSpend.get(checkpoint);
@@ -166,4 +170,20 @@ export async function withdrawAccountGold(
     4000
   );
   ctx.checkpoint.funds = { bank: available - amount, at: Date.now() };
+}
+
+// Asks a banker in `city` for the current balance when the recorded one is stale, so purchases
+// charged to the bank (tools, supplies) see the real spending power, not just carried coins.
+export async function refreshFunds(ctx: BankerContext & { checkpoint: Checkpoint }, city: string) {
+  if (!fundsStale(ctx.checkpoint)) return;
+  const bank = serviceLocations(city, 'banker')[0];
+  if (!bank) return;
+  await ctx.navigate(bank, 4).catch(() => {});
+  for (const mobile of ctx.session.world.entities.values()) {
+    if (mobile.kind !== 'mobile' || !mobile.position || distance(ctx.position(), mobile.position) > BANKER_SPEECH_RANGE)
+      continue;
+    if (!(await offersBank(ctx.session, mobile.serial))) continue;
+    await queryBankBalance(ctx, mobile.serial).catch(() => 0);
+    return;
+  }
 }

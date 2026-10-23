@@ -3,9 +3,10 @@ import { EventEmitter } from 'node:events';
 
 import type { ConnectionConfig } from '../connection';
 import { timed } from '../stall-probe';
+import { characterList } from './characters';
 import { purchaseItem, requestAnimalPurchase } from './commerce';
 import { gumpCommands } from './gumps';
-import { dropAtFeet, giveToMobile } from './items';
+import { dropAtFeet, giveToMobile, moveItem } from './items';
 import * as packets from './packets';
 import {
   refreshCharacterStatus,
@@ -15,12 +16,12 @@ import {
   waitForUpdate
 } from './session-observation';
 import { requestSkills } from './skill-query';
+import { tradeAccept, tradeCancel } from './trade';
 import { Transport } from './transport';
-import { characterList, type Position, text, WorldView } from './world';
+import { type Position, text, WorldView } from './world';
 
 export type { CharacterRequest, Credentials, SessionPhase } from './session-types';
 
-import { Layer } from './layers';
 import type { CharacterRequest, Credentials, SessionPhase } from './session-types';
 
 export class PlayerSession {
@@ -299,49 +300,7 @@ export class PlayerSession {
 
   async moveItem(serial: number, container: number, amount?: number): Promise<void> {
     this.requireReady();
-    const item = this.world.entities.get(serial);
-    if (item?.kind !== 'item' || !this.world.entities.has(container))
-      throw new Error('Move requires observed item and destination');
-    const quantity = amount ?? item.amount ?? 1;
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > (item.amount ?? 1))
-      throw new Error('Invalid lift quantity');
-    const rejected = this.world.received.get(0x27) ?? 0;
-    const destinationAmount = () =>
-      [...this.world.entities.values()]
-        .filter((other) => other.parent === container && other.graphic === item.graphic && other.hue === item.hue)
-        .reduce((sum, other) => sum + (other.amount ?? 1), 0);
-    const expectedAmount = destinationAmount() + quantity;
-    const previousFeedback = new Set(this.world.journal);
-    const destination = this.world.entities.get(container);
-    const bankCredit = () =>
-      item.graphic === 0x0eed &&
-      destination?.parent === this.world.serial &&
-      destination.layer === Layer.Bank &&
-      this.world.journal.some(
-        (entry) =>
-          !previousFeedback.has(entry) &&
-          entry.cliloc === 1042763 &&
-          Number(entry.arguments?.replaceAll(',', '')) === quantity
-      );
-    this.send(packets.liftItem(serial, quantity));
-    await this.waitFor(
-      () => !this.world.entities.has(serial) || (this.world.received.get(0x27) ?? 0) > rejected,
-      'item lift',
-      4000
-    );
-    if ((this.world.received.get(0x27) ?? 0) > rejected) throw new Error('Server rejected item lift');
-    this.send(packets.dropInto(serial, container));
-    await this.waitFor(
-      () =>
-        this.world.entities.get(serial)?.parent === container ||
-        destinationAmount() >= expectedAmount ||
-        bankCredit() ||
-        (this.world.received.get(0x27) ?? 0) > rejected,
-      'item deposit confirmation',
-      4000
-    );
-    if (this.world.entities.get(serial)?.parent !== container && destinationAmount() < expectedAmount && !bankCredit())
-      throw new Error('Server rejected item deposit');
+    await moveItem(this, (packet) => this.send(packet), serial, container, amount);
   }
 
   async purchaseItem(vendor: number, serial: number, backpack: number, amount: number, budget: number): Promise<void> {
@@ -414,6 +373,20 @@ export class PlayerSession {
       4000
     );
     if (this.world.entities.get(serial)?.layer !== layer) throw new Error('Equipment rejected');
+  }
+
+  // Accepts (or withdraws acceptance of) the open trade, or cancels it; trade.ts has the rules.
+  acceptTrade(accepted = true): void {
+    this.requireReady();
+    const trade = this.world.trade;
+    if (!trade || trade.closed) throw new Error('No open trade window');
+    this.send(tradeAccept(trade.mine, accepted));
+  }
+
+  cancelTrade(): void {
+    this.requireReady();
+    const trade = this.world.trade;
+    if (trade && !trade.closed) this.send(tradeCancel(trade.mine));
   }
 
   async sell(vendor: number, items: { serial: number; amount: number }[]): Promise<void> {

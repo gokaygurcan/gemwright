@@ -1,4 +1,4 @@
-import { tally } from './activity';
+import { notePlayer, tally } from './activity';
 import type { CharacterTemplate } from './config';
 import { worldAnswer } from './conversation-answers';
 import type { DecisionCoordinator } from './decisions';
@@ -12,8 +12,11 @@ import {
   type Thread,
   threadFor
 } from './dialogue';
+import { consider, endEngagement, moving, terse, typingMs } from './engagement';
+import { parseMarketLine } from './market';
 import { distance } from './navigation';
 import { phrase } from './phrasing';
+import { readTradeTalk } from './player-trade';
 import type { PlayerSession } from './protocol/session';
 import type { JournalEntry } from './protocol/world';
 import type { Checkpoint } from './store';
@@ -143,6 +146,23 @@ async function listen(listener: Listener) {
       )
     )
       continue;
+    const heardKey = `${entry.serial}:${entry.at}:${entry.text}`;
+    // Market shouts and haggling (market.ts) are business, answered by the market, not small talk;
+    // a player's line is recorded as a price and demand signal (activity.ts).
+    const market = parseMarketLine(entry.text);
+    if (market) {
+      const { kind, n, good, total } = market;
+      notePlayer(session, heardKey, {
+        kind: 'market',
+        serial: entry.serial,
+        name: entry.name,
+        offer: kind,
+        good,
+        amount: n,
+        price: total
+      });
+      continue;
+    }
     // Only speech heard in the last half minute; older journal lines are history.
     if (Date.now() - Date.parse(entry.at) > 30_000) continue;
     const speaker = session.world.entities.get(entry.serial);
@@ -167,9 +187,16 @@ async function listen(listener: Listener) {
     if (forOther && !named) continue;
     // Fellow residents are answered only when they address this one; players also when close by.
     if (!named && !ongoing && (peer || !near)) continue;
+    // Speech aimed at this resident: a player's presence is recorded (when and where, not the words).
+    notePlayer(session, heardKey, { kind: 'speech', serial: entry.serial, name: entry.name });
     const name = entry.name || speaker?.name || peers?.get(entry.serial) || 'friend';
     // A finished conversation stays finished for a while: small talk gets nothing, a real request
     // one brush-off, so the resident moves on instead of starting over with the same person.
+    // A player who speaks again after a goodbye starts the conversation anew.
+    if (!peer && open?.closed) {
+      open.closed = false;
+      open.resumed = true;
+    }
     if (open?.closed && Date.now() - open.lastAt < QUIET_MS) {
       const asked = ['where', 'help', 'follow'].includes(baselineIntent(entry.text));
       if (asked && !open.brushedOff && session.phase === 'ready') {
@@ -205,7 +232,7 @@ async function listen(listener: Listener) {
       continue;
     }
     // The pause after a conversation: only a real request is still answered, stop words always win.
-    if (listener.quietUntil > Date.now() && !['where', 'help', 'follow'].includes(baselineIntent(entry.text))) {
+    if (peer && listener.quietUntil > Date.now() && !['where', 'help', 'follow'].includes(baselineIntent(entry.text))) {
       log(
         session,
         `${name}: "${entry.text}" -> ignored, resting my voice${stopWords.test(entry.text) ? ' (already quiet)' : ''}`
@@ -267,10 +294,10 @@ async function answer(listener: Listener, thread: Thread, entry: JournalEntry, h
   const recent = thread.turns.slice(-4).map((turn) => `${turn.from === 'me' ? 'me' : thread.name}: ${turn.text}`);
   // Understanding: the pattern rule is the baseline; Jev reads the line in context.
   const baseline = baselineIntent(text);
-  // Jev takes at most eight candidates: "where" only when a place was named, then "follow" gives way.
-  const candidates = (Object.keys(intents) as Intent[]).filter((intent) =>
-    baseline === 'where' ? intent !== 'follow' : intent !== 'where'
-  );
+  // Jev takes at most eight candidates: the core eight, with "where", "help" or "follow" in place
+  // of "clarify" when the rule read the line that way.
+  const core: Intent[] = ['greet', 'doing', 'wait', 'trade', 'acknowledge', 'clarify', 'bye', 'chatter'];
+  const candidates = core.includes(baseline) ? core : [...core.filter((i) => i !== 'clarify'), baseline];
   const read = decisions
     ? await decisions.choose({
         kind: 'speech-intent',
@@ -286,12 +313,45 @@ async function answer(listener: Listener, thread: Thread, entry: JournalEntry, h
         stillCurrent: () => session.phase === 'ready'
       })
     : null;
-  const intent = (read?.id as Intent | undefined) ?? baseline;
+  // A player's free-form trade talk ("wtb 50 boards") is trade, whatever else it reads as.
+  const talk = thread.peer ? undefined : await readTradeTalk(text);
+  // What the player wants or offers, and at what price, is a market signal (player-insight.ts).
+  if (talk?.good)
+    notePlayer(session, `${entry.serial}:${entry.at}:${text}`, {
+      kind: 'market',
+      serial: entry.serial,
+      name: thread.name,
+      offer: talk.side,
+      good: talk.good,
+      amount: talk.amount,
+      price: talk.price
+    });
+  const intent = talk ? 'trade' : ((read?.id as Intent | undefined) ?? baseline);
   thread.turns.push({ from: 'them', text, intent, at: Date.now() });
   thread.lastAt = Date.now();
   if (intent === 'bye') {
     thread.closed = true;
     listener.quietUntil = Date.now() + QUIET_MS;
+    endEngagement(session);
+  }
+  // A player is ignored, answered in passing, or met standing still (engagement.ts); a resident
+  // on the move answers fellow residents in passing too.
+  const mode = thread.peer
+    ? moving(session)
+      ? 'brief'
+      : 'engaged'
+    : consider(session, entry.serial, template.behavior.sociability, intent);
+  if (mode !== 'engaged') {
+    const line = mode === 'brief' ? terse(intent) : undefined;
+    log(session, `${thread.name}: "${text}" -> ${intent}; ${line ? `in passing: "${line}"` : 'ignored while busy'}`);
+    if (!line) return;
+    await Bun.sleep(typingMs(line, true));
+    if (session.phase !== 'ready') return;
+    session.say(line);
+    tally(session, 'speech');
+    listener.lastSpoke = Date.now();
+    thread.turns.push({ from: 'me', text: line, intent, reply: 'in-passing', at: Date.now() });
+    return;
   }
   const facts = {
     name: thread.name,
@@ -348,8 +408,8 @@ async function answer(listener: Listener, thread: Thread, entry: JournalEntry, h
             recent
           });
     if (phrased) log(session, `phrased "${chosen.text}" as "${line}"`);
-    // A natural pause before answering, and never two lines within 2.5 s.
-    await Bun.sleep(1200 + Math.random() * 1300 + Math.max(0, listener.lastSpoke + 2500 - Date.now()));
+    // Typing time for the line, and never two lines within 2.5 s.
+    await Bun.sleep(typingMs(line, moving(session)) + Math.max(0, listener.lastSpoke + 2500 - Date.now()));
     if (session.phase !== 'ready') return;
     session.say(line.slice(0, 200));
     tally(session, 'speech');

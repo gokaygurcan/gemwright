@@ -1,20 +1,22 @@
 import { tally } from './activity';
+import { openOwnBackpack } from './backpack';
 import { Blocked, blockedReason } from './blocked';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
-import { type DecisionCoordinator, type DecisionPick, decisionGuard, decisionState } from './decisions';
+import { threatsNear } from './danger';
+import type { DecisionCoordinator, DecisionPick } from './decisions';
 import { reconcileExperience } from './experience';
 import { lifeTurn } from './life';
 import { serviceLocations } from './locations';
+import { sellCarried } from './market';
 import { createMinerPastimes } from './miner-pastimes';
-import { minerPlan } from './miner-plan';
-import { createMinerServices, forges, ingot, tools } from './miner-services';
+import { chooseMiningActivity, minerPlan, rememberForges } from './miner-plan';
+import { createMinerServices, ingot, tools } from './miner-services';
 import { findMiningSite } from './miner-sites';
 import { travelMinerHome } from './miner-travel';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator } from './navigation';
 import { createPackAnimal } from './pack-animal';
-import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import { noticePeers } from './relationships';
 import { resurrectGhost } from './resurrection';
@@ -86,27 +88,23 @@ export async function runMiner(options: {
     options.save(checkpoint);
     log(`${value}: ${note}`);
   };
+  const ghost = () => [0x192, 0x193, 0x25f, 0x260].includes(session.world.entities.get(serial)?.graphic ?? 0);
+  // A ghost walking to a healer passes the liveness check that stops every other action.
+  let reviving = false;
+  const revive = async () => {
+    reviving = true;
+    await resurrectGhost({ session, serial, terrain, position, navigate, check: () => {}, phase, log }).finally(() => {
+      reviving = false;
+    });
+  };
   const check = () => {
     if (Date.now() >= deadline) throw new Error('Miner run duration reached');
     if (session.phase !== 'ready')
       throw new Error('Miner disconnected; reconnect and reconcile inventory before continuing');
-    const self = session.world.entities.get(serial);
-    if (self && [0x192, 0x193, 0x25f, 0x260].includes(self.graphic))
-      throw new Error('Miner is dead; resurrection behavior is pending');
+    if (!reviving && ghost()) throw new Error('Miner is dead; resurrection behavior is pending');
   };
-  const rememberObservedForges = () => {
-    for (const item of session.world.entities.values()) {
-      const location = item.position;
-      if (item.kind !== 'item' || !location || !forges.has(item.graphic) || distance(position(), location) > 18)
-        continue;
-      const remembered = checkpoint.landmarks?.forges ?? [];
-      if (!remembered.some((forge) => distance(forge, location) === 0 && forge.z === location.z))
-        checkpoint.landmarks = {
-          ...checkpoint.landmarks,
-          forges: [{ x: location.x, y: location.y, z: location.z }, ...remembered].slice(0, 16)
-        };
-    }
-  };
+  const rememberObservedForges = () => rememberForges(session, checkpoint, position());
+
   let mounts: ReturnType<typeof createMountController> | undefined;
   let packs: ReturnType<typeof createPackAnimal> | undefined;
   const groundNavigate = createNavigator({
@@ -119,16 +117,7 @@ export async function runMiner(options: {
     onStep: rememberObservedForges
   });
   const navigate = mountedNavigator(groundNavigate, () => mounts, undefined, position);
-  const openBackpack = async () => {
-    const backpack = [...session.world.entities.values()].find(
-      (item) => item.parent === session.world.serial && item.layer === Layer.Backpack
-    );
-    if (!backpack) throw new Error('No observed backpack');
-    const before = session.world.received.get(0x3c) ?? 0;
-    session.use(backpack.serial);
-    await session.waitFor(() => (session.world.received.get(0x3c) ?? 0) > before, 'miner backpack contents');
-    return backpack.serial;
-  };
+  const openBackpack = () => openOwnBackpack(session);
   const carried = (backpack: number) => [...session.world.entities.values()].filter((item) => item.parent === backpack);
   const smeltable = (backpack: number) =>
     carried(backpack).filter(
@@ -183,6 +172,8 @@ export async function runMiner(options: {
     phase('reconcile', 'Reading current inventory and status; previous transactions are never replayed');
     await session.refreshStatus();
     if (options.decisions) await session.refreshSkills();
+    // A ghost cannot open its pack ("I am dead and cannot do that"): resurrection comes first.
+    if (ghost()) await revive();
     const backpack = await openBackpack();
     backpackSerial = backpack;
     const animals = {
@@ -252,6 +243,15 @@ export async function runMiner(options: {
           await bank(backpack);
           // A healthy banked iron stock: sometimes smith a batch for profit.
           if ((checkpoint.stock?.ingots ?? 0) >= 200 && Math.random() < 0.4) await smithFromBank(backpack);
+          // Spare iron goes to fellow residents at the Minoc market (market.ts); unsold iron is banked again.
+          else if (
+            (checkpoint.stock?.ingots ?? 0) >= 150 &&
+            Math.random() < 0.3 &&
+            (await withdrawIngots(backpack, 50, 100))
+          ) {
+            const market = { session, template, checkpoint, city, position, navigate, phase, backpack: () => backpack };
+            await sellCarried({ ...market, decisions: options.decisions }, 'iron ingots', 5);
+          }
           await resupplyOrPass(backpack);
           await mounts.acquire().then(() => packs?.acquire());
           if (await lifeTurn(life(bank, options.decisions))) continue;
@@ -272,40 +272,14 @@ export async function runMiner(options: {
           continue;
         }
         if (options.decisions) {
-          const pick = await options.decisions.choose({
-            kind: 'mining-activity',
-            checkpoint,
-            state: decisionState(session, template, checkpoint, {
-              profession: 'miner',
-              home: city,
-              smeltsSinceBank: plan().smeltsSinceBank,
-              tripSmeltGoal: plan().smeltsBeforeBank,
-              weightCeiling: miningLimit(),
-              oreStacks: smeltable(backpack).length,
-              note: 'Ingots, gold and ore the forge refused are banked. Smelting reduces carried weight. Mine while capacity allows; smelt before travelling to bank. A town trip costs travel time.'
-            }),
-            observationRevision: session.world.revision,
-            baseline: 'mine',
-            stillCurrent: decisionGuard(session, options.stopping),
-            candidates: [
-              {
-                id: 'mine',
-                description: 'Continue mining with a carried tool and available backpack capacity.',
-                valid: () => hasTool() && !needsSpace() && status().weight < miningLimit()
-              },
-              {
-                id: 'smelt',
-                description:
-                  'Visit the nearby forge now and convert carried smeltable ore to lighter usable ingots, then reassess.',
-                valid: () => smeltable(backpack).length > 0
-              },
-              {
-                id: 'bank',
-                description:
-                  'Return to the city bank early with the carried ingots, then restock and start another trip.',
-                valid: () => !smeltable(backpack).length && carried(backpack).some((item) => item.graphic === ingot)
-              }
-            ]
+          const pick = await chooseMiningActivity(options.decisions, session, template, checkpoint, {
+            city,
+            plan: plan(),
+            ceiling: miningLimit(),
+            ore: smeltable(backpack).length,
+            canMine: hasTool() && !needsSpace() && status().weight < miningLimit(),
+            canBank: !smeltable(backpack).length && carried(backpack).some((item) => item.graphic === ingot),
+            stopping: options.stopping
           });
           check();
           if (!pick) continue;
@@ -377,6 +351,12 @@ export async function runMiner(options: {
           check();
           await session.refreshStatus();
           if (status().weight >= miningLimit() || needsSpace()) break;
+          // A monster arriving mid-dig: leave the rock for town (danger.ts remembers the spot).
+          if (threatsNear(session, position(), 8).length) {
+            phase('avoiding', 'Monsters about; leaving the rock for town');
+            await navigate(home, 5).catch(() => {});
+            break;
+          }
           const last = session.world.journal.at(-1);
           const oreBefore = oreIn(carried(backpack));
           session.use(tool.serial);
@@ -421,7 +401,7 @@ export async function runMiner(options: {
         if (!carried(backpack).some((item) => ore.has(item.graphic))) exhausted.add(`tile:${site.x},${site.y}`);
       } catch (error) {
         if (/dead/i.test(String(error)) && session.phase === 'ready') {
-          await resurrectGhost({ session, serial, terrain, position, navigate, check: () => {}, phase, log });
+          await revive();
           continue;
         }
         if (!isSetback(session, error, false, deadline)) throw error;

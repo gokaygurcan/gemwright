@@ -72,7 +72,8 @@ export function requestAnimalPurchase(
     !stock ||
     !offer ||
     pack?.parent !== vendor ||
-    ![0xc8, 0xe2, 0xe4, 0xcc].includes(stock.graphic) ||
+    // Riding horses, and the pack horse (0x123) and llama (0x124) gatherers buy.
+    ![0xc8, 0xe2, 0xe4, 0xcc, 0x123, 0x124].includes(stock.graphic) ||
     !(stock.amount && stock.amount > 0) ||
     !Number.isFinite(budget) ||
     offer.price <= 0 ||
@@ -82,6 +83,6 @@ export function requestAnimalPurchase(
     status.maxFollowers === undefined ||
     status.followers >= status.maxFollowers
   )
-    throw new Error('Animal purchase requires current horse stock, funds and a free follower slot');
+    throw new Error('Animal purchase requires current animal stock, funds and a free follower slot');
   send(packets.buyItem(vendor, serial, 1));
 }

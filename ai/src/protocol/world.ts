@@ -4,6 +4,7 @@ import { gumpLayout } from './gumps';
 import type { TargetCursor } from './packets';
 import { speechEntry } from './speech';
 import { type PlayerStatus, playerStatus } from './status';
+import { applyTrade, type TradeWindow } from './trade';
 
 export { EntityMap } from './entity-map';
 
@@ -40,11 +41,6 @@ export interface JournalEntry {
   cliloc?: number;
   arguments?: string;
 }
-export interface City {
-  index: number;
-  name: string;
-  building: string;
-}
 
 export function text(buffer: Buffer, offset: number, length: number): string {
   if (offset + length > buffer.length) throw new Error('Truncated text field');
@@ -63,30 +59,14 @@ export function unicode(buffer: Buffer, offset: number, little = false): string 
   return bytes.toString('utf16le').split('\0', 1)[0] ?? '';
 }
 
-export function characterList(packet: Buffer): { characters: string[]; cities: City[] } {
-  const count = packet.readUInt8(3);
-  if (count > 7) throw new Error('Unsupported character slot count');
-  const characters = Array.from({ length: count }, (_, i) => text(packet, 4 + i * 60, 30));
-  let offset = 4 + count * 60;
-  const cities: City[] = [];
-  const cityCount = packet.readUInt8(offset++);
-  for (let i = 0; i < cityCount; i++, offset += 89) {
-    if (offset + 89 > packet.length) throw new Error('Truncated city list');
-    cities.push({
-      index: packet.readUInt8(offset),
-      name: text(packet, offset + 1, 32),
-      building: text(packet, offset + 33, 32)
-    });
-  }
-  return { characters, cities };
-}
-
 export class WorldView {
   serial: number | null = null;
   position: Position | null = null;
   map: number | null = null;
   ready = false;
   combatant: number | null = null;
+  // The open (or last closed) secure trade window (trade.ts).
+  trade: TradeWindow | null = null;
   deathSite: Position | null = null;
   warMode = false;
   poisonLevel: number | null = null;
@@ -459,6 +439,9 @@ export class WorldView {
       case 0xc1:
       case 0xcc:
         this.addJournal(speechEntry(opcode, packet));
+        break;
+      case 0x6f:
+        applyTrade(this, packet);
         break;
       case 0x6c:
         this.target =

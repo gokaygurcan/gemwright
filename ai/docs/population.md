@@ -63,6 +63,29 @@ Each resident moves between life phases (`life.ts`), configured under `lifecycle
 
 Phases change only at break points: a fighter leaving town for the hunt, a profession between turns, a miner after banking, a lumberjack back from town. At most `maxSwitchesPerMinute` (5) residents per 50 in the runtime change phase in any minute; the others carry on a minute longer, and one whose phase already finished (errands, a visit, a dungeon run) works that minute instead of repeating it. A phase the world prevents (no route, no banker) ends early and the resident does something else. The current phase is kept in the checkpoint (`life`).
 
+### The skill curve
+
+The time split leans with each resident's progress `p`, the mean of its primary skills over 100 (`skillCurve`): the lower the skills, the more time goes to work and practice, where skills rise; the higher, the more to leisure and visits, the long trips that are nearly absent early on. Work weighs `1 + 0.5(1 - p)`, practice `2 - p`, leisure `0.3 + 0.7p`, visits `p²`; errands and dungeons are untouched (dungeons wait for 80.0 anyway). On the balanced mix that is, as shares of time:
+
+| Progress | Work | Practice | Leisure | Visits |
+| --- | --- | --- | --- | --- |
+| 20 | 53% | 17% | 6% | 0% |
+| 50 | 49% | 15% | 10% | 2% |
+| 80 | 44% | 12% | 13% | 6% |
+| 100 | 40% | 10% | 15% | 10% |
+
+Jev, when configured, sees the progress in its life-phase state.
+
+### Chaos
+
+Real players wander off their line, so residents do too, always with a purpose (`chaos.ts`, `wander.ts`). A resident's chaos is the population's (`ai.chaos` in the shard's `gemwright.json`, else `lifecycle.chaos` in `world/world.json`, 0.3 by default), varied 0.5-1.5x per character and scaled by skill progress (`0.4 + 0.6p`), so a resident still building its skills stays focused. With it:
+
+- a walk over 60 tiles sometimes (half the chaos) goes by way of a real place near the line, a shop, bank or healer adding at most 40% (60 tiles) to the trip, where the resident looks around 3-10 seconds;
+- every 32 steps (a quarter of the chaos) someone within four tiles gets a passing greeting and a short pause, once per person;
+- in town, a planned visit or leisure sometimes (a third of the chaos) becomes another phase, and phase lengths swing by up to half the chaos either way.
+
+Work loops never abandon their destination: a miner with a full pack still reaches the forge, by a detour at most. Sneaking thieves never wander.
+
 ## Spread
 
 `spread.ts` keeps where each resident was last seen (reported on every phase change through `noticePeers`) so the population spreads out: no crowd on one screen, nobody alone across the map. A leisure spot is picked for company, not a crowd (best with about three residents within twelve tiles, less likely alone, falling away beyond eight); a town to visit is likelier the nearer it is and the fewer residents it has; a fighter moving on skips cemeteries with eight or more residents; a dungeon run weighs how many residents are already inside each dungeon of its pool. Like the allocator that gives residents their homes, this is the population's arrangement rather than one character's knowledge; up close residents judge by what they observe.

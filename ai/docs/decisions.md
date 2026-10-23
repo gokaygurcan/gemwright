@@ -18,7 +18,7 @@ Models are pinned (`jev-1.13.0` or `jev-1.14.0`), so an alias change never alter
 | `decisions/jev.example.json` | Jev with everyday limits. |
 | `decisions/jev-compare.example.json` | Jev as often as limits allow, for comparing against the baseline. |
 
-Limits: request timeout (100–5,000 ms), interval between requests (0–600,000 ms), requests per run (up to 10,000) and per UTC day (up to 50,000) per resident, a daily cost cap (up to $5), and a request size cap (16,000 bytes). One request per resident is in flight at a time. Before sending, the runtime reserves the full 65,536-token context against the daily budget; a valid response settles it to actual usage, and a lost one keeps the reservation. There are no automatic retries; a 401 or 403 disables the provider for the run.
+Limits: request timeout (100–5,000 ms), interval between requests (0–600,000 ms), requests per run (up to 10,000) and per UTC day (up to 50,000) per resident, a daily cost cap per resident (up to $5), a daily cost cap shared by the whole population (`maxPopulationDailyCostUsd`, default $0.16, which keeps a population under $5 a month; `spend-ledger.ts` records the day's spend in the residents database, so restarts do not reset it), and a request size cap (16,000 bytes). One request per resident is in flight at a time. Before sending, the runtime reserves the full 65,536-token context against the daily budget; a valid response settles it to actual usage, and a lost one keeps the reservation. There are no automatic retries; a 401 or 403 disables the provider for the run.
 
 Pass a file with `--decisions` on `session` or `population`.
 

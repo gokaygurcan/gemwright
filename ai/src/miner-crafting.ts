@@ -43,12 +43,14 @@ export function bestRecipe(blacksmith: number) {
 }
 
 // Crafting replies: created (normal, exceptional, marked, low quality), failed (materials lost or
-// not), tool worn out, missing anvil/forge, insufficient metal. While the tool lasts, ServUO shows the
+// not), tool worn out, missing anvil/forge, insufficient metal. Alchemy has its own pair (DefAlchemy:
+// 500279 "You pour the potion into a bottle...", 500287 "You fail to create a useful potion").
+// While the tool lasts, ServUO shows the
 // result as the notice of the re-sent Blacksmithy menu (CraftGump at 170,295), not as a message.
-export const CREATED = [1044154, 1044155, 1044156, 502785];
+export const CREATED = [1044154, 1044155, 1044156, 502785, 500279];
 // Exceptional quality, with or without the maker's mark: such pieces are banked, not sold.
 export const EXCEPTIONAL = [1044155, 1044156];
-export const FAILED = [1044043, 1044157];
+export const FAILED = [1044043, 1044157, 500287];
 export const STOP = [1044038, 1044267, 1044037, 1044153];
 
 // Finds the gump button placed beside a localized label (CraftGump puts each button 35 px left of

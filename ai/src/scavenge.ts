@@ -1,12 +1,14 @@
 import { Blocked } from './blocked';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
+import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import type { Entity, Position, WorldView } from './protocol/world';
 import type { Terrain } from './terrain';
 
 // Picks up worthwhile loose items lying on open ground, as any player would: gold, gems, reagents,
-// bandages, potions, scrolls, ammunition, crafting materials and anything wearable. Only items
+// bandages, potions, scrolls, ammunition, crafting materials, tools, instruments, fish, books and
+// anything wearable (weapons and armour included). Food, lamps and furniture are left lying. Only items
 // the server marks movable count (Item.GetPacketFlags 0x20), so world decoration is never touched;
 // corpses and containers are other code's business. Nothing is picked up with a threat close by or
 // a pack near its limit. What is carried is then used by the resident's own routines (healing,
@@ -43,7 +45,25 @@ const kinds: [number, number][] = [
   [0x1766, 0x1767], // cloth and uncut cloth
   [0x1078, 0x1079], // hides
   [0x1081, 0x1081], // leather
-  [0x0f95, 0x0f9c] // bolts of cloth
+  [0x0f95, 0x0f9c], // bolts of cloth
+  // Things any shop buys back or a resident's work uses (ServUO SB* sell lists).
+  [0x0e85, 0x0e86], // pickaxes
+  [0x0f39, 0x0f3a], // shovels
+  [0x0f43, 0x0f4a], // hatchets and axes
+  [0x13fa, 0x13fb], // large battle axes
+  [0x1022, 0x1023], // fletcher's tools
+  [0x0e9b, 0x0e9b], // mortar and pestle
+  [0x1eb8, 0x1ebc], // tinker's tools
+  [0x0f9d, 0x0f9f], // sewing kit and scissors
+  [0x0dbf, 0x0dc0], // fishing poles
+  [0x0f0e, 0x0f0e], // empty bottles
+  [0x1bd1, 0x1bd1], // feathers
+  [0x1bd4, 0x1bd4], // shafts
+  [0x0e9c, 0x0e9e], // drums and tambourines
+  [0x0eb1, 0x0eb3], // harps and lutes
+  [0x09cc, 0x09cf], // fish
+  [0x0efa, 0x0efa], // spellbooks
+  [0x1f14, 0x1f14] // recall runes
 ];
 // Items this session could not reach or the server refused; never tried again.
 const skipped = new WeakMap<PlayerSession, Set<number>>();
@@ -105,4 +125,47 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
       ctx.log(`Could not pick up ${name}: ${error instanceof Error ? error.message : error}`);
   }
   return true;
+}
+
+// While walking: a worthwhile item within lifting reach (ServUO lifts from 2 tiles) is taken
+// without leaving the route; anything farther waits for the next stop's scavenge. Quiet unless
+// something is taken. True when it picked something up.
+export async function pickUpInReach(session: PlayerSession, terrain: Terrain, log: (note: string) => void) {
+  const serial = session.world.serial;
+  const here = session.world.position;
+  const status = session.world.status;
+  if (serial === null || !here || !status || status.weight >= status.maxWeight * 0.85) return false;
+  const self = session.world.entities.get(serial);
+  if (!self || ghosts.has(self.graphic)) return false;
+  const pack = session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
+  if (!pack) return false;
+  const skip = skipped.get(session) ?? new Set<number>();
+  skipped.set(session, skip);
+  let item: Entity | undefined;
+  for (const e of session.world.entities.values()) {
+    if (e.kind === 'mobile' && [3, 4, 5, 6].includes(e.notoriety ?? 0) && e.position && distance(here, e.position) <= 8)
+      return false;
+    if (
+      !item &&
+      e.kind === 'item' &&
+      e.parent === undefined &&
+      e.position &&
+      ((e.flags ?? 0) & MOVABLE) !== 0 &&
+      !skip.has(e.serial) &&
+      distance(here, e.position) <= 2 &&
+      Math.abs(here.z - e.position.z) <= 10 &&
+      worthwhile(terrain, e)
+    )
+      item = e;
+  }
+  if (!item) return false;
+  skip.add(item.serial);
+  const name = terrain.tile(item.graphic, true).name || 'item';
+  try {
+    await session.moveItem(item.serial, pack.serial);
+    log(`Picked up ${name} in passing`);
+    return true;
+  } catch {
+    return false;
+  }
 }

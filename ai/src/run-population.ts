@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+import { loopLag } from './activity';
 import { decisionReport } from './decisions';
 import { type ResidentOptions, runResident, withRuntime } from './run-session';
 import { temperamentOf } from './temperament';
@@ -31,8 +32,10 @@ export async function runPopulation(
       const late = Date.now() - tick - 1000;
       tick = Date.now();
       lag.max = Math.max(lag.max, late);
+      loopLag.max = Math.max(loopLag.max, late);
       if (late > 1500) {
         lag.stalls++;
+        loopLag.stalls++;
         console.error(`[population] event loop stalled for ${late} ms`);
       }
     }, 1000);

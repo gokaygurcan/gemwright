@@ -92,6 +92,18 @@ For a VPS, the questionnaire asks for Docker Compose or native systemd (Ubuntu),
 gemwright deploy --target vps
 ```
 
+### Pull your shard's state
+
+Saves a copy of the deployed shard locally, on demand: the server's world saves, accounts and logs, a consistent snapshot of the AI residents database with a population report, and recent service logs. Everything lands in `.gemwright/pulls/<time>/` with a `manifest.json` of what came down.
+
+```bash
+# in the project directory: everything
+gemwright pull
+
+# or only some parts; --backups adds the server's own Backups folder
+gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>]
+```
+
 ### Next steps
 
 - Push your shard configuration and scripts to a private Git repository to track changes.
@@ -118,7 +130,7 @@ gemwright deploy --target vps
 - [x] Web client
 - [ ] AI
   - [x] Profession templates
-  - [x] Interactions
+  - [x] Interactions and conversations
   - [x] Dungeon runs
   - [x] Economy
   - [ ] Housing, boat, guild and storage

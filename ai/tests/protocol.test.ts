@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 
 import { validateConnection } from '../src/connection';
+import { characterList } from '../src/protocol/characters';
 import { PacketFramer } from '../src/protocol/framing';
 import * as packets from '../src/protocol/packets';
-import { characterList, WorldView } from '../src/protocol/world';
+import { WorldView } from '../src/protocol/world';
 
 describe('wire boundaries', () => {
   test('accepts every split of fixed and variable packets and coalesced packets', () => {

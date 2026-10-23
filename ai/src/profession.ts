@@ -1,9 +1,11 @@
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
+import { threatsNear } from './danger';
 import type { DecisionCoordinator } from './decisions';
 import type { RunRecord } from './dungeon-context';
 import { type LifeContext, lifeTurn } from './life';
-import { createNavigator } from './navigation';
+import { serviceLocations } from './locations';
+import { createNavigator, distance } from './navigation';
 import { type DungeonRole, professionDungeonTurn } from './profession-dungeon';
 import { readyForDungeons } from './progression';
 import { Layer } from './protocol/layers';
@@ -163,6 +165,17 @@ export async function runProfession(
           continue;
         }
         if (await lifeTurn(life)) continue;
+        // Those who do not fight leave monsters to others: back to the town bank (danger.ts).
+        const bank = serviceLocations(ctx.city, 'banker')[0];
+        // Already at the bank, it stays put: a town is as safe as it gets, so the work goes on.
+        const near = bank ? threatsNear(session, ctx.position(), 8) : [];
+        if (!['tamer', 'bard', 'thief'].includes(name) && bank && near.length && distance(ctx.position(), bank) > 6) {
+          const seen = near.map((m) => `${m.name ?? 'something'} (0x${m.graphic.toString(16)})`).join(', ');
+          phase('avoiding', `Monsters about (${seen}); heading back to town`);
+          await ctx.navigate(bank, 3).catch(() => {});
+          await Bun.sleep(2000);
+          continue;
+        }
         const started = Date.now();
         await turn(ctx);
         // Every resident shares one event loop: a turn that found nothing to do (no spot, no target)

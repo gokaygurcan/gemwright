@@ -19,6 +19,8 @@ export interface DecisionConfig {
   maxRequestsPerRun: number;
   maxRequestsPerDay: number;
   maxDailyCostUsd: number;
+  // Shared by every resident in one population (spend-ledger.ts); $5 a month is about $0.16 a day.
+  maxPopulationDailyCostUsd: number;
   maxRequestBytes: number;
 }
 
@@ -35,6 +37,7 @@ export function validateDecisionConfig(value: unknown): DecisionConfig {
     maxRequestsPerRun: 12,
     maxRequestsPerDay: 200,
     maxDailyCostUsd: 0.02,
+    maxPopulationDailyCostUsd: 0.16,
     maxRequestBytes: 12000
   };
   if (Object.keys(config).some((key) => !Object.hasOwn(defaults, key)))
@@ -54,6 +57,7 @@ export function validateDecisionConfig(value: unknown): DecisionConfig {
     ['maxRequestsPerRun', 0, 10000, true],
     ['maxRequestsPerDay', 0, 50000, true],
     ['maxDailyCostUsd', 0, 5, false],
+    ['maxPopulationDailyCostUsd', 0, 5, false],
     ['maxRequestBytes', 1000, 16000, true]
   ];
   for (const [key, min, max, integer] of limits) {

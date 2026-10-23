@@ -14,6 +14,7 @@ import { mountEquipment } from './mount-types';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import { skillId, skillNames } from './skills';
+import type { SpendLedger } from './spend-ledger';
 import type { Checkpoint } from './store';
 
 export interface DecisionTrace {
@@ -238,7 +239,8 @@ export class DecisionCoordinator {
   constructor(
     readonly config: DecisionConfig,
     private readonly save: (checkpoint: Checkpoint) => void,
-    provider?: DecisionProvider
+    provider?: DecisionProvider,
+    private readonly ledger?: SpendLedger
   ) {
     this.provider = config.provider === 'jev' ? (provider ?? new JevProvider(config)) : null;
     this.configHash = hash(config);
@@ -392,14 +394,18 @@ export class DecisionCoordinator {
                         ? 'daily-request-budget'
                         : costUsd(memory.budget.chargedInputTokens + reservation) > this.config.maxDailyCostUsd
                           ? 'daily-cost-budget'
-                          : Date.now() < this.nextRequestAt
-                            ? 'cooldown'
-                            : null;
+                          : this.ledger &&
+                              costUsd(this.ledger.tokens(day) + reservation) > this.config.maxPopulationDailyCostUsd
+                            ? 'population-cost-budget'
+                            : Date.now() < this.nextRequestAt
+                              ? 'cooldown'
+                              : null;
     if (reason)
       return select(baseline.id, this.provider === null || candidates.length === 1 ? 'local' : 'fallback', reason);
     this.requests++;
     memory.budget.attempts++;
     memory.budget.chargedInputTokens += reservation;
+    this.ledger?.add(day, reservation);
     trace.reservedInputTokens = reservation;
     this.save(checkpoint);
     this.nextRequestAt = Date.now() + this.config.minIntervalMs;
@@ -431,6 +437,7 @@ export class DecisionCoordinator {
       trace.inputTokens = result.inputTokens;
       trace.outputTokens = result.outputTokens;
       memory.budget.chargedInputTokens += result.inputTokens - reservation;
+      this.ledger?.add(day, result.inputTokens - reservation);
       return select(result.choice, 'model', 'validated-choice');
     } catch (error) {
       trace.latencyMs = Date.now() - started;

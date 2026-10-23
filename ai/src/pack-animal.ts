@@ -1,3 +1,4 @@
+import { serviceLocations } from './locations';
 import { createMountServices } from './mount-services';
 import type { MountContext, MountMemory } from './mount-types';
 import { distance } from './navigation';
@@ -7,12 +8,12 @@ import type { Entity } from './protocol/world';
 
 // A gatherer's pack horse or llama, bought from the animal trainer like the riding horse (ServUO
 // SBAnimalTrainer: pack horse 631, pack llama 565 gold). Its StrongBackpack holds 1600 stones and
-// opens only for its owner (context entry 6145, PackAnimal.CheckAccess), which also proves
+// opens only for its owner (context entry 6145, sent as 3006145; PackAnimal.CheckAccess), which also proves
 // ownership. A follower gives up beyond about five times its perception range, so the owner checks
 // behind before moving on and walks back for one left standing. No server help: everything is a
 // purchase, speech command, context entry or drag and drop any player has.
 export const packBodies = new Set([0x123, 0x124]);
-const OPEN_PACK = 6145;
+const OPEN_PACK = 3006145;
 const CAPACITY = 1500;
 // The pack animal takes a follower slot beside the riding horse, which is bought first.
 const RESERVE = 300;
@@ -20,7 +21,7 @@ const RESERVE = 300;
 export function createPackAnimal(ctx: MountContext, city: string) {
   const { session, checkpoint, position, navigate, phase, persist, log, check } = ctx;
   checkpoint.packAnimal ??= { schemaVersion: 1, state: 'seeking' };
-  const memory: MountMemory & { load?: number } = checkpoint.packAnimal;
+  const memory: MountMemory & { load?: number; searches?: number; abandoned?: number } = checkpoint.packAnimal;
   const services = createMountServices(ctx, city, RESERVE, { bodies: packBodies, name: 'pack animal' });
   let calledAt = 0;
   petSource(session, 'pack-animal', () => (memory.horse === undefined ? [] : [memory.horse]));
@@ -42,7 +43,7 @@ export function createPackAnimal(ctx: MountContext, city: string) {
   const discover = async (excluded: readonly number[] = []) => {
     for (const mobile of session.world.entities.values()) {
       if (mobile.kind !== 'mobile' || !packBodies.has(mobile.graphic) || excluded.includes(mobile.serial)) continue;
-      if (!mobile.position || distance(position(), mobile.position) > 12 || !(await owns(mobile))) continue;
+      if (!mobile.position || distance(position(), mobile.position) > 18 || !(await owns(mobile))) continue;
       memory.horse = mobile.serial;
       memory.state = 'owned';
       memory.load = 0;
@@ -63,7 +64,53 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     if (memory.pending) {
       if (await discover(memory.pending.before)) return;
       if (Date.now() - memory.pending.at < 30 * 60_000) return;
+      // A bought animal comes to its buyer once and then stands: look for it where it was bought.
+      const { map, x, y, z } = memory.pending;
+      memory.lastSeen = { map, x, y, z };
       delete memory.pending;
+    }
+    // One left behind is fetched from where it was last seen; the purchase below refuses to buy
+    // another while it still counts as a follower.
+    // Never seen at all (a delivery that went unconfirmed): it stands at the stables it came from.
+    const trainer = serviceLocations(city, 'animal-trainer')[0];
+    const where = memory.lastSeen ?? (trainer && { map: 1, x: trainer.x, y: trainer.y });
+    if (memory.state === 'missing' && where && where.map === session.world.map) {
+      phase('pack-animal', 'Going back for my pack animal where I last saw it');
+      await navigate(where, 2).catch(() => {});
+      follow();
+      await Bun.sleep(3000);
+      if (await discover()) return;
+      // Not there: ServUO stables a logged-out player's pets, so ask the trainer for it.
+      if (trainer) {
+        phase('pack-animal', 'Asking the animal trainer for my stabled pack animal');
+        await navigate(trainer, 3).catch(() => {});
+        const heard = new Set(session.world.journal);
+        session.say('claim');
+        await session
+          .waitFor(() => session.world.journal.some((e) => !heard.has(e) && e.cliloc === 1042559), 'claim', 4000)
+          .catch(() => {});
+        await Bun.sleep(800);
+        if (await discover()) return;
+        // A delivery stands where it reached its buyer, by the trainer: look from the trainer's side.
+        const npc = [...session.world.entities.values()]
+          .filter((m) => m.kind === 'mobile' && m.notoriety === 7 && m.position && distance(trainer, m.position) <= 18)
+          .sort((a, b) => distance(trainer, a.position ?? trainer) - distance(trainer, b.position ?? trainer))[0];
+        if (npc?.position) {
+          await navigate(npc.position, 2).catch(() => {});
+          if (await discover()) return;
+        }
+      }
+      // Three searches without a sign of it: given up as lost, as a player would. It still counts
+      // as a follower, so the purchase allows for it (mount-services.ts) and one more can be bought.
+      memory.searches = (memory.searches ?? 0) + 1;
+      if (memory.searches >= 3) {
+        log('Gave up on my lost pack animal; buying another when I can');
+        memory.abandoned = (memory.abandoned ?? 0) + 1;
+        memory.searches = 0;
+        memory.state = 'lost';
+        delete memory.lastSeen;
+      }
+      persist();
     }
     try {
       await services.purchase(memory, discover);
@@ -76,7 +123,7 @@ export function createPackAnimal(ctx: MountContext, city: string) {
   };
 
   // Waits for the animal to come close, calling it and walking back to it if it stays behind.
-  // An animal not found where it was last seen is given up as lost; the slot frees on its own.
+  // An animal not found where it was last seen is marked missing and searched for again later.
   const keepUp = async () => {
     if (memory.horse === undefined) return;
     if (near(4)) {
@@ -96,11 +143,11 @@ export function createPackAnimal(ctx: MountContext, city: string) {
       await session.waitFor(() => near(4), 'pack animal found', 10_000).catch(() => {});
       if (near(4)) return;
     }
-    log('Lost track of the pack animal; working without it');
-    memory.state = 'lost';
+    log('Lost track of the pack animal; working without it and looking again later');
+    memory.state = 'missing';
     delete memory.horse;
     delete memory.load;
-    memory.retryAfter = Date.now() + 60 * 60_000;
+    memory.retryAfter = Date.now() + 10 * 60_000;
     persist();
   };
 

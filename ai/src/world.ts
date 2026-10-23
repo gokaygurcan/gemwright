@@ -40,6 +40,8 @@ interface World {
     mixes: Record<string, Record<LifePhase, number>>;
     minutes: Record<LifePhase, [number, number]>;
     maxSwitchesPerMinute: number;
+    // How unpredictable residents are, 0-1 (chaos.ts); a shard's `ai.chaos` overrides it.
+    chaos?: number;
   };
 }
 export type LifePhase = 'work' | 'dungeon' | 'errands' | 'leisure' | 'visit' | 'practice';

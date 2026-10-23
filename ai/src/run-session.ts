@@ -1,9 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+import { markResidents } from './activity';
 import { appearanceOf } from './appearance';
 import { runBard } from './bard';
 import { superviseBehavior } from './behavior-supervisor';
+import { registerChaos } from './chaos';
 import type { PopulationConfig } from './config';
 import type { ConnectionConfig } from './connection';
 import { connectionAdmission } from './connection-admission';
@@ -30,6 +32,7 @@ import { runTailor } from './tailor';
 import { runTamer } from './tamer';
 import { personalTemplate } from './temperament';
 import { runThief } from './thief';
+import { guardTrades } from './trade-guard';
 
 function creationRequest(store: ResidentStore, resident: Resident, enabled: boolean): CharacterRequest {
   if (!enabled || resident.binding) return { slot: 0 };
@@ -160,9 +163,14 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       join(dataDirectory, 'credentials')
     );
     const decisions = options.decisionConfig
-      ? new DecisionCoordinator(options.decisionConfig, (checkpoint) => {
-          resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
-        })
+      ? new DecisionCoordinator(
+          options.decisionConfig,
+          (checkpoint) => {
+            resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
+          },
+          undefined,
+          store.spendLedger()
+        )
       : undefined;
     const connect = () =>
       connectionAdmission.run(async () => {
@@ -172,6 +180,9 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         runtime.session = session;
         shared.track(residentId, session);
         await session.connect(credentials, creationRequest(store, resident, options.create));
+        guardTrades(session);
+        const policy = store.template(resident.templateId, resident.policyVersion);
+        if (policy) registerChaos(session, policy);
         const serial = session.world.serial;
         if (serial === null) throw new Error('Server did not identify the character');
         if (resident.binding && resident.binding.characterSerial !== String(serial))
@@ -423,12 +434,14 @@ export async function withRuntime<T>(
   try {
     ownership = new RuntimeOwnership(store, stop);
     store.reconcile(options.population);
+    markResidents(store.list().flatMap((r) => (r.binding ? [Number(r.binding.characterSerial)] : [])));
     return await body({
       store,
       signal: controller.signal,
       ownership,
       stopping: () => stopping,
       track: (id, session) => {
+        if (session?.world.serial != null) markResidents([session.world.serial]);
         const previous = sessions.get(id);
         if (previous && previous !== session) activity.collect(id, previous);
         if (session) sessions.set(id, session);

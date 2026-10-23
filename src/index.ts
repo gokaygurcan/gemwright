@@ -13,6 +13,7 @@ import { deploy } from './deploy';
 import { deploymentOptions } from './deploy-options';
 import { initialize } from './init';
 import { Cancelled } from './prompts';
+import { pull } from './pull';
 import { updateNotice } from './update';
 import { deployVps } from './vps-deploy';
 import { deployVpsRemote } from './vps-remote';
@@ -20,6 +21,7 @@ import { deployVpsRemote } from './vps-remote';
 const help = `Usage: gemwright init [directory] [options]
        gemwright deploy [--files <path>] [--server] [--client] [--ai]
        gemwright deploy --target vps --public-host <host> [--client --domain <host>] [--prepare]
+       gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>]
 
 Options:
   --name <name>         Shard name (default: Gemwright)
@@ -41,6 +43,9 @@ Options:
   --ssh <destination>   Deploy over SSH using an alias or user@hostname
   --remote-path <path>  Dedicated deployment directory on the VPS
   --install-deps        Approve installation of missing VPS packages
+  --logs                Pull recent service logs (pull)
+  --backups             Also pull the server's own Backups folder (pull)
+  --output <dir>        Where pull saves (default: .gemwright/pulls/<time>)
   --help                Show this help
   --version             Show the installed version`;
 
@@ -69,6 +74,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       git: { type: 'boolean' },
       yes: { type: 'boolean' },
       mysql: { type: 'boolean' },
+      logs: { type: 'boolean' },
+      backups: { type: 'boolean' },
+      output: { type: 'string' },
       help: { type: 'boolean' },
       version: { type: 'boolean' }
     }
@@ -83,6 +91,18 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     return;
   }
   const [command, directory, ...extra] = positionals;
+  if (command === 'pull') {
+    if (positionals.length > 1)
+      throw new Error('Usage: gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>]');
+    await pull({
+      server: values.server,
+      ai: values.ai,
+      logs: values.logs,
+      backups: values.backups,
+      output: values.output
+    });
+    return;
+  }
   if (command === 'deploy') {
     const allowed = [
       'files',

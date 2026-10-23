@@ -31,6 +31,10 @@ Lines follow the game's own NPC voice (`Cliloc.enu`): plain sentences with a lig
 
 Conversations raise affinity slightly and are remembered in the checkpoint.
 
+## Moving or standing
+
+Talking competes with moving for the same hands (`engagement.ts`): the mouse steers, the keyboard types. A resident on the move answers in a word or two, lowercase and sometimes with two letters swapped ("hi", "busy, sry"), or not at all; replies take typing time, about five characters a second standing. When a player addresses a resident it chooses to ignore them, answer in passing, or stop: more likely standing still, when sociable, when the player stands within three tiles, when the player keeps trying, and when asked to wait or to trade. Once engaged, every walk waits until the player leaves (over six tiles), says goodbye, or stays quiet for a minute (five minutes at most), so a conversation happens with both sides standing. A bare "stop" or "wait" means stop walking ("stop talking" still ends it), a player's closed conversation reopens when they speak again, and a repeated greeting gets "Yes?". Asked to trade, an engaged resident quotes its largest carried lot of a market good, halfway between the shop's prices, and answers that player's trade window with it; any other window is refused (`trade-guard.ts`). Fellow residents answer each other in passing while moving.
+
 ## Phrasing with Claude
 
 With `"ai": { "speech": "claude" }` in `gemwright.json` (or `--speech claude`, and `ANTHROPIC_API_KEY` in the environment), `phrasing.ts` has Claude Haiku 5.5 say the chosen reply in the resident's own voice. Jev or the local rule still decides what to say; exact repeats ("I said: …") are never rephrased.

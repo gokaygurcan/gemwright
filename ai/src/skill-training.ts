@@ -1,9 +1,13 @@
 import type { CharacterArchetype } from './archetypes';
 import { type CraftContext, type CraftSkill, carpentry, tinkering, trainCraft } from './craft-training';
+import { serviceLocations } from './locations';
 import { trainMagery } from './magery';
+import { buyAtMarket, goods } from './market';
+import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
 import { skillId } from './skills';
+import { buyFrom } from './vendor-trade';
 
 const TOO_SOON = 500118; // You must wait a few moments to use another skill.
 // Pickaxes are BaseAxe weapons in ServUO, so a miner always carries a valid Arms Lore target.
@@ -132,11 +136,31 @@ type TrainingContext = PracticeContext & {
   };
 };
 
+// Iron for Tinkering, when the resident brings no refill of its own (miners withdraw theirs): the
+// Minoc market when already near it (market.ts), else the tinker's 16-ingot stock.
+const ironRefill =
+  (shop: NonNullable<TrainingContext['shop']>) =>
+  async (_backpack: number, least: number): Promise<boolean> => {
+    const minoc = serviceLocations('minoc', 'banker')[0];
+    const want = Math.max(least * 3, 30);
+    if (minoc && distance(shop.position(), minoc) < 300 && (await buyAtMarket(shop, 'iron ingots', want, 3)) >= least)
+      return true;
+    return buyFrom(shop, 'tinker', new Map([[goods['iron ingots'].graphic, Math.min(want, 16)]]), 6);
+  };
+
 const craftTrainer =
   (craft: CraftSkill) =>
   ({ shop, until }: TrainingContext) =>
     shop
-      ? trainCraft({ ...shop, refill: shop.refills?.[craft.skill] }, craft, shop.backpack(), until)
+      ? trainCraft(
+          {
+            ...shop,
+            refill: shop.refills?.[craft.skill] ?? (craft.skill === 'Tinkering' ? ironRefill(shop) : undefined)
+          },
+          craft,
+          shop.backpack(),
+          until
+        )
       : Promise.resolve(0);
 
 // Supporting skills a resident can practise; shop-dependent ones only run with vendor access.

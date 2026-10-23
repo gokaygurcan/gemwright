@@ -1,17 +1,11 @@
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
 import { bandage, type FighterContext, gold, healPotion, observedThreat } from './fighter-context';
+import { magicProperty } from './item-quality';
 
 // Carried gold is lost on death, but a few coins are not worth a long ride to the bank.
 export const CARRIED_GOLD_LIMIT = 1500;
 
 const hasHealing = (ctx: FighterContext) => ctx.count(bandage) >= 5 || ctx.count(healPotion) >= 1;
-
-// AOS magic attribute clilocs from the pinned BaseWeapon/BaseArmor property lists. Elemental damage
-// split (1060403-1060407) and base resists (1060445-1060449) appear on every ordinary item.
-const magicProperty = (cliloc: number) =>
-  (cliloc >= 1060400 && cliloc <= 1060444 && (cliloc < 1060403 || cliloc > 1060407)) ||
-  cliloc === 1060450 ||
-  (cliloc >= 1060482 && cliloc <= 1060486);
 
 const lootedWearables = (ctx: FighterContext) =>
   ctx

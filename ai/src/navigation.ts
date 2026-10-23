@@ -1,9 +1,12 @@
 import { Blocked } from './blocked';
 import { directRoute } from './direct-route';
+import { holdWhileEngaged, noteStep } from './engagement';
 import { mountEquipment } from './mount-types';
 import type { PlayerSession } from './protocol/session';
+import { pickUpInReach } from './scavenge';
 import { directionTo, type Terrain } from './terrain';
 import { markUnreachable } from './unreachable';
+import { detourFor, passingGreeting } from './wander';
 
 export const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -33,7 +36,27 @@ export function createNavigator(options: {
     if (!session.world.status) throw new Error('Status is unknown');
     return session.world.status;
   };
-  return async (goal: { x: number; y: number; z?: number }, range: number) => {
+  // Chaos on the road (wander.ts): a longer walk sometimes goes by way of a real place first.
+  let wandering = false;
+  const walk = async (goal: { x: number; y: number; z?: number }, range: number) => {
+    if (!wandering && !options.walkOnly?.()) {
+      const stop = detourFor(session, position(), goal);
+      if (stop) {
+        wandering = true;
+        try {
+          log(`Going by way of ${stop.name === 'guide' ? `a shop in ${stop.city}` : stop.name}`);
+          await go(stop, 3);
+          await Bun.sleep(3000 + Math.random() * 7000);
+        } catch (error) {
+          if (!(error instanceof Blocked)) throw error;
+        } finally {
+          wandering = false;
+        }
+      }
+    }
+    return go(goal, range);
+  };
+  const go = async (goal: { x: number; y: number; z?: number }, range: number) => {
     // Always give the event loop a turn: a caller looping on an already-reached goal must not
     // starve timers, the shard lease and every other session.
     await Bun.sleep(0);
@@ -108,14 +131,21 @@ export function createNavigator(options: {
           !options.walkOnly?.() &&
           (options.runClose || distance(position(), goal) > 3) &&
           (ghost || (status().stamina >= status().maxStamina * 0.35 && status().weight < status().maxWeight * 0.95));
+        // Standing to talk with a player pauses every walk (engagement.ts).
+        await holdWhileEngaged(session);
         const sentAt = performance.now();
         const accepted = await session.walk(direction, point.z, running);
+        noteStep(session);
         const mounted = !!mountEquipment(session.world);
         const interval = mounted
           ? (running ? 115 : 220) + Math.random() * 15
           : (running ? 210 : 390) + Math.random() * (running ? 20 : 40);
         await Bun.sleep(Math.max(0, interval - (performance.now() - sentAt)));
         await options.onStep?.();
+        // Every fourth step, loose valuables within reach are taken without leaving the route (not
+        // by a thief sneaking up on a mark, whose stealth a lift could break).
+        if (accepted && (travelled & 3) === 0 && !options.walkOnly?.()) await pickUpInReach(session, terrain, log);
+        if (accepted && travelled % 32 === 0 && !options.walkOnly?.()) await passingGreeting(session);
         if (accepted && (travelled & 3) === 3) failures = 0;
         if (accepted && ++travelled % 64 === 0)
           log(
@@ -169,4 +199,5 @@ export function createNavigator(options: {
       }
     }
   };
+  return walk;
 }

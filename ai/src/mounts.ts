@@ -113,11 +113,13 @@ export function createMountController(ctx: MountContext, city: string, reserve =
         !seen &&
         hint?.map === session.world.map &&
         distance(position(), hint) > 12 &&
-        distance(position(), hint) <= 64 &&
+        (distance(position(), hint) <= 64 || (memory.state === 'missing' && (ctx.status().followers ?? 0) > 0)) &&
         (memory.retryAfter ?? 0) <= Date.now() &&
         safe(hint)
       ) {
-        memory.retryAfter = Date.now() + 120_000;
+        // A horse still counted as a follower is alive where it was left (a death site, say):
+        // go back for it however far, every ten minutes, rather than buy another.
+        memory.retryAfter = Date.now() + (distance(position(), hint) <= 64 ? 120_000 : 10 * 60_000);
         phase('mount-search', 'Checking the nearby last observed horse location before continuing on foot');
         await ctx.navigate(hint, 2);
       }
