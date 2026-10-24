@@ -1,0 +1,3 @@
+packages/client/bundle/
+packages/client/bundle.next/
+.env*

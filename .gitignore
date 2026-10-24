@@ -4,8 +4,8 @@ node_modules
 # output
 out
 dist
-/client/bundle/
-/client/bundle.next/
+/packages/client/bundle/
+/packages/client/bundle.next/
 *.tgz
 
 # code coverage
@@ -40,3 +40,12 @@ files/
 
 # test shard configuratiosn
 test-shards/
+
+# gemwright package build output (packages/gemwright/build.ts)
+/packages/gemwright/workspace/
+/packages/gemwright/README.md
+/packages/gemwright/LICENSE
+/packages/gemwright/.github/
+
+# the analyze package (a global ignore may cover folders named analyze)
+!/packages/analyze/

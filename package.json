@@ -1,51 +1,29 @@
 {
-  "name": "gemwright",
+  "name": "@gemwright/workspace",
   "description": "Forge your own shard",
-  "version": "0.4.3",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gokaygurcan/gemwright.git"
   },
-  "bin": {
-    "gemwright": "dist/index.js"
-  },
   "type": "module",
-  "files": [
-    "dist/index.js",
-    "templates/",
-    "patches/",
-    ".github/small-forge.png",
-    "client/{Dockerfile,railway.json,.dockerignore,.railwayignore}",
-    "client/{build,files,huffman,server}.ts",
-    "client/web/",
-    "client/runtime/",
-    "ai/{Dockerfile,railway.json,start.sh,package.json,bun.lock,tsconfig.json}",
-    "ai/src/",
-    "ai/world/",
-    "ai/templates/",
-    "ai/locations/",
-    "ai/catalogs/"
+  "workspaces": [
+    "packages/*"
   ],
-  "engines": {
-    "node": ">=24"
-  },
   "scripts": {
-    "start": "bun run src/index.ts",
+    "start": "bun run packages/gemwright/src/index.ts",
     "format": "biome format --write",
     "typecheck": "bun check",
+    "lint": "biome check",
     "test": "bun test",
-    "build": "bun client/build.ts && bun build src/index.ts --target node --format esm --packages external --outfile dist/index.js",
-    "prepack": "bun run build"
-  },
-  "dependencies": {
-    "@clack/prompts": "1.8.1",
-    "chalk": "6.0.1"
+    "build": "bun run --cwd packages/gemwright build",
+    "postinstall": "lefthook install"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.2",
     "@types/bun": "1.4.3",
     "@types/node": "26.6.5",
+    "lefthook": "2.2.2",
     "typescript": "7.0.2"
   },
   "packageManager": "bun@1.4.3"

@@ -1,0 +1,13 @@
+{
+  "name": "@gemwright/analyze",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "serve": "bun run src/serve.ts"
+  },
+  "dependencies": {
+    "@gemwright/common": "workspace:*",
+    "gemwright": "workspace:*"
+  }
+}

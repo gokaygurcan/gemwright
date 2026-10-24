@@ -1,0 +1,38 @@
+{
+  "name": "gemwright",
+  "description": "Forge your own shard",
+  "version": "0.5.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/gemwright"
+  },
+  "bin": {
+    "gemwright": "dist/index.js"
+  },
+  "type": "module",
+  "files": [
+    "dist/index.js",
+    "templates/",
+    "patches/",
+    "workspace/",
+    ".github/small-forge.png"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "bun build.ts",
+    "prepack": "bun run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.8.1",
+    "chalk": "6.0.1"
+  },
+  "devDependencies": {
+    "@gemwright/client": "workspace:*",
+    "@gemwright/common": "workspace:*"
+  }
+}

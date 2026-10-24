@@ -52,17 +52,17 @@ jobs:
       - name: Install dependencies without lifecycle scripts
         run: |
           bun install --frozen-lockfile --ignore-scripts
-          bun install --frozen-lockfile --ignore-scripts --cwd ai
 
       - name: Check source
         run: |
-          bunx --no-install biome format src
+          bun run lint
           bun run typecheck
           bun test
           bun run build
 
       - name: Pack and validate release
         id: package
+        working-directory: packages/gemwright
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           PRERELEASE: ${{ github.event.release.prerelease }}
@@ -93,7 +93,7 @@ jobs:
             for (const path of matches) expected.add(path);
           }
           assert.deepEqual(files, expected, 'Package contents must match package.json');
-          for (const path of [pkg.bin.gemwright, '.github/small-forge.png', 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`)), 'client/Dockerfile', 'client/runtime/_framework/dotnet.js', 'client/runtime/licenses/WebClients.txt'])
+          for (const path of [pkg.bin.gemwright, '.github/small-forge.png', 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`)), 'workspace/bun.lock', 'workspace/packages/ai/Dockerfile', 'workspace/packages/common/src/huffman.ts', 'workspace/packages/client/Dockerfile', 'workspace/packages/client/runtime/_framework/dotnet.js', 'workspace/packages/client/runtime/licenses/WebClients.txt'])
             assert.ok(files.has(path), `Missing runtime file: ${path}`);
 
           const directory = join(process.env.RUNNER_TEMP, 'npm-release');
@@ -108,7 +108,7 @@ jobs:
         run: |
           mkdir "$RUNNER_TEMP/npm-smoke"
           tar -xzf "$RUNNER_TEMP/npm-release/gemwright.tgz" -C "$RUNNER_TEMP/npm-smoke"
-          ln -s "$GITHUB_WORKSPACE/node_modules" "$RUNNER_TEMP/npm-smoke/package/node_modules"
+          ln -s "$GITHUB_WORKSPACE/packages/gemwright/node_modules" "$RUNNER_TEMP/npm-smoke/package/node_modules"
           node "$RUNNER_TEMP/npm-smoke/package/dist/index.js" --help
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -1,0 +1,11 @@
+{
+  "name": "@gemwright/client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./*.ts"
+  },
+  "dependencies": {
+    "@gemwright/common": "workspace:*"
+  }
+}
