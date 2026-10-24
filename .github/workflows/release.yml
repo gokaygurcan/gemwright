@@ -1,43 +1,33 @@
 # npm trusted publisher: gokaygurcan/gemwright, release.yml, environment npm; allow npm publish.
-name: Release to npm
+# Releases with Changesets (https://changesets.dev). On every push to main, after the checks:
+# - with pending changesets, open or update the "Release gemwright" pull request, which bumps the
+#   version and writes CHANGELOG.md;
+# - once that pull request is merged (a version not yet on npm), pack the CLI, validate the
+#   tarball, publish it from the npm environment, tag it and create its GitHub release.
+# Only the gemwright CLI is published; the other workspace packages are private.
+name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 permissions: {}
 
 concurrency:
-  group: npm-release
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  verify:
+  check:
     if: github.repository == 'gokaygurcan/gemwright'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
-    outputs:
-      dist-tag: ${{ steps.package.outputs.dist-tag }}
-      sha256: ${{ steps.package.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
           persist-credentials: false
-
-      - name: Verify release commit
-        env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          git check-ref-format "refs/heads/$DEFAULT_BRANCH"
-          git check-ref-format "refs/tags/$RELEASE_TAG"
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$GITHUB_SHA"
-          git merge-base --is-ancestor HEAD "refs/remotes/origin/$DEFAULT_BRANCH"
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -50,37 +40,128 @@ jobs:
           no-cache: true
 
       - name: Install dependencies without lifecycle scripts
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
+        run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Check source
+      - name: Lint, typecheck and test
         run: |
           bun run lint
           bun run typecheck
-          bun test
-          bun run build
+          bun run test
 
-      - name: Pack and validate release
-        id: package
-        working-directory: packages/gemwright
+  select-mode:
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.select-mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.select-mode.outputs.publish-plan-artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+          no-cache: true
+
+      - name: Install dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Select version or publish
+        id: select-mode
+        uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+
+  version:
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'version'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+          no-cache: true
+
+      - name: Install dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      # The changelog links each entry to its pull request and author (@changesets/changelog-github).
+      - name: Open or update the release pull request
+        uses: changesets/action/version@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          PRERELEASE: ${{ github.event.release.prerelease }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          script: bun run version-packages
+          commit-message: Release gemwright
+          pr-title: Release gemwright
+
+  pack:
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+          no-cache: true
+
+      - name: Install dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      # npm pack runs the package's prepack script, which builds dist/ and workspace/.
+      - name: Pack the CLI
+        id: pack
+        uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+
+      - name: Validate package contents
+        working-directory: packages/gemwright
         run: |
           npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
-          import { createHash } from 'node:crypto';
-          import { appendFileSync, globSync, mkdirSync, readFileSync, renameSync, statSync } from 'node:fs';
+          import { globSync, mkdirSync, readFileSync, renameSync, statSync } from 'node:fs';
           import { join } from 'node:path';
 
           const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
           assert.equal(pkg.name, 'gemwright');
           assert.equal(pkg.repository.url, 'git+https://github.com/gokaygurcan/gemwright.git');
           assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
-          assert.equal(process.env.RELEASE_TAG?.replace(/^v/, ''), pkg.version, 'Release tag must match package.json (optional v prefix)');
-          const prerelease = pkg.version.includes('-');
-          assert.equal(process.env.PRERELEASE, String(prerelease), 'GitHub prerelease status must match the version');
 
           const result = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'pack.json'), 'utf8'));
           const pack = Array.isArray(result) ? result[0] : result[pkg.name];
@@ -88,7 +169,7 @@ jobs:
           const files = new Set(pack.files.map(file => file.path));
           const expected = new Set(['LICENSE', 'README.md', 'package.json']);
           for (const pattern of pkg.files) {
-            const matches = globSync(pattern.endsWith('/') ? `${pattern}**/*` : pattern).filter(path => statSync(path).isFile());
+            const matches = globSync(pattern.endsWith('/') ? [`${pattern}**/*`, `${pattern}**/.*`] : pattern).filter(path => statSync(path).isFile());
             assert.ok(matches.length, `No package files match: ${pattern}`);
             for (const path of matches) expected.add(path);
           }
@@ -96,58 +177,49 @@ jobs:
           for (const path of [pkg.bin.gemwright, '.github/small-forge.png', 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`)), 'workspace/bun.lock', 'workspace/packages/ai/Dockerfile', 'workspace/packages/common/src/huffman.ts', 'workspace/packages/client/Dockerfile', 'workspace/packages/client/runtime/_framework/dotnet.js', 'workspace/packages/client/runtime/licenses/WebClients.txt'])
             assert.ok(files.has(path), `Missing runtime file: ${path}`);
 
-          const directory = join(process.env.RUNNER_TEMP, 'npm-release');
-          mkdirSync(directory);
-          const tarball = join(directory, 'gemwright.tgz');
-          renameSync(join(process.env.RUNNER_TEMP, pack.filename), tarball);
-          const sha256 = createHash('sha256').update(readFileSync(tarball)).digest('hex');
-          appendFileSync(process.env.GITHUB_OUTPUT, `dist-tag=${prerelease ? 'next' : 'latest'}\nsha256=${sha256}\n`);
+          mkdirSync(join(process.env.RUNNER_TEMP, 'npm-smoke'));
+          renameSync(join(process.env.RUNNER_TEMP, pack.filename), join(process.env.RUNNER_TEMP, 'npm-smoke', 'gemwright.tgz'));
           NODE
 
-      - name: Smoke-test packaged CLI
+      - name: Smoke-test the packaged CLI
         run: |
-          mkdir "$RUNNER_TEMP/npm-smoke"
-          tar -xzf "$RUNNER_TEMP/npm-release/gemwright.tgz" -C "$RUNNER_TEMP/npm-smoke"
-          ln -s "$GITHUB_WORKSPACE/packages/gemwright/node_modules" "$RUNNER_TEMP/npm-smoke/package/node_modules"
-          node "$RUNNER_TEMP/npm-smoke/package/dist/index.js" --help
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: npm-package
-          path: ${{ runner.temp }}/npm-release/gemwright.tgz
-          if-no-files-found: error
-          retention-days: 7
-          compression-level: 0
+          cd "$RUNNER_TEMP/npm-smoke"
+          tar -xzf gemwright.tgz
+          ln -s "$GITHUB_WORKSPACE/packages/gemwright/node_modules" package/node_modules
+          node package/dist/index.js --help
 
   publish:
-    needs: verify
+    needs: pack
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     environment: npm
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
           package-manager-cache: false
 
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+          no-cache: true
+
       - name: Install pinned npm with trusted publishing support
         run: npm install --global npm@12.2.0 --ignore-scripts --registry=https://registry.npmjs.org
 
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: npm-package
-          path: release
-          digest-mismatch: error
+      - name: Install dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Verify and publish the tested tarball
-        working-directory: release
-        env:
-          TARBALL_SHA256: ${{ needs.verify.outputs.sha256 }}
-          NPM_DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
-          NPM_CONFIG_PROVENANCE: ${{ !github.event.repository.private }}
-        run: |
-          printf '%s  gemwright.tgz\n' "$TARBALL_SHA256" | sha256sum --check
-          npm publish ./gemwright.tgz --ignore-scripts --access public --tag "$NPM_DIST_TAG" --registry=https://registry.npmjs.org
+      # Publishes the tarball packed above, pushes the gemwright@<version> tag and creates the
+      # GitHub release from that version's CHANGELOG.md entry.
+      - name: Publish to npm and create the GitHub release
+        uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}

@@ -17,7 +17,8 @@
     "templates/",
     "patches/",
     "workspace/",
-    ".github/small-forge.png"
+    ".github/small-forge.png",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=24"

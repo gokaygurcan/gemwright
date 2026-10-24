@@ -17,11 +17,15 @@
     "lint": "biome check",
     "test": "bun test",
     "build": "bun run --cwd packages/gemwright build",
-    "postinstall": "lefthook install"
+    "postinstall": "lefthook install",
+    "changeset": "changeset",
+    "version-packages": "changeset version && bun install --lockfile-only"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
-    "@types/bun": "1.4.3",
+    "@biomejs/biome": "2.6.3",
+    "@changesets/changelog-github": "1.0.1",
+    "@changesets/cli": "3.0.3",
+    "@types/bun": "1.4.4",
     "@types/node": "26.6.5",
     "lefthook": "2.2.2",
     "typescript": "7.0.2"
