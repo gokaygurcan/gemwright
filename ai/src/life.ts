@@ -2,6 +2,8 @@ import { Blocked } from './blocked';
 import { chaosOf } from './chaos';
 import type { CharacterTemplate } from './config';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
+import { guildTurn } from './guilds';
+import { housingTurn, leisureAtHome } from './house-life';
 import { cityLandmarks, serviceLocations } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import { type createNavigator, distance } from './navigation';
@@ -10,6 +12,7 @@ import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import type { Position } from './protocol/world';
 import { scavenge } from './scavenge';
+import { trainable } from './skill-training';
 import { skillId } from './skills';
 import { crowdFactor, pickWeighted, residentsNear } from './spread';
 import type { Checkpoint } from './store';
@@ -113,7 +116,14 @@ function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
 }
 
 async function choose(ctx: LifeContext): Promise<LifePhase> {
-  const valid = phases.filter((p) => (p === 'dungeon' ? !!ctx.dungeon && !!ctx.dungeonReady?.() : true));
+  // Practice only while a supporting skill can still rise (skill-training.ts): maxed ones are done.
+  const valid = phases.filter((p) =>
+    p === 'dungeon'
+      ? !!ctx.dungeon && !!ctx.dungeonReady?.()
+      : p === 'practice'
+        ? trainable(ctx.session, ctx.template.archetype).length > 0
+        : true
+  );
   let baseline = localPick(ctx, valid);
   // A change of plans (chaos.ts): a planned visit or leisure sometimes becomes something else.
   if (['visit', 'leisure'].includes(baseline) && Math.random() < chaosOf(ctx.session) / 3) {
@@ -167,6 +177,8 @@ function pickUp(ctx: LifeContext) {
 }
 
 async function linger(ctx: LifeContext, city: string, until: number) {
+  // Leisure in the home town is sometimes spent in one's own house (house-life.ts).
+  if (city === ctx.city && (await leisureAtHome(ctx, until))) return;
   const spots = [...serviceLocations(city, 'banker'), ...cityLandmarks(city, /\b(inn|tavern|pub|saloon)\b/i)];
   // Somewhere with company, not a crowd (spread.ts).
   const self = ctx.session.world.serial ?? undefined;
@@ -228,9 +240,22 @@ function destination(ctx: LifeContext): string | undefined {
 export async function lifeTurn(ctx: LifeContext): Promise<boolean> {
   const started = Date.now();
   if (await pickUp(ctx).catch(() => false)) return true;
+  // A house to buy or visit, guild business (house-life.ts, guilds.ts).
+  if ((await society(ctx, housingTurn)) || (await society(ctx, guildTurn))) return true;
   const other = await phaseTurn(ctx);
   if (other) await Bun.sleep(Math.max(0, 1000 - (Date.now() - started)));
   return other;
+}
+
+async function society(ctx: LifeContext, turn: (ctx: LifeContext) => Promise<boolean>) {
+  try {
+    return await turn(ctx);
+  } catch (error) {
+    // A house or guild errand the world prevents ends; the resident carries on with its life.
+    if (ctx.session.phase !== 'ready') throw error;
+    ctx.log(`${error instanceof Error ? error.message : error}`);
+    return false;
+  }
 }
 
 async function phaseTurn(ctx: LifeContext): Promise<boolean> {

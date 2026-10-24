@@ -4,6 +4,7 @@ import type { CrawlParty } from './dungeon-crawl';
 import { runMinutes } from './dungeon-crawl';
 import { newRun, runRecord, weakestPrimary } from './dungeon-tools';
 import { chooseDungeon } from './dungeons';
+import { guildmates } from './guilds';
 import { bindParty, unbindParty } from './hunting-party';
 import { distance } from './navigation';
 import { readyForDungeons } from './progression';
@@ -69,13 +70,16 @@ export const leaveParty = (ctx: DungeonContext) => {
 // Joins a muster in reach, or (now and then) starts one. True when a party run was set.
 export async function musterOrJoin(ctx: DungeonContext, random = Math.random): Promise<boolean> {
   if (!readyForDungeons(ctx.session, ctx.template.archetype)) return false;
-  const open = [...musters.values()].find(
-    (m) =>
-      m.status === 'mustering' &&
-      m.leader !== ctx.serial &&
-      m.members.size + m.joining.size < m.plannedSize &&
-      distance(m.at, ctx.position()) <= REACH
-  );
+  // A guildmate's party first (guilds.ts).
+  const open = [...musters.values()]
+    .filter(
+      (m) =>
+        m.status === 'mustering' &&
+        m.leader !== ctx.serial &&
+        m.members.size + m.joining.size < m.plannedSize &&
+        distance(m.at, ctx.position()) <= REACH
+    )
+    .sort((a, b) => Number(guildmates(ctx.serial, b.leader)) - Number(guildmates(ctx.serial, a.leader)))[0];
   if (open) return join(ctx, open);
   if (random() >= DUNGEON_SHARE) return false;
   return lead(ctx, random);

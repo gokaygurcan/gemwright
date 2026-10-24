@@ -1,5 +1,6 @@
 import { tally } from './activity';
 import { chargedPurchase } from './bank-gold';
+import { storedPieces } from './bank-space';
 import { craftRecipes } from './craft-training';
 import { serviceLocations } from './locations';
 import type { createMinerServices } from './miner-services';
@@ -204,7 +205,9 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
         tally(session, 'crafted');
       }
       await Bun.sleep(600);
-      if (EXCEPTIONAL.includes(result)) {
+      // A few exceptional pieces are kept, counting those already in the bank; beyond five they are
+      // sold like the rest, or the bank box (125 items) fills with shields and refuses the ingots.
+      if (EXCEPTIONAL.includes(result) && storedPieces(session) + (checkpoint.keep?.length ?? 0) < 5) {
         const piece = carried(backpack).filter((item) => !prior.has(item.serial) && item.graphic !== ingot);
         checkpoint.keep = [...(checkpoint.keep ?? []), ...piece.map((item) => item.serial)];
         log(`Exceptional ${recipe.name}; keeping it for the bank`);

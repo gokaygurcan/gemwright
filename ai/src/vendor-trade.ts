@@ -1,6 +1,6 @@
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
 import { atVendor, type CraftContext } from './craft-training';
-import { learnQuality, shopSafe } from './item-quality';
+import { learnQuality, quality, shopSafe } from './item-quality';
 import type { ServiceType } from './locations';
 import type { Entity } from './protocol/world';
 
@@ -38,11 +38,13 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
 }
 
 // Sells every carried item matching `sellable` that one vendor of `service` buys (whole stacks only);
-// `sellable` also sees the price this vendor offers for the whole stack.
+// `sellable` also sees the price this vendor offers for the whole stack. `exceptional` lets
+// exceptional pieces go too (clearing a full bank box); artifacts, blessed and magic items never do.
 export async function sellTo(
   ctx: TradeContext,
   service: ServiceType,
-  sellable: (item: Entity, price: number) => boolean
+  sellable: (item: Entity, price: number) => boolean,
+  exceptional = false
 ) {
   const { session } = ctx;
   let earned = 0;
@@ -61,7 +63,7 @@ export async function sellTo(
       const item = session.world.entities.get(offer.serial);
       return (
         !!item &&
-        shopSafe(item) &&
+        (shopSafe(item) || (exceptional && quality(item) === 'exceptional')) &&
         item.parent === ctx.backpack() &&
         offer.price > 0 &&
         offer.amount === item.amount &&

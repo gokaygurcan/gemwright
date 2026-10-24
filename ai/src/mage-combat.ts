@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import { HUMAN_BODIES } from './bodies';
 import type { FighterContext } from './fighter-context';
 import { distance } from './navigation';
 import type { Entity } from './protocol/world';
@@ -51,7 +52,7 @@ const controlled = [
   'Summon Creature'
 ];
 const wild = ['Energy Vortex', 'Blade Spirits'];
-const humans = new Set([0x190, 0x191, 0x25d, 0x25e, 0x29a, 0x29b]);
+const humans = HUMAN_BODIES;
 
 // Combat magery modelled on ServUO MageAI: cure first, heal by how badly hurt and how much mana
 // there is (one fast Heal can save a fight a slow Greater Heal would lose), interrupt an enemy's

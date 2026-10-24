@@ -8,7 +8,7 @@ import type { Point } from './terrain';
 const distance = (a: Point, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 // A miner's remembered depleted veins and its trip plan (when to smelt, when to bank).
-export function minerPlan(checkpoint: Checkpoint, template: CharacterTemplate, save: () => void) {
+export function minerPlan(checkpoint: Checkpoint, _template: CharacterTemplate, save: () => void) {
   checkpoint.landmarks ??= { forges: [] };
   // ServUO ore veins respawn 10-20 minutes after depletion (Mining.cs), so a depleted spot is
   // remembered across restarts for the longest respawn and then tried again.
@@ -29,11 +29,12 @@ export function minerPlan(checkpoint: Checkpoint, template: CharacterTemplate, s
   };
   const newTrip = () => {
     const roll = Math.random();
-    const ceiling = Math.min(0.9, template.behavior.bankAtWeightRatio);
+    // Miners fill the pack before smelting and smelt before banking (inventory.ts).
+    const ceiling = 0.92;
     return {
       smeltsSinceBank: 0,
       smeltsBeforeBank: roll < 0.2 ? 1 : roll < 0.75 ? 2 : roll < 0.95 ? 3 : 4,
-      smeltAtWeightRatio: ceiling * (0.8 + Math.random() * 0.2),
+      smeltAtWeightRatio: ceiling * (0.85 + Math.random() * 0.15),
       bankAtWeightRatio: ceiling * (0.9 + Math.random() * 0.1)
     };
   };

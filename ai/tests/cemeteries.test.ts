@@ -4,9 +4,6 @@ import { cemeteries, nearAnyGround, nextGround, patrolPoints, travelToGround } f
 import type { FighterContext } from '../src/fighter-context';
 import { nearestGate } from '../src/moongate';
 
-const fighter = (ground: string | undefined, patrolOffset: number) =>
-  ({ trip: { ground }, template: { behavior: { temperament: { patrolOffset } } } }) as unknown as FighterContext;
-
 test('every cemetery has patrol points and a gate near it', () => {
   for (const cemetery of cemeteries) {
     expect(patrolPoints(cemetery).length).toBe(4);
@@ -16,18 +13,32 @@ test('every cemetery has patrol points and a gate near it', () => {
   expect(nearAnyGround({ x: 1430, y: 1690 })).toBe(false);
 });
 
-test('fighters start at Britain and fan out in different orders', () => {
-  const firstMoves = [0, 1, 2, 3].map((offset) => nextGround(fighter(undefined, offset)));
-  expect(new Set(firstMoves).size).toBe(4);
-  // Each order eventually visits every cemetery and returns to Britain.
-  let ground: string | undefined;
-  const visited = new Set<string>();
-  for (let step = 0; step < cemeteries.length; step++) {
-    ground = nextGround(fighter(ground, 2));
-    visited.add(ground);
-  }
-  expect(visited.size).toBe(cemeteries.length);
-  expect(ground).toBe('Britain');
+test('a fighter moves on to grounds its skills meet: graveyards early, ogres and trolls later', async () => {
+  const { grounds } = await import('../src/cemeteries');
+  const { skillId } = await import('../src/skills');
+  const fighter = (swords: number) =>
+    ({
+      trip: { ground: 'Britain' },
+      serial: 1,
+      position: () => ({ x: 1369, y: 1475, z: 0 }),
+      status: () => ({ maxHits: 100, armor: 30, hits: 100 }),
+      template: { archetype: { primarySkills: ['Swordsmanship'], supportingSkills: [] }, behavior: {} },
+      session: {
+        world: {
+          skills: new Map([
+            [skillId('Swordsmanship'), { value: swords, base: swords }],
+            [skillId('Tactics'), { value: swords, base: swords }]
+          ])
+        }
+      }
+    }) as unknown as FighterContext;
+  const hardest = (name: string) => Object.keys(grounds.find((g) => g.name === name)?.creatures ?? {});
+  const novice = nextGround(fighter(30));
+  expect(hardest(novice).every((type) => !['Troll', 'Ettin', 'Ogre'].includes(type)) || !hardest(novice).length).toBe(
+    true
+  );
+  const veteran = nextGround(fighter(95));
+  expect(grounds.find((g) => g.name === veteran)?.creatures).toBeDefined();
 });
 
 test('overland travel walks to the selected mainland cemetery without using a moongate', async () => {

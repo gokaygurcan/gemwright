@@ -44,6 +44,9 @@ export const spendableGold = (session: MountContext['session'], backpack: number
 // With an unknown bank balance only carried gold counts.
 export const TRAINING = { reserve: 500, perHour: 300 };
 export const BUSINESS = { reserve: 100, perHour: 1000 };
+// The tool a resident's own work needs (an instrument, a pole, a blade, scissors) is bought with
+// whatever it has: without it there is no work and no income at all.
+export const TOOLS = { reserve: 0, perHour: 500 };
 const trainingSpend = new WeakMap<Checkpoint, { since: number; total: number }>();
 export function canSpendOnTraining(
   session: MountContext['session'],

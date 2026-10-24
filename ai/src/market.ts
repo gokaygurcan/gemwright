@@ -1,6 +1,7 @@
 import { noteTrade } from './activity';
 import type { CharacterTemplate } from './config';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
+import { guildmates } from './guilds';
 import { quality } from './item-quality';
 import { allServiceLocations, type ServiceType, serviceLocations } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
@@ -287,7 +288,15 @@ export async function buyAtMarket(ctx: MarketContext, good: Good, want: number, 
       const name = (line.entry.name ?? '').split(' ')[0] ?? '';
       const n = Math.min(need, line.n);
       const price = Math.round((line.total / line.n) * n);
-      const busy = courting && courting.until > Date.now() && courting.serial !== line.entry.serial;
+      // A guildmate's lot comes before a stranger's (guilds.ts).
+      const busy =
+        courting &&
+        courting.until > Date.now() &&
+        courting.serial !== line.entry.serial &&
+        !(
+          guildmates(session.world.serial ?? 0, line.entry.serial) &&
+          !guildmates(session.world.serial ?? 0, courting.serial)
+        );
       if (line.kind === 'selling') {
         if (busy) continue;
         session.say(`${name}, ${n} ${good} for ${price <= ceiling(good, n) ? price : priceAt(good, n, share)} gold`);

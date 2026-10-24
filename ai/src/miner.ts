@@ -6,6 +6,7 @@ import { converse } from './conversation';
 import { threatsNear } from './danger';
 import type { DecisionCoordinator, DecisionPick } from './decisions';
 import { reconcileExperience } from './experience';
+import { leavesEarly, packFull, packItems } from './inventory';
 import { lifeTurn } from './life';
 import { serviceLocations } from './locations';
 import { sellCarried } from './market';
@@ -218,27 +219,38 @@ export async function runMiner(options: {
         }
         check();
         await session.refreshStatus();
-        const miningLimit = () => Math.min(status().maxWeight * plan().smeltAtWeightRatio, status().maxWeight - 30);
+        const miningLimit = () =>
+          Math.min(status().maxWeight * Math.max(0.78, plan().smeltAtWeightRatio), status().maxWeight - 30);
         const hasTool = () => carried(backpack).some((item) => tools.has(item.graphic));
-        const needsSpace = () => progress.packRejected || carried(backpack).length >= 110;
+        const needsSpace = () => progress.packRejected || packItems(session, backpack).length >= 110;
         await packs.keepUp();
         // A full pack goes onto the pack animal while it has room; mining goes on.
         if (status().weight >= miningLimit() && (await packs.stow(ore))) continue;
+        let smelted = false;
         if (
           smeltable(backpack).length &&
           (status().weight >= miningLimit() || needsSpace() || !hasTool() || plan().pending === 'smelt')
-        )
-          await smelt(backpack);
+        ) {
+          // Far from any forge (visiting another town): smelting waits for the way home.
+          await smelt(backpack).catch(async (error) => {
+            if (!(error instanceof Error) || !error.message.startsWith('No reachable forge')) throw error;
+            phase('mine-travel', 'No forge near here; heading back to the mines');
+            await reachRegion({ session, position, navigate, phase }, home);
+          });
+          smelted = true;
+        }
         const hasIngots = carried(backpack).some((item) => item.graphic === ingot);
         const stranded = !smeltable(backpack).length && retainedOre(backpack).length > 0;
+        // Mine, smelt to lighten the load, mine on: the bank waits until even ingots fill the pack
+        // (inventory.ts), the tool is gone, or now and then earlier by chaos.
         if (
           (hasIngots || (stranded && (status().weight >= miningLimit() || needsSpace()))) &&
-          (plan().smeltsSinceBank >= plan().smeltsBeforeBank ||
-            plan().pending === 'bank' ||
+          (plan().pending === 'bank' ||
             needsSpace() ||
-            status().weight >= status().maxWeight * plan().bankAtWeightRatio ||
+            packFull(session, backpack, 0.85) ||
             !hasTool() ||
-            status().weight >= miningLimit())
+            (stranded && status().weight >= miningLimit()) ||
+            (smelted && leavesEarly(session)))
         ) {
           await bank(backpack);
           // A healthy banked iron stock: sometimes smith a batch for profit.

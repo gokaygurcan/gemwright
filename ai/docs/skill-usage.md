@@ -48,3 +48,5 @@ Where and how each skill is ordinarily trained or used, as guidance for idle-tim
 - Anatomy and Eval Int give no gain on the character itself (500324, "You know yourself quite well enough already"); residents study their own horse or a nearby fellow resident instead.
 - Skill delays from each skill's `OnUse`: Arms Lore, Anatomy, Eval Int, Animal Lore 1 s; Hiding and Detect Hidden 10 s.
 - Trainers live in `src/skill-training.ts` (skill-use loops), `src/craft-training.ts` (Tinkering, Carpentry) and `src/magery.ts`.
+
+A supporting skill at its cap (100.0) or locked is never practised again (`skill-training.ts` `trainable`). With none left, the practice phase is not chosen, and a setback pauses only 15 seconds before work resumes. Training purchases (a spellbook, reagents) are only walked to when the training budget can pay for them; the tools of a resident's own work (an instrument, a pole, a blade, scissors) are bought with whatever it has (`TOOLS` in `bank-gold.ts`).

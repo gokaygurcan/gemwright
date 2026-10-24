@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import { HUMAN_BODIES } from './bodies';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
@@ -31,7 +32,7 @@ const sharedThreat = (session: PlayerSession, mobile: Entity) => {
   }
   return shared.hostile;
 };
-const humans = new Set([0x190, 0x191, 0x25d, 0x25e, 0x29a, 0x29b]);
+const humans = HUMAN_BODIES;
 const hostile = (session: PlayerSession, mobile: Entity) =>
   mobile.kind === 'mobile' &&
   mobile.serial !== session.world.serial &&

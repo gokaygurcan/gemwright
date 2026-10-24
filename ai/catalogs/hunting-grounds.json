@@ -1,0 +1,5084 @@
+{
+ "schemaVersion": 1,
+ "grounds": [
+  {
+   "name": "sea serpent and water elemental spawn near 107,909",
+   "center": {
+    "x": 107,
+    "y": 909
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 139,1173",
+   "center": {
+    "x": 139,
+    "y": 1173
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 12,
+    "WaterElemental": 6
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 141,1367",
+   "center": {
+    "x": 141,
+    "y": 1367
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 147,3213",
+   "center": {
+    "x": 147,
+    "y": 3213
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 157,1487",
+   "center": {
+    "x": 157,
+    "y": 1487
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 168,1743",
+   "center": {
+    "x": 168,
+    "y": 1743
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 176,3551",
+   "center": {
+    "x": 176,
+    "y": 3551
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 182,1428",
+   "center": {
+    "x": 182,
+    "y": 1428
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 184,191",
+   "center": {
+    "x": 184,
+    "y": 191
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 189,1344",
+   "center": {
+    "x": 189,
+    "y": 1344
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 192,2895",
+   "center": {
+    "x": 192,
+    "y": 2895
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 200,559",
+   "center": {
+    "x": 200,
+    "y": 559
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 200,2103",
+   "center": {
+    "x": 200,
+    "y": 2103
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 200,3879",
+   "center": {
+    "x": 200,
+    "y": 3879
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 204,1483",
+   "center": {
+    "x": 204,
+    "y": 1483
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 208,2503",
+   "center": {
+    "x": 208,
+    "y": 2503
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 229,1419",
+   "center": {
+    "x": 229,
+    "y": 1419
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 232,1350",
+   "center": {
+    "x": 232,
+    "y": 1350
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 255,1459",
+   "center": {
+    "x": 255,
+    "y": 1459
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "WaterElemental": 2,
+    "Corpser": 2,
+    "DireWolf": 2,
+    "Ettin": 2,
+    "Gargoyle": 2,
+    "Gazer": 2,
+    "Harpy": 2,
+    "Orc": 2,
+    "Reaper": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 278,1355",
+   "center": {
+    "x": 278,
+    "y": 1355
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "corpser and dire wolf spawn near 418,1665",
+   "center": {
+    "x": 418,
+    "y": 1665
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Harpy": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "corpser and dire wolf spawn near 423,1595",
+   "center": {
+    "x": 423,
+    "y": 1595
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Harpy": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 480,1641",
+   "center": {
+    "x": 480,
+    "y": 1641
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Harpy": 1,
+    "Reaper": 1,
+    "Skeleton": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 480,3351",
+   "center": {
+    "x": 480,
+    "y": 3351
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 491,4013",
+   "center": {
+    "x": 491,
+    "y": 4013
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 496,527",
+   "center": {
+    "x": 496,
+    "y": 527
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 496,1879",
+   "center": {
+    "x": 496,
+    "y": 1879
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 512,2919",
+   "center": {
+    "x": 512,
+    "y": 2919
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "corpser and dire wolf spawn near 516,1585",
+   "center": {
+    "x": 516,
+    "y": 1585
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Harpy": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "corpser and dire wolf spawn near 541,1645",
+   "center": {
+    "x": 541,
+    "y": 1645
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Harpy": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 544,3719",
+   "center": {
+    "x": 544,
+    "y": 3719
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 579,1305",
+   "center": {
+    "x": 579,
+    "y": 1305
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 592,223",
+   "center": {
+    "x": 592,
+    "y": 223
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 600,2511",
+   "center": {
+    "x": 600,
+    "y": 2511
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "orc and orcish lord spawn near 633,1491",
+   "center": {
+    "x": 633,
+    "y": 1491
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 8,
+    "OrcishLord": 8,
+    "OrcishMage": 8,
+    "OrcBomber": 6,
+    "OrcCaptain": 6
+   }
+  },
+  {
+   "name": "orc and orcish lord spawn near 634,1462",
+   "center": {
+    "x": 634,
+    "y": 1462
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 2,
+    "OrcishLord": 2,
+    "OrcishMage": 2
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 659,1318",
+   "center": {
+    "x": 659,
+    "y": 1318
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 669,1825",
+   "center": {
+    "x": 669,
+    "y": 1825
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Harpy": 2,
+    "Ogre": 2,
+    "Troll": 2,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "skeleton spawn near 722,1119",
+   "center": {
+    "x": 722,
+    "y": 1119
+   },
+   "radius": 40,
+   "creatures": {
+    "Skeleton": 10
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 728,1242",
+   "center": {
+    "x": 728,
+    "y": 1242
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 731,3989",
+   "center": {
+    "x": 731,
+    "y": 3989
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 735,1938",
+   "center": {
+    "x": 735,
+    "y": 1938
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Harpy": 2,
+    "Ogre": 2,
+    "Troll": 2,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "dire wolf spawn near 747,765",
+   "center": {
+    "x": 747,
+    "y": 765
+   },
+   "radius": 40,
+   "creatures": {
+    "DireWolf": 260
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 750,1833",
+   "center": {
+    "x": 750,
+    "y": 1833
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Harpy": 2,
+    "Ogre": 2,
+    "Troll": 2,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "lich spawn near 757,1401",
+   "center": {
+    "x": 757,
+    "y": 1401
+   },
+   "radius": 40,
+   "creatures": {
+    "Lich": 8
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 793,1088",
+   "center": {
+    "x": 793,
+    "y": 1088
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 798,1935",
+   "center": {
+    "x": 798,
+    "y": 1935
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Harpy": 2,
+    "Ogre": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "corpser and dire wolf spawn near 805,463",
+   "center": {
+    "x": 805,
+    "y": 463
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Reaper": 1
+   }
+  },
+  {
+   "name": "ettin and ogre spawn near 812,1609",
+   "center": {
+    "x": 812,
+    "y": 1609
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 3,
+    "Ogre": 3,
+    "GiantSpider": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Spectre": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 819,1841",
+   "center": {
+    "x": 819,
+    "y": 1841
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Harpy": 2,
+    "Ogre": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "ghoul and giant spider spawn near 821,1938",
+   "center": {
+    "x": 821,
+    "y": 1938
+   },
+   "radius": 40,
+   "creatures": {
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 823,960",
+   "center": {
+    "x": 823,
+    "y": 960
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 824,3287",
+   "center": {
+    "x": 824,
+    "y": 3287
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "corpser and dire wolf spawn near 837,361",
+   "center": {
+    "x": 837,
+    "y": 361
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Reaper": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 840,2863",
+   "center": {
+    "x": 840,
+    "y": 2863
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 849,1262",
+   "center": {
+    "x": 849,
+    "y": 1262
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and dire wolf spawn near 860,492",
+   "center": {
+    "x": 860,
+    "y": 492
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Reaper": 1,
+    "AirElemental": 1,
+    "Gargoyle": 1
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 879,1956",
+   "center": {
+    "x": 879,
+    "y": 1956
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Harpy": 2,
+    "Ogre": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "ghoul and giant spider spawn near 892,1963",
+   "center": {
+    "x": 892,
+    "y": 1963
+   },
+   "radius": 40,
+   "creatures": {
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 896,1856",
+   "center": {
+    "x": 896,
+    "y": 1856
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Harpy": 2,
+    "Ogre": 2,
+    "Troll": 2,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 896,3695",
+   "center": {
+    "x": 896,
+    "y": 3695
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 909,1175",
+   "center": {
+    "x": 909,
+    "y": 1175
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 931,141",
+   "center": {
+    "x": 931,
+    "y": 141
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 12,
+    "WaterElemental": 6
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 947,418",
+   "center": {
+    "x": 947,
+    "y": 418
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Reaper": 1
+   }
+  },
+  {
+   "name": "wraith and shade spawn near 952,705",
+   "center": {
+    "x": 952,
+    "y": 705
+   },
+   "radius": 40,
+   "creatures": {
+    "Wraith": 3,
+    "Shade": 3,
+    "Spectre": 3,
+    "Ghoul": 2
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 956,452",
+   "center": {
+    "x": 956,
+    "y": 452
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Reaper": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 960,910",
+   "center": {
+    "x": 960,
+    "y": 910
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 964,365",
+   "center": {
+    "x": 964,
+    "y": 365
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Reaper": 1
+   }
+  },
+  {
+   "name": "orc and ratman spawn near 971,1308",
+   "center": {
+    "x": 971,
+    "y": 1308
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 3,
+    "Ratman": 3,
+    "Ettin": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 974,1186",
+   "center": {
+    "x": 974,
+    "y": 1186
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "skeleton and ghoul spawn near 976,741",
+   "center": {
+    "x": 976,
+    "y": 741
+   },
+   "radius": 40,
+   "creatures": {
+    "Skeleton": 4,
+    "Ghoul": 2,
+    "Lich": 2,
+    "Zombie": 2
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 979,3997",
+   "center": {
+    "x": 979,
+    "y": 3997
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 1000,330",
+   "center": {
+    "x": 1000,
+    "y": 330
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Reaper": 1
+   }
+  },
+  {
+   "name": "ghoul and lich spawn near 1001,787",
+   "center": {
+    "x": 1001,
+    "y": 787
+   },
+   "radius": 40,
+   "creatures": {
+    "Ghoul": 2,
+    "Lich": 2,
+    "Skeleton": 2,
+    "Zombie": 2
+   }
+  },
+  {
+   "name": "orc and ratman spawn near 1004,1369",
+   "center": {
+    "x": 1004,
+    "y": 1369
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 3,
+    "Ratman": 3,
+    "Ettin": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "orc and ratman spawn near 1021,1415",
+   "center": {
+    "x": 1021,
+    "y": 1415
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 3,
+    "Ratman": 3,
+    "Ettin": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1029,1969",
+   "center": {
+    "x": 1029,
+    "y": 1969
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "GiantSpider": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Spectre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "orc and ratman spawn near 1037,1325",
+   "center": {
+    "x": 1037,
+    "y": 1325
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 3,
+    "Ratman": 3,
+    "Ettin": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1042,1024",
+   "center": {
+    "x": 1042,
+    "y": 1024
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1042,1920",
+   "center": {
+    "x": 1042,
+    "y": 1920
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "GiantSpider": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Spectre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "orc and ratman spawn near 1055,1442",
+   "center": {
+    "x": 1055,
+    "y": 1442
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 3,
+    "Ratman": 3,
+    "Ettin": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1059,1166",
+   "center": {
+    "x": 1059,
+    "y": 1166
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "orc and ettin spawn near 1059,2461",
+   "center": {
+    "x": 1059,
+    "y": 2461
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10,
+    "Ettin": 10,
+    "Ratman": 10,
+    "GiantSpider": 10,
+    "Reaper": 10
+   }
+  },
+  {
+   "name": "orc and ratman spawn near 1060,1375",
+   "center": {
+    "x": 1060,
+    "y": 1375
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 3,
+    "Ratman": 3,
+    "Ettin": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1067,2117",
+   "center": {
+    "x": 1067,
+    "y": 2117
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "GiantSpider": 2,
+    "Mongbat": 2,
+    "Orc": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1080,1963",
+   "center": {
+    "x": 1080,
+    "y": 1963
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "GiantSpider": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Spectre": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1083,783",
+   "center": {
+    "x": 1083,
+    "y": 783
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1089,2033",
+   "center": {
+    "x": 1089,
+    "y": 2033
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "GiantSpider": 2,
+    "Mongbat": 2,
+    "Orc": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "lizardman and ratman spawn near 1094,3482",
+   "center": {
+    "x": 1094,
+    "y": 3482
+   },
+   "radius": 40,
+   "creatures": {
+    "Lizardman": 4,
+    "Ratman": 4
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1097,970",
+   "center": {
+    "x": 1097,
+    "y": 970
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "headless one and orc spawn near 1110,2672",
+   "center": {
+    "x": 1110,
+    "y": 2672
+   },
+   "radius": 40,
+   "creatures": {
+    "HeadlessOne": 3,
+    "Orc": 3,
+    "OrcCaptain": 3,
+    "OrcishLord": 3,
+    "OrcishMage": 3
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1122,718",
+   "center": {
+    "x": 1122,
+    "y": 718
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "lizardman and ratman spawn near 1131,3415",
+   "center": {
+    "x": 1131,
+    "y": 3415
+   },
+   "radius": 40,
+   "creatures": {
+    "Lizardman": 4,
+    "Ratman": 4
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1140,2087",
+   "center": {
+    "x": 1140,
+    "y": 2087
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "GiantSpider": 2,
+    "Mongbat": 2,
+    "Orc": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1143,180",
+   "center": {
+    "x": 1143,
+    "y": 180
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1147,1048",
+   "center": {
+    "x": 1147,
+    "y": 1048
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "lizardman and ratman spawn near 1147,3524",
+   "center": {
+    "x": 1147,
+    "y": 3524
+   },
+   "radius": 40,
+   "creatures": {
+    "Lizardman": 4,
+    "Ratman": 4
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 1158,2872",
+   "center": {
+    "x": 1158,
+    "y": 2872
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 4,
+    "Alligator": 4,
+    "BogThing": 4,
+    "Bogling": 4,
+    "Corpser": 4,
+    "GiantRat": 4,
+    "GiantSerpent": 4,
+    "Lizardman": 4,
+    "StrongMongbat": 4,
+    "PlagueBeast": 4,
+    "PlagueSpawn": 4,
+    "Ratman": 4,
+    "Sewerrat": 4,
+    "Snake": 4
+   }
+  },
+  {
+   "name": "lizardman and ratman spawn near 1158,3457",
+   "center": {
+    "x": 1158,
+    "y": 3457
+   },
+   "radius": 40,
+   "creatures": {
+    "Lizardman": 4,
+    "Ratman": 4
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1166,818",
+   "center": {
+    "x": 1166,
+    "y": 818
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1180,737",
+   "center": {
+    "x": 1180,
+    "y": 737
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1187,3885",
+   "center": {
+    "x": 1187,
+    "y": 3885
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1191,288",
+   "center": {
+    "x": 1191,
+    "y": 288
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1192,958",
+   "center": {
+    "x": 1192,
+    "y": 958
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1207,625",
+   "center": {
+    "x": 1207,
+    "y": 625
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1,
+    "AirElemental": 1,
+    "Gargoyle": 1,
+    "Gazer": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1226,449",
+   "center": {
+    "x": 1226,
+    "y": 449
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1231,192",
+   "center": {
+    "x": 1231,
+    "y": 192
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1232,2093",
+   "center": {
+    "x": 1232,
+    "y": 2093
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "GiantSpider": 2,
+    "Mongbat": 2,
+    "Orc": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "orc and ettin spawn near 1243,2437",
+   "center": {
+    "x": 1243,
+    "y": 2437
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10,
+    "Ettin": 10,
+    "Ratman": 10,
+    "GiantSpider": 10,
+    "Reaper": 10
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1249,2030",
+   "center": {
+    "x": 1249,
+    "y": 2030
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "GiantSpider": 2,
+    "Mongbat": 2,
+    "Orc": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "ettin and giant spider spawn near 1266,1982",
+   "center": {
+    "x": 1266,
+    "y": 1982
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "GiantSpider": 2,
+    "Mongbat": 2,
+    "Orc": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1268,774",
+   "center": {
+    "x": 1268,
+    "y": 774
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1276,431",
+   "center": {
+    "x": 1276,
+    "y": 431
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1295,328",
+   "center": {
+    "x": 1295,
+    "y": 328
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "air elemental and gargoyle spawn near 1306,610",
+   "center": {
+    "x": 1306,
+    "y": 610
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "troll spawn near 1325,1072",
+   "center": {
+    "x": 1325,
+    "y": 1072
+   },
+   "radius": 40,
+   "creatures": {
+    "Troll": 20
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1336,79",
+   "center": {
+    "x": 1336,
+    "y": 79
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1361,275",
+   "center": {
+    "x": 1361,
+    "y": 275
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1361,522",
+   "center": {
+    "x": 1361,
+    "y": 522
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "orc and giant spider spawn near 1387,3109",
+   "center": {
+    "x": 1387,
+    "y": 3109
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 15,
+    "GiantSpider": 15,
+    "GiantSerpent": 15,
+    "Corpser": 15
+   }
+  },
+  {
+   "name": "black solen infiltrator and black solen warrior spawn near 1393,955",
+   "center": {
+    "x": 1393,
+    "y": 955
+   },
+   "radius": 40,
+   "creatures": {
+    "BlackSolenInfiltratorWarrior": 12,
+    "BlackSolenWarrior": 12,
+    "BlackSolenQueen": 12
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1395,3421",
+   "center": {
+    "x": 1395,
+    "y": 3421
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "orc and ettin spawn near 1427,2525",
+   "center": {
+    "x": 1427,
+    "y": 2525
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10,
+    "Ettin": 10,
+    "Ratman": 10,
+    "GiantSpider": 10,
+    "Reaper": 10
+   }
+  },
+  {
+   "name": "orc and ettin spawn near 1435,2261",
+   "center": {
+    "x": 1435,
+    "y": 2261
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10,
+    "Ettin": 10,
+    "Ratman": 10,
+    "GiantSpider": 10,
+    "Reaper": 10
+   }
+  },
+  {
+   "name": "corpser and ettin spawn near 1491,238",
+   "center": {
+    "x": 1491,
+    "y": 238
+   },
+   "radius": 40,
+   "creatures": {
+    "Corpser": 1,
+    "Ettin": 1,
+    "Ghoul": 1,
+    "GiantSpider": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1580,75",
+   "center": {
+    "x": 1580,
+    "y": 75
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "orc and giant spider spawn near 1595,3045",
+   "center": {
+    "x": 1595,
+    "y": 3045
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 8,
+    "GiantSpider": 8,
+    "GiantSerpent": 8,
+    "Corpser": 8
+   }
+  },
+  {
+   "name": "orc and ettin spawn near 1619,2725",
+   "center": {
+    "x": 1619,
+    "y": 2725
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10,
+    "Ettin": 10,
+    "Ratman": 10,
+    "GiantSpider": 10,
+    "Reaper": 10
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 1626,266",
+   "center": {
+    "x": 1626,
+    "y": 266
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1631,650",
+   "center": {
+    "x": 1631,
+    "y": 650
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "orc and giant spider spawn near 1635,3253",
+   "center": {
+    "x": 1635,
+    "y": 3253
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 15,
+    "GiantSpider": 15,
+    "GiantSerpent": 15,
+    "Corpser": 15
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1636,532",
+   "center": {
+    "x": 1636,
+    "y": 532
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1644,1421",
+   "center": {
+    "x": 1644,
+    "y": 1421
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Gargoyle": 2,
+    "Gazer": 2,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "orc and ettin spawn near 1651,2413",
+   "center": {
+    "x": 1651,
+    "y": 2413
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10,
+    "Ettin": 10,
+    "Ratman": 10,
+    "GiantSpider": 10,
+    "Reaper": 10
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 1682,252",
+   "center": {
+    "x": 1682,
+    "y": 252
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1692,1463",
+   "center": {
+    "x": 1692,
+    "y": 1463
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1720,3879",
+   "center": {
+    "x": 1720,
+    "y": 3879
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1723,683",
+   "center": {
+    "x": 1723,
+    "y": 683
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1726,1362",
+   "center": {
+    "x": 1726,
+    "y": 1362
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 1741,256",
+   "center": {
+    "x": 1741,
+    "y": 256
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "WaterElemental": 2,
+    "DireWolf": 2,
+    "Ettin": 2,
+    "Gargoyle": 2,
+    "Gazer": 2,
+    "Harpy": 2,
+    "Lizardman": 2,
+    "Orc": 2,
+    "Skeleton": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1743,589",
+   "center": {
+    "x": 1743,
+    "y": 589
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1749,474",
+   "center": {
+    "x": 1749,
+    "y": 474
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1792,79",
+   "center": {
+    "x": 1792,
+    "y": 79
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1798,1393",
+   "center": {
+    "x": 1798,
+    "y": 1393
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Gargoyle": 2,
+    "Gazer": 2,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1802,1506",
+   "center": {
+    "x": 1802,
+    "y": 1506
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "air elemental and water elemental spawn near 1804,247",
+   "center": {
+    "x": 1804,
+    "y": 247
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "WaterElemental": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1810,647",
+   "center": {
+    "x": 1810,
+    "y": 647
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1812,1314",
+   "center": {
+    "x": 1812,
+    "y": 1314
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1826,2250",
+   "center": {
+    "x": 1826,
+    "y": 2250
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "orc and giant spider spawn near 1827,3429",
+   "center": {
+    "x": 1827,
+    "y": 3429
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 15,
+    "GiantSpider": 15,
+    "GiantSerpent": 15,
+    "Corpser": 15
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1831,449",
+   "center": {
+    "x": 1831,
+    "y": 449
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1832,517",
+   "center": {
+    "x": 1832,
+    "y": 517
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1833,1245",
+   "center": {
+    "x": 1833,
+    "y": 1245
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1837,2334",
+   "center": {
+    "x": 1837,
+    "y": 2334
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "ratman and earth elemental spawn near 1853,948",
+   "center": {
+    "x": 1853,
+    "y": 948
+   },
+   "radius": 40,
+   "creatures": {
+    "Ratman": 4,
+    "EarthElemental": 4,
+    "Scorpion": 3,
+    "GiantSpider": 3
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1862,1434",
+   "center": {
+    "x": 1862,
+    "y": 1434
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1866,1798",
+   "center": {
+    "x": 1866,
+    "y": 1798
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1872,1347",
+   "center": {
+    "x": 1872,
+    "y": 1347
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1873,2426",
+   "center": {
+    "x": 1873,
+    "y": 2426
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1877,1515",
+   "center": {
+    "x": 1877,
+    "y": 1515
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1887,591",
+   "center": {
+    "x": 1887,
+    "y": 591
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1890,2270",
+   "center": {
+    "x": 1890,
+    "y": 2270
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1891,2331",
+   "center": {
+    "x": 1891,
+    "y": 2331
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 1891,3597",
+   "center": {
+    "x": 1891,
+    "y": 3597
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1898,1265",
+   "center": {
+    "x": 1898,
+    "y": 1265
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1912,1296",
+   "center": {
+    "x": 1912,
+    "y": 1296
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Gargoyle": 2,
+    "Gazer": 2,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "giant spider and scorpion spawn near 1915,928",
+   "center": {
+    "x": 1915,
+    "y": 928
+   },
+   "radius": 40,
+   "creatures": {
+    "GiantSpider": 3,
+    "Scorpion": 3
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1915,2385",
+   "center": {
+    "x": 1915,
+    "y": 2385
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "orc and giant spider spawn near 1931,3205",
+   "center": {
+    "x": 1931,
+    "y": 3205
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 15,
+    "GiantSpider": 15,
+    "GiantSerpent": 15,
+    "Corpser": 15
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1947,2294",
+   "center": {
+    "x": 1947,
+    "y": 2294
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "giant spider and scorpion spawn near 1951,824",
+   "center": {
+    "x": 1951,
+    "y": 824
+   },
+   "radius": 40,
+   "creatures": {
+    "GiantSpider": 3,
+    "Scorpion": 3
+   }
+  },
+  {
+   "name": "mongbat and orc spawn near 1967,1296",
+   "center": {
+    "x": 1967,
+    "y": 1296
+   },
+   "radius": 40,
+   "creatures": {
+    "Mongbat": 3,
+    "Orc": 3,
+    "Corpser": 1,
+    "DireWolf": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "Reaper": 1,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 1968,2346",
+   "center": {
+    "x": 1968,
+    "y": 2346
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "ettin and gargoyle spawn near 1969,1409",
+   "center": {
+    "x": 1969,
+    "y": 1409
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "scorpion and giant spider spawn near 1980,885",
+   "center": {
+    "x": 1980,
+    "y": 885
+   },
+   "radius": 40,
+   "creatures": {
+    "Scorpion": 4,
+    "GiantSpider": 4
+   }
+  },
+  {
+   "name": "earth elemental and ratman spawn near 1983,828",
+   "center": {
+    "x": 1983,
+    "y": 828
+   },
+   "radius": 40,
+   "creatures": {
+    "EarthElemental": 4,
+    "Ratman": 4,
+    "GiantSpider": 3,
+    "Scorpion": 3
+   }
+  },
+  {
+   "name": "ettin and gargoyle spawn near 1983,1517",
+   "center": {
+    "x": 1983,
+    "y": 1517
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "ettin and gargoyle spawn near 1986,1463",
+   "center": {
+    "x": 1986,
+    "y": 1463
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Gargoyle": 1,
+    "Gazer": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 1990,976",
+   "center": {
+    "x": 1990,
+    "y": 976
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 1,
+    "Alligator": 1,
+    "BogThing": 1,
+    "Bogling": 1,
+    "Corpser": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "StrongMongbat": 1,
+    "PlagueBeast": 1,
+    "PlagueSpawn": 1,
+    "Ratman": 1,
+    "Sewerrat": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 1993,1030",
+   "center": {
+    "x": 1993,
+    "y": 1030
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 1,
+    "Alligator": 1,
+    "BogThing": 1,
+    "Bogling": 1,
+    "Corpser": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "StrongMongbat": 1,
+    "PlagueBeast": 1,
+    "PlagueSpawn": 1,
+    "Ratman": 1,
+    "Sewerrat": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2008,4007",
+   "center": {
+    "x": 2008,
+    "y": 4007
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "giant spider and scorpion spawn near 2014,839",
+   "center": {
+    "x": 2014,
+    "y": 839
+   },
+   "radius": 40,
+   "creatures": {
+    "GiantSpider": 3,
+    "Scorpion": 3
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 2021,2313",
+   "center": {
+    "x": 2021,
+    "y": 2313
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 2023,1052",
+   "center": {
+    "x": 2023,
+    "y": 1052
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 1,
+    "Alligator": 1,
+    "BogThing": 1,
+    "Bogling": 1,
+    "Corpser": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "StrongMongbat": 1,
+    "PlagueBeast": 1,
+    "PlagueSpawn": 1,
+    "Ratman": 1,
+    "Sewerrat": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 2028,987",
+   "center": {
+    "x": 2028,
+    "y": 987
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 1,
+    "Alligator": 1,
+    "BogThing": 1,
+    "Bogling": 1,
+    "Corpser": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "StrongMongbat": 1,
+    "PlagueBeast": 1,
+    "PlagueSpawn": 1,
+    "Ratman": 1,
+    "Sewerrat": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 2033,936",
+   "center": {
+    "x": 2033,
+    "y": 936
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 1,
+    "Alligator": 1,
+    "BogThing": 1,
+    "Bogling": 1,
+    "Corpser": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "StrongMongbat": 1,
+    "PlagueBeast": 1,
+    "PlagueSpawn": 1,
+    "Ratman": 1,
+    "Sewerrat": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 2037,1021",
+   "center": {
+    "x": 2037,
+    "y": 1021
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 2,
+    "Alligator": 2,
+    "BogThing": 2,
+    "Bogling": 2,
+    "Corpser": 2,
+    "GiantSerpent": 2,
+    "Lizardman": 2,
+    "StrongMongbat": 2,
+    "PlagueBeast": 2,
+    "PlagueSpawn": 2,
+    "Ratman": 2,
+    "Sewerrat": 2,
+    "Slime": 2,
+    "Snake": 2
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2040,3751",
+   "center": {
+    "x": 2040,
+    "y": 3751
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 2048,1066",
+   "center": {
+    "x": 2048,
+    "y": 1066
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 1,
+    "Alligator": 1,
+    "BogThing": 1,
+    "Bogling": 1,
+    "Corpser": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "StrongMongbat": 1,
+    "PlagueBeast": 1,
+    "PlagueSpawn": 1,
+    "Ratman": 1,
+    "Sewerrat": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 2067,989",
+   "center": {
+    "x": 2067,
+    "y": 989
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 1,
+    "Alligator": 1,
+    "BogThing": 1,
+    "Bogling": 1,
+    "Corpser": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "StrongMongbat": 1,
+    "PlagueBeast": 1,
+    "PlagueSpawn": 1,
+    "Ratman": 1,
+    "Sewerrat": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2072,2527",
+   "center": {
+    "x": 2072,
+    "y": 2527
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "acid elemental and alligator spawn near 2074,1023",
+   "center": {
+    "x": 2074,
+    "y": 1023
+   },
+   "radius": 40,
+   "creatures": {
+    "ToxicElemental": 2,
+    "Alligator": 2,
+    "BogThing": 2,
+    "Bogling": 2,
+    "Corpser": 2,
+    "GiantSerpent": 2,
+    "Lizardman": 2,
+    "StrongMongbat": 2,
+    "PlagueBeast": 2,
+    "PlagueSpawn": 2,
+    "Ratman": 2,
+    "Sewerrat": 2,
+    "Slime": 2,
+    "Snake": 2
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 2077,2305",
+   "center": {
+    "x": 2077,
+    "y": 2305
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 2080,400",
+   "center": {
+    "x": 2080,
+    "y": 400
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Orc": 2
+   }
+  },
+  {
+   "name": "orc and giant spider spawn near 2091,3413",
+   "center": {
+    "x": 2091,
+    "y": 3413
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 15,
+    "GiantSpider": 15,
+    "GiantSerpent": 15,
+    "Corpser": 15
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 2095,2352",
+   "center": {
+    "x": 2095,
+    "y": 2352
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Ratman": 1,
+    "Slime": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "ettin and ogre spawn near 2143,3068",
+   "center": {
+    "x": 2143,
+    "y": 3068
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Skeleton": 1,
+    "Spectre": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "alligator and lizardman spawn near 2143,3953",
+   "center": {
+    "x": 2143,
+    "y": 3953
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 3,
+    "Lizardman": 3,
+    "SilverSerpent": 3,
+    "Snake": 3
+   }
+  },
+  {
+   "name": "orc and orcish lord spawn near 2171,1356",
+   "center": {
+    "x": 2171,
+    "y": 1356
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 8,
+    "OrcishLord": 8,
+    "OrcishMage": 8,
+    "OrcBomber": 5,
+    "OrcCaptain": 5,
+    "SavageShaman": 3,
+    "Savage": 3,
+    "SavageRider": 3
+   }
+  },
+  {
+   "name": "ettin and ogre spawn near 2177,3034",
+   "center": {
+    "x": 2177,
+    "y": 3034
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Skeleton": 1,
+    "Spectre": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "savageshaman and savage spawn near 2184,1376",
+   "center": {
+    "x": 2184,
+    "y": 1376
+   },
+   "radius": 40,
+   "creatures": {
+    "SavageShaman": 3,
+    "Savage": 3,
+    "SavageRider": 3,
+    "Orc": 3,
+    "OrcishLord": 3,
+    "OrcishMage": 3
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2208,1703",
+   "center": {
+    "x": 2208,
+    "y": 1703
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2227,3533",
+   "center": {
+    "x": 2227,
+    "y": 3533
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2288,3767",
+   "center": {
+    "x": 2288,
+    "y": 3767
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2291,3181",
+   "center": {
+    "x": 2291,
+    "y": 3181
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2319,591",
+   "center": {
+    "x": 2319,
+    "y": 591
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "OrcishMage": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2320,4007",
+   "center": {
+    "x": 2320,
+    "y": 4007
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 2328,67",
+   "center": {
+    "x": 2328,
+    "y": 67
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2336,666",
+   "center": {
+    "x": 2336,
+    "y": 666
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 2,
+    "Ghoul": 2,
+    "HeadlessOne": 2,
+    "Ogre": 2,
+    "Orc": 2,
+    "OrcishMage": 2,
+    "Skeleton": 2,
+    "Troll": 2
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 2345,112",
+   "center": {
+    "x": 2345,
+    "y": 112
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 2351,148",
+   "center": {
+    "x": 2351,
+    "y": 148
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "alligator and lizardman spawn near 2354,3503",
+   "center": {
+    "x": 2354,
+    "y": 3503
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 3,
+    "Lizardman": 3,
+    "SilverSerpent": 3,
+    "Snake": 3
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 2355,179",
+   "center": {
+    "x": 2355,
+    "y": 179
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2368,2799",
+   "center": {
+    "x": 2368,
+    "y": 2799
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "alligator and lizardman spawn near 2369,3430",
+   "center": {
+    "x": 2369,
+    "y": 3430
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 3,
+    "Lizardman": 3,
+    "SilverSerpent": 3,
+    "Snake": 3
+   }
+  },
+  {
+   "name": "ettin and harpy spawn near 2372,210",
+   "center": {
+    "x": 2372,
+    "y": 210
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Harpy": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2375,725",
+   "center": {
+    "x": 2375,
+    "y": 725
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "OrcishMage": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2379,654",
+   "center": {
+    "x": 2379,
+    "y": 654
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "OrcishMage": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2392,2031",
+   "center": {
+    "x": 2392,
+    "y": 2031
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2395,1405",
+   "center": {
+    "x": 2395,
+    "y": 1405
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 12,
+    "WaterElemental": 6
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2400,2399",
+   "center": {
+    "x": 2400,
+    "y": 2399
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2428,722",
+   "center": {
+    "x": 2428,
+    "y": 722
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "OrcishMage": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2429,690",
+   "center": {
+    "x": 2429,
+    "y": 690
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "OrcishMage": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "spectre and shade spawn near 2438,1099",
+   "center": {
+    "x": 2438,
+    "y": 1099
+   },
+   "radius": 40,
+   "creatures": {
+    "Spectre": 3,
+    "Shade": 3,
+    "Wraith": 3,
+    "Lich": 3,
+    "Skeleton": 1,
+    "Zombie": 1
+   }
+  },
+  {
+   "name": "alligator and lizardman spawn near 2438,3914",
+   "center": {
+    "x": 2438,
+    "y": 3914
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 3,
+    "Lizardman": 3,
+    "SilverSerpent": 3,
+    "Snake": 3
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2454,248",
+   "center": {
+    "x": 2454,
+    "y": 248
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2462,725",
+   "center": {
+    "x": 2462,
+    "y": 725
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "OrcishMage": 1,
+    "Skeleton": 1,
+    "Troll": 1
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2468,144",
+   "center": {
+    "x": 2468,
+    "y": 144
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2478,100",
+   "center": {
+    "x": 2478,
+    "y": 100
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2485,191",
+   "center": {
+    "x": 2485,
+    "y": 191
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "alligator and lizardman spawn near 2503,3593",
+   "center": {
+    "x": 2503,
+    "y": 3593
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 3,
+    "Lizardman": 3,
+    "SilverSerpent": 3,
+    "Snake": 3
+   }
+  },
+  {
+   "name": "alligator and lizardman spawn near 2520,3983",
+   "center": {
+    "x": 2520,
+    "y": 3983
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 3,
+    "Lizardman": 3,
+    "SilverSerpent": 3,
+    "Snake": 3
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2533,240",
+   "center": {
+    "x": 2533,
+    "y": 240
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2549,86",
+   "center": {
+    "x": 2549,
+    "y": 86
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2549,136",
+   "center": {
+    "x": 2549,
+    "y": 136
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2589,204",
+   "center": {
+    "x": 2589,
+    "y": 204
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2608,3295",
+   "center": {
+    "x": 2608,
+    "y": 3295
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2621,99",
+   "center": {
+    "x": 2621,
+    "y": 99
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2624,1775",
+   "center": {
+    "x": 2624,
+    "y": 1775
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "ettin and headless one spawn near 2659,147",
+   "center": {
+    "x": 2659,
+    "y": 147
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "HeadlessOne": 1,
+    "Lizardman": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "WaterElemental": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2744,2567",
+   "center": {
+    "x": 2744,
+    "y": 2567
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2752,1455",
+   "center": {
+    "x": 2752,
+    "y": 1455
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "spectre and wraith spawn near 2758,867",
+   "center": {
+    "x": 2758,
+    "y": 867
+   },
+   "radius": 40,
+   "creatures": {
+    "Spectre": 2,
+    "Wraith": 2,
+    "Skeleton": 2,
+    "Zombie": 2
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2768,3847",
+   "center": {
+    "x": 2768,
+    "y": 3847
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2792,2951",
+   "center": {
+    "x": 2792,
+    "y": 2951
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "elfbrigand and dire wolf spawn near 2817,2125",
+   "center": {
+    "x": 2817,
+    "y": 2125
+   },
+   "radius": 40,
+   "creatures": {
+    "ElfBrigand": 20,
+    "DireWolf": 20
+   }
+  },
+  {
+   "name": "elfbrigand and dire wolf spawn near 2833,2246",
+   "center": {
+    "x": 2833,
+    "y": 2246
+   },
+   "radius": 40,
+   "creatures": {
+    "ElfBrigand": 20,
+    "DireWolf": 20
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2931,3245",
+   "center": {
+    "x": 2931,
+    "y": 3245
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "dire wolf and elfbrigand spawn near 2941,2228",
+   "center": {
+    "x": 2941,
+    "y": 2228
+   },
+   "radius": 40,
+   "creatures": {
+    "DireWolf": 13,
+    "ElfBrigand": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2952,1239",
+   "center": {
+    "x": 2952,
+    "y": 1239
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 2963,3617",
+   "center": {
+    "x": 2963,
+    "y": 3617
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Mongbat": 1,
+    "Ratman": 1,
+    "SilverSerpent": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "dire wolf spawn near 2966,2138",
+   "center": {
+    "x": 2966,
+    "y": 2138
+   },
+   "radius": 40,
+   "creatures": {
+    "DireWolf": 9
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 2966,3591",
+   "center": {
+    "x": 2966,
+    "y": 3591
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Mongbat": 1,
+    "Ratman": 1,
+    "SilverSerpent": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 2971,1605",
+   "center": {
+    "x": 2971,
+    "y": 1605
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3008,1895",
+   "center": {
+    "x": 3008,
+    "y": 1895
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 3019,3579",
+   "center": {
+    "x": 3019,
+    "y": 3579
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 2,
+    "GiantSerpent": 2,
+    "Lizardman": 2,
+    "Mongbat": 2,
+    "Ratman": 2,
+    "SilverSerpent": 2,
+    "Snake": 2
+   }
+  },
+  {
+   "name": "alligator and giant serpent spawn near 3042,3590",
+   "center": {
+    "x": 3042,
+    "y": 3590
+   },
+   "radius": 40,
+   "creatures": {
+    "Alligator": 1,
+    "GiantSerpent": 1,
+    "Lizardman": 1,
+    "Mongbat": 1,
+    "Ratman": 1,
+    "SilverSerpent": 1,
+    "Snake": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3088,2759",
+   "center": {
+    "x": 3088,
+    "y": 2759
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3123,1485",
+   "center": {
+    "x": 3123,
+    "y": 1485
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 3168,629",
+   "center": {
+    "x": 3168,
+    "y": 629
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "WaterElemental": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "Lizardman": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3168,3871",
+   "center": {
+    "x": 3168,
+    "y": 3871
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 3172,700",
+   "center": {
+    "x": 3172,
+    "y": 700
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "WaterElemental": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "Lizardman": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 3173,771",
+   "center": {
+    "x": 3173,
+    "y": 771
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 1,
+    "Ettin": 1,
+    "Ogre": 1,
+    "WaterElemental": 1,
+    "Orc": 1,
+    "Troll": 1,
+    "Lizardman": 1
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3176,2383",
+   "center": {
+    "x": 3176,
+    "y": 2383
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3240,3151",
+   "center": {
+    "x": 3240,
+    "y": 3151
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3256,1031",
+   "center": {
+    "x": 3256,
+    "y": 1031
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3267,1717",
+   "center": {
+    "x": 3267,
+    "y": 1717
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 12,
+    "WaterElemental": 6
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3328,2063",
+   "center": {
+    "x": 3328,
+    "y": 2063
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3344,3479",
+   "center": {
+    "x": 3344,
+    "y": 3479
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3408,1407",
+   "center": {
+    "x": 3408,
+    "y": 1407
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3520,2263",
+   "center": {
+    "x": 3520,
+    "y": 2263
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3560,3871",
+   "center": {
+    "x": 3560,
+    "y": 3871
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3568,3215",
+   "center": {
+    "x": 3568,
+    "y": 3215
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3576,823",
+   "center": {
+    "x": 3576,
+    "y": 823
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3603,125",
+   "center": {
+    "x": 3603,
+    "y": 125
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3616,1807",
+   "center": {
+    "x": 3616,
+    "y": 1807
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3672,1535",
+   "center": {
+    "x": 3672,
+    "y": 1535
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3688,439",
+   "center": {
+    "x": 3688,
+    "y": 439
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3776,3519",
+   "center": {
+    "x": 3776,
+    "y": 3519
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3811,109",
+   "center": {
+    "x": 3811,
+    "y": 109
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3888,3167",
+   "center": {
+    "x": 3888,
+    "y": 3167
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3891,733",
+   "center": {
+    "x": 3891,
+    "y": 733
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3931,1757",
+   "center": {
+    "x": 3931,
+    "y": 1757
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3968,3895",
+   "center": {
+    "x": 3968,
+    "y": 3895
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3984,2423",
+   "center": {
+    "x": 3984,
+    "y": 2423
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 3992,1447",
+   "center": {
+    "x": 3992,
+    "y": 1447
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4008,2767",
+   "center": {
+    "x": 4008,
+    "y": 2767
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4016,1031",
+   "center": {
+    "x": 4016,
+    "y": 1031
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4032,2039",
+   "center": {
+    "x": 4032,
+    "y": 2039
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4048,63",
+   "center": {
+    "x": 4048,
+    "y": 63
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4112,791",
+   "center": {
+    "x": 4112,
+    "y": 791
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4152,3415",
+   "center": {
+    "x": 4152,
+    "y": 3415
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4192,2975",
+   "center": {
+    "x": 4192,
+    "y": 2975
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4232,1655",
+   "center": {
+    "x": 4232,
+    "y": 1655
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4275,1309",
+   "center": {
+    "x": 4275,
+    "y": 1309
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4283,2221",
+   "center": {
+    "x": 4283,
+    "y": 2221
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4307,3965",
+   "center": {
+    "x": 4307,
+    "y": 3965
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4352,215",
+   "center": {
+    "x": 4352,
+    "y": 215
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4363,1981",
+   "center": {
+    "x": 4363,
+    "y": 1981
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4392,823",
+   "center": {
+    "x": 4392,
+    "y": 823
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4400,2527",
+   "center": {
+    "x": 4400,
+    "y": 2527
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4512,583",
+   "center": {
+    "x": 4512,
+    "y": 583
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "orc spawn near 4519,3097",
+   "center": {
+    "x": 4519,
+    "y": 3097
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4536,2847",
+   "center": {
+    "x": 4536,
+    "y": 2847
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "orc spawn near 4576,3356",
+   "center": {
+    "x": 4576,
+    "y": 3356
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4600,1751",
+   "center": {
+    "x": 4600,
+    "y": 1751
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "orc spawn near 4607,3480",
+   "center": {
+    "x": 4607,
+    "y": 3480
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10
+   }
+  },
+  {
+   "name": "orc spawn near 4613,3272",
+   "center": {
+    "x": 4613,
+    "y": 3272
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4624,2199",
+   "center": {
+    "x": 4624,
+    "y": 2199
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "orc spawn near 4658,3376",
+   "center": {
+    "x": 4658,
+    "y": 3376
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4667,109",
+   "center": {
+    "x": 4667,
+    "y": 109
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "orc spawn near 4729,3485",
+   "center": {
+    "x": 4729,
+    "y": 3485
+   },
+   "radius": 40,
+   "creatures": {
+    "Orc": 10
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4731,3997",
+   "center": {
+    "x": 4731,
+    "y": 3997
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4864,2831",
+   "center": {
+    "x": 4864,
+    "y": 2831
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4888,375",
+   "center": {
+    "x": 4888,
+    "y": 375
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4896,1519",
+   "center": {
+    "x": 4896,
+    "y": 1519
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4896,2119",
+   "center": {
+    "x": 4896,
+    "y": 2119
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4896,3215",
+   "center": {
+    "x": 4896,
+    "y": 3215
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4904,759",
+   "center": {
+    "x": 4904,
+    "y": 759
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4904,1127",
+   "center": {
+    "x": 4904,
+    "y": 1127
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4912,2471",
+   "center": {
+    "x": 4912,
+    "y": 2471
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 14,
+    "WaterElemental": 7
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4955,3997",
+   "center": {
+    "x": 4955,
+    "y": 3997
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4984,3567",
+   "center": {
+    "x": 4984,
+    "y": 3567
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4992,3791",
+   "center": {
+    "x": 4992,
+    "y": 3791
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 4995,1829",
+   "center": {
+    "x": 4995,
+    "y": 1829
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  },
+  {
+   "name": "sea serpent and water elemental spawn near 5003,101",
+   "center": {
+    "x": 5003,
+    "y": 101
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 8,
+    "WaterElemental": 4
+   }
+  }
+ ]
+}

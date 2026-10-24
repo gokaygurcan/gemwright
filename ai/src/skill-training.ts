@@ -1,4 +1,5 @@
 import type { CharacterArchetype } from './archetypes';
+import { HUMAN_ELF_BODIES } from './bodies';
 import { type CraftContext, type CraftSkill, carpentry, tinkering, trainCraft } from './craft-training';
 import { serviceLocations } from './locations';
 import { trainMagery } from './magery';
@@ -12,7 +13,7 @@ import { buyFrom } from './vendor-trade';
 const TOO_SOON = 500118; // You must wait a few moments to use another skill.
 // Pickaxes are BaseAxe weapons in ServUO, so a miner always carries a valid Arms Lore target.
 const ARMS = new Set([0x0e85, 0x0e86, 0x0f43, 0x0f44, 0x0f49, 0x0f4a, 0x13b9, 0x13ba, 0x0f51, 0x0f52, 0x1b72, 0x1b73]);
-const HUMANS = new Set([0x190, 0x191, 0x25d, 0x25e]);
+const HUMANS = HUMAN_ELF_BODIES;
 const HORSES = new Set([0xc8, 0xe2, 0xe4, 0xcc]);
 
 interface PracticeContext {
@@ -173,13 +174,21 @@ const trainers: Record<string, (ctx: TrainingContext) => Promise<number>> = {
   Magery: ({ shop, until }) => (shop ? trainMagery(shop, until) : Promise.resolve(0))
 };
 
-// Tries the archetype's trainable supporting skills below cap in random order until one practises.
+// The archetype's supporting skills that can still be practised: a trainer exists and the skill is
+// below its cap and not locked (a maxed skill, 100.0 on the pinned shard, is never practised again).
+export function trainable(session: PlayerSession, archetype?: CharacterArchetype): string[] {
+  return (archetype?.supportingSkills ?? ['Arms Lore']).filter((name) => {
+    const skill = session.world.skills.get(skillId(name));
+    return !!trainers[name.replaceAll(' ', '')] && (skill?.base ?? 0) < (skill?.cap ?? 100) && skill?.lock !== 2;
+  });
+}
+
+// Tries the archetype's trainable supporting skills in random order until one practises.
 export async function trainSupportingSkill(ctx: TrainingContext) {
-  const options = (ctx.archetype?.supportingSkills ?? ['Arms Lore'])
+  const options = trainable(ctx.session, ctx.archetype)
     .flatMap((name) => {
       const trainer = trainers[name.replaceAll(' ', '')];
-      const skill = ctx.session.world.skills.get(skillId(name));
-      return trainer && (skill?.base ?? 0) < (skill?.cap ?? 100) ? [trainer] : [];
+      return trainer ? [trainer] : [];
     })
     .sort(() => Math.random() - 0.5);
   for (const trainer of options) {

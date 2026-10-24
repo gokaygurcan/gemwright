@@ -1,3 +1,4 @@
+import { TOOLS } from './bank-gold';
 import type { CraftSkill } from './craft-training';
 import { craftRecipes, trainCraft } from './craft-training';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
@@ -48,7 +49,7 @@ async function cutCloth(ctx: ProfessionContext) {
 async function refill(ctx: ProfessionContext, least: number) {
   if (await buyFrom(ctx, 'tailor', new Map([[cloth, Math.max(least, 60)]]), 3)) return true;
   if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-    await buyFrom(ctx, 'tailor', new Map([[0x0f9f, 1]]), 15);
+    await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
   await buyFrom(
     ctx,
     'tailor',

@@ -20,7 +20,7 @@ const profiles: { name: RegExp; bodies: number[]; tier: Tier; note: string }[] =
   // Magic resist 150-200 and 250-303 hp: never a sensible target for an ordinary melee character.
   { name: /^a lich lord$/i, bodies: [79], tier: 'unsupported', note: 'necromage, resist 150-200' }
 ];
-export const prey = new Set(profiles.flatMap((profile) => profile.bodies));
+const graveyard = profiles.flatMap((profile) => profile.bodies);
 
 // Dungeon creatures (catalogs/monsters.json) get the same tiers from their ServUO stats, calibrated
 // on the undead above: a zombie is common, a ghoul a brute, a spectre a caster, a bone knight or
@@ -28,8 +28,10 @@ export const prey = new Set(profiles.flatMap((profile) => profile.bodies));
 // bodies (players and brigands look alike) are never engaged. Random-named kinds (orcs, ratmen)
 // match on body alone.
 const humanBodies = [0x190, 0x191];
+// Creatures that do not attack on sight (deer, horses, cats) are no one's opponents.
 const tierOf = (m: Monster): Tier => {
-  if (!m.hits || !m.damage || humanBodies.some((body) => m.bodies.includes(body))) return 'unsupported';
+  if (!m.hits || !m.damage || m.aggressive === false || humanBodies.some((body) => m.bodies.includes(body)))
+    return 'unsupported';
   const hits = ((m.hits[0] ?? 0) + (m.hits[1] ?? 0)) / 2;
   const damage = ((m.damage[0] ?? 0) + (m.damage[1] ?? 0)) / 2;
   if (hits > 330 || m.resist >= 150 || m.fame >= 15000) return 'unsupported';
@@ -49,8 +51,34 @@ const dungeonProfiles = monsters
     note: `${m.hits?.join('-') ?? '?'} hp, ${m.damage?.join('-') ?? '?'} melee${m.magery ? `, magery ${m.magery}` : ''}`
   }));
 export const dungeonPrey = new Set(dungeonProfiles.filter((p) => p.tier !== 'unsupported').flatMap((p) => p.bodies));
-// Any creature a fighter may be engaged with, graveyard or dungeon.
-export const recognised = (graphic: number) => prey.has(graphic) || dungeonPrey.has(graphic);
+// Any creature a fighter may hunt: graveyard undead, and every other creature that attacks on
+// sight, in a dungeon or overland (catalogs/monsters.json covers both; hunting-grounds.json says
+// where they spawn).
+export const prey = new Set([...graveyard, ...dungeonPrey]);
+export const recognised = (graphic: number) => prey.has(graphic);
+
+// Whether this character's skills, health and armour meet a creature kind's tier (catalog type),
+// leaving out the moment's health and supplies: used to choose where to hunt (cemeteries.ts).
+export function readyFor(ctx: FighterContext, type: string, group = 1): boolean {
+  const monster = monsters.find((m) => m.type === type);
+  if (!monster) return false;
+  const tier = tierOf(monster);
+  if (tier === 'unsupported') return false;
+  if (tier === 'common') return true;
+  const scale = (group >= 3 && ['brute', 'caster'].includes(tier)) || (group >= 4 && tier === 'knight') ? 0.6 : 1;
+  const [weapon, tactics, maxHits, armor] = requirements[tier].map((value) => value * scale);
+  const combat = ctx.template.archetype?.primarySkills.includes('Magery') ? 'Magery' : weaponSkill(ctx.template);
+  const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
+  const status = ctx.status();
+  return (
+    skill(combat) >= (weapon ?? 0) &&
+    skill('Tactics') >= (tactics ?? 0) &&
+    status.maxHits >= (maxHits ?? 0) &&
+    status.armor >= (armor ?? 0)
+  );
+}
+// The gold a kind's loot packs carry, for choosing grounds worth the walk.
+export const goldOf = (type: string) => monsters.find((m) => m.type === type)?.gold ?? 0;
 
 // Minimum character readiness per tier: weapon skill, tactics, maximum health, armor rating,
 // current health ratio, and the template's risk tolerance. Common undead are always allowed.

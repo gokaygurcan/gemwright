@@ -35,8 +35,10 @@ export async function passSetback(
   } catch (error) {
     if (ctx.session.phase !== 'ready') throw error;
   }
-  if (Date.now() < until) await trainSupportingSkill({ ...ctx, until }).catch(() => 0);
-  while (Date.now() < until) {
+  const practised = Date.now() < until ? await trainSupportingSkill({ ...ctx, until }).catch(() => 0) : 0;
+  // With nothing left to practise (every supporting skill maxed), only a short pause, then back to work.
+  const resume = practised ? until : Math.min(until, Date.now() + 15_000);
+  while (Date.now() < resume) {
     ctx.check();
     await Bun.sleep(2000);
   }

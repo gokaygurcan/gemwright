@@ -1,3 +1,4 @@
+import { saving } from './housing';
 import { serviceLocations } from './locations';
 import { createMountServices } from './mount-services';
 import type { MountContext, MountMemory } from './mount-types';
@@ -112,6 +113,8 @@ export function createPackAnimal(ctx: MountContext, city: string) {
       }
       persist();
     }
+    // A second pack animal after losing one waits while the resident saves for a house.
+    if (memory.abandoned && saving(ctx)) return;
     try {
       await services.purchase(memory, discover);
     } catch (error) {

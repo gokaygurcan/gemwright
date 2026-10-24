@@ -45,6 +45,12 @@ export interface Monster {
   magery: number;
   resist: number;
   fame: number;
+  // Attacks on sight (its ServUO FightMode); combat skills, armor and the gold its loot packs carry.
+  aggressive?: boolean;
+  tactics?: number;
+  wrestling?: number;
+  armor?: number;
+  gold?: number;
 }
 
 const directory = new URL('../catalogs/dungeons/', import.meta.url);

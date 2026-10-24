@@ -1,56 +1,25 @@
 import { chargedPurchase, openBankBox, queryBankBalance } from './bank-gold';
+import { clearBankRoom } from './bank-space';
 import { Blocked } from './blocked';
+import { HUMAN_ELF_BODIES } from './bodies';
+import { packItems, packSummary } from './inventory';
 import { bestRecipe, RAW_INGOT_VALUE } from './miner-crafting';
 import { createIngotSeller } from './miner-selling';
+import type { MinerServicesContext } from './miner-types';
 import { approachVendor } from './mobile-approach';
-import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
-import type { Entity, Position, WorldView } from './protocol/world';
 import { createServiceExperience } from './service-experience';
 import { skillId } from './skills';
-import type { Checkpoint } from './store';
-import type { Terrain } from './terrain';
-import { buyFrom } from './vendor-trade';
+import { buyFrom, sellTo } from './vendor-trade';
 
 export const tools = new Set([0x0e85, 0x0e86, 0x0f39, 0x0f3a]);
 export const ingot = 0x1bf2;
 export const forges = new Set([0x0fb1, ...Array.from({ length: 48 }, (_, index) => 6522 + index)]);
 
-export interface MinerProgress {
-  smelts: number;
-  ingotsProduced: number;
-  deposits: number;
-  trips: number;
-  purchases: number;
-  sold: number;
-  packRejected: boolean;
-}
+export type { MinerProgress } from './miner-types';
 
-export function createMinerServices(ctx: {
-  session: PlayerSession;
-  serial: number;
-  terrain: Terrain;
-  checkpoint: Checkpoint;
-  blocked: Set<string>;
-  city: string;
-  banks: readonly { x: number; y: number }[];
-  shops: readonly { x: number; y: number }[];
-  position: () => Position;
-  status: () => NonNullable<WorldView['status']>;
-  check: () => void;
-  phase: (phase: string, note: string) => void;
-  log: (message: string) => void;
-  navigate: ReturnType<typeof createNavigator>;
-  carried: (backpack: number) => Entity[];
-  smeltable: (backpack: number) => Entity[];
-  retainedOre: (backpack: number) => Entity[];
-  unsmeltable: Set<number>;
-  plan: () => NonNullable<Checkpoint['mining']>;
-  newTrip: () => NonNullable<Checkpoint['mining']>;
-  progress: MinerProgress;
-  persist: () => void;
-}) {
+export function createMinerServices(ctx: MinerServicesContext) {
   const {
     session,
     terrain,
@@ -106,7 +75,7 @@ export function createMinerServices(ctx: {
         (mobile) =>
           mobile.kind === 'mobile' &&
           mobile.serial !== session.world.serial &&
-          [0x190, 0x191, 0x25d, 0x25e].includes(mobile.graphic) &&
+          HUMAN_ELF_BODIES.has(mobile.graphic) &&
           mobile.position &&
           distance(mobile.position, point) <= 2
       );
@@ -264,9 +233,17 @@ export function createMinerServices(ctx: {
     const banker = await findBanker();
     const box = { serial: await openBankBox(ctx, banker.serial) };
     await Bun.sleep(500);
-    phase('bank-deposit', 'Depositing observed ingots through ordinary lift/drop requests');
+    // A nearly full box first gives back kept pieces to sell (bank-space.ts).
+    checkpoint.keep ??= [];
+    const freed = await clearBankRoom(session, box.serial, backpack, checkpoint.keep);
+    const held = packItems(session, box.serial).length;
+    phase(
+      'bank-deposit',
+      `Depositing ingots; box ${held} items${held >= 110 ? ` (${packSummary(session, box.serial)})` : ''}`
+    );
     // Ore the forge refused would otherwise pin the pack at its weight limit with no way to mine.
     const retained = new Set(retainedOre(backpack).map((item) => item.serial));
+    let refused = false;
     for (const item of [...session.world.entities.values()]) {
       // Gold is deposited too: vendors charge the bank, and carried gold is lost on death.
       const kept = !!checkpoint.keep?.includes(item.serial);
@@ -276,7 +253,16 @@ export function createMinerServices(ctx: {
       )
         continue;
       check();
-      await session.moveItem(item.serial, box.serial);
+      // A full box refuses the deposit: the iron is sold instead, below.
+      if (
+        !(await session.moveItem(item.serial, box.serial).then(
+          () => true,
+          () => false
+        ))
+      ) {
+        refused = true;
+        continue;
+      }
       if (kept) checkpoint.keep = checkpoint.keep?.filter((serial) => serial !== item.serial);
       if (item.graphic === ingot) progress.deposits += item.amount ?? 1;
       await Bun.sleep(700);
@@ -291,6 +277,9 @@ export function createMinerServices(ctx: {
     await queryBankBalance({ ...ctx, checkpoint }, banker.serial);
     const confirmedBanker = session.world.entities.get(banker.serial);
     if (confirmedBanker) learning.record(confirmedBanker, 3006105, 'success');
+    if (freed.length)
+      await sellTo({ ...ctx, backpack: () => backpack }, 'blacksmith', (item) => freed.includes(item.serial), true);
+    if (refused) await sellIngots(backpack, true);
     progress.trips++;
     checkpoint.mining = newTrip();
     await session.refreshStatus();

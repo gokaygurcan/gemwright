@@ -1,12 +1,14 @@
-import { tally } from './activity';
 import { openOwnBackpack } from './backpack';
 import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
+import { PLAIN_HUMAN_BODIES } from './bodies';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
 import { threatsNear, unsafeCheck } from './danger';
 import type { DecisionCoordinator } from './decisions';
+import { leavesEarly, packFull, packItems, packSummary } from './inventory';
 import { lifeTurn } from './life';
 import { serviceLocations } from './locations';
+import { chopTree } from './lumber-chop';
 import { buyHatchetFrom, hatchets, vendorMenu } from './lumber-shop';
 import { treeStatics } from './lumber-trees';
 import { sellAtMarket } from './market';
@@ -28,14 +30,6 @@ import { reachRegion, workArea } from './work-areas';
 const log = 0x1bdd;
 const board = 0x1bd7;
 const woodSet = new Set([board]);
-// Lumberjacking.cs replies: AOS resource messages 1072540-1072546 or the classic 500498 on
-// success, 500495 on a failed chop, 500493 depleted tree, 500446 too far, 500497 pack full,
-// 500499 broken axe.
-const CHOPPED = [500498, 1072540, 1072541, 1072542, 1072543, 1072544, 1072545, 1072546];
-const FAILED = 500495;
-const DEPLETED = [500493, 500446, 500494];
-const PACK_FULL = 500497;
-const BROKE = 500499;
 // Trees regrow 20-30 minutes after depletion (Lumberjacking.cs MinRespawn/MaxRespawn).
 const REGROW = 30 * 60_000;
 // Boards are the vendor economy item (75% of 3 gold = 2); logs sell for 1. Every carpentry item and,
@@ -102,15 +96,18 @@ export async function runLumberjack(options: {
       reason
     );
   // A craftsman supporting skill: Arms Lore on the hatchet, Carpentry with carried boards, and so on.
-  const practise = async () => {
+  // `only` narrows it to one skill (Carpentry from a full load of boards).
+  const practise = async (only?: string) => {
     const until = Math.min(deadline, Date.now() + (2 + Math.random() * 3) * 60_000);
+    const archetype =
+      only && template.archetype ? { ...template.archetype, supportingSkills: [only] } : template.archetype;
     await trainSupportingSkill({
       session,
       check,
       phase,
       log: say,
       until,
-      archetype: template.archetype,
+      archetype,
       items: () => [...session.world.childrenOf(serial), ...carried()],
       // Carpentry uses the boards already carried; Magery and Tinkering buy from Britain vendors.
       shop: {
@@ -133,7 +130,9 @@ export async function runLumberjack(options: {
   const blocked = new Set<string>();
   let mounts: ReturnType<typeof createMountController> | undefined;
   let packs: ReturnType<typeof createPackAnimal> | undefined;
-  const heavy = () => status().weight >= status().maxWeight * template.behavior.bankAtWeightRatio;
+  // A load is done when the pack is full (inventory.ts) or the resident chose to stop early.
+  let full = false;
+  const heavy = () => full || packFull(session, backpackSerial());
   const groundNavigate = createNavigator({ session, terrain, check, phase, log: say, blocked });
   const navigate = mountedNavigator(groundNavigate, () => mounts, undefined, position);
   const backpackSerial = () => {
@@ -163,7 +162,7 @@ export async function runLumberjack(options: {
   };
   const people = () =>
     [...session.world.entities.values()].filter(
-      (mobile) => mobile.kind === 'mobile' && mobile.serial !== serial && [0x190, 0x191].includes(mobile.graphic)
+      (mobile) => mobile.kind === 'mobile' && mobile.serial !== serial && PLAIN_HUMAN_BODIES.has(mobile.graphic)
     );
 
   // Uses the hatchet on carried logs: the whole stack becomes boards (Log.Axe, no skill required).
@@ -183,6 +182,9 @@ export async function runLumberjack(options: {
   // Town trip: sell boards to the carpenter, bank the gold, replace a broken hatchet.
   const town = async () => {
     await cutBoards();
+    // A full load of boards: now and then some become furniture first (Carpentry), as a crafting
+    // woodsman does, before the rest is sold or banked.
+    if (count(board) >= 50 && Math.random() < 0.25) await practise('Carpentry');
     // Boards go to fellow residents at the bank first (market.ts); the carpenter takes the rest.
     const market = { session, template, checkpoint, city, position, navigate, phase, backpack: backpackSerial };
     await sellAtMarket(
@@ -333,15 +335,29 @@ export async function runLumberjack(options: {
           continue;
         if (!tool()) await buyHatchet();
         // Logs weigh 2 stones and boards 1: cut early, go to town only when even boards fill the pack.
-        if (status().weight >= status().maxWeight * 0.7 && count(log)) await cutBoards();
+        if ((status().weight >= status().maxWeight * 0.7 || packFull(session, backpackSerial())) && count(log))
+          await cutBoards();
         await packs.keepUp();
         // A full pack goes onto the pack animal while it has room.
-        if (heavy() && (await packs.stow(woodSet))) continue;
+        if (heavy() && (await packs.stow(woodSet))) {
+          full = false;
+          continue;
+        }
         if (heavy()) {
           await town();
+          full = false;
           // Back from town: a life break point (life.ts); errands are another town trip.
           const life = { session, terrain, template, checkpoint, city, position, check, phase, log: say, persist };
-          if (await lifeTurn({ ...life, navigate, decisions: options.decisions, practise, errands: town })) continue;
+          if (
+            await lifeTurn({
+              ...life,
+              navigate,
+              decisions: options.decisions,
+              practise: () => practise(),
+              errands: town
+            })
+          )
+            continue;
           // A trip that could not lighten the pack must not spin straight back into town.
           if (heavy()) {
             phase('resting', 'The pack is still full after town; resting before trying again');
@@ -392,35 +408,30 @@ export async function runLumberjack(options: {
         }
         await mounts.dismountForGathering();
         phase('chopping', `Chopping the tree at ${tree.x},${tree.y}`);
-        for (let swing = 0; swing < 20; swing++) {
-          check();
-          const axe = tool();
-          if (!axe) break;
-          const seen = new Set(session.world.journal);
-          session.use(axe.serial);
-          await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000);
-          session.target({ serial: 0, x: tree.x, y: tree.y, z: tree.z, graphic: tree.id });
-          await Bun.sleep(2500);
-          const replies = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);
-          const has = (clilocs: number[]) => replies.some((entry) => clilocs.includes(entry.cliloc ?? 0));
-          progress.chops++;
-          if (has(CHOPPED)) {
-            progress.logs++;
-            tally(session, 'chopped');
-          }
-          if (has(DEPLETED)) {
-            deplete(`tree:${tree.x},${tree.y}`);
-            break;
-          }
-          if (has([PACK_FULL])) {
-            await cutBoards();
-            break;
-          }
-          if (has([BROKE])) break;
-          if (!replies.length)
-            throw new Error('Chopping produced no interpretable feedback; stopping instead of repeating blindly');
-          if (!has(CHOPPED) && !has([FAILED])) break;
-        }
+        // ServUO harvests only with the axe in hand (HarvestTarget: 500487, "The axe must be equipped").
+        const axe = tool();
+        if (axe && axe.parent !== serial)
+          await session
+            .equipItem(axe.serial, terrain.tile(axe.graphic, true).layer || Layer.TwoHanded)
+            .catch((error) => say(`Could not equip the hatchet: ${error instanceof Error ? error.message : error}`));
+        const chop = await chopTree(
+          {
+            session,
+            check,
+            say,
+            tool,
+            cutBoards,
+            full: () => packFull(session, backpackSerial()),
+            logs: () => count(log),
+            noted: () => progress.chops++,
+            describe: () =>
+              `${packItems(session, backpackSerial()).length} items: ${packSummary(session, backpackSerial())}`
+          },
+          tree
+        );
+        progress.logs += chop.gathered;
+        if (chop.depleted || !chop.answered) deplete(`tree:${tree.x},${tree.y}`);
+        if (chop.full || (chop.gathered && leavesEarly(session))) full = true;
       } catch (error) {
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;
         await setback(error instanceof Error ? error.message : String(error));

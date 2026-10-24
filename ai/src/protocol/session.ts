@@ -257,18 +257,48 @@ export class PlayerSession {
     this.send(packets.speech(message));
   }
 
-  replyGump(serial: number, id: number, button: number, switches: number[]): void {
+  replyGump(
+    serial: number,
+    id: number,
+    button: number,
+    switches: number[],
+    texts: { id: number; text: string }[] = []
+  ): void {
     this.requireReady();
     const gump = this.world.gumps.get(`${serial}:${id}`);
     if (!gump) throw new Error('Gump is not currently open');
     const commands = gumpCommands(gump.layout);
+    const offered = (kind: string, at: number, value: number) =>
+      commands.some((command) => command[0] === kind && Number(command[at]) === value);
     if (
       !commands.some((command) => command[0] === 'button' && command[5] === '1' && Number(command[7]) === button) ||
-      switches.some((value) => !commands.some((command) => command[0] === 'radio' && Number(command[6]) === value))
+      switches.some((value) => !offered('radio', 6, value)) ||
+      texts.some((entry) => !offered('textentry', 6, entry.id))
     )
       throw new Error('Gump reply must use offered controls');
-    this.send(packets.gumpReply(serial, id, button, switches));
+    this.send(packets.gumpReply(serial, id, button, switches, texts));
     this.world.gumps.delete(`${serial}:${id}`);
+  }
+
+  // Answers the open text prompt (null cancels it).
+  answerPrompt(text: string | null): void {
+    this.requireReady();
+    const prompt = this.world.prompt;
+    if (!prompt) throw new Error('No open prompt');
+    this.send(packets.promptReply(prompt.serial, prompt.id, text));
+    this.world.prompt = null;
+  }
+
+  // The paperdoll's Guild button: the guild menu, or the founding form for a character without one.
+  openGuildMenu(): void {
+    this.requireReady();
+    if (this.world.serial === null) throw new Error('Character is not observed');
+    this.send(packets.guildButton(this.world.serial));
+  }
+
+  guildSay(message: string): void {
+    this.requireReady();
+    this.send(packets.speech(message, 0x0d));
   }
 
   async refreshStatus(): Promise<void> {

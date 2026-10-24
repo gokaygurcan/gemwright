@@ -1,15 +1,27 @@
 import { tally } from './activity';
+import { TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
 import { type CraftSkill, trainCraft } from './craft-training';
+import { leavesEarly, packFull } from './inventory';
 import { allServiceLocations, serviceLocations } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import { Layer } from './protocol/layers';
+import { skillId } from './skills';
 import { buyFrom, sellTo } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
-const poles = new Set([0x0dbf, 0x0dc0]);
-const fish = new Set([0x09cc, 0x09cd, 0x09ce, 0x09cf, 0x097a]);
+const poles = new Set([
+  0x0dbf, // fishing pole, facing east
+  0x0dc0 // fishing pole, facing south
+]);
+const fish = new Set([
+  0x09cc, // fish
+  0x09cd, // fish
+  0x09ce, // fish
+  0x09cf, // fish
+  0x097a // raw fish steak
+]);
 // ServUO Fishing.m_WaterTiles: land 0xA8-0xAB and 0x136-0x137; water statics 0x1797-0x179C
 // (listed there with the 0x4000 static offset). The pole reaches four tiles (MaxRange 4).
 const waterLand = new Set([0xa8, 0xa9, 0xaa, 0xab, 0x136, 0x137]);
@@ -39,7 +51,10 @@ function findSpot(ctx: ProfessionContext, around: { x: number; y: number; z: num
   return undefined;
 }
 
-const blades = new Set([0x0f51, 0x0f52]);
+const blades = new Set([
+  0x0f51, // dagger, facing east
+  0x0f52 // dagger, facing south
+]);
 const rawSteak = 0x097a;
 // ServUO CraftItem.m_HeatSources (ovens, fireplaces, campfires) plus forges, which also count.
 const heat = new Set([
@@ -62,12 +77,13 @@ const cooking: CraftSkill = {
   ]
 };
 
-// Carves carried fish into raw steaks with a dagger, then cooks them at the nearest heat source.
-async function cook(ctx: ProfessionContext) {
-  const { session, phase } = ctx;
+// Carves carried fish into raw steaks with a dagger: a fish (1 stone) makes four steaks (a tenth
+// of a stone each) that the fisherman buys for a gold each, four times the whole fish.
+async function carve(ctx: ProfessionContext) {
+  const { session } = ctx;
   let blade = ctx.carried().find((i) => blades.has(i.graphic));
   if (!blade) {
-    await buyFrom(ctx, 'blacksmith', new Map([[0x0f52, 1]]), 25);
+    await buyFrom({ ...ctx, limits: TOOLS }, 'blacksmith', new Map([[0x0f52, 1]]), 25);
     blade = ctx.carried().find((i) => blades.has(i.graphic));
     if (!blade) return;
   }
@@ -79,6 +95,12 @@ async function cook(ctx: ProfessionContext) {
     session.target({ serial: pile.serial, x: 0, y: 0, z: 0, graphic: pile.graphic });
     await Bun.sleep(900);
   }
+}
+
+// Cooks carried steaks at the nearest heat source (Cooking training).
+async function cook(ctx: ProfessionContext) {
+  const { phase } = ctx;
+  await carve(ctx);
   if (!ctx.count(rawSteak)) return;
   const fire = ctx.terrain
     .findStatics(heat, ctx.position(), 80)
@@ -93,7 +115,7 @@ async function cook(ctx: ProfessionContext) {
 }
 
 // A fisher keeps a pole, fishes the shore near its home town until the spot stops biting or the
-// pack is heavy, then sells the catch to a fisherman.
+// pack is full, then sells the catch to a fisherman.
 export const runFisher = (options: ProfessionOptions) => {
   const avoid = new Set<string>();
   return runProfession('fisher', options, async (ctx) => {
@@ -106,7 +128,7 @@ export const runFisher = (options: ProfessionOptions) => {
     if (!pole) {
       phase('fishing-gear', 'Buying a fishing pole from a fisherman');
       await buyFrom(
-        ctx,
+        { ...ctx, limits: TOOLS },
         'fisherman',
         new Map([
           [0x0dc0, 1],
@@ -129,9 +151,14 @@ export const runFisher = (options: ProfessionOptions) => {
       return;
     }
     phase('fishing', 'Fishing');
-    for (let cast = 0; cast < 30; cast++) {
+    // Fish, carve the catch into lighter steaks, fish on, until even steaks fill the pack
+    // (inventory.ts) or the spot stops biting; now and then a fisher stops earlier (chaos.ts).
+    const fishCount = () => ctx.carried().filter((i) => fish.has(i.graphic) && i.graphic !== rawSteak).length;
+    let done = false;
+    for (let cast = 0; cast < 300 && !done; cast++) {
       ctx.check();
-      if (ctx.status().weight > ctx.status().maxWeight * 0.8) break;
+      if (ctx.status().weight > ctx.status().maxWeight * 0.6 && fishCount()) await carve(ctx);
+      if (packFull(session, ctx.backpack(), 0.85)) break;
       const seen = new Set(session.world.journal);
       session.use(pole.serial);
       await session.waitFor(() => session.world.target !== null, 'fishing cursor', 4000);
@@ -142,20 +169,19 @@ export const runFisher = (options: ProfessionOptions) => {
       if (replies.includes(NOT_BITING)) {
         avoid.add(`${spot.stand.x >> 3},${spot.stand.y >> 3}`);
         log('The fish are not biting here; finding another spot');
-        break;
+        return;
       }
       if (!replies.includes(FAILED)) {
         ctx.progress.catches = (ctx.progress.catches ?? 0) + 1;
         tally(ctx.session, 'fished');
+        done = leavesEarly(session);
       }
     }
-    // Cooking trains on the catch: carve and cook a batch now and then before selling.
-    if (ctx.count(0x09cc) + ctx.count(0x09cd) + ctx.count(0x09ce) + ctx.count(0x09cf) >= 10 && Math.random() < 0.4)
-      await cook(ctx);
-    if (
-      ctx.carried().some((i) => fish.has(i.graphic)) &&
-      (ctx.status().weight > ctx.status().maxWeight * 0.6 || Math.random() < 0.3)
-    ) {
+    // A full load: some fishers cook part of it first (Cooking), then everything is sold.
+    const cooking = session.world.skills.get(skillId('Cooking'));
+    if ((cooking?.base ?? 0) < (cooking?.cap ?? 100) && Math.random() < 0.3) await cook(ctx);
+    await carve(ctx);
+    if (ctx.carried().some((i) => fish.has(i.graphic))) {
       phase('selling', 'Selling the catch to a fisherman');
       const earned = await sellTo(ctx, 'fisherman', (item) => fish.has(item.graphic));
       ctx.progress.earned = (ctx.progress.earned ?? 0) + earned;

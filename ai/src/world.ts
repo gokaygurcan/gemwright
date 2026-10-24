@@ -43,6 +43,15 @@ interface World {
     // How unpredictable residents are, 0-1 (chaos.ts); a shard's `ai.chaos` overrides it.
     chaos?: number;
   };
+  // Where residents build (house-lots.ts) and the gold they keep after paying (housing.ts).
+  housing?: { districts: District[]; reserve: number };
+}
+export interface District {
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 export type LifePhase = 'work' | 'dungeon' | 'errands' | 'leisure' | 'visit' | 'practice';
 export const world = JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8')) as World;

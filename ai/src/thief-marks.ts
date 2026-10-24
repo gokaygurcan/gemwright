@@ -1,3 +1,4 @@
+import { HUMAN_ELF_BODIES } from './bodies';
 import { cemeteries, patrolPoints } from './cemeteries';
 import { monsters } from './dungeons';
 import { distance } from './navigation';
@@ -18,7 +19,7 @@ const mostHits = 60;
 // BaseCreature.PackBodyPartOrBones: graveyard refuse a thief drops instead of carrying it home.
 export const refuse = new Set([0x1da1, 0x1da2, 0x1d9f, 0x1da3, 0x1da4, 0x0f7e]);
 // Human and player bodies are never cased. Town NPCs refuse the peek and players refuse the theft.
-const humans = new Set([0x190, 0x191, 0x25d, 0x25e]);
+const humans = HUMAN_ELF_BODIES;
 // Pack horse and pack llama: their StrongBackpack is the only creature pack Container_Snoop opens
 // to a player; every other creature pack is refused without a reply.
 const packAnimals = new Set([0x123, 0x124]);

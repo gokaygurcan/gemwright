@@ -1,5 +1,8 @@
 import type { Database } from 'bun:sqlite';
 
+import { HUMAN_BODIES } from './bodies';
+import { attachGuilds } from './guild-store';
+import { attachHousing } from './house-lots';
 import { attachInsight } from './player-insight';
 import type { PlayerSession } from './protocol/session';
 import type { Checkpoint } from './store';
@@ -65,7 +68,7 @@ const noted = new Set<string>();
 export function notePlayer(session: PlayerSession, key: string, signal: Omit<PlayerSignal, 'x' | 'y'>) {
   const mobile = session.world.entities.get(signal.serial);
   // Players have human or elf bodies; speaking monsters (orcs, lizardmen) and vendors are not players.
-  const human = !mobile || [0x190, 0x191, 0x25d, 0x25e, 0x29a, 0x29b].includes(mobile.graphic);
+  const human = !mobile || HUMAN_BODIES.has(mobile.graphic);
   if (residents.has(signal.serial) || mobile?.notoriety === 7 || !human || noted.has(key)) return;
   noted.add(key);
   if (noted.size > 5000) noted.delete(noted.values().next().value as string);
@@ -105,6 +108,8 @@ export class ActivityRecorder {
       offer TEXT, good TEXT, amount INTEGER, price INTEGER
     )`);
     attachInsight(db);
+    attachHousing(db);
+    attachGuilds(db);
     db.exec(`CREATE TABLE IF NOT EXISTS population_metrics (
       at INTEGER NOT NULL, online INTEGER NOT NULL, rss_mb INTEGER NOT NULL, lag_max_ms INTEGER NOT NULL, stalls INTEGER NOT NULL
     )`);

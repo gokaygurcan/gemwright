@@ -227,7 +227,21 @@ export function walk(direction: number, sequence: number, running = false): Buff
   return Buffer.from([0x02, direction | (running ? 0x80 : 0), sequence, 0, 0, 0, 0]);
 }
 
-export function gumpReply(serial: number, id: number, button: number, switches: number[]): Buffer {
+// Text entries (ServUO DisplayGumpResponse): entry id, length, then big-endian Unicode.
+export function gumpReply(
+  serial: number,
+  id: number,
+  button: number,
+  switches: number[],
+  texts: { id: number; text: string }[] = []
+): Buffer {
+  const entries = texts.map((entry) => {
+    if (entry.text.length > 239) throw new Error('Gump text entry is too long');
+    const head = Buffer.alloc(4);
+    head.writeUInt16BE(entry.id, 0);
+    head.writeUInt16BE(entry.text.length, 2);
+    return Buffer.concat([head, Buffer.from(entry.text, 'utf16le').swap16()]);
+  });
   const body = Buffer.alloc(20 + switches.length * 4);
   body.writeUInt32BE(serial, 0);
   body.writeUInt32BE(id, 4);
@@ -236,7 +250,28 @@ export function gumpReply(serial: number, id: number, button: number, switches: 
   switches.forEach((value, index) => {
     body.writeUInt32BE(value, 16 + index * 4);
   });
-  return variable(0xb1, body);
+  body.writeUInt32BE(texts.length, 16 + switches.length * 4);
+  return variable(0xb1, Buffer.concat([body, ...entries]));
+}
+
+// Answer to a Unicode prompt (0xC2, ServUO UnicodePromptResponse): type 1 with little-endian
+// Unicode text, or type 0 to cancel.
+export function promptReply(serial: number, prompt: number, text: string | null): Buffer {
+  const head = Buffer.alloc(16);
+  head.writeUInt32BE(serial, 0);
+  head.writeUInt32BE(prompt, 4);
+  head.writeUInt32BE(text === null ? 0 : 1, 8);
+  head.write('ENU', 12, 'ascii');
+  return variable(0xc2, Buffer.concat([head, Buffer.from(text ?? '', 'utf16le')]));
+}
+
+// The paperdoll's Guild button (encoded command 0xD7 0x28, ServUO GuildGumpRequest).
+export function guildButton(serial: number): Buffer {
+  const body = Buffer.alloc(7);
+  body.writeUInt32BE(serial, 0);
+  body.writeUInt16BE(0x28, 4);
+  body[6] = 0x0a;
+  return variable(0xd7, body);
 }
 
 // Stat lock change (0xBF 0x1A): stat 0 str, 1 dex, 2 int; lock 0 up, 1 down, 2 locked.
@@ -283,22 +318,26 @@ const keywords = new Map([
   ['claim', 9],
   ['guards', 7],
   ['i renounce my young player status', 0x35],
+  ['i wish to lock this down', 0x23],
+  ['i wish to secure this', 0x25],
   ['all stop', 0x167],
   ['all kill', 0x168],
   ['all guard me', 0x16b],
   ['all follow me', 0x16c]
 ]);
 
-export function speech(text: string): Buffer {
+// `type` 0x0d is guild chat (ServUO MessageType.Guild).
+export function speech(text: string, type = 0): Buffer {
   if (!text.trim() || text.length > 200 || [...text].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127))
     throw new Error('Speech must contain 1–200 characters without controls');
   // Speech IDs: 0x0000 withdraw, 0x0001 balance, 0x0002 bank (Banker.OnSpeech); 0x0007 guards
   // (GuardedRegion.OnSpeech); 0x0009 claim (AnimalTrainer); 0x0035 young renouncement (Keywords.cs);
+  // 0x0023 lock down and 0x0025 secure (HouseRegion.OnSpeech);
   // pet orders from BaseAI.OnSpeech: 0x167 all stop, 0x168 all kill, 0x16B all guard me, 0x16C all follow me.
   const keyword = /^withdraw [1-9]\d{0,4}$/i.test(text) ? 0 : keywords.get(text.toLowerCase());
   if (keyword !== undefined) {
     const body = Buffer.alloc(12 + Buffer.byteLength(text, 'utf8') + 1);
-    body[0] = 0xc0;
+    body[0] = 0xc0 | type;
     body.writeUInt16BE(0x03b2, 1);
     body.writeUInt16BE(3, 3);
     body.write('ENU', 5, 'ascii');
@@ -309,6 +348,7 @@ export function speech(text: string): Buffer {
     return variable(0xad, body);
   }
   const body = Buffer.alloc(9 + (text.length + 1) * 2);
+  body[0] = type;
   body.writeUInt16BE(0x03b2, 1);
   body.writeUInt16BE(3, 3);
   body.write('ENU', 5, 'ascii');
@@ -320,6 +360,8 @@ export interface TargetCursor {
   id: number;
   ground: boolean;
   flags: number;
+  // The house a multi-target cursor (0x99) places.
+  multi?: number;
 }
 export interface TargetLocation {
   serial: number;

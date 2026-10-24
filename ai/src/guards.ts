@@ -1,3 +1,4 @@
+import { GHOST_BODIES, HUMAN_ELF_BODIES } from './bodies';
 import { allServiceLocations } from './locations';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
@@ -14,12 +15,12 @@ const LEFT = 500113;
 const TICK_MS = 3000;
 const CALL_RANGE = 12;
 const PER_OFFENDER_MS = 60_000;
-const ghosts = new Set([0x192, 0x193, 0x25f, 0x260]);
-const humans = new Set([0x190, 0x191, 0x25d, 0x25e]);
+const ghosts = GHOST_BODIES;
+const humans = HUMAN_ELF_BODIES;
 const banks = allServiceLocations('banker');
 const watching = new WeakSet<PlayerSession>();
 
-function guarded(session: PlayerSession): boolean {
+export function guarded(session: PlayerSession): boolean {
   for (let i = session.world.journal.length - 1; i >= 0; i--) {
     const cliloc = session.world.journal[i]?.cliloc;
     if (cliloc === UNDER) return true;

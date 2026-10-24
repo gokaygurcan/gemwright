@@ -1,4 +1,5 @@
 import { Blocked } from './blocked';
+import { GHOST_BODIES } from './bodies';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { gatherPets } from './pets';
@@ -28,7 +29,7 @@ export const nearestGate = (point: { x: number; y: number }): Gate =>
 // any player travels. A gate across water (an island town seen from the shore) is skipped for the
 // next nearest; reaching `to`'s own gate on foot means the walk alone arrives.
 // Ghost bodies (male, female, elf male, elf female).
-const ghosts = new Set([0x192, 0x193, 0x25f, 0x260]);
+const ghosts = GHOST_BODIES;
 
 export async function travelByMoongate(
   ctx: {

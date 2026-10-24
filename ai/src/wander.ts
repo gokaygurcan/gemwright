@@ -1,3 +1,4 @@
+import { HUMAN_BODIES } from './bodies';
 import { chaosOf } from './chaos';
 import { allServiceLocations, type Landmark, type ServiceType } from './locations';
 import { distance } from './navigation';
@@ -39,7 +40,7 @@ export function detourFor(session: PlayerSession, from: { x: number; y: number }
   return options[Math.floor(Math.random() * options.length)];
 }
 
-const humans = new Set([0x190, 0x191, 0x25d, 0x25e, 0x29a, 0x29b]);
+const humans = HUMAN_BODIES;
 const greetings = ['hail', 'hi', 'o/', 'hey', 'well met'];
 const greeted = new WeakMap<PlayerSession, Set<number>>();
 

@@ -11,10 +11,14 @@ import {
   weaponsFor
 } from './fighter-context';
 import { poisonPotion, poisons } from './fighter-poison';
+import { saving } from './housing';
+import { packItems } from './inventory';
 import { learnQuality, shopSafe } from './item-quality';
+import { allServiceLocations } from './locations';
 import { combatReagents } from './mage-combat';
 import { buyAtMarket, goodMatch, goods } from './market';
 import { approachVendor } from './mobile-approach';
+import { distance } from './navigation';
 import { Layer } from './protocol/layers';
 import type { Entity } from './protocol/world';
 import { createServiceExperience } from './service-experience';
@@ -40,8 +44,8 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
   } = ctx;
   const learning = createServiceExperience(ctx);
   // Bankers answer the "bank" keyword from across the bank floor; no walk to the counter.
-  const openBank = async (mobile: Entity) => {
-    if (learning.blocked(mobile, 3006105) || !(await offersBank(session, mobile.serial))) return;
+  const openBank = async (mobile: Entity, retry = false) => {
+    if ((!retry && learning.blocked(mobile, 3006105)) || !(await offersBank(session, mobile.serial))) return;
     try {
       return await openBankBox(ctx, mobile.serial);
     } catch (error) {
@@ -106,7 +110,8 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
       (item) => item.parent === ctx.serial && (item.layer === Layer.OneHanded || item.layer === Layer.TwoHanded)
     );
     if (wielded) await learnQuality(session, [wielded]);
-    if (wielded && exceptionalBow(wielded)) return;
+    // A better bow is a luxury while saving for a house (housing.ts).
+    if ((wielded && exceptionalBow(wielded)) || saving(ctx)) return;
     if (!(await buyAtMarket({ ...ctx, city: ctx.home.city }, 'exceptional bows', 1, 3).catch(() => 0))) return;
     await learnQuality(session, contents());
     const bow = contents().find(exceptionalBow);
@@ -249,10 +254,21 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
   };
   const bank = async () => {
     phase('banking', 'Banking profits and unsold valuables; vendors can charge the bank directly');
-    for (const location of ctx.home.banks) {
+    // The home town's banks, then the nearest others; a banker remembered as unavailable is tried
+    // again on the second pass rather than leaving the gold unbanked.
+    const others = allServiceLocations('banker')
+      .filter((b) => !ctx.home.banks.some((h) => h.x === b.x && h.y === b.y))
+      .sort((a, b) => distance(position(), a) - distance(position(), b))
+      .slice(0, 2);
+    for (const [pass, location] of [
+      ...ctx.home.banks.map((l) => [0, l] as const),
+      ...others.map((l) => [1, l] as const)
+    ]) {
       await navigate(location, 4);
-      for (const mobile of learning.order(nearby(), 3006105)) {
-        const opened = await openBank(mobile);
+      const bankers = learning.order(nearby(), 3006105);
+      if (!bankers.length) log(`No vendor in view at the bank near ${location.x},${location.y}`);
+      for (const mobile of bankers) {
+        const opened = await openBank(mobile, pass > 0);
         if (opened === undefined) continue;
         const box = { serial: opened };
         await Bun.sleep(500);
@@ -262,7 +278,8 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
           if (item.graphic === gold) {
             await session.moveItem(item.serial, box.serial);
             stats.bankedGold += item.amount ?? 1;
-          } else if (trip.loot.includes(item.serial)) {
+          } else if (trip.loot.includes(item.serial) && packItems(session, box.serial).length < 100) {
+            // The bank box holds 125 items; past 100 unsold loot stays out of it (inventory.ts).
             await session.moveItem(item.serial, box.serial);
             stats.bankedItems++;
           } else continue;

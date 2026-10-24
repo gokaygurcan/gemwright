@@ -1,8 +1,10 @@
+import { HUMAN_ELF_BODIES } from './bodies';
 import { groundOf } from './cemeteries';
 import { type DecisionCoordinator, type DecisionPick, decisionGuard, decisionState } from './decisions';
 import { encounterAdvice } from './experience';
 import { bandage, type FighterContext, gold, healPotion, huntable } from './fighter-context';
 import { describe, engageable, prey, profileOf } from './fighter-prey';
+import { warOpponent } from './guild-wars';
 import { organizeParty, partyOf, partyTarget, setPartyTarget } from './hunting-party';
 import { distance } from './navigation';
 import { followPlan, leadPlan } from './party-talk';
@@ -22,7 +24,7 @@ const claimedByOther = (ctx: FighterContext, mobile: Entity) =>
       (other) =>
         other.serial !== ctx.serial &&
         !partyOf(ctx.serial)?.members.has(other.serial) &&
-        [0x190, 0x191, 0x25d, 0x25e].includes(other.graphic) &&
+        HUMAN_ELF_BODIES.has(other.graphic) &&
         [1, 2].includes(other.notoriety ?? 0) &&
         other.position &&
         mobile.position &&
@@ -42,6 +44,9 @@ export async function chooseOpponent(
   options: { unreachable: Set<number>; decisions?: DecisionCoordinator; stopping?: () => boolean }
 ): Promise<HuntChoice> {
   const { session, checkpoint, template, trip, position, status, count, check } = ctx;
+  // A guild at war fights the enemy's members met on the hunting grounds first (guild-wars.ts).
+  const enemy = warOpponent(ctx);
+  if (enemy && !options.unreachable.has(enemy.serial)) return { kind: 'fight', opponent: enemy, pick: null };
   await organizeParty(ctx, options.decisions);
   // A member answers the leader's announced plan and fights the agreed target on the call.
   const agreed = await followPlan(ctx, options.decisions);

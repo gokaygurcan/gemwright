@@ -47,6 +47,25 @@
           "x": 1435,
           "y": 1730
         }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 1435,
+          "y": 1602
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 1475,
+          "y": 1671
+        },
+        {
+          "name": "guide",
+          "x": 1603,
+          "y": 1723
+        }
       ]
     },
     "Minoc": {
@@ -76,6 +95,25 @@
           "name": "guide",
           "x": 2476,
           "y": 407
+        }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 2514,
+          "y": 484
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 2531,
+          "y": 561
+        },
+        {
+          "name": "guide",
+          "x": 2461,
+          "y": 434
         }
       ]
     },
@@ -121,6 +159,20 @@
           "x": 2690,
           "y": 2235
         }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 2637,
+          "y": 2099
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 2747,
+          "y": 2252
+        }
       ]
     },
     "Cove": {
@@ -143,6 +195,13 @@
           "name": "guide",
           "x": 2252,
           "y": 1190
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 2223,
+          "y": 1189
         }
       ]
     },
@@ -206,6 +265,18 @@
           "name": "guide",
           "x": 5197,
           "y": 3994
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 5218,
+          "y": 4022
+        },
+        {
+          "name": "guide",
+          "x": 5227,
+          "y": 4011
         }
       ]
     },
@@ -318,6 +389,20 @@
           "x": 1435,
           "y": 3779
         }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 1427,
+          "y": 3826
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 1436,
+          "y": 3801
+        }
       ]
     },
     "Moonglow": {
@@ -375,6 +460,20 @@
           "name": "guide",
           "x": 4407,
           "y": 1048
+        }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 4416,
+          "y": 1099
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 4425,
+          "y": 1064
         }
       ]
     },
@@ -495,6 +594,13 @@
           "name": "guide",
           "x": 3506,
           "y": 2531
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 3508,
+          "y": 2557
         }
       ]
     },
@@ -636,6 +742,20 @@
           "x": 5818,
           "y": 3263
         }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 5707,
+          "y": 3211
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 5741,
+          "y": 3268
+        }
       ]
     },
     "Serpent's Hold": {
@@ -737,6 +857,20 @@
           "x": 3013,
           "y": 3466
         }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 2932,
+          "y": 3514
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 3019,
+          "y": 3387
+        }
       ]
     },
     "Skara Brae": {
@@ -827,6 +961,25 @@
           "name": "guide",
           "x": 570,
           "y": 2180
+        }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 635,
+          "y": 2170
+        },
+        {
+          "name": "guide",
+          "x": 578,
+          "y": 2212
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 596,
+          "y": 2226
         }
       ]
     },
@@ -926,6 +1079,18 @@
           "name": "guide",
           "x": 1944,
           "y": 2793
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 1853,
+          "y": 2806
+        },
+        {
+          "name": "guide",
+          "x": 1852,
+          "y": 2843
         }
       ]
     },
@@ -1052,6 +1217,30 @@
           "x": 2917,
           "y": 907
         }
+      ],
+      "architect": [
+        {
+          "name": "guide",
+          "x": 2915,
+          "y": 810
+        },
+        {
+          "name": "guide",
+          "x": 2851,
+          "y": 931
+        }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 2979,
+          "y": 643
+        },
+        {
+          "name": "guide",
+          "x": 2842,
+          "y": 875
+        }
       ]
     },
     "Wind": {
@@ -1087,6 +1276,13 @@
           "x": 5268,
           "y": 133
         }
+      ],
+      "provisioner": [
+        {
+          "name": "guide",
+          "x": 5160,
+          "y": 103
+        }
       ]
     },
     "Yew": {
@@ -1115,6 +1311,13 @@
         }
       ],
       "carpenter": [
+        {
+          "name": "guide",
+          "x": 578,
+          "y": 1011
+        }
+      ],
+      "architect": [
         {
           "name": "guide",
           "x": 578,

@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 
+import { GHOST_BODIES } from './bodies';
 import { resurrectionButton } from './fighter-recovery';
 import { allServiceLocations } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 
-const ghosts = new Set([0x192, 0x193, 0x25f, 0x260]);
+const ghosts = GHOST_BODIES;
 const WALKING_LIMIT = 300;
 const ankhs = (
   JSON.parse(readFileSync(new URL('../locations/ankhs.json', import.meta.url), 'utf8')) as {

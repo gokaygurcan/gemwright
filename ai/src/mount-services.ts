@@ -1,4 +1,5 @@
 import { fundsStale, queryBankBalance, spendableGold } from './bank-gold';
+import { PLAIN_HUMAN_BODIES } from './bodies';
 import { allServiceLocations, serviceLocations } from './locations';
 import { approachVendor } from './mobile-approach';
 import { canAffordMount, horseBodies, type MountContext, type MountMemory } from './mount-types';
@@ -22,7 +23,7 @@ export function createMountServices(
     [...session.world.entities.values()].filter(
       (mobile) =>
         mobile.kind === 'mobile' &&
-        [0x190, 0x191].includes(mobile.graphic) &&
+        PLAIN_HUMAN_BODIES.has(mobile.graphic) &&
         mobile.position &&
         distance(position(), mobile.position) <= 16
     );

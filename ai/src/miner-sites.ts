@@ -1,3 +1,4 @@
+import { HUMAN_ELF_BODIES } from './bodies';
 import { unsafeCheck } from './danger';
 import { miningCatalog } from './mining-catalog';
 import { distance } from './navigation';
@@ -22,10 +23,7 @@ export async function findMiningSite(options: {
   // Other people already working a spot: a player picks a free rock instead.
   const people = [...session.world.entities.values()].filter(
     (mobile) =>
-      mobile.kind === 'mobile' &&
-      mobile.serial !== serial &&
-      [0x190, 0x191, 0x25d, 0x25e].includes(mobile.graphic) &&
-      mobile.position
+      mobile.kind === 'mobile' && mobile.serial !== serial && HUMAN_ELF_BODIES.has(mobile.graphic) && mobile.position
   );
   const crowding = (point: { x: number; y: number }) =>
     people.some((mobile) => mobile.position && distance(mobile.position, point) <= 4) ? 40 : 0;

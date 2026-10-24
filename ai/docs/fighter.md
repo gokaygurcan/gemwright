@@ -23,11 +23,11 @@ Fighters hunt the cemeteries with undead spawners on the pinned shard (`Spawns/t
 | Moonglow | (4545, 1317) | 4 mixed | Moonglow moongate |
 | Cove | (2438, 1099) | 12, with liches | Minoc moongate |
 
-Each fighter starts at its home ground (weighted `grounds` in `world/world.json`). After 6–9 patrols in a row without a fight (temperament adds up to three) it moves on to the next cemetery in its own order (`cemeteries.ts`). Routes over 300 tiles go through the nearest public moongate (`moongate.ts`), then on foot; town trips, ghosts heading for a healer and corpse recovery take the gate too.
+Beyond the cemeteries, `catalogs/hunting-grounds.json` (`src/build-grounds.ts`, from `Spawns/trammel.xml` and `Data/Regions.xml`) lists 326 overland spawns of creatures that attack on sight, outside towns and dungeons, such as the orcs, ratmen, harpies and trolls west of Britain (1055, 1442). Each fighter starts at its home ground (weighted `grounds` in `world/world.json`). After 6–9 patrols in a row without a fight (temperament adds up to three) it moves on (`cemeteries.ts` `nextGround`) to a cemetery or spawn whose creatures its skills meet for at least half of what lives there (`readyFor`). Nearer grounds, richer ones (their loot packs' gold) and less crowded ones are preferred. With more skill the plain cemeteries lose their pull, and chaos shuffles the order a little. Routes over 300 tiles go through the nearest public moongate (`moongate.ts`), then on foot; town trips, ghosts heading for a healer and corpse recovery take the gate too.
 
 ## Opponents
 
-`fighter-prey.ts` recognises graveyard undead by body and single-click name (several share a body: wraith, spectre and shade use 26; ghoul and bogle use 153).
+`fighter-prey.ts` recognises graveyard undead by body and single-click name (several share a body: wraith, spectre and shade use 26; ghoul and bogle use 153). Every other creature that attacks on sight is tiered the same way from its ServUO stats in `catalogs/monsters.json` (`src/build-monsters.ts`: health, damage, combat skills, armor, fight mode and loot gold for the 479 kinds that dungeons, spawners and the monster and animal scripts bring out). A harpy, orc or lizardman is a brute, a troll or ettin a knight. Passive animals are never opponents.
 
 | Tier | Undead | Needs (weapon / tactics / max hits / armor / health / risk tolerance) |
 | --- | --- | --- |

@@ -1,11 +1,11 @@
 import { type FighterContext, huntable, valuable } from './fighter-context';
+import { packFull } from './inventory';
 import { distance } from './navigation';
 
 // Loots a defeated opponent's corpse: valuables and anything the shard flags as wearable or
-// stackable, up to the template's bank weight; better armor is put on when nothing is close.
+// stackable, until the pack is full; better armor is put on when nothing is close.
 export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<void>) {
-  const { session, navigate, contents, terrain, check, status, template, trip, persist, stats, nearby, position, log } =
-    ctx;
+  const { session, navigate, contents, terrain, check, trip, persist, stats, nearby, position, log } = ctx;
   return async (corpse: number) => {
     const body = session.world.entities.get(corpse);
     if (!body?.position || body.graphic !== 0x2006) return;
@@ -30,7 +30,7 @@ export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<voi
     for (const item of contents(corpse)) {
       if (!valuable(item.graphic) && !(terrain.tile(item.graphic, true).flags & (0x2 | 0x08000000))) continue;
       check();
-      if (status().weight > status().maxWeight * template.behavior.bankAtWeightRatio) break;
+      if (packFull(session, ctx.backpack(), 0.85)) break;
       // Recovered ammunition is kit, not merchandise.
       if (![0x0f3f, 0x1bfb].includes(item.graphic)) trip.loot.push(item.serial);
       persist();

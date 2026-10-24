@@ -106,8 +106,10 @@ if (has('trade_log')) {
 
 // Animals: horses and pack animals by state.
 const states = { mount: new Map<string, number>(), pack: new Map<string, number>() };
+const banked: number[] = [];
 for (const r of db.query<{ c: string }, []>('SELECT checkpoint_json c FROM residents WHERE desired_active = 1').all()) {
-  const c = JSON.parse(r.c) as { mount?: { state: string }; packAnimal?: { state: string } };
+  const c = JSON.parse(r.c) as { mount?: { state: string }; packAnimal?: { state: string }; funds?: { bank: number } };
+  banked.push(c.funds?.bank ?? 0);
   for (const [key, value] of [
     ['mount', c.mount?.state],
     ['pack', c.packAnimal?.state]
@@ -116,6 +118,77 @@ for (const r of db.query<{ c: string }, []>('SELECT checkpoint_json c FROM resid
 }
 const show = (m: Map<string, number>) => [...m].map(([k, n]) => `${k} ${n}`).join(', ');
 line(`\n## Animals\n\nHorses: ${show(states.mount)}\nPack animals: ${show(states.pack)}`);
+
+// Wealth (activity_samples, every five minutes): carried gold plus the last reported bank
+// balance, per profession: the median now and how fast it grows, first to last sample of the window.
+if (has('activity_samples')) {
+  const rows = db
+    .query<{ id: string; t: string; first: number; last: number; a: number; b: number }, [number]>(
+      `WITH span AS (SELECT resident_id, MIN(at) f, MAX(at) l FROM activity_samples WHERE at > ? GROUP BY resident_id)
+       SELECT span.resident_id id, r.template_id t, f first, l last,
+        (SELECT COALESCE(gold, 0) + COALESCE(bank, 0) FROM activity_samples x WHERE x.resident_id = span.resident_id AND x.at = f) a,
+        (SELECT COALESCE(gold, 0) + COALESCE(bank, 0) FROM activity_samples x WHERE x.resident_id = span.resident_id AND x.at = l) b
+       FROM span JOIN residents r ON r.id = span.resident_id`
+    )
+    .all(since);
+  const groups = new Map<string, { now: number[]; rate: number[] }>();
+  for (const r of rows) {
+    const group = groups.get(r.t.replace(/^[a-z]+(?:-brae)?-/, '')) ?? { now: [], rate: [] };
+    groups.set(r.t.replace(/^[a-z]+(?:-brae)?-/, ''), group);
+    group.now.push(r.b);
+    if (r.last - r.first >= 2 * 3_600_000) group.rate.push((r.b - r.a) / hours(r.last - r.first));
+  }
+  const median = (list: number[]) => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)] ?? 0;
+  line('\n## Wealth\n\n| Profession | Median gold | Richest | Median gold an hour |\n|---|---|---|---|');
+  for (const [name, g] of [...groups].sort((a, b) => median(b[1].now) - median(a[1].now)))
+    line(`| ${name} | ${median(g.now)} | ${Math.max(...g.now)} | ${g.rate.length ? median(g.rate).toFixed(0) : '-'} |`);
+}
+
+// Housing (house-lots.ts): houses by kind, claims, refused lots, and who is saving (5,000 banked)
+// or could buy (the dearest house, the tool and the 3,000 reserve: 40,377).
+if (has('houses')) {
+  const kinds = db
+    .query<{ house: string; n: number }, []>(
+      "SELECT house, COUNT(*) n FROM houses WHERE status = 'placed' GROUP BY house ORDER BY n DESC"
+    )
+    .all();
+  const count = (sql: string) => db.query<{ n: number }, []>(sql).get()?.n ?? 0;
+  line(
+    `\n## Housing\n\nHouses: ${kinds.reduce((n, k) => n + k.n, 0)}${kinds.length ? ` (${kinds.map((k) => `${k.house} ${k.n}`).join(', ')})` : ''}`
+  );
+  line(
+    `Lots claimed: ${count("SELECT COUNT(*) n FROM houses WHERE status = 'claimed'")}, refused by the server: ${count('SELECT COUNT(*) n FROM bad_lots')}`
+  );
+  line(
+    `Saving: ${banked.filter((g) => g >= 5000 && g < 40377).length}, able to buy: ${banked.filter((g) => g >= 40377).length}`
+  );
+}
+
+// Guilds and wars (guild-store.ts).
+if (has('guilds')) {
+  const rows = db
+    .query<{ name: string; abbr: string; side: string; alliance: string | null; n: number }, []>(
+      'SELECT g.name, g.abbr, g.side, g.alliance, COUNT(m.member) n FROM guilds g LEFT JOIN guild_members m ON m.guild = g.name GROUP BY g.name ORDER BY g.founded_at'
+    )
+    .all();
+  line(`\n## Guilds\n\n${rows.length ? '| Guild | Side | Alliance | Members |\n|---|---|---|---|' : 'No guilds.'}`);
+  for (const g of rows) line(`| ${g.name} [${g.abbr}] | ${g.side} | ${g.alliance ?? '-'} | ${g.n} |`);
+  const wars = db
+    .query<{ id: number; declarer: string; opponent: string; status: string; started_at: number | null }, []>(
+      'SELECT id, declarer, opponent, status, started_at FROM guild_wars ORDER BY declared_at DESC LIMIT 10'
+    )
+    .all();
+  for (const w of wars) {
+    const kills = db
+      .query<{ guild: string; n: number }, [number]>(
+        'SELECT killer_guild guild, COUNT(*) n FROM war_kills WHERE war = ? GROUP BY killer_guild'
+      )
+      .all(w.id);
+    line(
+      `War ${w.declarer} vs ${w.opponent}: ${w.status}${w.started_at ? ` since ${new Date(w.started_at).toISOString()}` : ''}; kills ${kills.map((k) => `${k.guild} ${k.n}`).join(', ') || 'none'}`
+    );
+  }
+}
 
 // Cost: Jev decisions charged to the shared daily budget.
 if (has('decision_spend')) {

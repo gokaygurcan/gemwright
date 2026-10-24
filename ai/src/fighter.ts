@@ -392,7 +392,7 @@ export async function runFighter(options: {
             travelling = false;
           }
         }
-        phase('choosing-opponent', 'Looking for an isolated skeleton or zombie');
+        phase('choosing-opponent', 'Looking for an opponent I can take on');
         const choice = await chooseOpponent(ctx, {
           unreachable,
           decisions: options.decisions,
@@ -419,7 +419,7 @@ export async function runFighter(options: {
                 'Britain')
               : nextGround(ctx);
             persist();
-            phase('changing-ground', `Nothing to hunt here lately; moving on to the ${trip.ground} cemetery`);
+            phase('changing-ground', `Nothing to hunt here lately; moving on to ${trip.ground}`);
             continue;
           }
           const patrol = patrolPoints(groundOf(trip));

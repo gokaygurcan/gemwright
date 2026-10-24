@@ -66,6 +66,8 @@ export interface AiSettings {
   // How unpredictable residents are, 0 (always the direct way) to 1: detours by real places,
   // brief stops, changes of plan in town. 0.3 by default.
   chaos?: number;
+  // Whether the Order and Chaos guild alliances go to war with each other. Off by default.
+  wars?: boolean;
 }
 
 export const configFilename = 'gemwright.json';
@@ -192,18 +194,19 @@ export function createConfig(input: {
       throw new Error('Invalid Sphere settings or scripts source.');
   }
   if (input.ai) {
-    const { population, decisions, speech, races, chaos } = input.ai;
+    const { population, decisions, speech, races, chaos, wars } = input.ai;
     if (
       emulator !== 'servuo' ||
       (population !== undefined && (!Number.isInteger(population) || population < 0 || population > 250)) ||
       (decisions !== undefined && !['local', 'jev'].includes(decisions)) ||
       (speech !== undefined && !['authored', 'claude'].includes(speech)) ||
       (chaos !== undefined && (typeof chaos !== 'number' || !(chaos >= 0 && chaos <= 1))) ||
+      (wars !== undefined && typeof wars !== 'boolean') ||
       (races !== undefined &&
         (!Array.isArray(races) || !races.length || races.some((r) => !['human', 'elf', 'gargoyle'].includes(r))))
     )
       throw new Error(
-        'Invalid ai settings: ServUO only, population 0-250, decisions local or jev, speech authored or claude, races human, elf or gargoyle, chaos 0-1.'
+        'Invalid ai settings: ServUO only, population 0-250, decisions local or jev, speech authored or claude, races human, elf or gargoyle, chaos 0-1, wars true or false.'
       );
     // Elves arrive with Mondain's Legacy, gargoyles with Stygian Abyss.
     const era = expansions.findIndex((option) => option.value === expansion);

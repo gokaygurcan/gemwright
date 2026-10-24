@@ -30,6 +30,7 @@ Start here, then read only the topic you need. Paths in commands are relative to
 | [Bard](bard.md) | Peacemaking, Provocation and Discordance in the graveyards. |
 | [Mounts](mounts.md) | Buying, riding, care and stabling horses. |
 | [Funds](funds.md) | Bank-charged purchases, town trips and income. |
+| [Housing, guilds and wars](housing.md) | Housing districts and lots, buying and living in a house, guilds, Order and Chaos wars. |
 | [Skill usage](skill-usage.md) | Where each skill is trained, idle practice, stat and skill locks. |
 | [Experience](experience.md) | Remembered outcomes that make residents more careful. |
 

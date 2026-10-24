@@ -1,4 +1,6 @@
 import { Blocked } from './blocked';
+import { GHOST_BODIES } from './bodies';
+import { packItems } from './inventory';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { Layer } from './protocol/layers';
@@ -67,7 +69,7 @@ const kinds: [number, number][] = [
 ];
 // Items this session could not reach or the server refused; never tried again.
 const skipped = new WeakMap<PlayerSession, Set<number>>();
-const ghosts = new Set([0x192, 0x193, 0x25f, 0x260]);
+const ghosts = GHOST_BODIES;
 
 const worthwhile = (terrain: Terrain, item: Entity) =>
   kinds.some(([low, high]) => item.graphic >= low && item.graphic <= high) ||
@@ -79,7 +81,8 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
   const self = session.world.entities.get(ctx.serial);
   if (!self || ghosts.has(self.graphic)) return false;
   const status = ctx.status();
-  if (status.weight >= status.maxWeight * 0.85) return false;
+  // Room is kept for the resident's own work: never past 85% weight or 100 items (inventory.ts).
+  if (status.weight >= status.maxWeight * 0.85 || packItems(session, ctx.backpack()).length >= 100) return false;
   const skip = skipped.get(session) ?? new Set<number>();
   skipped.set(session, skip);
   const here = position();
@@ -138,7 +141,7 @@ export async function pickUpInReach(session: PlayerSession, terrain: Terrain, lo
   const self = session.world.entities.get(serial);
   if (!self || ghosts.has(self.graphic)) return false;
   const pack = session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
-  if (!pack) return false;
+  if (!pack || packItems(session, pack.serial).length >= 100) return false;
   const skip = skipped.get(session) ?? new Set<number>();
   skipped.set(session, skip);
   let item: Entity | undefined;

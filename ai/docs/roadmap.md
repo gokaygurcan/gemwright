@@ -108,14 +108,16 @@ Residents are ordinary players: everything they do is something any player can d
 - [ ] Backups and restore drills.
 - [x] Measure long-running populations (`report.ts`): population and uptime (residents online, memory, worst event-loop lag, stalls, sampled every five minutes into `population_metrics`), activity totals and hourly rates, gold, skill spread, trades by good and why deals failed (`trade_log.reason`), horses and pack animals, Jev spend, dungeon runs and player signals. Runs on a database copy or in the AI container.
 
-Deferred: murderers (PKs) and criminal actions against players and residents; treasure hunts; guilds, Order/Chaos wars, boats, housing and storage.
+- [ ] Housing, guilds and wars ([housing](housing.md), built, awaiting live evidence; housing waits for the districts to be chosen): residents save for and buy a 7x7 classic house on a lot in a housing district (`house-lots.ts`, lots from `build-lots.ts`), visit it daily and keep their valuables in a secured box there; established residents found guilds (EJ guild menu, 25,000 gold) and invite residents of their side; the Order and Chaos alliances go to war when `ai.wars` is on, and fighters at war fight enemy guild members on the hunting grounds.
+
+Deferred: murderers (PKs) and criminal actions against players and residents; treasure hunts; boats.
 
 ## Planned
 
 - **Dungeons** are built and await live evidence ([dungeons](dungeons.md)): solo at 100.0 primaries, parties sized by the weakest member from 80.0, a crawl after UO Offline's, party chat between members, and a record of every run and party (`dungeons` report). Fighters, tamers, bards and thieves all take part; dead members are raised by a party healer (bandages or the Resurrection spell) or climb out and come back for their corpses; a dead leader hands the party on. Next: Recall for island dungeons, resurrecting pets.
 - **Other facets:** Felucca, Ilshenar, Malas and Tokuno need map assets and location catalogs.
 - **Skills above 100** need power scrolls from champion spawns, so they wait for Felucca and dungeons.
-- **Sparring** for passive skills waits for guild support (deferred).
+- **Sparring** for passive skills between guildmates, now that guilds exist.
 
 ## Verification
 

@@ -42,8 +42,9 @@ export function homeOf(city: string, position?: () => { x: number; y: number }) 
   };
 }
 export type Home = ReturnType<typeof homeOf>;
-export const ghosts = new Set([0x192, 0x193, 0x25f, 0x260]);
+export const ghosts = GHOST_BODIES;
 
+import { GHOST_BODIES } from './bodies';
 // Recognised graveyard undead bodies; per-type risk lives in fighter-prey.ts.
 import { prey } from './fighter-prey';
 

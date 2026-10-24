@@ -2,6 +2,8 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { HUMAN_BODIES } from './bodies';
+
 // Offline build of catalogs/aggressive-bodies.json: the bodies of creatures that attack on sight,
 // read from the pinned ServUO Scripts/Mobiles constructors. FightMode.Closest, Strongest, Weakest
 // and Evil seek out targets; Aggressor (fights back) and None do not. A body any aggressive creature
@@ -23,7 +25,7 @@ const walk = (dir: string) => {
 };
 walk(join(resolve(values.servuo), 'Scripts/Mobiles'));
 
-const humans = new Set([0x190, 0x191, 0x25d, 0x25e, 0x29a, 0x29b]);
+const humans = HUMAN_BODIES;
 // Per body: the names of the aggressive creatures wearing it, and whether a passive one does too.
 const seen = new Map<number, { aggressive: Set<string>; passive: boolean }>();
 for (const file of files) {

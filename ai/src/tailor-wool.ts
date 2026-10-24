@@ -1,3 +1,4 @@
+import { TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
@@ -60,7 +61,9 @@ const replied = (ctx: ProfessionContext, seen: Set<unknown>, clilocs: number[]) 
 async function shear(ctx: ProfessionContext) {
   const { session, phase } = ctx;
   if (!ctx.carried().some((i) => blades.has(i.graphic)))
-    await buyFrom({ ...ctx, city: 'Britain' }, 'weaponsmith', new Map([[0x13f6, 1]]), 25).catch(() => false);
+    await buyFrom({ ...ctx, city: 'Britain', limits: TOOLS }, 'weaponsmith', new Map([[0x13f6, 1]]), 25).catch(
+      () => false
+    );
   const blade = ctx.carried().find((i) => blades.has(i.graphic));
   if (!blade) return 0;
   let sheared = 0;

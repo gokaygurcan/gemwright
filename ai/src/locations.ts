@@ -17,7 +17,9 @@ export type ServiceType =
   | 'weaponsmith'
   | 'fisherman'
   | 'bard'
-  | 'cook';
+  | 'cook'
+  | 'architect'
+  | 'provisioner';
 export interface Landmark {
   name: string;
   city: string;

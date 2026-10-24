@@ -71,6 +71,8 @@ export class WorldView {
   warMode = false;
   poisonLevel: number | null = null;
   target: TargetCursor | null = null;
+  // The open text prompt (0xC2): a guild war or alliance name asked for.
+  prompt: { serial: number; id: number } | null = null;
   status: PlayerStatus | null = null;
   readonly contextMenus = new Map<number, { index: number; cliloc: number; flags: number }[]>();
   readonly buyOffers = new Map<number, { serial: number; price: number; description: string }[]>();
@@ -448,6 +450,17 @@ export class WorldView {
           packet.readUInt8(6) === 3
             ? null
             : { id: packet.readUInt32BE(2), ground: packet.readUInt8(1) === 1, flags: packet.readUInt8(6) };
+        break;
+      case 0x99:
+        this.target = {
+          id: packet.readUInt32BE(2),
+          ground: packet.readUInt8(1) === 1,
+          flags: packet.readUInt8(6),
+          multi: packet.readUInt16BE(18)
+        };
+        break;
+      case 0xc2:
+        this.prompt = { serial: packet.readUInt32BE(3), id: packet.readUInt32BE(7) };
         break;
       case 0xbf:
         // Party chat (PartyTextMessage): 3 private, 4 to all; sender serial, Unicode text.

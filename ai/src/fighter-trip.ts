@@ -1,5 +1,6 @@
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
 import { bandage, type FighterContext, gold, healPotion, observedThreat } from './fighter-context';
+import { packFull } from './inventory';
 import { magicProperty } from './item-quality';
 
 // Carried gold is lost on death, but a few coins are not worth a long ride to the bank.
@@ -17,9 +18,12 @@ const lootedWearables = (ctx: FighterContext) =>
         (ctx.terrain.tile(item.graphic, true).flags & 0x400000) !== 0
     );
 
-// Loot that is costly to lose on death: wearables the server describes with magic properties.
-const importantLoot = (ctx: FighterContext) =>
-  lootedWearables(ctx).find((item) => item.properties?.some((entry) => magicProperty(entry.cliloc)));
+// Loot that is costly to lose on death: wearables the server describes with magic properties. One
+// piece is no reason to leave the hunt; three are worth a trip.
+const importantLoot = (ctx: FighterContext) => {
+  const magic = lootedWearables(ctx).filter((item) => item.properties?.some((entry) => magicProperty(entry.cliloc)));
+  return magic.length >= 3 ? magic[0] : undefined;
+};
 
 // Ask for property lists of newly looted wearables, as a player hovers over new items.
 async function appraiseLoot(ctx: FighterContext) {
@@ -37,8 +41,9 @@ async function appraiseLoot(ctx: FighterContext) {
 // no healing, low health) always return; soft needs (a heavy purse, magic loot) are a judgement.
 export function townNeed(ctx: FighterContext): { reason: string; hard: boolean } | null {
   const status = ctx.status();
-  if (status.weight >= status.maxWeight * ctx.template.behavior.bankAtWeightRatio)
-    return { reason: `pack weight ${status.weight}/${status.maxWeight}`, hard: true };
+  // Hunting goes on until the pack is full (inventory.ts), as for gatherers.
+  if (packFull(ctx.session, ctx.backpack(), 0.85))
+    return { reason: `pack full: ${status.weight}/${status.maxWeight} stones`, hard: true };
   if (!hasHealing(ctx)) return { reason: 'healing supplies are nearly exhausted', hard: true };
   if (status.hits < status.maxHits * 0.5)
     return { reason: `health ${status.hits}/${status.maxHits} after field healing`, hard: true };

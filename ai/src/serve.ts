@@ -5,6 +5,7 @@ import { setPopulationChaos } from './chaos';
 import { type PopulationConfig, validateConfig } from './config';
 import { validateConnection } from './connection';
 import { validateDecisionConfig } from './decision-provider';
+import { setWars } from './guild-wars';
 import { enablePhrasing } from './phrasing';
 import { CLIENT_VERSION } from './protocol/packets';
 import { runPopulation } from './run-population';
@@ -25,11 +26,13 @@ const required = (name: string) => {
 
 const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
   id: string;
-  ai?: { population?: number; decisions?: string; speech?: string; chaos?: number };
+  ai?: { population?: number; decisions?: string; speech?: string; chaos?: number; wars?: boolean };
 };
 enablePhrasing(shard.ai?.speech === 'claude');
 // How unpredictable residents are (chaos.ts): the shard's setting, else the world's, else 0.3.
 setPopulationChaos(shard.ai?.chaos ?? world.lifecycle?.chaos ?? 0.3);
+// Order and Chaos guild wars (guild-wars.ts) only when the shard turns them on.
+setWars(shard.ai?.wars === true);
 const shardFile = join(data, 'gemwright.json');
 await mkdir(data, { recursive: true });
 await writeFile(shardFile, JSON.stringify(shard));

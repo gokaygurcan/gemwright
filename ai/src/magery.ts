@@ -76,6 +76,11 @@ export async function trainMagery(ctx: MageryContext, until: number) {
       .reverse()
       .find((s) => !missing.has(s.id) && skill() >= 14.3 * (s.circle - 1) - 20 && skill() < 14.3 * (s.circle - 1) + 20);
   if (!spell()) return 0;
+  // A trip to the mage only when the training budget can pay for what is missing (bank-gold.ts):
+  // a poor resident does not walk across the map to be refused.
+  const affords = (cost: number) => canSpendOnTraining(session, ctx.backpack(), ctx.checkpoint, cost);
+  const short = spell()?.reagents.some((r) => count(r) < 5) ?? false;
+  if ((!count(book) && !affords(30)) || (short && !affords(60))) return 0;
   if (!count(book) && !(await shop(ctx, new Map([[book, 1]]), 30))) return 0;
   // Looted scrolls go into the book first; duplicates stay in the pack for sale.
   const spellbook = () => carried(ctx.backpack()).find((item) => item.graphic === book);
