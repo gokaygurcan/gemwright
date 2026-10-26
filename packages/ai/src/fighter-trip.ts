@@ -6,7 +6,7 @@ import { packFull } from './inventory';
 import { magicProperty } from './item-quality';
 
 // Carried gold is lost on death, but a few coins are not worth a long ride to the bank.
-export const CARRIED_GOLD_LIMIT = 1500;
+export const CARRIED_GOLD_LIMIT = 500;
 
 const hasHealing = (ctx: FighterContext) => ctx.count(bandage) >= 5 || ctx.count(healPotion) >= 1;
 

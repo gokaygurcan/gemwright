@@ -1,5 +1,6 @@
 import { gold } from '@gemwright/common/items';
 
+import { canPause } from './action-purpose';
 import { tally } from './activity';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
@@ -71,9 +72,14 @@ export const lastFailure = (session: PlayerSession) => failures.get(session);
 async function withPartner(session: PlayerSession, partner: number, deal: () => Promise<boolean>) {
   expectTrade(session, partner);
   failures.delete(session);
+  const interrupt = setInterval(() => {
+    if (session.phase === 'ready' && !canPause(session) && opened(session, partner)) session.cancelTrade();
+  }, 250);
   try {
+    if (!canPause(session)) return fail(session, 'Safety takes priority over trading');
     return await deal();
   } finally {
+    clearInterval(interrupt);
     endTrade(session);
   }
 }
@@ -106,6 +112,7 @@ async function sell(
 ): Promise<boolean> {
   if (amountIn(session, backpack, match) < amount) return fail(session, 'goods not carried');
   const coins = amountIn(session, backpack, isGold);
+  const goodsBefore = amountIn(session, backpack, match);
   // Handing over opens the window; a lift refused while another action finishes is tried again.
   for (let tries = 0; tries < 2 && !opened(session, buyer); tries++) {
     if (tries) await Bun.sleep(1500);
@@ -127,12 +134,14 @@ async function sell(
   }
   const paid = () => amountIn(session, trade.theirs, isGold) >= price;
   await session.waitFor(() => trade.closed || paid(), 'payment in the trade window', 60_000).catch(() => {});
-  if (!(await settle(session, paid))) {
+  if (!(await settle(session, () => paid() && amountIn(session, trade.mine, match) >= amount))) {
     session.cancelTrade();
     return fail(session, paid() ? 'partner did not accept' : 'not paid');
   }
   await Bun.sleep(500);
-  const done = amountIn(session, backpack, isGold) - coins >= price;
+  const done =
+    (price === 0 || amountIn(session, backpack, isGold) - coins >= price) &&
+    amountIn(session, backpack, match) <= goodsBefore - amount;
   if (!done) return fail(session, 'payment did not arrive');
   tally(session, 'trades');
   tally(session, 'tradeGoldIn', price);
@@ -148,6 +157,7 @@ async function buy(
   price: number
 ): Promise<boolean> {
   const before = amountIn(session, backpack, match);
+  const coinsBefore = amountIn(session, backpack, isGold);
   if (amountIn(session, backpack, isGold) < price) return fail(session, 'coins not carried');
   await session.waitFor(() => opened(session, seller), 'trade window', 60_000).catch(() => {});
   const trade = session.world.trade;
@@ -162,12 +172,13 @@ async function buy(
     session.cancelTrade();
     return fail(session, 'coins refused by the window');
   }
-  if (!(await settle(session, delivered))) {
+  if (!(await settle(session, () => delivered() && amountIn(session, trade.mine, isGold) >= price))) {
     session.cancelTrade();
     return fail(session, 'partner did not accept');
   }
   await Bun.sleep(500);
-  const done = amountIn(session, backpack, match) - before >= amount;
+  const done =
+    amountIn(session, backpack, match) - before >= amount && coinsBefore - amountIn(session, backpack, isGold) >= price;
   if (!done) return fail(session, 'window closed without the swap');
   tally(session, 'trades');
   tally(session, 'tradeGoldOut', price);

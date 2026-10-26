@@ -77,6 +77,32 @@
         {
           "name": "Tinker's Guild"
         }
+      ],
+      "bard": [
+        {
+          "name": "Britain bard spawn",
+          "x": 1455,
+          "y": 1556
+        }
+      ]
+    },
+    "Moonglow": {
+      "banker": [
+        {
+          "name": "Moonglow bank counter",
+          "x": 4471,
+          "y": 1160
+        },
+        {
+          "name": "Moonglow bank, west side",
+          "x": 4466,
+          "y": 1162
+        },
+        {
+          "name": "Moonglow bank, east side",
+          "x": 4476,
+          "y": 1162
+        }
       ]
     },
     "Minoc": {

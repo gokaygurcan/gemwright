@@ -1,6 +1,7 @@
 import { gold } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
+import { supportingOf } from './archetypes';
 import { fundsStale, offersBank, spendableGold, withdrawAccountGold } from './bank-gold';
 import type { FighterContext } from './fighter-context';
 import { type ServiceType, serviceLocations } from './locations';
@@ -122,7 +123,7 @@ export async function trainingVisit(ctx: TrainingContext, city: string) {
   const goals = [
     ...Object.keys(ctx.template.behavior.trainingGoals),
     ...(archetype?.primarySkills ?? []),
-    ...(archetype?.supportingSkills ?? [])
+    ...(supportingOf(archetype) ?? [])
   ].flatMap((skill) => [skill, ...(supporting[skill] ?? [])]);
   checkpoint.training ??= {};
   const attempted = checkpoint.training;

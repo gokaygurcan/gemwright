@@ -1,5 +1,8 @@
+import { gold } from '@gemwright/common/items';
+
 import { type FighterContext, huntable, valuable } from './fighter-context';
 import { packFull } from './inventory';
+import { lootPriority, observedAmount, recordIncome } from './loot-economy';
 import { distance } from './navigation';
 
 // Loots a defeated opponent's corpse: valuables and anything the shard flags as wearable or
@@ -27,14 +30,36 @@ export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<voi
       log(`corpse ${corpse} belongs to another player's kill; leaving it`);
       return;
     }
-    for (const item of contents(corpse)) {
+    for (const item of contents(corpse)
+      .sort((a, b) => lootPriority(b) - lootPriority(a))
+      .slice(0, 40)) {
       if (!valuable(item.graphic) && !(terrain.tile(item.graphic, true).flags & (0x2 | 0x08000000))) continue;
       check();
-      if (packFull(session, ctx.backpack(), 0.85)) break;
-      // Recovered ammunition is kit, not merchandise.
-      if (![0x0f3f, 0x1bfb].includes(item.graphic)) trip.loot.push(item.serial);
-      persist();
-      await session.moveItem(item.serial, ctx.backpack());
+      const s = session.world.status;
+      const mergingGold = item.graphic === gold && observedAmount(session, ctx.backpack(), item) > 0;
+      if (packFull(session, ctx.backpack(), 0.85) && !(mergingGold && s && s.weight < s.maxWeight * 0.92)) break;
+      const quantity =
+        item.graphic === gold && s
+          ? Math.min(item.amount ?? 1, Math.max(0, Math.floor((s.maxWeight * 0.92 - s.weight) * 125)))
+          : (item.amount ?? 1);
+      if (quantity <= 0) continue;
+      const before = observedAmount(session, ctx.backpack(), item);
+      const beforeStacks = new Map(contents().map((owned) => [owned.serial, owned.amount ?? 1]));
+      try {
+        await session.moveItem(item.serial, ctx.backpack(), quantity);
+      } catch (error) {
+        check();
+        log(`Loot transfer refused: ${error instanceof Error ? error.message : 'unknown refusal'}`);
+        continue;
+      }
+      const gained = observedAmount(session, ctx.backpack(), item) - before;
+      if (gained <= 0) continue;
+      if (item.graphic === gold) recordIncome(ctx.checkpoint, 'lootedGold', gained);
+      // Merged stacks can have another serial; record the inventory actually received.
+      if (![gold, 0x0f3f, 0x1bfb].includes(item.graphic))
+        for (const owned of contents().filter((e) => e.graphic === item.graphic && (e.hue ?? 0) === (item.hue ?? 0)))
+          if ((owned.amount ?? 1) > (beforeStacks.get(owned.serial) ?? 0) && !trip.loot.includes(owned.serial))
+            trip.loot.push(owned.serial);
       stats.looted++;
       persist();
       await Bun.sleep(700);

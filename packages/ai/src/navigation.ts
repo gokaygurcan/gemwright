@@ -1,15 +1,19 @@
+import { canPause, checkedDelay, urgentAction } from './action-purpose';
 import { Blocked } from './blocked';
+import { threatsNear } from './danger';
 import { directRoute } from './direct-route';
 import { holdWhileEngaged, noteStep } from './engagement';
 import { mountEquipment } from './mount-types';
 import type { PlayerSession } from './protocol/session';
+import { registerTerrain } from './resident-context';
 import { pickUpInReach } from './scavenge';
 import { directionTo, type Terrain } from './terrain';
 import { markUnreachable } from './unreachable';
-import { detourFor, passingGreeting } from './wander';
+import { passingGreeting } from './wander';
 
-export const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
-  Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+export function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+}
 
 export function createNavigator(options: {
   session: PlayerSession;
@@ -21,10 +25,14 @@ export function createNavigator(options: {
   onStep?: () => void | Promise<void>;
   runClose?: boolean;
   avoidRest?: boolean;
+  purpose?: 'combat' | 'escape';
+  // Steer around hostile creatures in sight (default on; off for a fighter at its hunting ground).
+  wary?: () => boolean;
   // Never run (a hidden thief sneaking up on a mark).
   walkOnly?: () => boolean;
 }) {
   const { session, terrain, check, phase, log } = options;
+  registerTerrain(session, terrain);
   const serial = session.world.serial;
   if (serial === null) throw new Error('Navigation requires a character');
   const blocked = options.blocked ?? new Set<string>();
@@ -36,26 +44,9 @@ export function createNavigator(options: {
     if (!session.world.status) throw new Error('Status is unknown');
     return session.world.status;
   };
-  // Chaos on the road (wander.ts): a longer walk sometimes goes by way of a real place first.
-  let wandering = false;
-  const walk = async (goal: { x: number; y: number; z?: number }, range: number) => {
-    if (!wandering && !options.walkOnly?.()) {
-      const stop = detourFor(session, position(), goal);
-      if (stop) {
-        wandering = true;
-        try {
-          log(`Going by way of ${stop.name === 'guide' ? `a shop in ${stop.city}` : stop.name}`);
-          await go(stop, 3);
-          await Bun.sleep(3000 + Math.random() * 7000);
-        } catch (error) {
-          if (!(error instanceof Blocked)) throw error;
-        } finally {
-          wandering = false;
-        }
-      }
-    }
-    return go(goal, range);
-  };
+  const failuresByRoute = new Map<string, { until: number; count: number; error: Blocked }>();
+  // Walking goes straight to the goal: no detours by way of places it has no business at.
+  const walk = (goal: { x: number; y: number; z?: number }, range: number) => go(goal, range);
   const go = async (goal: { x: number; y: number; z?: number }, range: number) => {
     // Always give the event loop a turn: a caller looping on an already-reached goal must not
     // starve timers, the shard lease and every other session.
@@ -63,6 +54,8 @@ export function createNavigator(options: {
     let failures = 0;
     let travelled = 0;
     let detouring = false;
+    let seenThreats = new Set<number>();
+    let waits = 0;
     const origins = new Map<string, number>();
     const triedDoors = new Set<number>();
     const lockedDoors = new Set<number>();
@@ -89,6 +82,29 @@ export function createNavigator(options: {
           }
         }
       }
+      // Seen danger shapes the route, as a player gives a monster a wide berth: the ground around
+      // each hostile creature in sight is avoided (wider around archers and casters), unless it
+      // is what the walk is for (a hunter closing on its target near the goal). With no way
+      // around, the walk stops here instead of running through them.
+      const avoid = new Set<string>();
+      const careful = options.purpose !== 'combat' && (options.wary?.() ?? true);
+      const wary = (careful ? threatsNear(session, position(), 18) : []).filter(
+        (m) => m.position && distance(m.position, goal) > range + 3
+      );
+      for (const m of wary) {
+        const at = m.position as { x: number; y: number };
+        const r = (m.notoriety ?? 0) === 6 ? 9 : 7;
+        // Only ground nearer the creature than it stands now: stepping away is always allowed.
+        const now = Math.hypot(position().x - at.x, position().y - at.y);
+        for (let dx = -r; dx <= r; dx++)
+          for (let dy = -r; dy <= r; dy++)
+            if (dx * dx + dy * dy <= r * r && Math.hypot(dx, dy) < now) avoid.add(`${at.x + dx},${at.y + dy}`);
+      }
+      seenThreats = new Set(wary.map((m) => m.serial));
+      if (avoid.size) {
+        for (const key of avoid) occupied.add(key);
+        for (const key of avoid) hard.add(key);
+      }
       let path = detouring ? null : directRoute(terrain, position(), goal, range, occupied, goal.z);
       if (!path) {
         detouring = true;
@@ -101,6 +117,39 @@ export function createNavigator(options: {
         check();
         continue;
       }
+      if (!path?.length && avoid.size && waits < 2) {
+        // Every way passes them: back off from them and wait for the road to clear (creatures
+        // wander), as a player waits at a distance; twice at most, then it gives up this way.
+        waits++;
+        const here = position();
+        const cx = wary.reduce((n, m) => n + (m.position?.x ?? 0), 0) / wary.length;
+        const cy = wary.reduce((n, m) => n + (m.position?.y ?? 0), 0) / wary.length;
+        const length = Math.max(1, Math.hypot(here.x - cx, here.y - cy));
+        const back = terrain.stand(
+          Math.round(here.x + ((here.x - cx) / length) * 15),
+          Math.round(here.y + ((here.y - cy) / length) * 15),
+          here.z
+        );
+        phase('waiting-out-danger', `Monsters on the way to ${goal.x},${goal.y}; waiting for them to move on`);
+        if (back) {
+          const path = await terrain.pathAsync(here, back, 1, hard, undefined, session.signal, true);
+          for (const point of path ?? []) {
+            const direction = directionTo(position(), point);
+            if (direction < 0) break;
+            await session.walk(direction);
+            await Bun.sleep(220);
+          }
+        }
+        await checkedDelay(30_000 + Math.random() * 30_000, check);
+        origins.clear();
+        continue;
+      }
+      if (!path?.length && avoid.size) {
+        throw new Blocked(
+          'dangerous',
+          `Hostile creatures block every way to ${goal.x},${goal.y} (${wary.map((m) => `${m.name ?? 'something'} 0x${m.graphic.toString(16)} at ${m.position?.x},${m.position?.y}`).join(', ')})`
+        );
+      }
       if (!path?.length) {
         if (lockedDoors.size) throw new Blocked('locked-door', `Locked door blocks every route to ${goal.x},${goal.y}`);
         markUnreachable(goal, position());
@@ -108,6 +157,14 @@ export function createNavigator(options: {
       }
       for (const point of path) {
         check();
+        // A new hostile creature in sight: plan again around it.
+        if (
+          careful &&
+          threatsNear(session, position(), 14).some(
+            (m) => !seenThreats.has(m.serial) && m.position && distance(m.position, goal) > range + 3
+          )
+        )
+          break;
         const before = { ...position() };
         const direction = directionTo(before, point);
         if (direction < 0) break;
@@ -117,15 +174,37 @@ export function createNavigator(options: {
           await Bun.sleep(Math.max(0, 110 - (performance.now() - turnAt)));
         }
         const ghost = [0x192, 0x193, 0x25f, 0x260].includes(session.world.entities.get(serial)?.graphic ?? 0);
-        if (!ghost && !options.avoidRest && status().stamina <= Math.max(3, status().maxStamina * 0.15)) {
+        if (
+          !ghost &&
+          !options.avoidRest &&
+          canPause(session) &&
+          status().stamina <= Math.max(3, status().maxStamina * 0.15)
+        ) {
+          // Overloaded, every step costs more stamina than resting returns: it puts down the
+          // cheapest weight and comes back for it later (overload.ts), whoever it is.
+          if (status().weight > status().maxWeight) {
+            const [{ openOwnBackpack }, { lighten }, { workGear }] = await Promise.all([
+              import('./backpack'),
+              import('./overload'),
+              import('./inventory')
+            ]);
+            const pack = await openOwnBackpack(session).catch(() => null);
+            if (pack !== null) await lighten(session, pack, (item) => workGear.has(item.graphic), log);
+          }
+          if (status().weight > status().maxWeight)
+            throw new Blocked('overweight', `Too heavy to walk: ${status().weight}/${status().maxWeight} stones`);
           phase('resting', `Recovering stamina (${status().stamina}/${status().maxStamina})`);
           const restUntil = Date.now() + 45000;
-          while (status().stamina < Math.max(6, status().maxStamina * 0.4) && Date.now() < restUntil) {
+          while (
+            canPause(session) &&
+            status().stamina < Math.max(6, status().maxStamina * 0.4) &&
+            Date.now() < restUntil
+          ) {
             check();
             await Bun.sleep(2000);
             await session.refreshStatus();
           }
-          if (status().stamina <= 3) throw new Error('Stamina did not recover enough to continue');
+          if (canPause(session) && status().stamina <= 3) throw new Error('Stamina did not recover enough to continue');
         }
         const running =
           !options.walkOnly?.() &&
@@ -133,6 +212,7 @@ export function createNavigator(options: {
           (ghost || (status().stamina >= status().maxStamina * 0.35 && status().weight < status().maxWeight * 0.95));
         // Standing to talk with a player pauses every walk (engagement.ts).
         await holdWhileEngaged(session);
+        check();
         const sentAt = performance.now();
         const accepted = await session.walk(direction, point.z, running);
         noteStep(session);
@@ -144,8 +224,10 @@ export function createNavigator(options: {
         await options.onStep?.();
         // Every fourth step, loose valuables within reach are taken without leaving the route (not
         // by a thief sneaking up on a mark, whose stealth a lift could break).
-        if (accepted && (travelled & 3) === 0 && !options.walkOnly?.()) await pickUpInReach(session, terrain, log);
-        if (accepted && travelled % 32 === 0 && !options.walkOnly?.()) await passingGreeting(session);
+        if (accepted && canPause(session) && (travelled & 3) === 0 && !options.walkOnly?.())
+          await pickUpInReach(session, terrain, log);
+        if (accepted && canPause(session) && travelled % 32 === 0 && !options.walkOnly?.())
+          await passingGreeting(session);
         if (accepted && (travelled & 3) === 3) failures = 0;
         if (accepted && ++travelled % 64 === 0)
           log(
@@ -199,5 +281,35 @@ export function createNavigator(options: {
       }
     }
   };
-  return walk;
+  return async (goal: { x: number; y: number; z?: number }, range: number) => {
+    const from = position();
+    const doors = [...session.world.entities.values()]
+      .filter(
+        (entity) =>
+          entity.kind === 'item' &&
+          entity.position &&
+          distance(from, entity.position) <= 18 &&
+          terrain.tile(entity.graphic, true).flags & 0x20000000
+      )
+      .map((entity) => `${entity.serial}:${entity.graphic}:${entity.position?.x},${entity.position?.y}`)
+      .sort()
+      .join('|');
+    const key = `${session.world.map}:${from.x >> 7},${from.y >> 7},${from.z}:${goal.x},${goal.y},${goal.z ?? '*'}:${range}:${doors}`;
+    const previous = failuresByRoute.get(key);
+    if (previous && previous.until > Date.now()) throw previous.error;
+    try {
+      const result = options.purpose
+        ? await urgentAction(session, options.purpose, () => walk(goal, range))
+        : await walk(goal, range);
+      failuresByRoute.delete(key);
+      return result;
+    } catch (error) {
+      if (error instanceof Blocked) {
+        const count = Math.min(6, (previous?.count ?? 0) + 1);
+        failuresByRoute.set(key, { error, count, until: Date.now() + Math.min(10 * 60_000, 15_000 * 2 ** count) });
+        if (failuresByRoute.size > 64) failuresByRoute.delete(failuresByRoute.keys().next().value as string);
+      }
+      throw error;
+    }
+  };
 }

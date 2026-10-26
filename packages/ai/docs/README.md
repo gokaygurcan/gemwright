@@ -2,13 +2,19 @@
 
 Gemwright's AI runtime populates a ServUO shard with persistent characters that play like ordinary players: they log in through the normal client protocol, mine, chop, fish, hunt, tame, steal, play music, trade with vendors, bank, die and recover, and talk. Nothing runs inside the server and no character has privileges a player lacks.
 
-Start here, then read only the topic you need. Paths in commands are relative to the repository root.
+Start here, then read only the topic you need. Paths in commands are relative to the repository root. Open work is in the repository's [roadmap](../../../ROADMAP.md).
+
+## Principles
+
+- **Ordinary players.** Residents connect over the ordinary client protocol (ServUO, classic 7.0.45.1) from a separate process. No server hook, privilege, free resurrection, resource injection or hidden-world knowledge: the server validates everything they do.
+- **Observed state.** A resident knows what a player could: what it received, the public map, and its own memory. An action counts as done only when the server's feedback confirms it.
+- **Bounded decisions.** Code offers Jev a closed set of candidates and checks the answer before acting; a model outage leaves everyone on local rules.
+- **Secrets stay out.** Game-account credentials live only in the resident database; API keys only in the environment. Neither reaches templates, checkpoints, logs or model state.
 
 ## Foundation
 
 | Topic | Covers |
 | --- | --- |
-| [Design](design.md) | Goals, ordinary-player boundaries, architecture, reference projects. |
 | [Commands](commands.md) | Every command, and the source layout. |
 | [Templates and archetypes](templates.md) | Character templates, archetypes, temperament, allocation and revision rules. |
 | [Persistence](persistence.md) | The resident database, checkpoints, credentials, skill snapshots, crash recovery. |
@@ -19,29 +25,13 @@ Start here, then read only the topic you need. Paths in commands are relative to
 
 ## Behavior
 
-| Topic | Covers |
-| --- | --- |
-| [Mining](mining.md) | The Minoc miner: mining, smelting, smithing, banking and tools. |
-| [Lumberjack](lumberjack.md) | Trees, chopping, boards and the best value from wood. |
-| [Fighter](fighter.md) | Cemeteries, opponents, damage-aware combat, parties, gear, loot, training. |
-| [Dungeons](dungeons.md) | Dungeon runs alone or in parties, the crawl, party chat, catalogs and run records. |
-| [Death and recovery](death-recovery.md) | Resurrection, corpse decisions, replacement equipment. |
-| [Thief](thief.md) | Theft trips, hiding and stealth, snooping pack animals. |
-| [Bard](bard.md) | Peacemaking, Provocation and Discordance in the graveyards. |
-| [Mounts](mounts.md) | Buying, riding, care and stabling horses. |
-| [Funds](funds.md) | Bank-charged purchases, town trips and income. |
-| [Housing, guilds and wars](housing.md) | Housing districts and lots, buying and living in a house, guilds, Order and Chaos wars. |
-| [Skill usage](skill-usage.md) | Where each skill is trained, idle practice, stat and skill locks. |
-| [Experience](experience.md) | Remembered outcomes that make residents more careful. |
+What residents do lives in the code, one module per trade or activity (`src/fighter.ts`, `src/miner.ts`, `src/profession.ts`, `src/escort.ts` and so on), not in design docs here: docs that described past decisions as the plan kept repeating them. Where each skill is trained is the owner's [skill usage guide](skill-usage.md). Open work and the direction are in the [roadmap](../../../ROADMAP.md).
 
-## Decisions and speech
+## Decisions
 
 | Topic | Covers |
 | --- | --- |
 | [Decisions](decisions.md) | Jev and the local rules: contract, budgets, traces, baseline comparison. |
-| [Conversation](conversation.md) | Hearing, understanding and answering speech, between residents and with players. |
-
-[Roadmap](roadmap.md) tracks milestones and what remains.
 
 ## Keeping documentation small
 

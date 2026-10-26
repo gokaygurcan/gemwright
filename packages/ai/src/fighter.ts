@@ -1,65 +1,46 @@
 import { gold } from '@gemwright/common/items';
 
+import { recentlyHurt, takingUrgentAction } from './action-purpose';
 import { tally } from './activity';
+import { recoverWithAid } from './aid-recovery';
+import { knownBankGold } from './bank-gold';
 import { Blocked, type BlockedReason, blockedReason } from './blocked';
-import { atGround, groundOf, nearAnyGround, nextGround, patrolPoints, returnHome, travelToGround } from './cemeteries';
-import type { CharacterTemplate } from './config';
-import { converse } from './conversation';
-import type { DecisionCoordinator, DecisionPick } from './decisions';
-import type { RunRecord } from './dungeon-context';
+import { atGround, groundOf, nextGround, patrolPoints, travelToGround } from './cemeteries';
+import type { DecisionPick } from './decisions';
 import { dungeonTurn } from './dungeon-turn';
+import { escortOpportunity } from './escort';
 import { reconcileExperience } from './experience';
 import { createFighterCombat } from './fighter-combat';
-import {
-  bandage,
-  Died,
-  type FighterContext,
-  ghosts,
-  healPotion,
-  homeOf,
-  huntable,
-  observedThreat,
-  Retreat
-} from './fighter-context';
+import { Died, type FighterContext, ghosts, homeOf, huntable, observedThreat, Retreat } from './fighter-context';
 import { fighterDungeon, fighterLife } from './fighter-dungeon';
 import { fightOpponent } from './fighter-encounter';
 import { createFighterEquipment } from './fighter-equipment';
+import { createFighterErrands } from './fighter-errands';
 import { chooseOpponent } from './fighter-hunt';
 import { createCorpseLooter } from './fighter-loot';
 import { createFighterRecovery } from './fighter-recovery';
+import { registerFighterSocial } from './fighter-social';
 import { createFighterTown } from './fighter-town';
 import { fieldUpkeep, planTownTrip } from './fighter-trip';
+import { tidyPack } from './inventory';
 import { lifeTurn } from './life';
+import { info } from './log';
+import { checkLoop, watchStep } from './loop-watch';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
+import { personalTurn } from './personal-turn';
 import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import { noticePeers } from './relationships';
+import { observeResident } from './resident-observation';
+import type { ResidentOptions } from './resident-options';
 import { scavenge } from './scavenge';
 import { isSetback, passSetback } from './setback';
 import { trainSupportingSkill } from './skill-training';
-import type { Checkpoint } from './store';
 import { Terrain } from './terrain';
 
-export async function runFighter(options: {
-  session: PlayerSession;
-  assets: string;
-  template: CharacterTemplate;
-  seconds: number;
-  overland?: boolean;
-  peers?: ReadonlyMap<number, string>;
-  // Prefix for log lines when several residents share one process.
-  label?: string;
-  checkpoint: Checkpoint;
-  decisions?: DecisionCoordinator;
-  save: (checkpoint: Checkpoint) => void;
-  recordRun?: (record: RunRecord) => void;
-  stopping?: () => boolean;
-}) {
+export async function runFighter(options: ResidentOptions) {
   const { session, template } = options;
   const serial = session.world.serial;
-  // Fighters live anywhere in Trammel.
-  if (serial === null || session.world.map !== 1) throw new Error('Fighter requires a Trammel character');
+  if (serial === null || session.world.map !== 1) throw new Error('Fighter needs Trammel');
   const home = homeOf(template.creation.city, () => session.world.position ?? { x: 0, y: 0 });
   const checkpoint = structuredClone(options.checkpoint);
   reconcileExperience(checkpoint);
@@ -73,18 +54,19 @@ export async function runFighter(options: {
   const terrain = Terrain.shared(options.assets, 1);
   const deadline = Date.now() + options.seconds * 1000;
   const tag = options.label ? `fighter:${options.label}` : 'fighter';
-  const log = (message: string) => console.error(`[${tag}] ${message}`);
+  const log = (message: string) => info(`[${tag}] ${message}`);
   const persist = () => options.save(checkpoint);
   const phase = (value: string, text: string) => {
-    checkpoint.goal = { kind: 'hunting', phase: value };
-    noticePeers(session, checkpoint, options.peers, template.behavior.sociability);
-    void converse({
+    watchStep(session, tag, value, text);
+    checkpoint.goal = { kind: 'hunting', phase: value, note: text };
+    observeResident({
       session,
       checkpoint,
       template,
       city: home.city,
       peers: options.peers,
-      decisions: options.decisions
+      decisions: options.decisions,
+      persist
     });
     checkpoint.memories = [...checkpoint.memories.slice(-49), { at: new Date().toISOString(), text }];
     persist();
@@ -107,6 +89,7 @@ export async function runFighter(options: {
     fightingSerial: null
   };
   const check = () => {
+    checkLoop(session);
     if (options.stopping?.() || Date.now() >= deadline) throw new Error('Fighter run duration reached or interrupted');
     if (session.phase !== 'ready') throw new Error('Fighter disconnected; reconcile before continuing');
     if (state.abandonedBandageCursor && session.world.target) {
@@ -114,6 +97,19 @@ export async function runFighter(options: {
       state.abandonedBandageCursor = false;
     }
     if (dead() && !state.recovering) throw new Died('Character died');
+    if (
+      !state.recovering &&
+      !takingUrgentAction(session) &&
+      recentlyHurt(session) &&
+      nearby().some(
+        (entity) =>
+          entity.position &&
+          !session.world.deaths.has(entity.serial) &&
+          observedThreat(entity, session.world.combatant) &&
+          distance(position(), entity.position) < 8
+      )
+    )
+      throw new Retreat('Taking damage outside combat; returning to safety');
     if (
       state.recoveringCorpse &&
       (status().hits < status().maxHits * 0.8 ||
@@ -147,6 +143,8 @@ export async function runFighter(options: {
     check,
     phase,
     log,
+    // On the road it steers around monsters; at the hunting ground they are the work.
+    wary: () => travelling,
     onStep: async () => {
       if (!options.overland || !travelling || checkingRoad || ++roadSteps % 24 !== 0) return;
       checkingRoad = true;
@@ -168,7 +166,16 @@ export async function runFighter(options: {
     () => !state.inCombat && !state.recovering && !dead(),
     position
   );
-  const escapeNavigate = createNavigator({ session, terrain, check, phase, log, runClose: true, avoidRest: true });
+  const escapeNavigate = createNavigator({
+    session,
+    terrain,
+    check,
+    phase,
+    log,
+    runClose: true,
+    avoidRest: true,
+    purpose: 'escape'
+  });
   let backpack = [...session.world.entities.values()].find(
     (item) => item.parent === serial && item.layer === Layer.Backpack
   )?.serial;
@@ -274,13 +281,21 @@ export async function runFighter(options: {
         deadline,
         archetype: template.archetype,
         items: () => [...session.world.childrenOf(serial), ...session.world.childrenOf(ctx.backpack())],
+        checkpoint,
         recover: rest
       },
       reason
     );
   const lootCorpse = createCorpseLooter(ctx, dress);
+  const errands = createFighterErrands(ctx, {
+    sellLoot,
+    bank,
+    prepareEquipment,
+    rest,
+    acquireMount: () => mounts.acquire()
+  });
   const defeat = async (opponent: Parameters<typeof fightOpponent>[2]) => {
-    await fightOpponent(ctx, combat, opponent, options.decisions, options.stopping);
+    const defeated = await fightOpponent(ctx, combat, opponent, options.decisions, options.stopping);
     state.inCombat = false;
     session.setWarMode(false);
     stats.kills++;
@@ -288,7 +303,7 @@ export async function runFighter(options: {
     blockedStreak = 0;
     trip.killsSinceBank++;
     persist();
-    const death = session.world.deaths.get(opponent.serial);
+    const death = session.world.deaths.get(defeated.serial);
     if (death) tally(session, 'kills');
     phase('looting', 'Collecting valuables from the defeated undead');
     await Bun.sleep(600);
@@ -296,6 +311,7 @@ export async function runFighter(options: {
     delete trip.encounter;
     persist();
   };
+  registerFighterSocial(ctx, defeat, heal);
   const initialize = async () => {
     await session.refreshStatus();
     await session.refreshSkills();
@@ -310,13 +326,8 @@ export async function runFighter(options: {
         `Encounter with ${interrupted} was interrupted; returning to town with observed inventory instead of replaying combat or looting`
       );
     }
-    if (trip.pending === 'return') {
-      session.setWarMode(false);
-      await returnHome(ctx);
-      if (nearAnyGround(position()) || nearby().some((mobile) => observedThreat(mobile, session.world.combatant)))
-        await escapeNavigate(home.town, 4);
-    }
-    await prepareEquipment();
+    if (trip.pending === 'return') await errands.leaveGround();
+    await errands.tidyAndSell();
     if (trip.pending !== 'return') {
       await restock();
       await rest();
@@ -327,8 +338,7 @@ export async function runFighter(options: {
   let outcome = 'completed';
   let blocked: BlockedReason | undefined;
   try {
-    // Every resident shares one event loop: turns start at least 250 ms apart and always yield,
-    // so a turn that finds nothing to do can never starve the others.
+    // Empty turns must yield to the other residents.
     let turnAt = 0;
     while (Date.now() < deadline) {
       await Bun.sleep(Math.max(0, turnAt + 250 - Date.now()));
@@ -339,6 +349,16 @@ export async function runFighter(options: {
           initialized = true;
         }
         check();
+        // Old death robes, spare books and tools out of the pack every turn, not only in town.
+        if (!dead()) await tidyPack(session, ctx.backpack(), log, ctx.terrain);
+        if (await errands.shopPlayers()) continue;
+        const personalLife = fighterLife(
+          ctx,
+          fighterDungeon(ctx, { defeat, heal, dress, unreachable, record: options.recordRun }),
+          { sellLoot, bank, restock },
+          options.decisions
+        );
+        if (await personalTurn(personalLife)) continue;
         if (await scavenge(ctx)) continue;
         if (trip.pending !== 'return' && atGround(ctx)) {
           await fieldUpkeep(ctx, heal);
@@ -350,12 +370,7 @@ export async function runFighter(options: {
           }
         }
         if (trip.pending === 'return') {
-          session.setWarMode(false);
-          await returnHome(ctx);
-          if (nearAnyGround(position()) || nearby().some((mobile) => observedThreat(mobile, session.world.combatant)))
-            await escapeNavigate(home.town, 4);
-          await sellLoot();
-          await bank();
+          await errands.returnToTown();
           options.decisions?.finish(
             checkpoint,
             returnDecision,
@@ -363,24 +378,11 @@ export async function runFighter(options: {
             'Returned to town and reconciled loot sales and bank deposits.'
           );
           returnDecision = null;
-          await prepareEquipment();
-          await rest();
-          await mounts.acquire();
+          await errands.afterReturn();
         }
-        if ((trip.reconsiderAt ?? 0) > Date.now()) {
-          phase('experience-rest', 'Waiting safely in town before reconsidering a recently dangerous encounter');
-          const until = Math.min(deadline, trip.reconsiderAt ?? 0, Date.now() + 30_000);
-          while (Date.now() < until) {
-            check();
-            await Bun.sleep(250);
-          }
-          continue;
-        }
-        delete trip.reconsiderAt;
-        if (count(healPotion) < 1 && count(bandage) < 1)
-          throw new Error('No healing supplies available; stopping before combat');
-        // Leaving town for the hunt (or resuming a run): a dungeon instead, now and then.
-        // A dungeon run resumes; leaving town for the hunt is a life break point (life.ts).
+        if (await errands.waitToReconsider()) continue;
+        if (await errands.earnInstead()) continue;
+        // Resume a dungeon run, or choose a life phase before leaving town.
         const below = fighterDungeon(ctx, { defeat, heal, dress, unreachable, record: options.recordRun });
         if (await dungeonTurn(below, false)) continue;
         const town = { sellLoot, bank, restock };
@@ -399,8 +401,7 @@ export async function runFighter(options: {
           decisions: options.decisions,
           stopping: options.stopping
         });
-        // Opponents ruled out by recent losses are ignored, not waited out in town; a player hunts
-        // what it can handle and lets the dangerous ones be.
+        // Keep hunting other opponents while losses cool down.
         if (choice.kind === 'avoid')
           phase('avoiding-recent-danger', 'Ignoring undead that recently beat this character; looking for others');
         if (choice.kind === 'return') {
@@ -424,7 +425,6 @@ export async function runFighter(options: {
             continue;
           }
           const patrol = patrolPoints(groundOf(trip));
-          // Each resident walks its own direction around the cemetery.
           const step = template.behavior.temperament?.patrolReverse ? patrol.length - 1 : 1;
           patrolIndex += step;
           const next = patrol[patrolIndex % patrol.length];
@@ -495,9 +495,16 @@ export async function runFighter(options: {
           phase('retreating', error.message);
           session.setWarMode(false);
           drinkPotion();
+          if (await recoverWithAid(ctx, heal)) trip.pending = 'hunt';
           continue;
         }
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;
+        // No weapon or healing and nothing to buy them with: paid work (an escort) before waiting.
+        if (
+          /No usable sword|No affordable stocked weapon|No healing supplies/.test(String(error)) &&
+          (await escortOpportunity(ctx, status().gold + knownBankGold(checkpoint)).catch(() => false))
+        )
+          continue;
         await setback(error instanceof Error ? error.message : String(error));
       }
     }

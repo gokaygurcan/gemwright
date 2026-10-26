@@ -28,7 +28,7 @@ for (const creature of tamables)
 const TAMED = 502799; // It seems to accept you as master.
 const FAILED = 502798; // You fail to tame the creature.
 const CANNOT = [502801, 1049611, 502804, 502805, 502806, 1049653, 1049654, 1049655];
-const RELEASE = 6118;
+const RELEASE = 3006118;
 
 // The catalog entry for an observed creature (name breaks ties between bodies such as llamas).
 const profile = (mobile: Entity) => {
@@ -52,6 +52,7 @@ async function release(ctx: ProfessionContext, pet: Entity) {
 // tames it, rides it if it is a mount and the tamer has none, keeps the strongest fighter as its
 // companion (tamer-pet.ts) and releases everything else so the follower count never clogs. Monsters
 // nearby are fought through the companion first. With nothing in sight it wanders the wilds.
+const searchFrom = new WeakMap<object, { x: number; y: number; z: number }>();
 export const runTamer = (options: ProfessionOptions) => {
   const tried = new Set<number>();
   return runProfession(
@@ -85,12 +86,17 @@ export const runTamer = (options: ProfessionOptions) => {
         .sort((a, b) => b.profile.minTame - a.profile.minTame);
       const target = candidates[0];
       if (!target || free < 1) {
-        // Nothing to tame here: wander the countryside a little.
-        const from = ctx.position();
+        // Nothing to tame here: search the countryside around where the search began, so the
+        // search does not drift off across the land one random step at a time. The area is wide (120
+        // tiles each way) to find animals worth taming; the walk there steers around monsters
+        // (navigation.ts) and leaves when attacked (danger-response.ts).
+        if (!searchFrom.has(session) || distance(ctx.position(), searchFrom.get(session) ?? ctx.position()) > 300)
+          searchFrom.set(session, ctx.position());
+        const from = searchFrom.get(session) ?? ctx.position();
         const spot = ctx.terrain.stand(
-          from.x + Math.round((Math.random() - 0.5) * 60),
-          from.y + Math.round((Math.random() - 0.5) * 60),
-          from.z
+          from.x + Math.round((Math.random() - 0.5) * 240),
+          from.y + Math.round((Math.random() - 0.5) * 240),
+          ctx.position().z
         );
         phase('tamer-search', 'Looking for animals to tame');
         if (spot)

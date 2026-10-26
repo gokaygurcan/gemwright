@@ -1,4 +1,11 @@
-export type BlockedReason = 'unreachable' | 'locked-door' | 'no-vendor' | 'insufficient-funds' | 'missing-tool';
+export type BlockedReason =
+  | 'unreachable'
+  | 'locked-door'
+  | 'no-vendor'
+  | 'insufficient-funds'
+  | 'missing-tool'
+  | 'overweight'
+  | 'dangerous';
 
 // A legal, explainable impossibility reported by server feedback or observations.
 // Behaviors either route around it or stop with this reason instead of retrying blindly.

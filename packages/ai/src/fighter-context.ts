@@ -1,16 +1,16 @@
-import { gold } from '@gemwright/common/items';
+import { bandage, gold, healPotion } from '@gemwright/common/items';
 
 import type { CharacterTemplate } from './config';
-import { type Landmark, type ServiceType, serviceLocation, serviceLocations } from './locations';
+import { type Landmark, pickLocation, type ServiceType, serviceLocation, serviceLocations } from './locations';
 import type { createNavigator } from './navigation';
 import type { PlayerSession } from './protocol/session';
 import type { Entity, Position, WorldView } from './protocol/world';
+import { rangedGraphics, rangedWeapon } from './ranged-weapons';
 import type { Checkpoint } from './store';
 import type { Terrain } from './terrain';
 import { reachableFrom } from './unreachable';
 
-export const bandage = 0x0e21;
-export const healPotion = 0x0f0c;
+export { bandage, healPotion };
 export const curePotion = 0x0f07;
 export const graveyard = serviceLocation('Britain', 'graveyard');
 // A fighter's home town: its bank is the town point, and every service comes from that city, falling
@@ -23,8 +23,11 @@ export function homeOf(city: string, position?: () => { x: number; y: number }) 
     const own = usable(serviceLocations(city, service));
     return own.length ? own : usable(serviceLocations('Britain', service));
   };
+  // When every landmark proved unreachable on foot from here (an island town), the catalogued one
+  // is still returned: callers travel with travelNear, which takes a moongate.
   const one = (service: ServiceType) => {
-    const point = all(service)[0];
+    const own = serviceLocations(city, service);
+    const point = all(service)[0] ?? own[0] ?? pickLocation('Britain', service);
     if (!point) throw new Error(`No ${service} landmark for ${city} or Britain`);
     return point;
   };
@@ -74,7 +77,7 @@ const families: Record<string, number[]> = {
   // Club, mace, war mace, war hammer, hammer pick, maul.
   'Mace Fighting': [0x13b3, 0x13b4, 0x0f5c, 0x0f5d, 0x1406, 0x1407, 0x1438, 0x1439, 0x143c, 0x143d, 0x143a, 0x143b],
   // Bow, crossbow, heavy crossbow.
-  Archery: [0x13b1, 0x13b2, 0x0f4f, 0x0f50, 0x13fc, 0x13fd]
+  Archery: [...rangedGraphics]
 };
 // Archetypes without a weapon family (mages, bards, tamers, thieves) fight unarmed: Wrestling.
 export const weaponSkill = (template: CharacterTemplate) =>
@@ -87,8 +90,7 @@ export const weaponsFor = (template: CharacterTemplate) => sets.get(weaponSkill(
 export const arrow = 0x0f3f;
 export const bolt = 0x1bfb;
 // Ammunition a ranged weapon consumes (BaseRanged.AmmoType): crossbows use bolts.
-export const ammoFor = (weapon: number | undefined) =>
-  weapon === undefined ? undefined : [0x13b1, 0x13b2].includes(weapon) ? arrow : bolt;
+export const ammoFor = (weapon: number | undefined) => rangedWeapon(weapon)?.ammo;
 
 const passiveBodies = new Set([
   0x5, 0x6, 0xc8, 0xc9, 0xcb, 0xcc, 0xcd, 0xcf, 0xd0, 0xd1, 0xd7, 0xd8, 0xd9, 0xdf, 0xe2, 0xe4, 0xe7

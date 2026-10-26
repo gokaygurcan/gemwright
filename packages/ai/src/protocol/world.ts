@@ -1,46 +1,15 @@
 import type { HealthChange } from '../combat-risk';
 import { EntityMap } from './entity-map';
+import { applyHealthBar, applyPartyRoster } from './group-observations';
 import { gumpLayout } from './gumps';
 import type { TargetCursor } from './packets';
 import { speechEntry } from './speech';
 import { type PlayerStatus, playerStatus } from './status';
 import { applyTrade, type TradeWindow } from './trade';
+import type { Entity, JournalEntry, Position } from './world-types';
 
 export { EntityMap } from './entity-map';
-
-export interface Position {
-  x: number;
-  y: number;
-  z: number;
-  direction: number;
-}
-export interface Entity {
-  serial: number;
-  kind: 'mobile' | 'item';
-  graphic: number;
-  hue?: number;
-  name?: string;
-  position?: Position;
-  parent?: number;
-  layer?: number;
-  amount?: number;
-  containerX?: number;
-  flags?: number;
-  notoriety?: number;
-  hits?: number;
-  maxHits?: number;
-  properties?: { cliloc: number; arguments: string }[];
-}
-export interface JournalEntry {
-  at: string;
-  serial: number;
-  name: string;
-  text?: string;
-  type?: number; // speech: 0 regular, 2 emote, 6 label
-  party?: boolean; // party chat, heard by members wherever they are
-  cliloc?: number;
-  arguments?: string;
-}
+export type { Entity, JournalEntry, Position } from './world-types';
 
 export function text(buffer: Buffer, offset: number, length: number): string {
   if (offset + length > buffer.length) throw new Error('Truncated text field');
@@ -82,7 +51,9 @@ export class WorldView {
   >();
   statLocks: number[] | null = null;
   readonly skills = new Map<number, { value: number; base: number; cap: number; lock: number }>();
+  readonly partyMembers = new Set<number>();
   readonly healthChanges: HealthChange[] = [];
+  readonly swings = new Map<number, { target: number; at: number }>();
   readonly damage = new Map<number, { at: number; amount: number }>();
   readonly deaths = new Map<number, { corpse: number; position?: Position }>();
   private lastContainerContents: number[] = [];
@@ -150,16 +121,9 @@ export class WorldView {
     this.received.set(opcode, (this.received.get(opcode) ?? 0) + 1);
     this.revision++;
     switch (opcode) {
-      case 0x17: {
-        if (packet.length < 9) throw new Error('Truncated health-bar status');
-        const count = packet.readUInt16BE(7);
-        if (packet.length !== 9 + count * 3) throw new Error('Invalid health-bar status length');
-        if (packet.readUInt32BE(3) === this.serial) {
-          for (let offset = 9; offset < packet.length; offset += 3)
-            if (packet.readUInt16BE(offset) === 1) this.poisonLevel = packet.readUInt8(offset + 2);
-        }
+      case 0x17:
+        applyHealthBar(this, packet);
         break;
-      }
       case 0x3a: {
         const format = packet.readUInt8(3);
         if (format !== 2 && format !== 0xdf) throw new Error('Unsupported skill observation format');
@@ -182,6 +146,14 @@ export class WorldView {
           });
           offset += 7;
         }
+        break;
+      }
+      case 0x2f: {
+        if (packet.length !== 10) throw new Error('Invalid swing observation length');
+        const now = Date.now();
+        for (const [serial, swing] of this.swings) if (now - swing.at > 8000) this.swings.delete(serial);
+        if (this.swings.size >= 1000) this.swings.delete(this.swings.keys().next().value as number);
+        this.swings.set(packet.readUInt32BE(2), { target: packet.readUInt32BE(6), at: now });
         break;
       }
       case 0x0b: {
@@ -262,7 +234,13 @@ export class WorldView {
       case 0xa1:
         {
           const entity = this.entities.get(packet.readUInt32BE(1));
-          if (entity) this.put({ ...entity, maxHits: packet.readUInt16BE(5), hits: packet.readUInt16BE(7) });
+          if (entity)
+            this.put({
+              ...entity,
+              maxHits: packet.readUInt16BE(5),
+              hits: packet.readUInt16BE(7),
+              healthAt: Date.now()
+            });
         }
         if (packet.readUInt32BE(1) === this.serial && this.status) {
           this.recordHealth(packet.readUInt16BE(7), packet.readUInt16BE(5));
@@ -422,7 +400,8 @@ export class WorldView {
             ...entity,
             name: text(packet, 7, 30),
             hits: packet.readUInt16BE(37),
-            maxHits: packet.readUInt16BE(39)
+            maxHits: packet.readUInt16BE(39),
+            healthAt: Date.now()
           });
         if (serial === this.serial && packet.length >= 69 && packet.readUInt8(42) >= 5) {
           this.recordHealth(packet.readUInt16BE(37), packet.readUInt16BE(39));
@@ -463,6 +442,7 @@ export class WorldView {
         this.prompt = { serial: packet.readUInt32BE(3), id: packet.readUInt32BE(7) };
         break;
       case 0xbf:
+        applyPartyRoster(this, packet);
         // Party chat (PartyTextMessage): 3 private, 4 to all; sender serial, Unicode text.
         if (packet.readUInt16BE(3) === 0x06 && [3, 4].includes(packet.readUInt8(5))) {
           const serial = packet.readUInt32BE(6);

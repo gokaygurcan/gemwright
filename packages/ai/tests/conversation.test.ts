@@ -1,6 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { activityLine, intentOf } from '../src/conversation';
+import { intentOf } from '../src/conversation';
+import { activityLine, planLine } from '../src/conversation-facts';
+import { replyOptions, threadFor } from '../src/dialogue';
+import { needsLine } from '../src/needs';
+import { replyRejection } from '../src/respond';
 import type { Checkpoint } from '../src/store';
 
 test('player lines map to supported intents', () => {
@@ -45,4 +49,47 @@ test('a rephrasing keeps every number and name, adds none, and makes no new prom
   expect(acceptable('Hail, Oscar Holt.', 'Hail to thee, Oscar.')).toBe(true);
   expect(acceptable('I cannot leave my work, Oscar.', "Fine, Oscar, I'll follow thee.")).toBe(false);
   expect(acceptable('Fare thee well.', '"Fare thee well."\n*waves*')).toBe(false);
+});
+
+test('players asking where a resident goes or what it needs always get a spoken answer', () => {
+  expect(intentOf('where are you going?')).toBe('plans');
+  expect(intentOf('whither, friend?')).toBe('plans');
+  expect(intentOf('do you need anything?')).toBe('needs');
+  expect(intentOf('need some gold?')).toBe('needs');
+  expect(intentOf('can i give you something')).toBe('needs');
+  const plans: Checkpoint = {
+    goal: { kind: 'hunting', phase: 'travelling-to-graveyard', note: 'Heading to the orc spawn near 634,1462' },
+    memories: [],
+    relationships: {}
+  };
+  expect(planLine(plans)).toBe('I am heading to the orc spawn.');
+  const thread = threadFor(new Map(), 1, 'Testing Test', false);
+  const facts = { name: 'Testing Test', activity: 'Just going about my business.', warm: false };
+  // Nothing understood, nothing to trade, nothing known: a player still hears something.
+  for (const intent of ['chatter', 'trade', 'where', 'clarify'] as const) {
+    const { options, baseline } = replyOptions(intent, thread, facts);
+    expect(options.find((option) => option.id === baseline)?.text).toBeTruthy();
+  }
+  // A fellow resident's small talk may still go unanswered.
+  const peer = threadFor(new Map(), 2, 'Jasper', true);
+  expect(replyOptions('chatter', peer, facts).baseline).toBe('stay-quiet');
+  expect(needsLine([])).toContain('well supplied');
+  expect(needsLine([{ what: 'bandages', why: 'to bind my wounds' }])).toBe('I could use bandages; to bind my wounds.');
+});
+
+test("Haiku's answers keep to the resident's facts", () => {
+  const facts = {
+    me: 'Martin Ash',
+    profession: 'fisherman',
+    home: 'Britain',
+    doing: 'Fishing, and mostly waiting for a bite.',
+    goingTo: 'I am walking to the water.',
+    needs: ['a fishing pole: I cannot work without one'],
+    carriedGold: 12,
+    bestSkills: ['Fishing 61.2']
+  };
+  expect(replyRejection('I could use a fishing pole, friend.', facts, 'need anything?')).toBeUndefined();
+  expect(replyRejection('I have 500 gold in Minoc.', facts, 'rich?')).toBe('added the number 500');
+  expect(replyRejection('Ask Lord Blackthorn, he knows.', facts, 'who knows?')).toContain('added the name');
+  expect(replyRejection("I'll fetch it for thee tomorrow.", facts, 'can you?')).toBe('made a promise');
 });

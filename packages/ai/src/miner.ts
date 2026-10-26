@@ -1,14 +1,18 @@
+import { DangerInterrupt, urgentAction } from './action-purpose';
 import { tally } from './activity';
 import { openOwnBackpack } from './backpack';
+import { bankSurplus } from './bank-gold';
 import { Blocked, blockedReason } from './blocked';
-import type { CharacterTemplate } from './config';
-import { converse } from './conversation';
 import { threatsNear } from './danger';
-import type { DecisionCoordinator, DecisionPick } from './decisions';
+import { escapeDanger, interruptForDanger } from './danger-response';
+import { shedDeathRobe, wearsDeathRobe } from './death-robe';
+import type { DecisionPick } from './decisions';
 import { reconcileExperience } from './experience';
-import { leavesEarly, packFull, packItems } from './inventory';
+import { leavesEarly, packFull, packItems, tidyPack, workGear } from './inventory';
 import { lifeTurn } from './life';
-import { serviceLocations } from './locations';
+import { pickLocation, serviceLocations } from './locations';
+import { info } from './log';
+import { checkLoop, watchStep } from './loop-watch';
 import { sellCarried } from './market';
 import { createMinerPastimes } from './miner-pastimes';
 import { chooseMiningActivity, minerPlan, rememberForges } from './miner-plan';
@@ -17,12 +21,15 @@ import { findMiningSite } from './miner-sites';
 import { travelMinerHome } from './miner-travel';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator } from './navigation';
+import { lighten } from './overload';
 import { createPackAnimal } from './pack-animal';
-import type { PlayerSession } from './protocol/session';
-import { noticePeers } from './relationships';
+import { personalTurn } from './personal-turn';
+import { observeResident } from './resident-observation';
+import type { ResidentOptions } from './resident-options';
 import { resurrectGhost } from './resurrection';
+import { sellingTurn } from './selling';
 import { isSetback } from './setback';
-import type { Checkpoint } from './store';
+import { loopSideTrade } from './side-trade';
 import { type Point, Terrain } from './terrain';
 import { reachRegion, workArea } from './work-areas';
 
@@ -31,25 +38,13 @@ const oreIn = (items: { graphic: number; amount?: number }[]) =>
   items.reduce((sum, item) => sum + (ore.has(item.graphic) ? (item.amount ?? 1) : 0), 0);
 const distance = (a: Point, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
-export async function runMiner(options: {
-  session: PlayerSession;
-  assets: string;
-  template: CharacterTemplate;
-  seconds: number;
-  peers?: ReadonlyMap<number, string>;
-  // Prefix for log lines when several residents share one process.
-  label?: string;
-  checkpoint: Checkpoint;
-  decisions?: DecisionCoordinator;
-  save: (checkpoint: Checkpoint) => void;
-  stopping?: () => boolean;
-}) {
+export async function runMiner(options: ResidentOptions) {
   const { session, template } = options;
   // Each miner works its own district (work-areas.json), with that city's bank as home.
   const area = workArea('mining', options.label ?? template.id);
   const city = area.city.toLowerCase();
   if (session.world.map !== 1) throw new Error('The miner supports Trammel');
-  const home = serviceLocations(city, 'banker')[0] ?? { x: area.x, y: area.y };
+  const home = pickLocation(city, 'banker') ?? { x: area.x, y: area.y };
   const miningArea = { x: area.x, y: area.y, z: 0 };
   // Each miner favours its own part of the district.
   const offset = template.behavior.temperament?.miningAnchor;
@@ -80,11 +75,19 @@ export async function runMiner(options: {
   let blockedSites = 0;
   const progress = { deposits: 0, trips: 0, purchases: 0, sold: 0, smelts: 0, ingotsProduced: 0, packRejected: false };
   const tag = options.label ? `miner:${options.label}` : 'miner';
-  const log = (message: string) => console.error(`[${tag}] ${message}`);
+  const log = (message: string) => info(`[${tag}] ${message}`);
   const phase = (value: string, note: string) => {
-    checkpoint.goal = { kind: 'mining', phase: value };
-    noticePeers(session, checkpoint, options.peers, template.behavior.sociability);
-    void converse({ session, checkpoint, template, city: city, peers: options.peers, decisions: options.decisions });
+    watchStep(session, tag, value, note);
+    checkpoint.goal = { kind: 'mining', phase: value, note: note };
+    observeResident({
+      session,
+      checkpoint,
+      template,
+      city: city,
+      peers: options.peers,
+      decisions: options.decisions,
+      persist: () => options.save(checkpoint)
+    });
     checkpoint.memories = [...checkpoint.memories.slice(-49), { at: new Date().toISOString(), text: note }];
     options.save(checkpoint);
     log(`${value}: ${note}`);
@@ -99,10 +102,12 @@ export async function runMiner(options: {
     });
   };
   const check = () => {
+    checkLoop(session);
     if (Date.now() >= deadline) throw new Error('Miner run duration reached');
     if (session.phase !== 'ready')
       throw new Error('Miner disconnected; reconnect and reconcile inventory before continuing');
     if (!reviving && ghost()) throw new Error('Miner is dead; resurrection behavior is pending');
+    if (!reviving) interruptForDanger(session);
   };
   const rememberObservedForges = () => rememberForges(session, checkpoint, position());
 
@@ -177,6 +182,11 @@ export async function runMiner(options: {
     if (ghost()) await revive();
     const backpack = await openBackpack();
     backpackSerial = backpack;
+    // Too heavy to walk anywhere (the bank, the forge): lighten first.
+    await session.refreshStatus();
+    await lighten(session, backpack, (item) => workGear.has(item.graphic), log);
+    await tidyPack(session, backpack, log, terrain);
+    if (wearsDeathRobe(session)) await shedDeathRobe(session, terrain, carried(backpack));
     const animals = {
       session,
       terrain,
@@ -193,8 +203,18 @@ export async function runMiner(options: {
     };
     mounts = createMountController(animals, city, 150);
     packs = createPackAnimal(animals, city);
-    await reachRegion({ session, position, navigate, phase }, home);
-    await travelMinerHome({ session, position, navigate, phase, checkpoint, city, home, newTrip });
+    // The way home can be long: hurt on it, it gets clear and goes on, instead of giving up the run.
+    for (let tries = 0; tries < 5; tries++) {
+      try {
+        await reachRegion({ session, position, navigate, phase }, home);
+        await travelMinerHome({ session, position, navigate, phase, checkpoint, city, home, newTrip });
+        break;
+      } catch (error) {
+        if (!(error instanceof DangerInterrupt)) throw error;
+        await escapeDanger({ session, check, phase, navigate }, undefined);
+        if (ghost()) await revive();
+      }
+    }
     if (distance(position(), home) < 180) await mounts.acquire().then(() => packs?.acquire());
     rememberObservedForges();
     if (plan().pending === 'smelt' && !smeltable(backpack).length) {
@@ -205,19 +225,67 @@ export async function runMiner(options: {
       'trip-plan',
       `Smelt at ${(plan().smeltAtWeightRatio * 100).toFixed(0)}% weight; aim for ${plan().smeltsBeforeBank} smelting visits before banking`
     );
-    // Every resident shares one event loop: turns start at least 250 ms apart and always yield,
-    // so a turn that finds nothing to do can never starve the others.
+    // Empty turns must yield to the other residents.
     let turnAt = 0;
     while (Date.now() < deadline) {
       await Bun.sleep(Math.max(0, turnAt + 250 - Date.now()));
       turnAt = Date.now();
       try {
-        // Hurt miners rest (natural regeneration) instead of stopping.
+        await lighten(session, backpack, (item) => workGear.has(item.graphic), log);
+        // After a loop, a different plan for a while: the side trade (side-trade.ts).
+        if (
+          await loopSideTrade(
+            {
+              session,
+              serial,
+              terrain,
+              template,
+              checkpoint,
+              city,
+              deadline,
+              position,
+              status,
+              navigate,
+              check,
+              phase,
+              log,
+              persist: () => options.save(checkpoint),
+              backpack: () => backpack
+            },
+            'miner'
+          )
+        )
+          continue;
+        await tidyPack(session, backpack, log, terrain);
+        // Gems and surplus gold go to the bank (bank-gold.ts).
+        await bankSurplus(
+          { session, serial, position, terrain, navigate, check, checkpoint, phase, backpack: () => backpack },
+          city
+        );
+        if (
+          await sellingTurn({
+            session,
+            serial,
+            terrain,
+            position,
+            navigate,
+            check,
+            phase,
+            log,
+            checkpoint,
+            status,
+            city,
+            carried,
+            backpack: () => backpack
+          })
+        )
+          continue;
         if (status().hits < status().maxHits / 2) {
           await setback('health is below half');
           continue;
         }
         check();
+        if (await personalTurn(life(bank, options.decisions))) continue;
         await session.refreshStatus();
         const miningLimit = () =>
           Math.min(status().maxWeight * Math.max(0.78, plan().smeltAtWeightRatio), status().maxWeight - 30);
@@ -241,8 +309,7 @@ export async function runMiner(options: {
         }
         const hasIngots = carried(backpack).some((item) => item.graphic === ingot);
         const stranded = !smeltable(backpack).length && retainedOre(backpack).length > 0;
-        // Mine, smelt to lighten the load, mine on: the bank waits until even ingots fill the pack
-        // (inventory.ts), the tool is gone, or now and then earlier by chaos.
+        // Smelt to lighten the load before banking.
         if (
           (hasIngots || (stranded && (status().weight >= miningLimit() || needsSpace()))) &&
           (plan().pending === 'bank' ||
@@ -350,7 +417,6 @@ export async function runMiner(options: {
         try {
           await navigate(site.floor ? site : { x: site.x, y: site.y }, approachRange);
         } catch (error) {
-          // An unreachable site is skipped like a depleted one.
           if (!(error instanceof Blocked) || ++blockedSites > 8) throw error;
           exhausted.add(`tile:${site.x},${site.y}`);
           log(`Skipping unreachable site ${site.x},${site.y}: ${error.message}`);
@@ -366,7 +432,7 @@ export async function runMiner(options: {
           // A monster arriving mid-dig: leave the rock for town (danger.ts remembers the spot).
           if (threatsNear(session, position(), 8).length) {
             phase('avoiding', 'Monsters about; leaving the rock for town');
-            await navigate(home, 5).catch(() => {});
+            await urgentAction(session, 'escape', () => navigate(home, 5)).catch(() => {});
             break;
           }
           const last = session.world.journal.at(-1);
@@ -412,6 +478,15 @@ export async function runMiner(options: {
         activeDecision = null;
         if (!carried(backpack).some((item) => ore.has(item.graphic))) exhausted.add(`tile:${site.x},${site.y}`);
       } catch (error) {
+        if (error instanceof DangerInterrupt) {
+          try {
+            await escapeDanger({ session, check, phase, navigate }, home);
+          } catch (error) {
+            if (ghost() && session.phase === 'ready') await revive();
+            else throw error;
+          }
+          continue;
+        }
         if (/dead/i.test(String(error)) && session.phase === 'ready') {
           await revive();
           continue;

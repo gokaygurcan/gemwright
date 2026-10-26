@@ -1,4 +1,5 @@
 import type { Race } from './appearance';
+import { info } from './log';
 import { CLIENT_VERSION } from './protocol/packets';
 
 // The shard the runtime plays on, from the shard's own gemwright.json. Only ServUO is supported:
@@ -58,7 +59,7 @@ export async function loadShardProfile(path?: string): Promise<ShardProfile> {
   );
   const dropped = listed.filter((race) => !(races as readonly string[]).includes(race));
   if (dropped.length)
-    console.error(
+    info(
       `[profile] ai.races ${dropped.join(', ')} not available in the ${expansion} expansion (elves need ml, gargoyles sa); creating ${races.join(', ') || 'human'} only`
     );
   current = {
@@ -83,7 +84,7 @@ export function checkProvisioning(newAccounts: number, profile = current) {
     );
   const limit = profile.provisioning.accountsPerIp;
   if (limit !== undefined && limit > 0 && newAccounts > limit)
-    console.error(
+    info(
       `[profile] ${newAccounts} new accounts from one address, but the shard allows ${limit} per IP (servuo.accountsPerIp); the rest will be refused`
     );
 }

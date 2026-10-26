@@ -1,3 +1,4 @@
+import { checkedDelay } from './action-purpose';
 import { tally } from './activity';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
@@ -37,7 +38,7 @@ export async function chopTree(ctx: ChopContext, tree: { x: number; y: number; z
     session.use(axe.serial);
     await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000);
     session.target({ serial: 0, x: tree.x, y: tree.y, z: tree.z, graphic: tree.id });
-    await Bun.sleep(2500);
+    await checkedDelay(2500, ctx.check);
     const replies = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);
     const has = (clilocs: number[]) => replies.some((entry) => clilocs.includes(entry.cliloc ?? 0));
     ctx.noted();

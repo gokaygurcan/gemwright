@@ -2,6 +2,7 @@ import { skillId } from '@gemwright/common/skills';
 
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
 import { atVendor, type CraftContext } from './craft-training';
+import { packItems } from './inventory';
 
 const book = 0x0efa;
 const [garlic, ginseng, mandrake, nightshade, silk, ash, moss] = [
@@ -162,26 +163,39 @@ const combatScrolls = new Map([
   [18, 0x1f3e],
   [17, 0x1f3d]
 ]);
-const prepared = new WeakMap<object, number>();
 
 // Gives a caster a spellbook holding its vendor-sold combat spells. Each spell is tried at most once
-// per run: a cast answered with "You do not have that spell!" decides whether to buy its scroll.
+// a day, and only until it is known to be in the book (kept with the resident, so restarts do not
+// repeat it): a cast answered with "You do not have that spell!" decides whether to buy its scroll.
 export async function prepareSpellbook(ctx: MageryContext) {
   const { session, carried } = ctx;
-  if ((prepared.get(ctx.checkpoint) ?? 0) > Date.now() - 6 * 3_600_000) return;
-  prepared.set(ctx.checkpoint, Date.now());
+  ctx.checkpoint.spells ??= { checked: 0, has: [] };
+  const spells = ctx.checkpoint.spells;
+  if (spells.checked > Date.now() - 24 * 3_600_000) return;
+  spells.checked = Date.now();
   const has = (graphic: number) => carried(ctx.backpack()).some((item) => item.graphic === graphic);
-  if (!has(book) && !(await shop(ctx, new Map([[book, 1]]), 30))) return;
+  // A book in hand or in a bag counts: a caster never buys a second one.
+  const ownsBook = () =>
+    packItems(session, ctx.backpack()).some((item) => item.graphic === book) ||
+    session.world.childrenOf(session.world.serial ?? -1).some((item) => item.graphic === book);
+  // A new book starts empty.
+  if (!ownsBook()) spells.has = [];
+  if (!ownsBook() && !(await shop(ctx, new Map([[book, 1]]), 30))) return;
   for (const [id, scroll] of combatScrolls) {
+    if (spells.has.includes(id)) continue;
     if (session.world.target) break;
     const seen = new Set(session.world.journal);
     session.useSkill(id, true);
     await Bun.sleep(1500);
     if (session.world.target) session.target(null);
-    if (!session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL)) continue;
+    if (!session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL)) {
+      spells.has.push(id);
+      continue;
+    }
     if (!has(scroll) && !(await shop(ctx, new Map([[scroll, 1]]), 40))) continue;
     const item = carried(ctx.backpack()).find((i) => i.graphic === scroll);
     const target = carried(ctx.backpack()).find((i) => i.graphic === book);
     if (item && target) await session.moveItem(item.serial, target.serial).catch(() => {});
+    if (item && !session.world.entities.has(item.serial)) spells.has.push(id);
   }
 }

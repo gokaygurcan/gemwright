@@ -18,6 +18,6 @@ Session results record the behavior runs, recovery attempts and whether a reconn
 
 Before approaching an opponent, the fighter persists an encounter marker: the opponent serial, start time and last approach position (a search hint if the death location is lost, never proof of a corpse). The marker lasts through combat and looting and is cleared after looting or a confirmed bank visit.
 
-A run that starts with an unfinished encounter refreshes status, opens the backpack, leaves war mode and returns to town with escape movement. It never replays an attack, claims an unobserved kill or retries a corpse transfer from the old goal; recorded loot is handled only if it is actually in the pack. The return intent is saved before moving, so a second interruption still leads home. Death recovery ([death and recovery](death-recovery.md)) and the miner's smelting and banking reconciliation run the same way before new work.
+A run that starts with an unfinished encounter refreshes status, opens the backpack, leaves war mode and returns to town with escape movement. It never replays an attack, claims an unobserved kill or retries a corpse transfer from the old goal; recorded loot is handled only if it is actually in the pack. The return intent is saved before moving, so a second interruption still leads home. Death recovery and the miner's smelting and banking reconciliation run the same way before new work.
 
 Related: [sessions](sessions.md) · [persistence](persistence.md).

@@ -70,3 +70,16 @@ export function resolveArchetype(value: unknown): CharacterArchetype {
   }
   return structuredClone(known);
 }
+
+// Supporting skills as trained, beyond the catalog: an archer also learns Wrestling, so it can
+// fight on without arrows or bolts (fighter-encounter.ts). Kept out of the catalog so stored
+// templates stay unchanged.
+export const supportingOf = (archetype: CharacterArchetype | undefined) =>
+  archetype
+    ? [
+        ...archetype.supportingSkills,
+        ...(archetype.primarySkills.includes('Archery') && !archetype.supportingSkills.includes('Wrestling')
+          ? ['Wrestling']
+          : [])
+      ]
+    : undefined;

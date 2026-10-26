@@ -1,9 +1,14 @@
+import { skillId } from '@gemwright/common/skills';
+
 import { TOOLS } from './bank-gold';
+import { bulkOrderTurn } from './bulk-orders';
 import type { CraftSkill } from './craft-training';
 import { craftRecipes, trainCraft } from './craft-training';
+import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import { woolToBolt } from './tailor-wool';
-import { buyFrom } from './vendor-trade';
+import { buyFrom, sellTo } from './vendor-trade';
+import { orderDemand, reservedFor } from './work-orders';
 
 const cloth = 0x1766;
 const uncutCloth = 0x1767;
@@ -69,6 +74,37 @@ async function refill(ctx: ProfessionContext, least: number) {
 // back, five minutes at a time.
 export const runTailor = (options: ProfessionOptions) =>
   runProfession('tailor', options, async (ctx) => {
+    const bandagesNeeded = orderDemand(ctx.session, 'bandages') - ctx.count(0x0e21);
+    if (bandagesNeeded > 0) {
+      if (!ctx.carried().some((item) => scissors.has(item.graphic)))
+        await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
+      await refill(ctx, bandagesNeeded + orderDemand(ctx.session, 'cloth'));
+      const blade = ctx.carried().find((item) => scissors.has(item.graphic));
+      const piece = ctx.carried().find((item) => item.graphic === cloth);
+      if (blade && piece && !reservedFor(ctx.session, piece)) {
+        const before = ctx.count(0x0e21);
+        ctx.phase('gathering-bandages', 'Cutting cloth for an agreed bandage order');
+        ctx.session.use(blade.serial);
+        await ctx.session.waitFor(() => ctx.session.world.target !== null, 'scissors cursor', 3000).catch(() => {});
+        ctx.check();
+        if (ctx.session.world.target) {
+          ctx.session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
+          await ctx.session.waitFor(() => ctx.count(0x0e21) > before, 'bandages cut', 3000).catch(() => {});
+          ctx.persist();
+        }
+      }
+      return;
+    }
+    if (orderDemand(ctx.session, 'cloth') > ctx.count(cloth)) {
+      if (!ctx.carried().some((item) => scissors.has(item.graphic)))
+        await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
+      await woolToBolt(ctx);
+      await cutCloth(ctx);
+      return;
+    }
+    // Bulk orders first: a tailor's steady income (bulk-orders.ts).
+    const sewing = ctx.session.world.skills.get(skillId('Tailoring'))?.base ?? 0;
+    if (await bulkOrderTurn({ ...ctx, refill: (_pack, least) => refill(ctx, least) }, tailoring, sewing)) return;
     const until = Math.min(ctx.deadline, Date.now() + 5 * 60_000);
     const made = await trainCraft(
       { ...ctx, refill: (_pack, least) => refill(ctx, least) },
@@ -79,6 +115,25 @@ export const runTailor = (options: ProfessionOptions) =>
     );
     ctx.progress.garments = (ctx.progress.garments ?? 0) + made;
     if (!made) {
+      const key = 'income:cloth';
+      if (!objectiveBlocked(ctx.checkpoint, key, suppliesCondition(ctx.session, ctx.checkpoint))) {
+        ctx.phase('gathering-income', 'Gathering and selling cloth while garments do not pay');
+        const gathered = await woolToBolt(ctx);
+        if (gathered) await cutCloth(ctx);
+        const earned = await sellTo(ctx, 'tailor', (item) => [cloth, uncutCloth, boltOfCloth].includes(item.graphic));
+        if (earned > 0) {
+          completeObjective(ctx.checkpoint, key);
+          ctx.persist();
+          return;
+        }
+        failObjective(
+          ctx.checkpoint,
+          key,
+          suppliesCondition(ctx.session, ctx.checkpoint),
+          'No cloth gathered or buyer available'
+        );
+        ctx.persist();
+      }
       ctx.phase('tailor-wait', 'Nothing worth sewing right now (no cloth, kit or profitable garment)');
       await ctx.practise(3);
     }

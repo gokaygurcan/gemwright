@@ -4,8 +4,11 @@ import { HUMAN_BODIES } from '@gemwright/common/bodies';
 import { skillId } from '@gemwright/common/skills';
 
 import type { FighterContext } from './fighter-context';
+import { allyUnderPressure } from './group-awareness';
 import { distance } from './navigation';
 import type { Entity } from './protocol/world';
+import { rememberPartner } from './resident-memory';
+import { requestSpell } from './spell-action';
 
 interface SpellDef {
   name: string;
@@ -32,12 +35,17 @@ export const reagentGraphics: Record<string, number> = {
 };
 // MagerySpell mana per circle (ServUO m_ManaTable).
 const MANA = [0, 4, 6, 9, 11, 14, 20, 40, 50];
-const NO_SPELL = 500015;
 
 // Per-fight memory: spells missing from the book, buffs already cast, the current combo step.
 const state = new WeakMap<
   FighterContext,
-  { missing: Set<number>; blessed: number; combo: string[]; summoned?: { serial?: number; until: number } }
+  {
+    missing: Set<number>;
+    blessed: number;
+    combo: string[];
+    retry: Map<string, number>;
+    summoned?: { serial?: number; until: number };
+  }
 >();
 
 // Summons (ServUO SummonCreatureSpell and the 8th-circle summons): controlled ones serve the
@@ -62,7 +70,12 @@ const humans = HUMAN_BODIES;
 // otherwise, Magic Arrow when low. Returns whether a spell was cast this turn.
 export async function castTurn(ctx: FighterContext, opponent: Entity, offensive = true): Promise<boolean> {
   const { session, status } = ctx;
-  const memory = state.get(ctx) ?? { missing: new Set<number>(), blessed: 0, combo: [] as string[] };
+  const memory = state.get(ctx) ?? {
+    missing: new Set<number>(),
+    blessed: 0,
+    combo: [] as string[],
+    retry: new Map<string, number>()
+  };
   state.set(ctx, memory);
   const skill = session.world.skills.get(skillId('Magery'))?.value ?? 0;
   const count = (graphic: number) =>
@@ -76,6 +89,7 @@ export async function castTurn(ctx: FighterContext, opponent: Entity, offensive 
     return (
       !!spell &&
       !memory.missing.has(spell.id) &&
+      (memory.retry.get(name) ?? 0) <= Date.now() &&
       skill >= 14.3 * (spell.circle - 1) &&
       status().mana >= (MANA[spell.circle] ?? 99) &&
       spell.reagents.every((r) => count(reagentGraphics[r] ?? 0) > 0)
@@ -106,68 +120,50 @@ export async function castTurn(ctx: FighterContext, opponent: Entity, offensive 
     choice = pick('Greater Heal', 'Heal');
     self = true;
   }
+  let ally = !choice && hits >= status().maxHits * 0.6 ? allyUnderPressure(session) : undefined;
+  if (ally) {
+    choice =
+      (ally.flags ?? 0) & 4
+        ? pick('Cure')
+        : (ally.hits ?? 0) / (ally.maxHits ?? 1) < 0.35
+          ? pick('Heal')
+          : pick('Greater Heal', 'Heal');
+  }
+  if (!choice) ally = undefined;
   if (!choice && offensive && (await summonTurn(ctx, opponent, usable, memory))) return true;
   if (!choice && offensive) {
     if (enemyCasting) choice = pick('Magic Arrow', 'Harm');
     else if (Date.now() - memory.blessed > 120_000 && usable('Bless')) {
       choice = 'Bless';
       self = true;
-      memory.blessed = Date.now();
-    } else if (memory.combo.length) choice = pick(memory.combo.shift() ?? '');
+    } else if (memory.combo.length) choice = pick(memory.combo[0] ?? '');
     else if (!targetPoisoned && status().mana > 15) choice = pick('Poison');
     else if (status().mana > 60 && usable('Explosion')) {
       choice = 'Explosion';
-      memory.combo = [usable('Flame Strike') ? 'Flame Strike' : 'Energy Bolt'];
     } else choice = pick('Energy Bolt', 'Lightning', 'Fireball', 'Magic Arrow');
   }
   if (!choice) return false;
-  const target = self ? { serial: ctx.serial, graphic: 0 } : opponent;
-  return castSpell(ctx, choice, target, memory.missing);
-}
-
-// Casts a spell: at a mobile, at a spot on the ground, or with no target (a summon appears beside
-// the caster). Returns whether the cast went off.
-async function castSpell(
-  ctx: FighterContext,
-  name: string,
-  aim: Entity | { serial: number; graphic: number } | { x: number; y: number; z: number } | null,
-  missing: Set<number>
-): Promise<boolean> {
-  const { session } = ctx;
-  const spell = byName.get(name);
-  if (!spell || session.world.target) return false;
-  const seen = new Set(session.world.journal);
-  session.useSkill(spell.id, true);
-  // A summon takes no target: it appears once the cast delay passes, unless the book lacks it.
-  if (aim === null) {
-    await Bun.sleep(1000 + (3 + spell.circle) * 250);
-    if (session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL)) {
-      missing.add(spell.id);
-      return false;
+  const target = self ? { serial: ctx.serial, graphic: 0 } : (ally ?? opponent);
+  const spell = byName.get(choice);
+  if (!spell) return false;
+  const outcome = await requestSpell(ctx, spell, target, memory.missing);
+  memory.retry.set(choice, Date.now() + (outcome === 'unknown' ? (choice === 'Bless' ? 30_000 : 5000) : 1000));
+  if (outcome === 'confirmed') {
+    if (ally && !self) {
+      rememberPartner(ctx.checkpoint, {
+        partner: ally.serial,
+        name: ally.name ?? 'companion',
+        kind: 'support',
+        result: 'completed',
+        detail: `Helped my companion with ${choice}`,
+        id: `support:${ally.serial}:${Math.floor(Date.now() / 30_000)}`
+      });
+      ctx.persist();
     }
-    ctx.log(`Cast ${spell.name}`);
-    return true;
-  }
-  try {
-    // ServUO cast delay is (3 + circle index) * 0.25 s before the target cursor opens.
-    await session.waitFor(
-      () => session.world.target !== null || session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL),
-      'spell cursor',
-      1000 + (2 + spell.circle) * 250
-    );
-  } catch {
-    return false;
-  }
-  if (session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL)) {
-    missing.add(spell.id);
-    return false;
-  }
-  if (!session.world.target) return false;
-  if ('serial' in aim) session.target({ serial: aim.serial, x: 0, y: 0, z: 0, graphic: aim.graphic });
-  else session.target({ serial: 0, x: aim.x, y: aim.y, z: aim.z, graphic: 0 });
-  ctx.log(
-    `Cast ${spell.name}${'serial' in aim ? (aim.serial === ctx.serial ? ' on myself' : ` at ${aim.serial}`) : ` at ${aim.x},${aim.y}`}`
-  );
+    if (choice === 'Bless') memory.blessed = Date.now();
+    if (choice === 'Explosion') memory.combo = [usable('Flame Strike') ? 'Flame Strike' : 'Energy Bolt'];
+    else if (memory.combo[0] === choice) memory.combo.shift();
+  } else memory.combo = [];
   return true;
 }
 
@@ -175,7 +171,7 @@ async function summonTurn(
   ctx: FighterContext,
   opponent: Entity,
   usable: (name: string) => boolean,
-  memory: { missing: Set<number>; summoned?: { serial?: number; until: number } }
+  memory: { missing: Set<number>; retry: Map<string, number>; summoned?: { serial?: number; until: number } }
 ): Promise<boolean> {
   const { session, status } = ctx;
   if ((memory.summoned?.until ?? 0) > Date.now()) return false;
@@ -184,16 +180,34 @@ async function summonTurn(
   const here = ctx.position();
   const before = new Set([...session.world.entities.values()].filter((m) => m.kind === 'mobile').map((m) => m.serial));
   const tame = controlled.find(usable);
-  if (tame && (await castSpell(ctx, tame, null, memory.missing))) {
+  if (tame) {
+    const spell = byName.get(tame);
+    if (!spell) return false;
+    const outcome = await requestSpell(ctx, spell, null, memory.missing);
+    memory.retry.set(tame, Date.now() + (outcome === 'confirmed' ? 60_000 : 10_000));
+    if (outcome !== 'confirmed') return true;
     memory.summoned = { until: Date.now() + 60_000 };
-    await session.waitFor(() => (status().followers ?? 0) > followers, 'summoned creature', 3000).catch(() => {});
-    // Its first order: the opponent.
-    session.say('all kill');
-    await session.waitFor(() => session.world.target !== null, 'pet order cursor', 3000).catch(() => {});
-    if (session.world.target) session.target({ serial: opponent.serial, x: 0, y: 0, z: 0, graphic: opponent.graphic });
-    memory.summoned.serial = [...session.world.entities.values()].find(
-      (m) => m.kind === 'mobile' && !before.has(m.serial) && m.position && distance(here, m.position) <= 3
-    )?.serial;
+    const candidates = [...session.world.entities.values()].filter(
+      (mobile) =>
+        mobile.kind === 'mobile' &&
+        !before.has(mobile.serial) &&
+        mobile.position &&
+        distance(here, mobile.position) <= 3
+    );
+    for (const mobile of candidates) {
+      ctx.check();
+      const order = (await session.context(mobile.serial).catch(() => [])).find(
+        (entry) => entry.cliloc === 3006111 && !(entry.flags & 1)
+      );
+      if (!order) continue;
+      memory.summoned.serial = mobile.serial;
+      session.selectContext(mobile.serial, order.index);
+      await session.waitFor(() => session.world.target !== null, 'summon attack cursor', 2000).catch(() => {});
+      ctx.check();
+      if (session.world.target)
+        session.target({ serial: opponent.serial, x: 0, y: 0, z: 0, graphic: opponent.graphic });
+      break;
+    }
     return true;
   }
   const spot = opponent.position;
@@ -208,8 +222,11 @@ async function summonTurn(
       distance(spot, m.position) <= 8 &&
       (humans.has(m.graphic) || [1, 2].includes(m.notoriety ?? 0))
   );
-  if (friendly || !(await castSpell(ctx, wildOne, spot, memory.missing))) return false;
-  memory.summoned = { until: Date.now() + 60_000 };
+  const wildSpell = byName.get(wildOne);
+  if (friendly || !wildSpell) return false;
+  const outcome = await requestSpell(ctx, wildSpell, spot, memory.missing);
+  memory.retry.set(wildOne, Date.now() + (outcome === 'confirmed' ? 60_000 : 10_000));
+  if (outcome === 'confirmed') memory.summoned = { until: Date.now() + 60_000 };
   return true;
 }
 

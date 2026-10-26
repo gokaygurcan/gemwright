@@ -4,18 +4,25 @@ import { parseArgs } from 'node:util';
 import { type Analysis, analyze } from './analysis';
 import { findClientFiles } from './client';
 import { homePage, itemPage, layout, mobilePage, searchPage, status } from './pages';
+import { playersPage } from './players';
 import { pullLatest, savedAt } from './pulls';
 import { search } from './search';
 
 // A local website over a shard's world save: search characters, mobiles and items by name, type
 // or serial, and open a page for each. Run from the shard folder, it pulls the deployment's
 // latest save at start and on Refresh; --local reads a Saves folder already on disk instead.
-//   bun packages/analyze/src/serve.ts [--local <Saves folder>] [--files <client files>] [--port 4100]
+//   bun packages/analyze/src/serve.ts [--local <Saves folder>] [--files <client files>] [--port 4100] [--cleanup]
+// --cleanup keeps only the newest pull after each one (gemwright pull --cleanup).
 // With the game client's files (--files, else the repository's files/), character pages draw the
 // character with the client's own art.
 const { values } = parseArgs({
   args: process.argv.slice(2),
-  options: { local: { type: 'string' }, port: { type: 'string' }, files: { type: 'string' } }
+  options: {
+    local: { type: 'string' },
+    port: { type: 'string' },
+    files: { type: 'string' },
+    cleanup: { type: 'boolean' }
+  }
 });
 status.live = !values.local;
 const client = findClientFiles(values.files);
@@ -28,7 +35,7 @@ const load = (saves: string): Analysis => {
   console.log(`Read ${saves} in ${Math.round(performance.now() - started)} ms.`);
   return loaded;
 };
-let analysis = load(values.local ? resolve(values.local) : await pullLatest());
+let analysis = load(values.local ? resolve(values.local) : await pullLatest(process.cwd(), values.cleanup));
 
 // One pull at a time; pages keep showing the previous save until the new one is read.
 async function refresh() {
@@ -36,7 +43,7 @@ async function refresh() {
   status.refreshing = true;
   status.error = undefined;
   try {
-    analysis = load(await pullLatest());
+    analysis = load(await pullLatest(process.cwd(), values.cleanup));
   } catch (error) {
     status.error = `Refresh failed: ${error instanceof Error ? error.message : String(error)}`;
   } finally {
@@ -62,6 +69,7 @@ const server = Bun.serve({
   idleTimeout: 0,
   routes: {
     '/': () => html(homePage(analysis)),
+    '/players': () => html(playersPage(analysis)),
     '/refresh': {
       POST: async (request) => {
         if (status.live) await refresh();

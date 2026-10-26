@@ -4,10 +4,16 @@ import { Layer } from './layers';
 import * as packets from './packets';
 import type { PlayerSession } from './session';
 
-export async function dropAtFeet(session: PlayerSession, send: (packet: Buffer) => void, serial: number) {
+// At its feet, or on a tile next to it (a tile holds only so much: Item.FindDropPoint).
+export async function dropAtFeet(
+  session: PlayerSession,
+  send: (packet: Buffer) => void,
+  serial: number,
+  offset = { x: 0, y: 0 }
+) {
   const { world } = session;
   const item = world.entities.get(serial);
-  const at = world.position;
+  const at = world.position && { ...world.position, x: world.position.x + offset.x, y: world.position.y + offset.y };
   if (item?.kind !== 'item' || !at) throw new Error('Drop requires an observed item and position');
   const rejected = world.received.get(0x27) ?? 0;
   const refused = () => (world.received.get(0x27) ?? 0) > rejected;

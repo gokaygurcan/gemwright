@@ -4,7 +4,7 @@ import { atVendor, type CraftContext } from './craft-training';
 import { awaitGump, awaitMessage, dismiss, heardSince, mark, press } from './gump-flow';
 import { claimLot, dropClaim, type HouseRecord, houseOf, housingOpen, refuseLot, updateHouse } from './house-lots';
 import type { LifeContext } from './life';
-import { serviceLocations } from './locations';
+import { pickLocation } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import { Layer } from './protocol/layers';
@@ -127,7 +127,7 @@ export type Purchase = 'placed' | 'refused' | 'unaffordable' | 'failed' | 'no-lo
 export async function buyHouse(ctx: LifeContext): Promise<Purchase> {
   const { session } = ctx;
   const owner = ownerOf(ctx);
-  const bank = serviceLocations(ctx.city, 'banker')[0] ?? ctx.position();
+  const bank = pickLocation(ctx.city, 'banker') ?? ctx.position();
   if (fundsStale(ctx.checkpoint)) await refreshFunds(craftContext(ctx), ctx.city);
   const house = houseFor(owner, fundsStale(ctx.checkpoint) ? 0 : (ctx.checkpoint.funds?.bank ?? 0));
   if (!house) return 'unaffordable';

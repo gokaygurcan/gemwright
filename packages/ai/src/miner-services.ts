@@ -1,25 +1,42 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
-import { gold } from '@gemwright/common/items';
+import { gold, miningTools } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
 import { chargedPurchase, openBankBox, queryBankBalance } from './bank-gold';
 import { clearBankRoom } from './bank-space';
 import { Blocked } from './blocked';
+import { replaceDeathRobe } from './death-robe';
 import { packItems, packSummary } from './inventory';
 import { bestRecipe, RAW_INGOT_VALUE } from './miner-crafting';
-import { createIngotSeller } from './miner-selling';
+import { createIngotSeller, smithed } from './miner-selling';
 import type { MinerServicesContext } from './miner-types';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
+import type { Entity } from './protocol/world';
+import { craftedGoods } from './selling';
 import { createServiceExperience } from './service-experience';
 import { buyFrom, sellTo } from './vendor-trade';
 
-export const tools = new Set([0x0e85, 0x0e86, 0x0f39, 0x0f3a]);
+export const tools = miningTools;
 export const ingot = 0x1bf2;
 export const forges = new Set([0x0fb1, ...Array.from({ length: 48 }, (_, index) => 6522 + index)]);
 
 export type { MinerProgress } from './miner-types';
+
+// Ore piles (four sizes) and the Mining skill each coloured ore needs to smelt (ServUO Mining.cs
+// resources), by the ore's hue; plain iron needs none.
+const ore = new Set([0x19b7, 0x19b8, 0x19b9, 0x19ba]);
+const oreSkill = new Map([
+  [0x973, 65], // dull copper
+  [0x966, 70], // shadow iron
+  [0x96d, 75], // copper
+  [0x972, 80], // bronze
+  [0x8a5, 85], // gold
+  [0x979, 90], // agapite
+  [0x89f, 95], // verite
+  [0x8ab, 99] // valorite
+]);
 
 export function createMinerServices(ctx: MinerServicesContext) {
   const {
@@ -230,6 +247,8 @@ export function createMinerServices(ctx: MinerServicesContext) {
   };
   const sellIngots = createIngotSeller(ctx, learning);
   const bank = async (backpack: number) => {
+    // In town anyway: out of the death robe, into new clothes if it has none (death-robe.ts).
+    await replaceDeathRobe({ ...ctx, backpack: () => backpack });
     plan().pending = 'bank';
     await sellIngots(backpack);
     const banker = await findBanker();
@@ -269,6 +288,57 @@ export function createMinerServices(ctx: MinerServicesContext) {
       if (item.graphic === ingot) progress.deposits += item.amount ?? 1;
       await Bun.sleep(700);
     }
+    // Exceptional pieces: one of each kind stays in the bank, the rest are sold with whatever is
+    // carried; a pack that holds the only one banks it first.
+    const toSell: number[] = [];
+    const kinds = new Map<number, Entity[]>();
+    const pieces = (container: number) =>
+      session.world.childrenOf(container).filter((item) => smithed.has(item.graphic) || craftedGoods.has(item.graphic));
+    for (const item of pieces(box.serial)) kinds.set(item.graphic, [...(kinds.get(item.graphic) ?? []), item]);
+    for (const [, banked] of kinds)
+      for (const extra of banked.slice(1)) {
+        // A batch it can carry to the shop; the rest waits for the next bank visit.
+        if (status().weight > status().maxWeight * 0.7) break;
+        check();
+        if (
+          await session.moveItem(extra.serial, backpack).then(
+            () => true,
+            () => false
+          )
+        )
+          toSell.push(extra.serial);
+        await Bun.sleep(500);
+        await session.refreshStatus().catch(() => {});
+      }
+    for (const item of pieces(backpack)) {
+      if (toSell.includes(item.serial)) continue;
+      if (
+        !kinds.has(item.graphic) &&
+        (await session.moveItem(item.serial, box.serial).then(
+          () => true,
+          () => false
+        ))
+      ) {
+        kinds.set(item.graphic, [item]);
+        continue;
+      }
+      toSell.push(item.serial);
+    }
+    // Ore the forge refused earlier comes back out once Mining is high enough to smelt it.
+    const mining = session.world.skills.get(skillId('Mining'))?.base ?? 0;
+    for (const pile of session.world.childrenOf(box.serial).filter((item) => ore.has(item.graphic))) {
+      if (mining < (oreSkill.get(pile.hue ?? 0) ?? 0)) continue;
+      if (status().weight + (pile.amount ?? 1) * 12 > status().maxWeight * 0.7) break;
+      check();
+      if (
+        await session.moveItem(pile.serial, backpack).then(
+          () => true,
+          () => false
+        )
+      )
+        unsmeltable.delete(pile.serial);
+      await Bun.sleep(500);
+    }
     checkpoint.stock = {
       ingots: [...session.world.entities.values()]
         // Iron only (hue 0): colored ingots are kept, never sold, and must not trigger iron sales.
@@ -279,8 +349,13 @@ export function createMinerServices(ctx: MinerServicesContext) {
     await queryBankBalance({ ...ctx, checkpoint }, banker.serial);
     const confirmedBanker = session.world.entities.get(banker.serial);
     if (confirmedBanker) learning.record(confirmedBanker, 3006105, 'success');
-    if (freed.length)
-      await sellTo({ ...ctx, backpack: () => backpack }, 'blacksmith', (item) => freed.includes(item.serial), true);
+    if (freed.length || toSell.length)
+      await sellTo(
+        { ...ctx, backpack: () => backpack },
+        'blacksmith',
+        (item) => freed.includes(item.serial) || toSell.includes(item.serial),
+        true
+      );
     if (refused) await sellIngots(backpack, true);
     progress.trips++;
     checkpoint.mining = newTrip();

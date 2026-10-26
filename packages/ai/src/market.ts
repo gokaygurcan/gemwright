@@ -2,10 +2,11 @@ import { gold } from '@gemwright/common/items';
 
 import { noteTrade } from './activity';
 import type { CharacterTemplate } from './config';
+import { dangerAhead } from './danger-response';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
 import { guildmates } from './guilds';
 import { quality } from './item-quality';
-import { allServiceLocations, type ServiceType, serviceLocations } from './locations';
+import { allServiceLocations, pickLocation, type ServiceType, townAt } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
@@ -15,6 +16,7 @@ import type { Entity, JournalEntry, Position } from './protocol/world';
 import type { Checkpoint } from './store';
 import { buyByTrade, lastFailure, sellByTrade } from './trade-deal';
 import { endTrade, expectTrade } from './trade-guard';
+import { orderDemand } from './work-orders';
 
 // Residents trade with each other at their town bank, as players do: a seller shouts its lot, a
 // buyer shouts what it wants, they agree on a lot price in a turn or two of speech, and the seller
@@ -28,7 +30,17 @@ import { endTrade, expectTrade } from './trade-guard';
 // happens at the town's bank, or at the good's shop in a town without one (Yew). Buyers and sellers
 // both travel there. `lot` is the smallest deal worth the trip. Shop prices: SBCarpenter (boards),
 // SBAlchemist (the lesser potions; regular ones share their graphic).
-export type Good = 'boards' | 'heal potions' | 'cure potions' | 'poison potions' | 'iron ingots' | 'exceptional bows';
+export type Good =
+  | 'boards'
+  | 'heal potions'
+  | 'cure potions'
+  | 'poison potions'
+  | 'iron ingots'
+  | 'exceptional bows'
+  | 'arrows'
+  | 'bolts'
+  | 'cloth'
+  | 'bandages';
 interface GoodDef {
   graphic: number;
   // Several graphics for one good (bow and composite bow); `graphic` alone otherwise.
@@ -44,6 +56,10 @@ interface GoodDef {
   lot: number;
 }
 export const goods: Record<Good, GoodDef> = {
+  arrows: { graphic: 0x0f3f, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
+  bolts: { graphic: 0x1bfb, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
+  cloth: { graphic: 0x1766, shopPays: 1, shopCharges: 2, market: 'britain', shop: 'tailor', lot: 10 },
+  bandages: { graphic: 0x0e21, shopPays: 1, shopCharges: 5, market: 'britain', shop: 'healer', lot: 10 },
   boards: { graphic: 0x1bd7, shopPays: 2, shopCharges: 3, market: 'yew', shop: 'carpenter', lot: 10 },
   'heal potions': { graphic: 0x0f0c, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
   'cure potions': { graphic: 0x0f07, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
@@ -71,7 +87,9 @@ export const goodMatch = (good: Good) => {
   const def = goods[good];
   const graphics = def.graphics ?? [def.graphic];
   return (item: Entity) =>
-    graphics.includes(item.graphic) && !item.hue && (!def.exceptional || quality(item) === 'exceptional');
+    graphics.includes(item.graphic) &&
+    (!item.hue || good === 'cloth') &&
+    (!def.exceptional || quality(item) === 'exceptional');
 };
 // The recipes that make a good, best first (an exceptional good's); none for plain goods.
 export const goodRecipes = (good: Good): readonly string[] => goods[good].recipes ?? [];
@@ -189,8 +207,7 @@ function heard(session: PlayerSession, seen: Set<JournalEntry>) {
 // A market line older than 20 seconds belongs to a conversation that has moved on.
 const stale = (entry: JournalEntry) => Date.now() - Date.parse(entry.at) > 20_000;
 
-const spot = (city: string, good: Good) =>
-  serviceLocations(city, 'banker')[0] ?? serviceLocations(city, goods[good].shop)[0];
+const spot = (city: string, good: Good) => pickLocation(city, 'banker') ?? pickLocation(city, goods[good].shop);
 
 // Walks to a place, through the nearest public moongate when it is far.
 const travelTo = async (ctx: MarketContext, place: { x: number; y: number }) => {
@@ -199,15 +216,19 @@ const travelTo = async (ctx: MarketContext, place: { x: number; y: number }) => 
     await travelByMoongate(ctx, gate);
   await ctx.navigate(place, 3);
 };
+// A market is visited only when it is in reach on foot: nobody crosses the land through a moongate
+// to shout for a few bandages, and nobody walks where it was just attacked.
 const atMarket = async (ctx: MarketContext, city: string, good: Good) => {
   const place = spot(city, good);
-  if (place) await travelTo(ctx, place);
-  return !!place;
+  if (!place || distance(ctx.position(), place) > 300 || dangerAhead(ctx.session, ctx.position(), place)) return false;
+  await travelTo(ctx, place);
+  return true;
 };
 
 // Stands at the good's market offering `stock` for up to `minutes`, answering buyers, then goes
 // home; returns the number sold. Every deal is a separate trade window, recorded either way.
 export async function sellAtMarket(ctx: MarketContext, good: Good, stock: number, minutes: number) {
+  stock = Math.max(0, stock - orderDemand(ctx.session, good));
   const { session } = ctx;
   const { lot, market } = goods[good];
   if (stock < lot || !(await atMarket(ctx, market, good))) return 0;
@@ -260,7 +281,6 @@ export async function sellAtMarket(ctx: MarketContext, good: Good, stock: number
     }
     await Bun.sleep(1500);
   }
-  await atMarket(ctx, ctx.city, good);
   return sold;
 }
 
@@ -268,13 +288,29 @@ export async function sellAtMarket(ctx: MarketContext, good: Good, stock: number
 export const sellCarried = (ctx: MarketContext, good: Good, minutes: number) =>
   sellAtMarket(ctx, good, carriedOf(ctx.session, ctx.backpack(), good), minutes);
 
+// A market that sold nothing is not tried again for an hour: the buyer goes to the shop instead
+// of withdrawing coins and calling out for the same goods every visit.
+const quiet = new WeakMap<object, Map<Good, number>>();
+
 // Looks for `want` of a good at its market for up to `minutes`: answers sellers' shouts within its
 // bid, or shouts a bid of its own; pays in coins taken from the bank. Returns the number bought.
 export async function buyAtMarket(ctx: MarketContext, good: Good, want: number, minutes: number) {
   const { session } = ctx;
+  const silent = quiet.get(session) ?? new Map<Good, number>();
+  quiet.set(session, silent);
+  if ((silent.get(good) ?? 0) > Date.now()) return 0;
+  const bought = await bidAtMarket(ctx, good, want, minutes);
+  if (!bought) silent.set(good, Date.now() + 60 * 60_000);
+  return bought;
+}
+
+async function bidAtMarket(ctx: MarketContext, good: Good, want: number, minutes: number) {
+  const { session } = ctx;
   // Coins come from the home bank first: the market town may have no banker to withdraw from.
   const { lot, market } = goods[good];
-  if (want < lot || !(await coins(ctx, ceiling(good, want), ctx.city))) return 0;
+  const place = spot(market, good);
+  if (want < lot || !place || distance(ctx.position(), place) > 300) return 0;
+  if (!(await coins(ctx, ceiling(good, want), ctx.city))) return 0;
   if (!(await atMarket(ctx, market, good))) return 0;
   const share = await stance(ctx, 'market-bid', good);
   const seen = new Set(session.world.journal.filter((entry) => Date.now() - Date.parse(entry.at) > 60_000));
@@ -336,7 +372,6 @@ export async function buyAtMarket(ctx: MarketContext, good: Good, want: number, 
     await Bun.sleep(1500);
   }
   endTrade(session);
-  await atMarket(ctx, ctx.city, good);
   return bought;
 }
 
@@ -352,7 +387,7 @@ async function coins(ctx: MarketContext, price: number, city: string) {
   if (short <= 0) return true;
   // A town without a bank (Yew) withdraws at the nearest one.
   const bank =
-    serviceLocations(city, 'banker')[0] ??
+    pickLocation(townAt(ctx.position(), city), 'banker') ??
     allServiceLocations('banker').sort((a, b) => distance(ctx.position(), a) - distance(ctx.position(), b))[0];
   if (!bank) return false;
   if (distance(ctx.position(), bank) > 10) await travelTo(ctx, bank).catch(() => {});

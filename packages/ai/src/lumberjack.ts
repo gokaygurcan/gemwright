@@ -1,15 +1,17 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/bodies';
 import { gold } from '@gemwright/common/items';
 
+import { DangerInterrupt } from './action-purpose';
 import { openOwnBackpack } from './backpack';
-import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
-import type { CharacterTemplate } from './config';
-import { converse } from './conversation';
+import { bankSurplus, offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import { threatsNear, unsafeCheck } from './danger';
-import type { DecisionCoordinator } from './decisions';
-import { leavesEarly, packFull, packItems, packSummary } from './inventory';
+import { escapeDanger, interruptForDanger } from './danger-response';
+import { replaceDeathRobe, shedDeathRobe, wearsDeathRobe } from './death-robe';
+import { leavesEarly, packFull, packItems, packSummary, tidyPack } from './inventory';
 import { lifeTurn } from './life';
-import { serviceLocations } from './locations';
+import { pickLocation, townAt } from './locations';
+import { info } from './log';
+import { checkLoop, watchStep } from './loop-watch';
 import { chopTree } from './lumber-chop';
 import { buyHatchetFrom, hatchets, vendorMenu } from './lumber-shop';
 import { treeStatics } from './lumber-trees';
@@ -18,14 +20,17 @@ import { approachVendor } from './mobile-approach';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
 import { createPackAnimal } from './pack-animal';
+import { personalTurn } from './personal-turn';
 import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import { noticePeers } from './relationships';
+import { observeResident } from './resident-observation';
+import type { ResidentOptions } from './resident-options';
 import { isGhost, resurrectGhost } from './resurrection';
 import { scavenge } from './scavenge';
+import { sellingTurn } from './selling';
 import { isSetback, passSetback } from './setback';
+import { loopSideTrade } from './side-trade';
 import { trainSupportingSkill } from './skill-training';
-import type { Checkpoint } from './store';
+import { learnedPlaceCost } from './strategy-learning';
 import { Terrain } from './terrain';
 import { reachRegion, workArea } from './work-areas';
 
@@ -34,22 +39,9 @@ const board = 0x1bd7;
 const woodSet = new Set([board]);
 // Trees regrow 20-30 minutes after depletion (Lumberjacking.cs MinRespawn/MaxRespawn).
 const REGROW = 30 * 60_000;
-// Boards are the vendor economy item (75% of 3 gold = 2); logs sell for 1. Every carpentry item and,
-// below Bowcraft 65, every bow is worth less per piece of wood than the boards themselves, so the
-// best value is to cut logs into boards (1:1, half the weight, no skill needed) and sell those.
+// Boards sell for 2 gold, logs for 1. Cutting is skill-free, 1:1, and halves their weight.
 
-export async function runLumberjack(options: {
-  session: PlayerSession;
-  assets: string;
-  template: CharacterTemplate;
-  seconds: number;
-  peers?: ReadonlyMap<number, string>;
-  label?: string;
-  checkpoint: Checkpoint;
-  decisions?: DecisionCoordinator;
-  save: (checkpoint: Checkpoint) => void;
-  stopping?: () => boolean;
-}) {
+export async function runLumberjack(options: ResidentOptions) {
   const { session, template } = options;
   // Each lumberjack works its own woods (work-areas.json) and sells in that city.
   const woods = workArea('woods', options.label ?? template.id);
@@ -62,12 +54,20 @@ export async function runLumberjack(options: {
   checkpoint.landmarks ??= { forges: [] };
   const progress = { chops: 0, logs: 0, boards: 0, sold: 0, earned: 0, trips: 0 };
   const tag = options.label ? `lumberjack:${options.label}` : 'lumberjack';
-  const say = (message: string) => console.error(`[${tag}] ${message}`);
+  const say = (message: string) => info(`[${tag}] ${message}`);
   const persist = () => options.save(checkpoint);
   const phase = (value: string, note: string) => {
-    checkpoint.goal = { kind: 'lumberjacking', phase: value };
-    noticePeers(session, checkpoint, options.peers, template.behavior.sociability);
-    void converse({ session, checkpoint, template, city, peers: options.peers, decisions: options.decisions });
+    watchStep(session, tag, value, note);
+    checkpoint.goal = { kind: 'lumberjacking', phase: value, note: note };
+    observeResident({
+      session,
+      checkpoint,
+      template,
+      city,
+      peers: options.peers,
+      decisions: options.decisions,
+      persist
+    });
     checkpoint.memories = [...checkpoint.memories.slice(-49), { at: new Date().toISOString(), text: note }];
     persist();
     say(`${value}: ${note}`);
@@ -81,8 +81,10 @@ export async function runLumberjack(options: {
     return session.world.status;
   };
   const check = () => {
+    checkLoop(session);
     if (options.stopping?.() || Date.now() >= deadline) throw new Error('Lumberjack run duration reached');
     if (session.phase !== 'ready') throw new Error('Lumberjack disconnected; reconnect before continuing');
+    interruptForDanger(session);
   };
   const setback = (reason: string) =>
     passSetback(
@@ -90,6 +92,7 @@ export async function runLumberjack(options: {
         session,
         check,
         phase,
+        checkpoint,
         log: say,
         deadline,
         archetype: template.archetype,
@@ -184,8 +187,12 @@ export async function runLumberjack(options: {
   // Town trip: sell boards to the carpenter, bank the gold, replace a broken hatchet.
   const town = async () => {
     await cutBoards();
-    // A full load of boards: now and then some become furniture first (Carpentry), as a crafting
-    // woodsman does, before the rest is sold or banked.
+    await replaceDeathRobe({
+      ...{ session, serial, terrain, position, navigate, check, phase, log: say, checkpoint, status, city },
+      carried: (pack: number) => session.world.childrenOf(pack),
+      backpack: backpackSerial
+    });
+    // Occasionally craft furniture before selling the boards.
     if (count(board) >= 50 && Math.random() < 0.25) await practise('Carpentry');
     // Boards go to fellow residents at the bank first (market.ts); the carpenter takes the rest.
     const market = { session, template, checkpoint, city, position, navigate, phase, backpack: backpackSerial };
@@ -195,7 +202,7 @@ export async function runLumberjack(options: {
       count(board),
       count(board) >= 100 ? 8 : 4
     );
-    const carpenter = serviceLocations(city, 'carpenter')[0];
+    const carpenter = pickLocation(city, 'carpenter');
     // Pack animal boards sell a load at a time.
     const room = () => status().maxWeight - 20 - status().weight;
     for (let load = 0; load < 20; load++) {
@@ -237,7 +244,7 @@ export async function runLumberjack(options: {
       }
       if (!(await packs?.unload(woodSet, 1, room))) break;
     }
-    const bank = serviceLocations(city, 'banker')[0];
+    const bank = pickLocation(city, 'banker');
     // Boards no carpenter bought would keep the pack at its limit; a player stores them in the bank.
     if (bank && (status().gold > 0 || heavy())) {
       phase('bank-travel', heavy() ? 'Storing unsold wood and banking the earnings' : 'Banking the earnings');
@@ -302,20 +309,81 @@ export async function runLumberjack(options: {
     // Each lumberjack favours its own stand of trees in its woods.
     const offset = template.behavior.temperament?.miningAnchor;
     const anchor = offset ? { x: woods.x + Math.round(offset.dx / 2), y: woods.y + Math.round(offset.dy / 2) } : woods;
-    // Every resident shares one event loop: turns start at least 250 ms apart and always yield,
-    // so a turn that finds nothing to do can never starve the others.
+    // Empty turns must yield to the other residents.
     let turnAt = 0;
     while (Date.now() < deadline) {
       await Bun.sleep(Math.max(0, turnAt + 250 - Date.now()));
       turnAt = Date.now();
       try {
         check();
-        // A ghost is resurrected at the closest healer or ankh before anything else.
+        await tidyPack(session, backpackSerial(), say, terrain);
+        if (
+          await loopSideTrade(
+            {
+              session,
+              serial,
+              terrain,
+              template,
+              checkpoint,
+              city,
+              deadline,
+              position,
+              status,
+              navigate,
+              check,
+              phase,
+              log: say,
+              persist,
+              backpack: backpackSerial
+            },
+            'lumberjack'
+          )
+        )
+          continue;
+        await bankSurplus(
+          { session, serial, position, terrain, navigate, check, checkpoint, phase, backpack: backpackSerial },
+          city
+        );
+        if (
+          await sellingTurn({
+            session,
+            serial,
+            terrain,
+            position,
+            navigate,
+            check,
+            phase,
+            log: say,
+            checkpoint,
+            status,
+            city,
+            carried: (pack: number) => session.world.childrenOf(pack),
+            backpack: backpackSerial
+          })
+        )
+          continue;
+        if (
+          await personalTurn({
+            session,
+            terrain,
+            template,
+            checkpoint,
+            city,
+            position,
+            check,
+            phase,
+            log: say,
+            persist,
+            navigate,
+            practise: () => practise()
+          })
+        )
+          continue;
         if (isGhost({ session, serial })) {
           await resurrectGhost({ session, serial, terrain, position, navigate, check, phase, log: say });
           continue;
         }
-        // Hurt woodsmen rest (natural regeneration) instead of stopping.
+        if (wearsDeathRobe(session)) await shedDeathRobe(session, terrain, session.world.childrenOf(backpackSerial()));
         if (status().hits < status().maxHits / 2) {
           await setback('health is below half');
           continue;
@@ -337,7 +405,7 @@ export async function runLumberjack(options: {
           continue;
         if (!tool()) await buyHatchet();
         // Logs weigh 2 stones and boards 1: cut early, go to town only when even boards fill the pack.
-        if ((status().weight >= status().maxWeight * 0.7 || packFull(session, backpackSerial())) && count(log))
+        if ((status().weight >= status().maxWeight * 0.9 || packFull(session, backpackSerial())) && count(log))
           await cutBoards();
         await packs.keepUp();
         // A full pack goes onto the pack animal while it has room.
@@ -375,7 +443,7 @@ export async function runLumberjack(options: {
         // Never work, or practise, within reach of monsters (danger.ts): leave for town instead.
         if (distance(position(), anchor) < 80 && threatsNear(session, position(), 8).length) {
           phase('avoiding', 'Monsters about; leaving the woods for town');
-          await town();
+          await escapeDanger({ session, check, phase, navigate }, pickLocation(townAt(position(), city), 'banker'));
           continue;
         }
         const risky = unsafeCheck(session);
@@ -387,6 +455,7 @@ export async function runLumberjack(options: {
             const cost = (point: { x: number; y: number }) =>
               distance(position(), point) +
               distance(point, anchor) * 0.3 +
+              learnedPlaceCost(checkpoint, session.world.map ?? 1, point) +
               (crowd.some((mobile) => mobile.position && distance(mobile.position, point) <= 3) ? 30 : 0);
             return cost(a) - cost(b);
           })[0];
@@ -435,6 +504,10 @@ export async function runLumberjack(options: {
         if (chop.depleted || !chop.answered) deplete(`tree:${tree.x},${tree.y}`);
         if (chop.full || (chop.gathered && leavesEarly(session))) full = true;
       } catch (error) {
+        if (error instanceof DangerInterrupt) {
+          await escapeDanger({ session, check, phase, navigate }, pickLocation(townAt(position(), city), 'banker'));
+          continue;
+        }
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;
         await setback(error instanceof Error ? error.message : String(error));
       }

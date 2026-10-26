@@ -180,7 +180,7 @@ test('negotiates precompressed files without changing decoded runtime bytes', as
   expect(await stale.text()).toBe('export const dotnet = {};');
 });
 
-test('decodes game traffic only for the upstream runtime’s unencrypted mode', async () => {
+test("decodes game traffic only for the upstream runtime's unencrypted mode", async () => {
   for (const encryption of [0, 5]) {
     const app = await fixture(undefined, encryption);
     app.tcp.removeAllListeners('connection');

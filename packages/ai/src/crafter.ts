@@ -4,9 +4,11 @@ import type { DecisionCoordinator } from './decisions';
 import { learnQuality } from './item-quality';
 import type { ServiceType } from './locations';
 import { buyAtMarket, carriedOf, type Good, goodRecipes, goods, sellAtMarket } from './market';
+import { earnBoards } from './material-income';
 import { playerDemand } from './player-insight';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import { buyFrom } from './vendor-trade';
+import { orderDemand } from './work-orders';
 
 // Town crafters beyond the tailor: each buys its material from the trade's shop, crafts what
 // `chooseRecipe` picks (training up to its skill goal, then only what pays), sells to the trade's
@@ -86,7 +88,11 @@ function runCrafter(name: string, craft: CraftSkill) {
           // by the lesser potion's shop prices, below what the shop pays for stronger ones.
           // The one held least comes first, so stock stays even across the market goods.
           prefer: [
+            ...forMarket
+              .filter((good) => orderDemand(ctx.session, good) > carriedOf(ctx.session, ctx.backpack(), good))
+              .flatMap((good) => (goods[good].exceptional ? goodRecipes(good) : [`lesser ${good.replace(/s$/, '')}`])),
             ...[...plain]
+              .filter((good) => carriedOf(ctx.session, ctx.backpack(), good) < 20)
               // What players ask for first (player-insight.ts), then the one held least.
               .sort(
                 (a, b) =>
@@ -95,7 +101,9 @@ function runCrafter(name: string, craft: CraftSkill) {
               )
               .map((good) => `lesser ${good.replace(/s$/, '')}`),
             // Exceptional goods name the recipes that can turn out exceptional (a bowyer's bows).
-            ...forMarket.flatMap(goodRecipes)
+            ...forMarket
+              .filter((good) => carriedOf(ctx.session, ctx.backpack(), good) < goods[good].lot)
+              .flatMap(goodRecipes)
           ]
         }
       );
@@ -108,6 +116,7 @@ function runCrafter(name: string, craft: CraftSkill) {
           carriedOf(ctx.session, ctx.backpack(), good),
           4
         );
+      if (!made && name === 'bowyer' && (await earnBoards(ctx))) return;
       if (!made) {
         ctx.phase(
           `${name}-wait`,

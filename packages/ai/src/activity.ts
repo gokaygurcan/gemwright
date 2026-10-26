@@ -20,6 +20,11 @@ export function tally(session: PlayerSession, name: string, amount = 1) {
   tallies.set(session, counts);
 }
 
+export function observedWorkCount(session: PlayerSession): number {
+  const counts = tallies.get(session) ?? {};
+  return ['mined', 'chopped', 'fished', 'crafted', 'kills'].reduce((sum, key) => sum + (counts[key] ?? 0), 0);
+}
+
 // Every market deal a session attempted (market.ts), saved to the trade log with the totals.
 export interface TradeEvent {
   role: 'seller' | 'buyer';

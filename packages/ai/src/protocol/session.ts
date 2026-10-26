@@ -252,6 +252,14 @@ export class PlayerSession {
     }
   }
 
+  // The client's Help button (0x9B, 258 bytes): the server answers with its help gump.
+  requestHelp(): void {
+    this.requireReady();
+    const packet = Buffer.alloc(258);
+    packet[0] = 0x9b;
+    this.send(packet);
+  }
+
   say(message: string): void {
     this.requireReady();
     this.send(packets.speech(message));
@@ -350,11 +358,12 @@ export class PlayerSession {
     await this.waitFor(() => !!this.world.entities.get(serial)?.name, 'observed character name', 2500);
   }
 
-  async inspectProperties(serial: number): Promise<void> {
+  async inspectProperties(serial: number, refresh = false): Promise<void> {
     this.requireReady();
     const entity = this.world.entities.get(serial);
     if (!entity) throw new Error('Property target is not observed');
-    if (entity.properties) return;
+    if (entity.properties && !refresh) return;
+    if (refresh) this.world.entities.set(serial, { ...entity, properties: undefined });
     this.send(packets.properties(serial));
     await this.waitFor(() => this.world.entities.get(serial)?.properties !== undefined, 'object properties', 2500);
   }
@@ -377,9 +386,9 @@ export class PlayerSession {
   }
 
   // Drops an item at the character's feet (an unwanted death robe).
-  async dropAtFeet(serial: number): Promise<void> {
+  async dropAtFeet(serial: number, offset?: { x: number; y: number }): Promise<void> {
     this.requireReady();
-    await dropAtFeet(this, (packet) => this.send(packet), serial);
+    await dropAtFeet(this, (packet) => this.send(packet), serial, offset);
   }
 
   async equipItem(serial: number, layer: number): Promise<void> {

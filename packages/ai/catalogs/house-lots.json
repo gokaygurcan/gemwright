@@ -1,5 +1,86 @@
 {
   "schemaVersion": 1,
-  "pitch": { "x": 9, "y": 13 },
-  "lots": []
+  "pitch": {
+    "x": 9,
+    "y": 13
+  },
+  "lots": [
+    {
+      "id": "Minoc mines-2-0",
+      "district": "Minoc mines",
+      "x": 2652,
+      "y": 534,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-2-1",
+      "district": "Minoc mines",
+      "x": 2652,
+      "y": 547,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-2-2",
+      "district": "Minoc mines",
+      "x": 2652,
+      "y": 560,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-3-2",
+      "district": "Minoc mines",
+      "x": 2661,
+      "y": 560,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-9-2",
+      "district": "Minoc mines",
+      "x": 2715,
+      "y": 560,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-3-3",
+      "district": "Minoc mines",
+      "x": 2661,
+      "y": 573,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-4-3",
+      "district": "Minoc mines",
+      "x": 2670,
+      "y": 573,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-6-3",
+      "district": "Minoc mines",
+      "x": 2688,
+      "y": 573,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-7-3",
+      "district": "Minoc mines",
+      "x": 2697,
+      "y": 573,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-8-3",
+      "district": "Minoc mines",
+      "x": 2706,
+      "y": 573,
+      "z": 0
+    },
+    {
+      "id": "Minoc mines-9-3",
+      "district": "Minoc mines",
+      "x": 2715,
+      "y": 573,
+      "z": 0
+    }
+  ]
 }

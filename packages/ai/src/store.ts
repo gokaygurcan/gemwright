@@ -4,10 +4,8 @@ import { dirname } from 'node:path';
 
 import { ActivityRecorder, activitySchema } from './activity';
 import { migrateCheckpoint } from './checkpoint-migrations';
+import type { Checkpoint } from './checkpoint-types';
 import { allocatePopulation, type CharacterTemplate, type PopulationConfig, validateConfig } from './config';
-import type { DecisionMemory } from './decisions';
-import type { ExperienceMemory } from './experience';
-import type { MountMemory } from './mount-types';
 import { playerName } from './names';
 import { SpendLedger } from './spend-ledger';
 import { timed } from './stall-probe';
@@ -20,82 +18,7 @@ export interface SkillReading {
   lock?: number;
 }
 
-export interface Checkpoint {
-  schemaVersion?: number;
-  decisions?: DecisionMemory;
-  experience?: ExperienceMemory;
-  mount?: MountMemory;
-  packAnimal?: MountMemory & { load?: number; searches?: number; abandoned?: number };
-  // Last banker-reported balance; vendors on the verified profile can charge it directly.
-  funds?: { bank: number; at: number };
-  // Ingots last counted in the bank box; guides whether surplus is sold for working funds.
-  stock?: { ingots: number; at: number };
-  // A dungeon run in progress (dungeon-crawl.ts, any profession): rooms cleared and avoided, exit
-  // mode, results, and the party it belongs to.
-  dungeon?: {
-    name: string;
-    until: number;
-    startedAt: string;
-    visited: string[];
-    avoided: string[];
-    room?: string;
-    exiting: boolean;
-    deepest: number;
-    kills: number;
-    deaths: number;
-    party?: { id: string; leader: number; role: 'leader' | 'member'; plannedSize: number; members: string[] };
-  };
-  // A corpse left in a dungeon after a death nobody could resurrect (dungeon-death.ts).
-  dungeonCorpse?: { dungeon: string; x: number; y: number; z: number; diedAt: string; attempts: number };
-  // The resident's current life phase and when it ends (life.ts); `city` is a visit's destination.
-  life?: { phase: string; until: number; city?: string };
-  // Best price a vendor kind has offered per item graphic (a thief's takings, thief-actions.ts).
-  prices?: Record<string, { service: string; price: number }>;
-  // Exceptional crafted pieces kept from sale and banked (miner-crafting.ts, craft-training.ts).
-  keep?: number[];
-  // The tamer's kept fighting pet (tamer-pet.ts).
-  companion?: { serial: number; name: string; minTame: number };
-  // Last NPC training attempt per skill name.
-  training?: Record<string, number>;
-  goal: { kind: string; phase: string } | null;
-  memories: { at: string; text: string }[];
-  // Keyed by observed character name; seen/lastSeen are maintained by relationships.ts.
-  relationships: Record<string, { affinity: number; note: string; seen?: number; lastSeen?: string; peer?: boolean }>;
-  // depleted: mining spots and vein blocks with the time their ore may have respawned.
-  landmarks?: { forges: { x: number; y: number; z: number }[]; depleted?: { key: string; until: number }[] };
-  hunting?: {
-    loot: number[];
-    killsSinceBank: number;
-    pending: 'hunt' | 'return';
-    // Cemetery currently hunted (cemeteries.ts); absent means Britain.
-    ground?: string;
-    reconsiderAt?: number;
-    encounter?: {
-      opponent: number;
-      startedAt: string;
-      position?: { x: number; y: number; z: number };
-      body?: number;
-      memoryId?: string;
-    };
-    recovery?: {
-      stage: 'healer' | 'corpse' | 'equipment' | 'ready';
-      diedAt: string;
-      ownerName: string;
-      attempts: number;
-      outcome?: string;
-      locationSource?: 'death-status' | 'last-seen';
-    };
-    deathSite?: { x: number; y: number; z: number };
-    corpse?: { serial: number; x: number; y: number; z: number };
-  };
-  mining?: {
-    smeltsSinceBank: number;
-    smeltsBeforeBank: number;
-    smeltAtWeightRatio: number;
-    bankAtWeightRatio: number;
-    pending?: 'smelt' | 'bank';
-  };
-}
+export type { Checkpoint } from './checkpoint-types';
 
 export interface Resident {
   id: string;
@@ -474,7 +397,6 @@ export class ResidentStore {
     checkpoint: Checkpoint,
     binding: Resident['binding']
   ): Resident {
-    // Checkpoints describe intentions and observations; the shard remains authoritative for game state.
     const json = JSON.stringify(checkpoint);
     const bindingJson = binding ? JSON.stringify(binding) : null;
     return this.db

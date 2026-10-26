@@ -1,3 +1,4 @@
+import { fishingPoles } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
 import { tally } from './activity';
@@ -5,23 +6,32 @@ import { TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
 import { type CraftSkill, trainCraft } from './craft-training';
 import { leavesEarly, packFull } from './inventory';
-import { allServiceLocations, serviceLocations } from './locations';
+import { allServiceLocations, pickLocation } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import { Layer } from './protocol/layers';
-import { buyFrom, sellTo } from './vendor-trade';
+import { buyFrom, buyTool, sellTo } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
-const poles = new Set([
-  0x0dbf, // fishing pole, facing east
-  0x0dc0 // fishing pole, facing south
-]);
+const poles = fishingPoles;
 const fish = new Set([
   0x09cc, // fish
   0x09cd, // fish
   0x09ce, // fish
   0x09cf, // fish
-  0x097a // raw fish steak
+  0x097a, // raw fish steak
+  // High Seas fish (Fish.cs BaseHighseasFish): no shop buys them whole, but each carves into
+  // four raw steaks like a plain fish.
+  0x4302, // fish
+  0x4303, // fish
+  0x4304, // fish
+  0x4305, // fish
+  0x4306, // fish
+  0x4307, // fish
+  0x44c3, // fish
+  0x44c4, // fish
+  0x44c5, // fish
+  0x44c6 // fish
 ]);
 // ServUO Fishing.m_WaterTiles: land 0xA8-0xAB and 0x136-0x137; water statics 0x1797-0x179C
 // (listed there with the 0x4000 static offset). The pole reaches four tiles (MaxRange 4).
@@ -116,27 +126,21 @@ async function cook(ctx: ProfessionContext) {
 }
 
 // A fisher keeps a pole, fishes the shore near its home town until the spot stops biting or the
-// pack is full, then sells the catch to a fisherman.
-export const runFisher = (options: ProfessionOptions) => {
-  const avoid = new Set<string>();
-  return runProfession('fisher', options, async (ctx) => {
+// pack is full, then sells the catch to a fisherman. Others fish the same way as a side trade.
+export const runFisher = (options: ProfessionOptions) => runProfession('fisher', options, fishingTurn(new Set()));
+
+export const fishingTurn =
+  (avoid: Set<string>) =>
+  async (ctx: ProfessionContext): Promise<void> => {
     const { session, phase, log } = ctx;
-    const home = serviceLocations(ctx.city, 'fisherman')[0] ?? serviceLocations(ctx.city, 'banker')[0];
+    const home = pickLocation(ctx.city, 'fisherman') ?? pickLocation(ctx.city, 'banker');
     if (home) await reachRegion(ctx, home);
     let pole =
       ctx.carried().find((i) => poles.has(i.graphic)) ??
       session.world.childrenOf(ctx.serial).find((i) => poles.has(i.graphic));
     if (!pole) {
       phase('fishing-gear', 'Buying a fishing pole from a fisherman');
-      await buyFrom(
-        { ...ctx, limits: TOOLS },
-        'fisherman',
-        new Map([
-          [0x0dc0, 1],
-          [0x0dbf, 1]
-        ]),
-        20
-      );
+      await buyTool({ ...ctx, limits: TOOLS }, 'fisherman', [0x0dc0, 0x0dbf], 20);
       pole = ctx.carried().find((i) => poles.has(i.graphic));
       if (!pole) throw new Blocked('missing-tool', 'No fisherman sold a fishing pole');
     }
@@ -188,5 +192,4 @@ export const runFisher = (options: ProfessionOptions) => {
       ctx.progress.earned = (ctx.progress.earned ?? 0) + earned;
       if (home && distance(ctx.position(), home) > 300) await reachRegion(ctx, home);
     }
-  });
-};
+  };

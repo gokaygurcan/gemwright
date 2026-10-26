@@ -53,7 +53,7 @@ Each resident moves between life phases (`life.ts`), configured under `lifecycle
 | Phase | What happens |
 | --- | --- |
 | `work` | The resident's own loop: mining, hunting, fishing, taming, stealing... |
-| `dungeon` | A dungeon run, alone or in a party, once the resident qualifies ([dungeons](dungeons.md)). |
+| `dungeon` | A dungeon run, alone or in a party, once the resident qualifies. |
 | `errands` | The role's own town trip (a fighter sells, banks and restocks; a miner or lumberjack banks), otherwise a bank visit ("bank", "balance"). |
 | `leisure` | Time at the home town's bank or an inn or tavern, shifting about now and then; conversation goes on as usual. |
 | `visit` | Travel to another enabled town (nearer ones more likely), linger at its bank or an inn, come home. |
@@ -96,7 +96,7 @@ Every resident session watches for criminals and murderers (`guards.ts`): inside
 
 ## Telling residents apart
 
-Residents differ through their [temperament](templates.md#temperament), their own experience and decision history, and the ordinary world. Miners favour their own part of the district and avoid spots and forges someone else is working; fighters walk their own patrol direction, spread over cemeteries, and leave undead another player stands next to. Encounters with fellow residents are remembered, and residents talk ([conversation](conversation.md)).
+Residents differ through their [temperament](templates.md#temperament), their own experience and decision history, and the ordinary world. Miners favour their own part of the district and avoid spots and forges someone else is working; fighters walk their own patrol direction, spread over cemeteries, and leave undead another player stands next to. Encounters with fellow residents are remembered, and residents talk.
 
 ## Performance
 
@@ -111,3 +111,9 @@ Short runs pass at 100, 150, 200 and 250 clients on ServUO: event-loop p95 5 ms 
 These patterns follow ServUO's own: `FastAStarAlgorithm` (reusable arrays, bounded local search), `PathFollower` (retained paths, repath delay), `MessagePump`/`NetState` (bounded slices, pooled buffers) and `BaseVendor` (eight-tile vendor range).
 
 `load-test.ts` runs a measured population from `world.json` and records configuration, lifecycle events, telemetry and latency summaries for each run.
+
+## Needs before optional plans
+
+At lifecycle break points, `need-planning.ts` uses the same `residentNeeds` assessment that supplies conversation answers. Missing work tools and combat supplies prompt real vendor purchases; stale funds are checked with a banker before assuming poverty. Low funds or unresolved shortages return the resident to work ahead of leisure, travel, housing and guild business. A penniless resident missing its work tool can try bounded begging for working funds. Failed procurement is remembered, so an unavailable item does not send it straight back to the same shop every turn.
+
+Crafters can keep working at skill 100 in profit mode. Bowyers limit goods held for the resident market before making more; with no viable craft they can gather and sell raw wood. Tailors can gather wool, process cloth and sell the material when garments do not pay. These are ordinary gathering and vendor transactions, not guaranteed income. Tools essential to work use the tool budget rather than the optional training reserve.

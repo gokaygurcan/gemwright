@@ -1,5 +1,7 @@
+import { hatchets } from '@gemwright/common/items';
+
 import { chargedPurchase } from './bank-gold';
-import { serviceLocations } from './locations';
+import { allServiceLocations, pickLocation } from './locations';
 import { approachVendor } from './mobile-approach';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
@@ -9,7 +11,7 @@ import type { Checkpoint } from './store';
 
 // The lumberjack's shop errands: the vendor menu entry check shared with board sales, and buying a
 // replacement hatchet from the town blacksmith.
-export const hatchets = new Set([0x0f43, 0x0f44, 0x0f47, 0x0f48, 0x0f49, 0x0f4a, 0x13fa, 0x13fb]);
+export { hatchets };
 
 // A vendor's enabled context entry (3006103 buy, 3006104 sell); only vendors (notoriety 7) are asked.
 export const vendorMenu = async (session: PlayerSession, mobile: Entity, cliloc: number) =>
@@ -27,7 +29,10 @@ export async function buyHatchetFrom(
   }
 ) {
   const { session, terrain, position, navigate, check, serial, phase, checkpoint, city, backpack } = ctx;
-  const smith = serviceLocations(city, 'blacksmith')[0];
+  // The town's own blacksmith, else the nearest catalogued one (Yew has none: Britain's or Minoc's).
+  const smith =
+    pickLocation(city, 'blacksmith') ??
+    allServiceLocations('blacksmith').sort((a, b) => distance(position(), a) - distance(position(), b))[0];
   if (!smith) throw new Error('No blacksmith landmark for a replacement hatchet');
   phase('resupply', 'Buying a replacement hatchet');
   await navigate(smith, 4);

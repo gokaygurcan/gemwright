@@ -1,4 +1,5 @@
 import { fundsStale, spendableGold } from './bank-gold';
+import { craftRecipes } from './craft-training';
 import { serviceLocations } from './locations';
 import { createSmithing } from './miner-crafting';
 import type { createMinerServices } from './miner-services';
@@ -8,6 +9,9 @@ import type { PlayerSession } from './protocol/session';
 import type { createServiceExperience } from './service-experience';
 
 const ingot = 0x1bf2;
+
+// Everything a smith makes from iron (catalogs/crafts/blacksmith.json; a label is 1020000 + graphic).
+export const smithed = new Set(craftRecipes('Blacksmith').map((recipe) => recipe.label - 1020000));
 
 export function createIngotSeller(
   ctx: Parameters<typeof createMinerServices>[0],
@@ -24,18 +28,23 @@ export function createIngotSeller(
     (!fundsStale(checkpoint) && spendableGold(session, backpack, checkpoint) < 1000);
   // `force` skips the reserve rule: iron withdrawn for idle-time smithing is meant to be worked and sold.
   const sellIngots = async (backpack: number, force = false) => {
-    if (!(force || shouldSell(backpack)) || !carried(backpack).some((item) => item.graphic === ingot && !item.hue))
-      return;
+    const iron =
+      (force || shouldSell(backpack)) && carried(backpack).some((item) => item.graphic === ingot && !item.hue);
+    // Smithed goods already carried are always sold, whatever the iron rules say.
+    const goods = carried(backpack).some((item) => smithed.has(item.graphic));
+    if (!iron && !goods) return;
     // Surplus iron is worth more as the best-value smithed item than as raw ingots.
     // Smithing is optional: an unreachable anvil or a refused craft falls back to selling raw iron.
     let made: Awaited<ReturnType<typeof smithing.craft>> = [];
-    try {
-      made = await smithing.craft(backpack);
-    } catch (error) {
-      check();
-      log(`Smithing unavailable (${error instanceof Error ? error.message : error}); selling raw iron instead`);
-    }
+    if (iron)
+      try {
+        made = await smithing.craft(backpack);
+      } catch (error) {
+        check();
+        log(`Smithing unavailable (${error instanceof Error ? error.message : error}); selling raw iron instead`);
+      }
     const crafted = new Set(made.map((item) => item.serial));
+    // Smithed goods from earlier sessions are sold too, never carried around for good.
     phase(
       'selling',
       `Offering ${crafted.size ? `${crafted.size} crafted items and ` : ''}surplus iron to an ordinary smith`
@@ -76,7 +85,7 @@ export function createIngotSeller(
             item?.parent === backpack &&
             offer.price > 0 &&
             offer.amount === item.amount &&
-            (crafted.has(item.serial) || (item.graphic === ingot && !item.hue))
+            (crafted.has(item.serial) || smithed.has(item.graphic) || (iron && item.graphic === ingot && !item.hue))
           );
         });
         if (!sale.length) {

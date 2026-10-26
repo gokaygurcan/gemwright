@@ -9,16 +9,22 @@ import {
   offersBank,
   openBankBox,
   recordTrainingSpend,
-  refreshFunds
+  refreshFunds,
+  TOOLS
 } from './bank-gold';
-import { allServiceLocations, type ServiceType, serviceLocations } from './locations';
+import { Blocked } from './blocked';
+import { learnQuality, quality } from './item-quality';
+import { allServiceLocations, pickLocation, type ServiceType, serviceLocations, townAt } from './locations';
 import { buttonFor, CREATED, EXCEPTIONAL, FAILED, STOP } from './miner-crafting';
 import { approachVendor } from './mobile-approach';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
+import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { gumpCommands } from './protocol/gumps';
 import type { Entity } from './protocol/world';
+import { reachableFrom } from './unreachable';
+import { reservedFor } from './work-orders';
 
 // One crafting skill: tools bought from and goods sold to `vendor`, recipes from the Def* craft
 // system (group cliloc, item label, minimum skill, material count).
@@ -137,33 +143,67 @@ export async function atVendor(
   ctx: CraftContext,
   vendorType: ServiceType,
   cliloc: number,
-  act: (vendor: number) => Promise<boolean>
+  act: (vendor: number) => Promise<boolean>,
+  objective = 'service'
 ) {
   const { session, navigate, position } = ctx;
   // A town without this kind of shop (Yew has no tinker) sends the crafter to the nearest ones.
-  const own = serviceLocations(ctx.city, vendorType);
-  const stops = own.length
-    ? own
-    : allServiceLocations(vendorType)
-        .sort((a, b) => distance(position(), a) - distance(position(), b))
-        .slice(0, 2);
+  const own = serviceLocations(townAt(position(), ctx.city), vendorType);
+  const alternatives = allServiceLocations(vendorType)
+    .filter((shop) => !own.some((point) => point.x === shop.x && point.y === shop.y))
+    .sort((a, b) => distance(position(), a) - distance(position(), b));
+  // Shops in walking reach only; a moongate trip to a far town's shop only for one who can pay
+  // for what it goes for, and only the nearest such town. Nobody crosses the land on a hunch.
+  const funds = (ctx.status().gold ?? 0) + (ctx.checkpoint.funds?.bank ?? 0);
+  const walkable = alternatives.filter((shop) => distance(position(), shop) <= 300);
+  const far = own.length || walkable.length || funds < 100 ? [] : alternatives.slice(0, 1);
+  const stops = [
+    ...own.filter((shop) => distance(position(), shop) <= 300 || funds >= 100),
+    ...walkable.slice(0, 2),
+    ...far
+  ];
   for (const shop of stops) {
-    const gate = nearestGate(shop);
-    if (distance(position(), shop) > 300 && distance(position(), moongates[gate]) > 2)
-      await travelByMoongate(ctx, gate);
-    await navigate(shop, 4);
-    // Catalogued shop points are street vertices, often a dozen tiles from the counter: any NPC
-    // vendor (notoriety 7) in view is asked, and approached before trading.
-    for (const mobile of [...session.world.entities.values()]) {
-      if (mobile.kind !== 'mobile' || mobile.notoriety !== 7 || !mobile.position) continue;
-      if (distance(position(), mobile.position) > 18) continue;
-      const entry = (await session.context(mobile.serial).catch(() => [])).find(
-        (e) => e.cliloc === cliloc && !(e.flags & 1)
+    ctx.check();
+    const key = `shop:${session.world.map}:${vendorType}:${cliloc}:${shop.x},${shop.y}:${objective}`;
+    const condition = suppliesCondition(session, ctx.checkpoint);
+    if (
+      objectiveBlocked(ctx.checkpoint, key, condition) &&
+      !ctx.checkpoint.objectives?.[key]?.reason?.startsWith('Too heavy')
+    ) {
+      ctx.log(`Trying another ${vendorType}: ${ctx.checkpoint.objectives?.[key]?.reason}`);
+      continue;
+    }
+    if (distance(position(), shop) < 300 && !reachableFrom(shop, position())) continue;
+    try {
+      const gate = nearestGate(shop);
+      if (distance(position(), shop) > 300 && distance(position(), moongates[gate]) > 2)
+        await travelByMoongate(ctx, gate);
+      await navigate(shop, 4);
+      for (const mobile of [...session.world.entities.values()]) {
+        if (mobile.kind !== 'mobile' || mobile.notoriety !== 7 || !mobile.position) continue;
+        if (distance(position(), mobile.position) > 18) continue;
+        const entry = (await session.context(mobile.serial).catch(() => [])).find(
+          (e) => e.cliloc === cliloc && !(e.flags & 1)
+        );
+        if (!entry) continue;
+        await approachVendor(ctx, mobile.serial);
+        if (await act(mobile.serial)) {
+          completeObjective(ctx.checkpoint, key);
+          return true;
+        }
+      }
+      failObjective(
+        ctx.checkpoint,
+        key,
+        suppliesCondition(session, ctx.checkpoint),
+        'No usable stock, affordable offer or matching service'
       );
-      if (!entry) continue;
-      // Vendors trade within eight tiles; a crowd at the counter does not block a purchase.
-      await approachVendor(ctx, mobile.serial);
-      if (await act(mobile.serial)) return true;
+    } catch (error) {
+      ctx.check();
+      // Too heavy to walk is about the pack, not the shop: the resident lightens it first.
+      if (!(error instanceof Blocked) || error.reason === 'overweight') throw error;
+      failObjective(ctx.checkpoint, key, condition, error.message);
+      ctx.log(`Trying another ${vendorType}: ${error.message}`);
     }
   }
   return false;
@@ -191,38 +231,66 @@ export async function trainCraft(
   await refreshFunds(ctx, ctx.city);
   if (!tool()) {
     let why: string | undefined;
-    const bought = await atVendor(ctx, craft.vendor, 3006103, async (vendor) => {
-      const before = session.world.received.get(0x74) ?? 0;
-      session.world.buyOffers.clear();
-      const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006103);
-      if (!entry) return false;
-      session.selectContext(vendor, entry.index);
-      await session.waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'tool stock', 2500).catch(() => {});
-      const offer = [...session.world.buyOffers.values()]
-        .flat()
-        .find((o) => craft.tools.has(session.world.entities.get(o.serial)?.graphic ?? 0) && o.price <= craft.toolPrice);
-      if (!offer) why = 'no tool in stock within the price';
-      else if (!canSpendOnTraining(session, backpack, ctx.checkpoint, offer.price, ctx.limits))
-        why = 'funds held in reserve';
-      if (!offer || why) return false;
-      await chargedPurchase({ ...ctx, backpack: () => backpack }, offer.price, () =>
-        session.purchaseItem(vendor, offer.serial, backpack, 1, craft.toolPrice)
-      );
-      recordTrainingSpend(ctx.checkpoint, offer.price);
-      return true;
-    });
+    const bought = await atVendor(
+      ctx,
+      craft.vendor,
+      3006103,
+      async (vendor) => {
+        const before = session.world.received.get(0x74) ?? 0;
+        session.world.buyOffers.clear();
+        const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006103);
+        if (!entry) return false;
+        session.selectContext(vendor, entry.index);
+        await session
+          .waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'tool stock', 2500)
+          .catch(() => {});
+        const offer = [...session.world.buyOffers.values()]
+          .flat()
+          .find(
+            (o) => craft.tools.has(session.world.entities.get(o.serial)?.graphic ?? 0) && o.price <= craft.toolPrice
+          );
+        if (!offer) why = 'no tool in stock within the price';
+        else if (!canSpendOnTraining(session, backpack, ctx.checkpoint, offer.price, TOOLS))
+          why = 'funds held in reserve';
+        if (!offer || why) return false;
+        await chargedPurchase({ ...ctx, backpack: () => backpack }, offer.price, () =>
+          session.purchaseItem(vendor, offer.serial, backpack, 1, craft.toolPrice)
+        );
+        recordTrainingSpend(ctx.checkpoint, offer.price);
+        return true;
+      },
+      `tool:${[...craft.tools].join(',')}`
+    );
     if (!bought) {
       log(`No ${craft.skill} tool bought: ${why ?? 'no vendor answered'}`);
       return 0;
     }
   }
   const made = new Set<number>();
+  // Goods left from earlier sessions (or a restart) are sold too, not carried forever: normal
+  // pieces of what this craft makes (a recipe's label is 1020000 + its graphic).
+  const products = new Set(craft.recipes.map((r) => r.label - 1020000));
+  const toolsCarried = () => carried(backpack).filter((item) => craft.tools.has(item.graphic)).length;
+  const spareTools = carried(backpack)
+    .filter((item) => craft.tools.has(item.graphic))
+    .slice(2)
+    .map((item) => item.serial);
+  const leftovers = carried(backpack).filter(
+    (item) =>
+      products.has(item.graphic) &&
+      !ctx.hold?.has(item.graphic) &&
+      !ctx.checkpoint.keep?.includes(item.serial) &&
+      (!craft.tools.has(item.graphic) || spareTools.includes(item.serial))
+  );
+  await learnQuality(session, leftovers);
+  for (const item of leftovers)
+    if (quality(session.world.entities.get(item.serial) ?? item) === 'normal') made.add(item.serial);
   let attempts = 0;
   phase('training', `Practising ${craft.skill}`);
   const groups = new Set(craft.recipes.map((r) => String(r.group)));
   const craftGump = () =>
     [...session.world.gumps.values()].find((g) => [...groups].some((group) => g.layout.includes(group)));
-  while (Date.now() < until && skill() < 100) {
+  while (Date.now() < until && (goal?.mode === 'profit' || skill() < 100)) {
     check();
     const current = recipe();
     const kit = tool();
@@ -281,12 +349,18 @@ export async function trainCraft(
         !before.has(item.serial) &&
         item.graphic !== craft.material &&
         !needs.some((need) => need.graphic === item.graphic) &&
-        !craft.tools.has(item.graphic)
+        // Its own tools are kept, two at most: any more made in practice are sold like other goods.
+        !(craft.tools.has(item.graphic) && toolsCarried() <= 2)
       ) {
         tally(session, 'crafted');
         // Exceptional pieces are never sold to a shop: banked, or kept for residents.
         if (EXCEPTIONAL.includes(reply() ?? 0)) {
-          if (ctx.holdExceptional) log(`Exceptional ${craft.skill} piece; keeping it to trade with residents`);
+          // A few are held for residents; more than five of a kind go to the bank.
+          const held = carried(backpack).filter(
+            (i) => i.graphic === item.graphic && !ctx.checkpoint.keep?.includes(i.serial)
+          );
+          if (ctx.holdExceptional && held.length <= 5)
+            log(`Exceptional ${craft.skill} piece; keeping it to trade with residents`);
           else {
             ctx.checkpoint.keep = [...new Set([...(ctx.checkpoint.keep ?? []), item.serial])];
             log(`Exceptional ${craft.skill} piece; keeping it for the bank`);
@@ -294,7 +368,7 @@ export async function trainCraft(
         } else if (!ctx.checkpoint.keep?.includes(item.serial)) made.add(item.serial);
       }
     await Bun.sleep(600);
-    if (made.size >= 8 || ctx.status().weight > ctx.status().maxWeight * 0.8) await sell(ctx, craft, made, backpack);
+    if (made.size >= 8 || ctx.status().weight > ctx.status().maxWeight * 0.9) await sell(ctx, craft, made, backpack);
   }
   if (made.size) await sell(ctx, craft, made, backpack);
   await bankKept(ctx, backpack);
@@ -307,7 +381,7 @@ async function bankKept(ctx: CraftContext, backpack: number) {
   const { session } = ctx;
   const kept = ctx.carried(backpack).filter((item) => ctx.checkpoint.keep?.includes(item.serial));
   if (!kept.length) return;
-  const bank = serviceLocations(ctx.city, 'banker')[0];
+  const bank = pickLocation(ctx.city, 'banker');
   if (!bank) return;
   ctx.phase('bank-keep', `Banking ${kept.length} exceptional piece${kept.length > 1 ? 's' : ''}`);
   await ctx.navigate(bank, 4);
@@ -347,7 +421,14 @@ async function sell(ctx: CraftContext, craft: CraftSkill, made: Set<number>, bac
       return true;
     };
     const sale = (session.world.sellOffers.get(vendor) ?? []).filter(
-      (offer) => made.has(offer.serial) && offer.price > 0 && !held(offer.serial)
+      (offer) =>
+        made.has(offer.serial) &&
+        offer.price > 0 &&
+        !held(offer.serial) &&
+        reservedFor(
+          session,
+          session.world.entities.get(offer.serial) ?? { serial: offer.serial, kind: 'item', graphic: 0 }
+        ) === 0
     );
     if (!sale.length) return false;
     await session.sell(

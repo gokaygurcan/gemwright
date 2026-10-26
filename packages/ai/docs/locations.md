@@ -6,13 +6,13 @@
 
 `packages/ai/locations/services.json` is a small, explicit mapping from city and service type to catalog names. The current navigation profile is Trammel (facet 1). It maps Britain and Minoc explicitly; other cities' shops come from `services-guide.json`, generated from ServUO's town-guide data.
 
-The loader in `packages/ai/src/locations.ts` resolves exact names, validates coordinates, and returns immutable landmarks. Missing or ambiguous references fail explicitly. Services currently cover bankers, healers, alchemists, tailors, blacksmiths, jewelers, mining-tool shops, animal trainers, and the Britain graveyard. The supplied Minoc list is empty, so the already established Minoc bank/tool-shop approach coordinates remain explicit entries in the service mapping rather than being silently invented in the original catalog.
+The loader in `packages/ai/src/locations.ts` resolves exact names, validates coordinates, and returns immutable landmarks. Missing or ambiguous references fail explicitly. `services.json` adds what the town guide lacks or places badly, such as Minoc's bank and tool shop and Britain's bard (1455, 1556); a vendor's real position can be checked in a pulled world save (`packages/analyze`). A town without a service (Yew has no bank or blacksmith) falls back to Britain's, or to the nearest town that has one.
 
 ## Using a landmark
 
 A landmark guides travel to an area. It does not supply NPC serials, hidden positions, inventories, prices, or authority to interact through an obstruction. On arrival the character still discovers the relevant mobile through received entities and offered context actions. A catalog name such as an alchemist's shop is a search hint; only current offered stock determines whether potions can be bought there.
 
-The fighter uses this mapping for healer travel, supplies, weapon replacement, sales, banking, and the graveyard destination. The miner uses it for banker and tool-shop approaches. Both behaviors also use animal-trainer landmarks for [mount purchases](mounts.md); Minoc's stable hint comes from the pinned public Trammel spawn template and is verified against an observed trainer at runtime. Its processing and town services now live in `miner-services.ts`, keeping the behavior files below the root size limit.
+The fighter uses this mapping for healer travel, supplies, weapon replacement, sales, banking, and the graveyard destination. The miner uses it for banker and tool-shop approaches. Both behaviors also use animal-trainer landmarks for mount purchases; Minoc's stable hint comes from the pinned public Trammel spawn template and is verified against an observed trainer at runtime. Its processing and town services now live in `miner-services.ts`, keeping the behavior files below the root size limit.
 
 `mobile-approach.ts` chooses a reachable cardinal tile beside an observed mobile on the same floor. It checks static walls/windows and observed solid items, refuses diagonal corner interactions, and navigates to the exact tile with the shared door-aware navigator. If the NPC moves, the approach is recomputed. Purchases and sales check the approach again before execution. An unreachable service is a bounded failure; a menu that can be queried from afar is not permission to trade through a wall.
 
@@ -26,4 +26,4 @@ Closed observed doors remain normal item interactions: the navigator follows the
 
 Minoc's blacksmith landmark (2471, 564) comes from the pinned Trammel spawner, where the miner sells surplus iron ingots.
 
-Related: [sessions](sessions.md) · [mining](mining.md) · [fighter](fighter.md).
+Related: [sessions](sessions.md).

@@ -1,5 +1,5 @@
 import { saving } from './housing';
-import { serviceLocations } from './locations';
+import { pickLocation } from './locations';
 import { createMountServices } from './mount-services';
 import type { MountContext, MountMemory } from './mount-types';
 import { distance } from './navigation';
@@ -73,7 +73,7 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     // One left behind is fetched from where it was last seen; the purchase below refuses to buy
     // another while it still counts as a follower.
     // Never seen at all (a delivery that went unconfirmed): it stands at the stables it came from.
-    const trainer = serviceLocations(city, 'animal-trainer')[0];
+    const trainer = pickLocation(city, 'animal-trainer');
     const where = memory.lastSeen ?? (trainer && { map: 1, x: trainer.x, y: trainer.y });
     if (memory.state === 'missing' && where && where.map === session.world.map) {
       phase('pack-animal', 'Going back for my pack animal where I last saw it');

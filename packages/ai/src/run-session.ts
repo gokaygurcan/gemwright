@@ -18,6 +18,7 @@ import { DecisionCoordinator } from './decisions';
 import { runFighter } from './fighter';
 import { runFisher } from './fisher';
 import { watchForGuards } from './guards';
+import { info } from './log';
 import { runLumberjack } from './lumberjack';
 import { runMiner } from './miner';
 import { RuntimeOwnership } from './ownership';
@@ -25,6 +26,8 @@ import { PathPool } from './path-pool';
 import { Layer } from './protocol/layers';
 import { createCharacter } from './protocol/packets';
 import { type CharacterRequest, PlayerSession } from './protocol/session';
+import { enableSessionHabits } from './resident-context';
+import { SessionBreak } from './session-habits';
 import { shardProfile } from './shard-profile';
 import { recordSkills } from './skill-snapshots';
 import { maintainLocks } from './stat-locks';
@@ -134,6 +137,7 @@ export interface ResidentOptions {
   decisionConfig?: DecisionConfig;
   // Walk to distant cemeteries instead of taking a moongate (load tests); off by default.
   overland?: boolean;
+  naturalSessions?: boolean;
 }
 
 // Shared by every resident a runtime drives: one store, one shard lease, one stop signal.
@@ -182,6 +186,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         shared.track(residentId, session);
         await session.connect(credentials, creationRequest(store, resident, options.create));
         guardTrades(session);
+        if (options.naturalSessions) enableSessionHabits(session);
         const policy = store.template(resident.templateId, resident.policyVersion);
         if (policy) registerChaos(session, policy);
         const serial = session.world.serial;
@@ -196,7 +201,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         // Bolder residents are the ones who shout for the guards (guards.ts).
         const boldness =
           0.3 + 0.6 * (store.template(resident.templateId, resident.policyVersion)?.behavior.riskTolerance ?? 0.5);
-        watchForGuards(session, boldness, (line) => console.error(`[guards:${resident.proposedName}] ${line}`));
+        watchForGuards(session, boldness, (line) => info(`[guards:${resident.proposedName}] ${line}`));
         return session;
       }, shared.signal);
     let active: PlayerSession | undefined;
@@ -206,7 +211,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       } catch (error) {
         if (stopping() || attempt >= options.reconnectAttempts || !runtime.session?.reconnectable) throw error;
         runtime.session.close();
-        console.error(
+        info(
           `[session:${resident.proposedName}] Initial connection retry ${attempt + 1}: ${runtime.session.failureReason}`
         );
         await Bun.sleep(Math.min(500 * 2 ** attempt, 5000));
@@ -316,6 +321,9 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
             : () => {};
           try {
             return await behave(session, seconds);
+          } catch (error) {
+            if (error instanceof SessionBreak) return 'Taking a session break';
+            throw error;
           } finally {
             releaseLocks();
           }

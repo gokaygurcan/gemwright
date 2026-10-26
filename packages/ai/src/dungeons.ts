@@ -47,6 +47,9 @@ export interface Monster {
   fame: number;
   // Attacks on sight (its ServUO FightMode); combat skills, armor and the gold its loot packs carry.
   aggressive?: boolean;
+  // ServUO AIType without the AI_ prefix (Melee, Mage, Archer, Berserk, Healer...) and FightMode.
+  ai?: string | null;
+  fightMode?: string;
   tactics?: number;
   wrestling?: number;
   armor?: number;

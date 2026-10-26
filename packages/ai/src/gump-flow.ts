@@ -1,3 +1,4 @@
+import { gumpCommands } from './protocol/gumps';
 import type { PlayerSession } from './protocol/session';
 
 // Menus driven as a player clicks through them (house placement, the guild menus): a gump is
@@ -50,4 +51,18 @@ export async function awaitMessage(
 ) {
   await session.waitFor(() => heardSince(session, from, clilocs) !== undefined, label, ms).catch(() => {});
   return heardSince(session, from, clilocs);
+}
+
+// Finds the gump button placed beside a localized label (CraftGump puts each button 35 px left of
+// and 3 px above its label), so a reordered recipe list cannot press the wrong item.
+export function buttonFor(layout: string, cliloc: number): number | undefined {
+  const commands = gumpCommands(layout);
+  const label = commands.find((c) => c[0]?.startsWith('xmfhtml') && Number(c[5]) === cliloc);
+  if (!label) return;
+  const [x, y] = [Number(label[1]), Number(label[2])];
+  return commands
+    .filter(
+      (c) => c[0] === 'button' && c[5] === '1' && Number(c[2]) === y - 3 && Number(c[1]) < x && x - Number(c[1]) <= 40
+    )
+    .map((c) => Number(c[7]))[0];
 }

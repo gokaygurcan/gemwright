@@ -1,7 +1,10 @@
 import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { isDeathRobe } from '@gemwright/common/items';
 
 import { Blocked } from './blocked';
-import { packItems } from './inventory';
+import { threatsNear } from './danger';
+import { enoughTools, packItems } from './inventory';
+import { useAcquiredItems, usefulGift } from './inventory-use';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { Layer } from './protocol/layers';
@@ -65,16 +68,17 @@ const kinds: [number, number][] = [
   [0x0e9c, 0x0e9e], // drums and tambourines
   [0x0eb1, 0x0eb3], // harps and lutes
   [0x09cc, 0x09cf], // fish
-  [0x0efa, 0x0efa], // spellbooks
   [0x1f14, 0x1f14] // recall runes
 ];
 // Items this session could not reach or the server refused; never tried again.
-const skipped = new WeakMap<PlayerSession, Set<number>>();
+const skipped = new WeakMap<PlayerSession, Map<number, number>>();
 const ghosts = GHOST_BODIES;
 
+// Never a death robe: they are dropped to be rid of them.
 const worthwhile = (terrain: Terrain, item: Entity) =>
-  kinds.some(([low, high]) => item.graphic >= low && item.graphic <= high) ||
-  (terrain.tile(item.graphic, true).flags & WEARABLE) !== 0;
+  !isDeathRobe(item) &&
+  (kinds.some(([low, high]) => item.graphic >= low && item.graphic <= high) ||
+    (terrain.tile(item.graphic, true).flags & WEARABLE) !== 0);
 
 // One pickup if something worthwhile lies within reach. True when it acted.
 export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
@@ -83,23 +87,14 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
   if (!self || ghosts.has(self.graphic)) return false;
   const status = ctx.status();
   // Room is kept for the resident's own work: never past 85% weight or 100 items (inventory.ts).
-  if (status.weight >= status.maxWeight * 0.85 || packItems(session, ctx.backpack()).length >= 100) return false;
-  const skip = skipped.get(session) ?? new Set<number>();
+  if (status.weight >= status.maxWeight * 0.9 || packItems(session, ctx.backpack()).length >= 100) return false;
+  const skip = skipped.get(session) ?? new Map<number, number>();
   skipped.set(session, skip);
+  for (const [serial, until] of skip) if (until < Date.now()) skip.delete(serial);
   const here = position();
   const entities = [...session.world.entities.values()];
-  // Never with a monster or aggressor close by.
-  if (
-    entities.some(
-      (m) =>
-        m.kind === 'mobile' &&
-        [3, 4, 5, 6].includes(m.notoriety ?? 0) &&
-        !!m.position &&
-        distance(here, m.position) <= 8
-    )
-  )
-    return false;
-  const item = entities
+  if (threatsNear(session, here, 8).length) return false;
+  const candidates = entities
     .filter(
       (e) =>
         e.kind === 'item' &&
@@ -109,11 +104,15 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
         !skip.has(e.serial) &&
         distance(here, e.position) <= RANGE &&
         Math.abs(here.z - e.position.z) <= 10 &&
-        worthwhile(ctx.terrain, e)
+        worthwhile(ctx.terrain, e) &&
+        !enoughTools(session, ctx.backpack(), e.graphic)
     )
-    .sort((a, b) => distance(here, a.position ?? here) - distance(here, b.position ?? here))[0];
+    .sort((a, b) => distance(here, a.position ?? here) - distance(here, b.position ?? here))
+    .slice(0, 6);
+  const wanted = await Promise.all(candidates.map((item) => usefulGift(session, item)));
+  const item = candidates.find((_item, index) => wanted[index]) ?? candidates[0];
   if (!item?.position) return false;
-  skip.add(item.serial);
+  skip.set(item.serial, Date.now() + 60_000);
   const name = ctx.terrain.tile(item.graphic, true).name || 'item';
   try {
     ctx.phase(
@@ -123,6 +122,7 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
     await ctx.navigate(item.position, 1);
     await session.moveItem(item.serial, ctx.backpack());
     ctx.log(`Picked up ${name}`);
+    await useAcquiredItems(session);
   } catch (error) {
     if (session.phase !== 'ready') throw error;
     if (!(error instanceof Blocked))
@@ -138,17 +138,17 @@ export async function pickUpInReach(session: PlayerSession, terrain: Terrain, lo
   const serial = session.world.serial;
   const here = session.world.position;
   const status = session.world.status;
-  if (serial === null || !here || !status || status.weight >= status.maxWeight * 0.85) return false;
+  if (serial === null || !here || !status || status.weight >= status.maxWeight * 0.9) return false;
   const self = session.world.entities.get(serial);
   if (!self || ghosts.has(self.graphic)) return false;
   const pack = session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
   if (!pack || packItems(session, pack.serial).length >= 100) return false;
-  const skip = skipped.get(session) ?? new Set<number>();
+  const skip = skipped.get(session) ?? new Map<number, number>();
   skipped.set(session, skip);
+  for (const [serial, until] of skip) if (until < Date.now()) skip.delete(serial);
+  if (threatsNear(session, here, 8).length) return false;
   let item: Entity | undefined;
   for (const e of session.world.entities.values()) {
-    if (e.kind === 'mobile' && [3, 4, 5, 6].includes(e.notoriety ?? 0) && e.position && distance(here, e.position) <= 8)
-      return false;
     if (
       !item &&
       e.kind === 'item' &&
@@ -158,16 +158,18 @@ export async function pickUpInReach(session: PlayerSession, terrain: Terrain, lo
       !skip.has(e.serial) &&
       distance(here, e.position) <= 2 &&
       Math.abs(here.z - e.position.z) <= 10 &&
-      worthwhile(terrain, e)
+      worthwhile(terrain, e) &&
+      !enoughTools(session, pack.serial, e.graphic)
     )
       item = e;
   }
   if (!item) return false;
-  skip.add(item.serial);
+  skip.set(item.serial, Date.now() + 60_000);
   const name = terrain.tile(item.graphic, true).name || 'item';
   try {
     await session.moveItem(item.serial, pack.serial);
     log(`Picked up ${name} in passing`);
+    await useAcquiredItems(session);
     return true;
   } catch {
     return false;

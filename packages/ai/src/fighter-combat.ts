@@ -1,11 +1,14 @@
 import { skillId } from '@gemwright/common/skills';
 
+import { supportPreference } from './aid';
 import { assessCombat } from './combat-risk';
 import { bandageAdvice, encounterAdvice, rememberExperience } from './experience';
 import { bandage, curePotion, type FighterContext, healPotion, observedThreat, Retreat } from './fighter-context';
 import { recognised } from './fighter-prey';
+import { allyUnderPressure, groupMember, refreshAllyHealth } from './group-awareness';
 import { distance } from './navigation';
 import type { Entity } from './protocol/world';
+import { rememberPartner } from './resident-memory';
 
 export function createFighterCombat(ctx: FighterContext) {
   const {
@@ -33,6 +36,7 @@ export function createFighterCombat(ctx: FighterContext) {
   let bandageFeedbackAfter = session.world.journal.at(-1);
   let bandageStartedAt = 0;
   let bandageForHealing = true;
+  let bandagedAlly: { serial: number; hits: number; name: string } | undefined;
   const updateBandage = () => {
     if (!bandageActiveUntil) return;
     const entries = bandageFeedbackAfter
@@ -55,7 +59,20 @@ export function createFighterCombat(ctx: FighterContext) {
         });
         ctx.persist();
       }
-      if (completion?.cliloc === 500969) stats.completedBandages++;
+      if (bandagedAlly) {
+        if ((session.world.entities.get(bandagedAlly.serial)?.hits ?? 0) > bandagedAlly.hits) {
+          rememberPartner(ctx.checkpoint, {
+            partner: bandagedAlly.serial,
+            name: bandagedAlly.name,
+            kind: 'support',
+            result: 'completed',
+            detail: 'Bandaged my injured companion and observed recovery',
+            id: `bandage-ally:${bandageStartedAt}`
+          });
+          ctx.persist();
+        }
+        bandagedAlly = undefined;
+      } else if (completion?.cliloc === 500969) stats.completedBandages++;
       else stats.failedBandages++;
       bandageActiveUntil = 0;
       bandageUntil = Date.now() + 500;
@@ -107,7 +124,14 @@ export function createFighterCombat(ctx: FighterContext) {
   };
   const heal = async () => {
     updateBandage();
-    if (dead() || (status().hits >= status().maxHits && !((session.world.poisonLevel ?? 0) > 0))) return;
+    if (dead()) return;
+    if (status().hits >= status().maxHits * 0.75 && !session.world.target) await refreshAllyHealth(session);
+    const selfNeeds = status().hits < status().maxHits * 0.75 || (session.world.poisonLevel ?? 0) > 0;
+    const ally =
+      !selfNeeds && (session.world.skills.get(skillId('Healing'))?.value ?? 0) >= 40
+        ? allyUnderPressure(session, 2)
+        : undefined;
+    if (!ally && status().hits >= status().maxHits && !((session.world.poisonLevel ?? 0) > 0)) return;
     if (drinkPotion()) {
       const nextUseAt = Date.now() + 650;
       while (Date.now() < nextUseAt) {
@@ -141,8 +165,27 @@ export function createFighterCombat(ctx: FighterContext) {
       }
       bandageFeedbackAfter = session.world.journal.at(-1);
       bandageStartedAt = Date.now();
-      bandageForHealing = !(session.world.poisonLevel ?? 0);
-      session.target({ serial, ...position(), graphic: session.world.entities.get(serial)?.graphic ?? 0 });
+      const recipient = ally ? session.world.entities.get(ally.serial) : undefined;
+      if (
+        ally &&
+        (!recipient?.position ||
+          !recipient.hits ||
+          !groupMember(session, ally.serial) ||
+          distance(position(), recipient.position) > 2 ||
+          ![1, 2].includes(recipient.notoriety ?? 0))
+      ) {
+        if (session.world.target) session.target(null);
+        return;
+      }
+      bandageForHealing = !ally && !(session.world.poisonLevel ?? 0);
+      bandagedAlly = recipient
+        ? { serial: recipient.serial, hits: recipient.hits ?? 0, name: recipient.name ?? 'companion' }
+        : undefined;
+      session.target({
+        serial: recipient?.serial ?? serial,
+        ...(recipient?.position ?? position()),
+        graphic: recipient?.graphic ?? session.world.entities.get(serial)?.graphic ?? 0
+      });
       bandageUntil = Date.now() + 17000;
       bandageActiveUntil = bandageUntil;
     }
@@ -180,7 +223,11 @@ export function createFighterCombat(ctx: FighterContext) {
         if (!path?.length || path.length > 18) continue;
         points.push({
           point,
-          score: path.length + distance(point, ctx.home.town) * 0.03 - distance(point, enemy) * 0.5
+          score:
+            path.length +
+            distance(point, ctx.home.town) * 0.03 -
+            distance(point, enemy) * 0.5 +
+            supportPreference(session, point)
         });
       }
     points.sort((a, b) => a.score - b.score);

@@ -1,7 +1,8 @@
 import { gold } from '@gemwright/common/items';
 
 import { chargedPurchase, knownBankGold, offersBank, openBankBox, queryBankBalance } from './bank-gold';
-import { nearAnyGround } from './cemeteries';
+import { nearAnyGround, travelNear } from './cemeteries';
+import { replaceDeathRobe } from './death-robe';
 import {
   ammoFor,
   bandage,
@@ -16,6 +17,7 @@ import { saving } from './housing';
 import { packItems } from './inventory';
 import { learnQuality, shopSafe } from './item-quality';
 import { allServiceLocations } from './locations';
+import { pocketReserve, recordIncome } from './loot-economy';
 import { combatReagents } from './mage-combat';
 import { buyAtMarket, goodMatch, goods } from './market';
 import { approachVendor } from './mobile-approach';
@@ -205,6 +207,8 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
         ? [ctx.home.one('jeweler')]
         : [])
     ];
+    if (contents().some((item) => trip.loot.includes(item.serial) && item.graphic >= 0x1f2d && item.graphic <= 0x1f6c))
+      saleStops.push(ctx.home.one('mage'));
     // Magic, blessed, artifact and exceptional loot is kept, never sold at base price (item-quality.ts).
     await learnQuality(
       session,
@@ -212,7 +216,8 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     );
     for (const shop of saleStops) {
       if (!contents().some((item) => trip.loot.includes(item.serial) && item.graphic !== gold)) break;
-      await navigate(shop, 5);
+      // The shop may be across water (Britain's for an island town): travelNear takes the moongate.
+      await travelNear(ctx, shop, 5);
       for (const mobile of learning.order(nearby(), 3006104)) {
         session.world.sellOffers.delete(mobile.serial);
         if (!(await contextAction(mobile, 3006104))) continue;
@@ -239,13 +244,27 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
           .slice(0, 99);
         if (!sale.length) continue;
         await approachVendor(ctx, mobile.serial);
+        const coinsBefore = contents()
+          .filter((item) => item.graphic === gold)
+          .reduce((n, item) => n + (item.amount ?? 1), 0);
+        const stockBefore = new Map(contents().map((item) => [item.serial, item.amount ?? 1]));
         await session.sell(
           mobile.serial,
           sale.map((item) => ({ serial: item.serial, amount: item.amount }))
         );
+        const coinsAfter = contents()
+          .filter((item) => item.graphic === gold)
+          .reduce((n, item) => n + (item.amount ?? 1), 0);
+        const sold = sale.filter(
+          (item) =>
+            (contents().find((owned) => owned.serial === item.serial)?.amount ?? 0) <
+            (stockBefore.get(item.serial) ?? 0)
+        );
+        if (!sold.length || coinsAfter <= coinsBefore) continue;
+        recordIncome(checkpoint, 'soldGold', coinsAfter - coinsBefore);
         learning.record(mobile, 3006104, 'success');
-        stats.sold += sale.length;
-        trip.loot = trip.loot.filter((id) => !sale.some((item) => item.serial === id));
+        stats.sold += sold.length;
+        trip.loot = trip.loot.filter((id) => contents().some((item) => item.serial === id));
         persist();
         await session.refreshStatus();
         log(`Sold ${sale.length} loot items; gold ${status().gold}`);
@@ -254,6 +273,8 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     }
   };
   const bank = async () => {
+    // A fighter whose corpse was lost still wears the death robe: new clothes once it can pay.
+    await replaceDeathRobe({ ...ctx, city: ctx.home.city, carried: (pack: number) => session.world.childrenOf(pack) });
     phase('banking', 'Banking profits and unsold valuables; vendors can charge the bank directly');
     // The home town's banks, then the nearest others; a banker remembered as unavailable is tried
     // again on the second pass rather than leaving the gold unbanked.
@@ -273,12 +294,18 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
         if (opened === undefined) continue;
         const box = { serial: opened };
         await Bun.sleep(500);
-        // Carry no gold: vendors draw on the bank, and carried gold is lost on death.
+        // Keep a small purse for player trades and any unsettled companion share.
+        let pocket = pocketReserve(checkpoint);
         for (const item of contents()) {
           check();
           if (item.graphic === gold) {
-            await session.moveItem(item.serial, box.serial);
-            stats.bankedGold += item.amount ?? 1;
+            const kept = Math.min(pocket, item.amount ?? 1);
+            pocket -= kept;
+            const deposit = (item.amount ?? 1) - kept;
+            if (deposit <= 0) continue;
+            await session.moveItem(item.serial, box.serial, deposit);
+            stats.bankedGold += deposit;
+            recordIncome(checkpoint, 'bankedGold', deposit);
           } else if (trip.loot.includes(item.serial) && packItems(session, box.serial).length < 100) {
             // The bank box holds 125 items; past 100 unsold loot stays out of it (inventory.ts).
             await session.moveItem(item.serial, box.serial);

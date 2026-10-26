@@ -2,7 +2,7 @@ import { gold } from '@gemwright/common/items';
 
 import { cemeteries } from './cemeteries';
 import type { CharacterTemplate } from './config';
-import { activityLine } from './conversation';
+import { activityLine } from './conversation-facts';
 import type { DecisionCoordinator } from './decisions';
 import { type Intent, intents } from './dialogue';
 import { quoteTo } from './engagement';
@@ -14,6 +14,7 @@ import { readTradeTalk } from './player-trade';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import type { Checkpoint } from './store';
+import { orderDemand } from './work-orders';
 import { professionOf } from './world';
 
 const places: Record<string, ServiceType> = {
@@ -136,7 +137,7 @@ async function tradeReply(session: PlayerSession, template: CharacterTemplate, n
     return `${asked ? 'Agreed' : 'Too dear for me'}: ${amount} ${good} for ${price} gold. Open a trade with me if thou wilt.`;
   }
   const stock = (Object.keys(goods) as Good[])
-    .map((good) => ({ good, have: carriedOf(session, pack.serial, good) }))
+    .map((good) => ({ good, have: Math.max(0, carriedOf(session, pack.serial, good) - orderDemand(session, good)) }))
     .filter((s) => s.have >= goods[s.good].lot && (!talk.good || s.good === talk.good))
     .sort((a, b) => b.have - a.have)[0];
   if (!stock) return `I have no ${talk.good ?? 'goods'} to sell thee, ${name}.`;

@@ -1,10 +1,12 @@
+import { isDeathRobe } from '@gemwright/common/items';
+
 import { chargedPurchase, fundsStale, spendableGold } from './bank-gold';
+import { travelNear } from './cemeteries';
 import { type FighterContext, weaponsFor } from './fighter-context';
 import { approachVendor } from './mobile-approach';
 import { Layer } from './protocol/layers';
 import type { Entity } from './protocol/world';
 
-const deathRobe = 0x204e;
 // Hair, backpack, mount and bank layers are never dressed from the backpack.
 const reserved = new Set<number>([0, Layer.Hair, Layer.FacialHair, Layer.Backpack, Layer.Mount, Layer.Bank]);
 // AOS strength requirements from the pinned ServUO armor scripts, most specific name first.
@@ -55,7 +57,7 @@ export function createFighterGear(
   ctx: FighterContext,
   contextAction: (mobile: Entity, cliloc: number) => Promise<boolean>
 ) {
-  const { session, terrain, serial, contents, nearby, navigate, phase, check, log, trip, status } = ctx;
+  const { session, terrain, serial, contents, nearby, phase, check, log, trip, status } = ctx;
   const worn = (layer: number) =>
     [...session.world.entities.values()].find((item) => item.parent === serial && item.layer === layer);
   const holdsLight = (layer: number) => {
@@ -100,11 +102,12 @@ export function createFighterGear(
   // Loot awaiting sale stays in the pack; weapons are handled by the sword equip step.
   const dress = async () => {
     const robe = worn(22);
-    // Keep the robe when no recovered torso clothing or armor could replace it.
+    // Shed the robe as soon as any recovered gear of its own goes back on; its own robe, shirt or
+    // chest piece then takes its place.
     const replacement = contents().some(
-      (item) => [5, 13, 22].includes(wearLayer(item)) && item.graphic !== deathRobe && !trip.loot.includes(item.serial)
+      (item) => wearLayer(item) && !isDeathRobe(item) && !trip.loot.includes(item.serial)
     );
-    if (robe?.graphic === deathRobe && replacement) {
+    if (robe && isDeathRobe(robe) && replacement) {
       phase('dressing', 'Discarding the death robe');
       await session.dropAtFeet(robe.serial);
     }
@@ -113,7 +116,7 @@ export function createFighterGear(
     for (const item of contents()) {
       check();
       const layer = wearLayer(item);
-      if (!layer || weaponsFor(ctx.template).has(item.graphic) || item.graphic === deathRobe) continue;
+      if (!layer || weaponsFor(ctx.template).has(item.graphic) || isDeathRobe(item)) continue;
       // Hands belong to the weapon step: the weapon hand never takes other families' weapons, and
       // the off hand only shields and light sources (two-handed weapons also use layer 2).
       const tile = terrain.tile(item.graphic, true);
@@ -267,7 +270,7 @@ export function createFighterGear(
     const light = holdsLight;
     if (spendable() < ARMOR_RESERVE + 30) return;
     phase('armor-shopping', `Looking for armor upgrades with ${spendable()} gold available`);
-    await navigate(ctx.home.one('blacksmith'), 5);
+    await travelNear(ctx, ctx.home.one('blacksmith'), 5);
     for (const mobile of nearby()) {
       check();
       const before = session.world.received.get(0x74) ?? 0;
@@ -339,7 +342,7 @@ export function createFighterGear(
     for (const item of items) {
       const layer = wearLayer(item);
       if (!layer || worn(layer) || chosen.has(layer) || refused.has(item.graphic)) continue;
-      if (weaponsFor(ctx.template).has(item.graphic) || item.graphic === deathRobe) continue;
+      if (weaponsFor(ctx.template).has(item.graphic) || isDeathRobe(item)) continue;
       if (contents().some((owned) => wearLayer(owned) === layer)) continue;
       chosen.set(layer, item);
     }

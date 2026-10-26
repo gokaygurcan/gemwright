@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import type { CharacterTemplate, PopulationConfig } from './config';
+import { info } from './log';
 
 // World configuration (world/world.json): facets and cities in play, professions with their
 // archetype, behavior, creation skills, weighted homes and hunting grounds, and the population mix.
@@ -130,7 +131,7 @@ export function worldTemplates(): { template: CharacterTemplate; weight: number 
 export function applyWorld(population: PopulationConfig, requested: number): PopulationConfig {
   const max = world.population?.max;
   if (max !== undefined && requested > max)
-    console.error(`[world] ${requested} residents requested; world.json caps the population at ${max}`);
+    info(`[world] ${requested} residents requested; world.json caps the population at ${max}`);
   const count = max === undefined ? requested : Math.min(requested, max);
   const generated = worldTemplates();
   const existing = new Set(population.templates.map((t) => t.id));

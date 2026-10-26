@@ -5,6 +5,8 @@ export type Intent =
   | 'greet'
   | 'doing'
   | 'where'
+  | 'plans'
+  | 'needs'
   | 'help'
   | 'follow'
   | 'wait'
@@ -15,6 +17,16 @@ export type Intent =
   | 'chatter';
 
 export const intents: Record<Intent, { pattern?: RegExp; description: string }> = {
+  plans: {
+    pattern:
+      /where (?:are|r|art) (?:you|u|thou|ye) (?:going|headed|heading|off to|bound)|whither|where to\b|where (?:you|u) (?:going|headed)|going somewhere|what(?:'s| is) (?:your|thy) (?:plan|business)|what (?:are|r) (?:you|u) (?:after|looking for)/i,
+    description: 'Asks where the listener is going or what they are after ("where are you going?", "whither?").'
+  },
+  needs: {
+    pattern:
+      /\b(?:(?:do|dost|d) (?:you|u|thou) (?:need|want|lack|require)|need anything|anything (?:you|u|thou) (?:need|want|lack)|what (?:do|dost) (?:you|u|thou) (?:need|lack)|(?:can|may|shall) i (?:give|get|bring|offer) (?:you|u|thee)|need (?:some |any )?(?:money|gold|coins?|items?|supplies|equipment|gear))\b/i,
+    description: 'Offers something or asks whether the listener needs anything: items, money, supplies or help.'
+  },
   where: {
     pattern:
       /where(?:'s| is| are)? (?:the |a |an )?(bank|healer|smith|blacksmith|stables?|moongate|gate|mines?|graveyard|cemetery)/i,
@@ -135,6 +147,9 @@ export interface Facts {
   warm: boolean;
   // Answers that need the world (directions, help, follow), computed by the caller.
   answer?: string;
+  // Where it is going and what it is short of, in its own words (conversation.ts, needs.ts).
+  plans?: string;
+  needs?: string;
 }
 
 const lastMine = (thread: Thread) => thread.turns.findLast((turn) => turn.from === 'me');
@@ -142,11 +157,23 @@ const said = (thread: Thread, intent: Intent) =>
   thread.turns.filter((turn) => turn.from === 'them' && turn.intent === intent).length;
 
 // Every truthful reply to `intent` in this thread, and the local rule's choice among them.
+// Every truthful reply, then for a player only the spoken ones: a player who speaks to a resident
+// always hears back, unless they asked for silence or said goodbye.
 export function replyOptions(
   intent: Intent,
   thread: Thread,
   facts: Facts
 ): { options: ReplyOption[]; baseline: string } {
+  const all = optionsFor(intent, thread, facts);
+  if (thread.peer || all.options.every((option) => !option.text)) return all;
+  const spoken = all.options.filter((option) => option.text);
+  return {
+    options: spoken,
+    baseline: spoken.some((option) => option.id === all.baseline) ? all.baseline : (spoken[0]?.id ?? all.baseline)
+  };
+}
+
+function optionsFor(intent: Intent, thread: Thread, facts: Facts): { options: ReplyOption[]; baseline: string } {
   const { name, activity, warm, answer } = facts;
   const mine = lastMine(thread);
   const quiet: ReplyOption = { id: 'stay-quiet', description: 'Say nothing; nothing was asked of me.' };
@@ -287,6 +314,29 @@ export function replyOptions(
         ],
         baseline: 'farewell'
       };
+    case 'plans':
+      return {
+        options: [
+          { id: 'share-plans', description: 'Say where I am going and why.', text: facts.plans ?? activity },
+          {
+            id: 'share-plans-and-ask',
+            description: 'Say where I am going and ask the same back.',
+            text: `${facts.plans ?? activity} And thou, ${name}?`
+          }
+        ],
+        baseline: warm ? 'share-plans-and-ask' : 'share-plans'
+      };
+    case 'needs':
+      return {
+        options: [
+          {
+            id: 'tell-needs',
+            description: 'Say honestly what I am short of, or that I lack nothing.',
+            text: facts.needs ?? 'I am well supplied, thank thee.'
+          }
+        ],
+        baseline: 'tell-needs'
+      };
     case 'wait':
       return {
         options: [{ id: 'wait', description: 'Stop and ask what they want.', text: `Aye, ${name}? What is it?` }],
@@ -295,7 +345,17 @@ export function replyOptions(
     case 'trade':
       return answer
         ? { options: [{ id: 'quote', description: 'Say what I can trade.', text: answer }], baseline: 'quote' }
-        : { options: [quiet], baseline: 'stay-quiet' };
+        : {
+            options: [
+              quiet,
+              {
+                id: 'nothing-to-trade',
+                description: 'Say I have nothing to trade now.',
+                text: 'I have naught to trade right now.'
+              }
+            ],
+            baseline: 'stay-quiet'
+          };
     case 'chatter':
       return {
         options: [
@@ -315,6 +375,9 @@ export function replyOptions(
             options: [{ id: 'answer', description: 'Give the answer.', text: `${welcomeBack}${answer}` }],
             baseline: 'answer'
           }
-        : { options: [quiet], baseline: 'stay-quiet' };
+        : {
+            options: [quiet, { id: 'not-known', description: 'Say I do not know.', text: 'I know not, I am afraid.' }],
+            baseline: 'stay-quiet'
+          };
   }
 }

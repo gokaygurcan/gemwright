@@ -1,12 +1,14 @@
 import { readFileSync } from 'node:fs';
 
+import { urgentAction } from './action-purpose';
 import { Blocked } from './blocked';
 import { chaosOf } from './chaos';
 import type { FighterContext } from './fighter-context';
-import { goldOf, readyFor } from './fighter-prey';
+import { combatSkill, goldOf, readyFor, teaches } from './fighter-prey';
 import { type Gate, moongates, nearestGate, travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import { residentsNear } from './spread';
+import { learnedPlaceCost } from './strategy-learning';
 
 // Trammel cemeteries (uo.com "Cemeteries" list) that hold undead spawners on the pinned shard
 // (Spawns/trammel.xml Graveyards#0-#5). Nujel'm has no undead spawner and is not listed.
@@ -83,13 +85,15 @@ export const patrolPoints = (ground: Ground) => {
 
 // Where to hunt next once the current ground runs dry: the cemeteries, and every overland spawn
 // whose creatures this fighter's skills meet for at least half of what lives there (fighter-prey.ts
-// `readyFor`). Nearer grounds, richer ones (their loot packs' gold) and quieter ones (spread.ts)
-// are preferred; with more skill the plain cemeteries lose their pull, and chaos shuffles the
-// order a little. A crowded ground is passed over.
+// `readyFor`: a fight costs at most half its health). Nearer grounds, ones whose creatures still
+// teach it (`teaches`) and quieter ones (spread.ts) are preferred, gold breaks ties; with more
+// combat skill the plain cemeteries lose their pull, and chaos shuffles the order a little. A
+// crowded ground is passed over.
 export function nextGround(ctx: FighterContext): string {
   const here = ctx.position();
   const current = groundOf(ctx.trip).name;
-  const skill = Math.max(...[...ctx.session.world.skills.values()].map((s) => s.value ?? 0), 0);
+  // The skill it fights with, not its highest: a maxed Anatomy says nothing about its sword arm.
+  const skill = combatSkill(ctx);
   const options = grounds.flatMap((ground) => {
     const present = residentsNear(ground.center, reach(ground), ctx.serial);
     if (ground.name === current || present >= CROWDED) return [];
@@ -98,11 +102,16 @@ export function nextGround(ctx: FighterContext): string {
     const fit = kinds.filter(([type]) => readyFor(ctx, type)).reduce((n, [, count]) => n + count, 0);
     if (ground.creatures && fit * 2 < total) return [];
     const gold = kinds.reduce((n, [type, count]) => n + goldOf(type) * count, 0) / Math.max(1, total);
+    // Skill comes from creatures near the character's own skill: a ground where most of them still
+    // teach is worth up to 400 tiles more walking; gold only breaks ties.
+    const teaching = kinds.filter(([type]) => teaches(ctx, type)).reduce((n, [, count]) => n + count, 0);
     const cost =
       distance(here, ground.center) +
+      learnedPlaceCost(ctx.checkpoint, ctx.session.world.map ?? 1, ground.center) +
       (ground.creatures ? 0 : Math.max(0, skill - 60) * 8) +
       present * 40 -
-      Math.min(gold, 300) * 3 +
+      (total ? (teaching / total) * 400 : 0) -
+      Math.min(gold, 100) +
       Math.random() * 300 * chaosOf(ctx.session);
     return [{ name: ground.name, cost }];
   });
@@ -146,9 +155,12 @@ export async function travelToGround(ctx: FighterContext, overland = false) {
 
 // Town trips (bank, vendors, healer) go to the fighter's home town; from a distant cemetery the
 // way back is the moongate nearest home.
+// The way home is itself the escape: being hit on the way must not cancel it (fighter.ts check()
+// retreats on damage outside combat, which would restart this trip on every step).
 export async function returnHome(ctx: FighterContext) {
   const home = ctx.home.town;
   if (distance(ctx.position(), home) <= WALKING_LIMIT) return;
   const gate = nearestGate(home);
-  if (distance(ctx.position(), moongates[gate]) > 2) await travelByMoongate(ctx, gate);
+  if (distance(ctx.position(), moongates[gate]) > 2)
+    await urgentAction(ctx.session, 'escape', () => travelByMoongate(ctx, gate));
 }

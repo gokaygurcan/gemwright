@@ -1,5 +1,4 @@
-import { PLAIN_HUMAN_BODIES } from '@gemwright/common/bodies';
-import { gold } from '@gemwright/common/items';
+import { instruments } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
 import { TOOLS } from './bank-gold';
@@ -12,12 +11,12 @@ import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import type { DungeonRole } from './profession-dungeon';
 import type { Entity } from './protocol/world';
-import { buyFrom } from './vendor-trade';
+import { begForTool } from './subsistence';
+import { buyTool } from './vendor-trade';
 import { reachRegion } from './work-areas';
 import { professionOf, weightedPick } from './world';
 
 // SBBard instruments (21 gold): drums, tambourine, lap harp, lute.
-const instruments = new Set([0x0e9c, 0x0e9e, 0x0eb2, 0x0eb3, 0x0eb1, 0x0e9d]);
 const PICK_INSTRUMENT = 500617; // What instrument shall you play?
 // NextSkillTime after use (ServUO Peacemaking/Provocation/Discordance).
 const DELAY = { Peacemaking: 10_000, Provocation: 10_000, Discordance: 6_000 };
@@ -50,34 +49,6 @@ async function play(ctx: ProfessionContext, skill: keyof typeof DELAY, targets: 
   return true;
 }
 
-const humanNpc = PLAIN_HUMAN_BODIES;
-// Begs human NPCs within two tiles (vendors and townsfolk) until `want` gold is carried or ten
-// tries are spent; true when it has enough.
-async function beg(ctx: ProfessionContext, want: number) {
-  const { session } = ctx;
-  const carriedGold = () => ctx.count(gold);
-  const asked = new Set<number>();
-  for (let tries = 0; tries < 10 && carriedGold() < want; tries++) {
-    ctx.check();
-    const here = ctx.position();
-    const npc = [...session.world.entities.values()]
-      .filter(
-        (m) => m.kind === 'mobile' && humanNpc.has(m.graphic) && m.notoriety === 7 && m.position && !asked.has(m.serial)
-      )
-      .sort((a, b) => distance(here, a.position ?? here) - distance(here, b.position ?? here))[0];
-    if (!npc?.position) break;
-    asked.add(npc.serial);
-    ctx.phase('begging', 'Begging for a few coins');
-    await ctx.navigate(npc.position, 1).catch(() => {});
-    session.useSkill(skillId('Begging'));
-    await session.waitFor(() => session.world.target !== null, 'begging cursor', 3000).catch(() => {});
-    if (!session.world.target) continue;
-    session.target({ serial: npc.serial, x: 0, y: 0, z: 0, graphic: npc.graphic });
-    await Bun.sleep(4000);
-  }
-  return carriedGold() >= want;
-}
-
 // A bard works the graveyards with music rather than steel: calm whatever attacks (Peacemaking on
 // itself calms everything in range), set two undead on each other (Provocation), weaken a lone one
 // (Discordance). Musicianship trains with every use.
@@ -94,21 +65,11 @@ export const runBard = (options: ProfessionOptions) =>
         )[0];
         if (!shop) throw new Blocked('no-vendor', 'No bard vendor is known');
         await reachRegion(ctx, shop);
-        await buyFrom(
-          { ...ctx, city: shop.city, limits: TOOLS },
-          'bard',
-          new Map([...instruments].map((g) => [g, 1])),
-          30
-        );
+        await buyTool({ ...ctx, city: shop.city, limits: TOOLS }, 'bard', [...instruments], 30);
         // Penniless: beg townsfolk for the price of an instrument (ServUO Begging.cs), as a broke
         // player does, then try the shop again.
-        if (!ctx.carried().some((i) => instruments.has(i.graphic)) && (await beg(ctx, 30)))
-          await buyFrom(
-            { ...ctx, city: shop.city, limits: TOOLS },
-            'bard',
-            new Map([...instruments].map((g) => [g, 1])),
-            30
-          );
+        if (!ctx.carried().some((i) => instruments.has(i.graphic)) && (await begForTool(ctx, 30)))
+          await buyTool({ ...ctx, city: shop.city, limits: TOOLS }, 'bard', [...instruments], 30);
         if (!ctx.carried().some((i) => instruments.has(i.graphic)))
           throw new Blocked('missing-tool', 'No instrument bought');
       }

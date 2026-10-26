@@ -1,5 +1,6 @@
-import { gold } from '@gemwright/common/items';
+import { gems, gold } from '@gemwright/common/items';
 
+import { tally } from './activity';
 import { serviceLocations } from './locations';
 import { approachMobile } from './mobile-approach';
 import type { MountContext } from './mount-types';
@@ -75,6 +76,7 @@ export async function chargedPurchase(
 ) {
   const before = carriedGold(ctx.session, ctx.backpack());
   await purchase();
+  tally(ctx.session, 'goldToShops', cost);
   const fromBank = Math.max(0, cost - Math.max(0, before - carriedGold(ctx.session, ctx.backpack())));
   const funds = ctx.checkpoint.funds;
   if (fromBank && funds) ctx.checkpoint.funds = { bank: Math.max(0, funds.bank - fromBank), at: funds.at };
@@ -177,11 +179,63 @@ export async function withdrawAccountGold(
   ctx.checkpoint.funds = { bank: available - amount, at: Date.now() };
 }
 
+// Carried gold and gems are lost with an unrecovered corpse: once the purse passes `limit`, or any
+// gem is carried, gems and the gold over `keep` go into the bank box at the nearest bank of `city`.
+// True when it deposited.
+const surplusRetry = new WeakMap<object, number>();
+
+// One of the town's banks, the nearer ones more often, and a different spot on its floor each time:
+// people do not all queue at one tile.
+export function bankSpot(city: string, from: { x: number; y: number }) {
+  const landmark = [...serviceLocations(city, 'banker')].sort(
+    (a, b) => distance(from, a) + Math.random() * 40 - (distance(from, b) + Math.random() * 40)
+  )[0];
+  if (!landmark) return undefined;
+  const jitter = () => Math.round((Math.random() - 0.5) * 6);
+  return { x: landmark.x + jitter(), y: landmark.y + jitter() };
+}
+export async function bankSurplus(
+  ctx: BankerContext & { checkpoint: Checkpoint; backpack: () => number; phase: MountContext['phase'] },
+  city: string,
+  limit = 500,
+  keep = 100
+): Promise<boolean> {
+  const { session } = ctx;
+  const jewels = () => session.world.childrenOf(ctx.backpack()).filter((item) => gems.has(item.graphic));
+  if (carriedGold(session, ctx.backpack()) < limit && !jewels().length) return false;
+  // A trip that found no banker is not repeated every turn.
+  if ((surplusRetry.get(session) ?? 0) > Date.now()) return false;
+  surplusRetry.set(session, Date.now() + 30 * 60_000);
+  const bank = bankSpot(city, ctx.position());
+  if (!bank) return false;
+  ctx.phase('banking', 'Taking surplus gold and gems to the bank');
+  await ctx.navigate(bank, 4).catch(() => {});
+  for (const mobile of [...session.world.entities.values()]) {
+    if (mobile.kind !== 'mobile' || !mobile.position || distance(ctx.position(), mobile.position) > BANKER_SPEECH_RANGE)
+      continue;
+    if (!(await offersBank(session, mobile.serial))) continue;
+    const box = await openBankBox(ctx, mobile.serial).catch(() => undefined);
+    if (box === undefined) continue;
+    for (const gem of jewels()) await session.moveItem(gem.serial, box).catch(() => {});
+    let pocket = keep;
+    for (const coins of session.world.childrenOf(ctx.backpack()).filter((item) => item.graphic === gold)) {
+      const kept = Math.min(pocket, coins.amount ?? 1);
+      pocket -= kept;
+      if ((coins.amount ?? 1) - kept > 0) await session.moveItem(coins.serial, box, (coins.amount ?? 1) - kept);
+    }
+    await queryBankBalance(ctx, mobile.serial).catch(() => 0);
+    surplusRetry.delete(session);
+    return true;
+  }
+  ctx.phase('banking-failed', `No banker answered near ${bank.x},${bank.y}; trying again later`);
+  return false;
+}
+
 // Asks a banker in `city` for the current balance when the recorded one is stale, so purchases
 // charged to the bank (tools, supplies) see the real spending power, not just carried coins.
 export async function refreshFunds(ctx: BankerContext & { checkpoint: Checkpoint }, city: string) {
   if (!fundsStale(ctx.checkpoint)) return;
-  const bank = serviceLocations(city, 'banker')[0];
+  const bank = bankSpot(city, ctx.position());
   if (!bank) return;
   await ctx.navigate(bank, 4).catch(() => {});
   for (const mobile of ctx.session.world.entities.values()) {

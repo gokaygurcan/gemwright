@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+import { info } from './log';
+
 // Optional phrasing of authored replies by Claude Haiku 5.5. Jev (or the local rule) has already
 // chosen what to say; the model only says it in the resident's own voice. A rephrasing is spoken
 // only if it keeps every number and proper name of the authored line and adds none, makes no new
@@ -45,7 +47,7 @@ const uses = new Map<string, number[]>();
 // Accepted rephrasings per authored line; once three exist they are reused without a request.
 const variants = new Map<string, string[]>();
 const REUSE_AFTER = 3;
-const usage = { requests: 0, reused: 0, rejected: 0, inputTokens: 0, cachedTokens: 0, outputTokens: 0 };
+export const usage = { requests: 0, reused: 0, rejected: 0, inputTokens: 0, cachedTokens: 0, outputTokens: 0 };
 // Claude Haiku 5.5: $0.10 / 1M input, cache reads at a tenth, $0.50 / 1M output.
 export const phrasingUsage = () => ({
   ...usage,
@@ -53,10 +55,10 @@ export const phrasingUsage = () => ({
     ((usage.inputTokens * 0.1 + usage.cachedTokens * 0.01 + usage.outputTokens * 0.5) / 1_000_000).toFixed(5)
   )
 });
-const promise = /\b(?:i will|i'll|i shall|let me|follow (?:thee|you)|i can (?:take|bring|show|lead))\b/i;
-const numbers = (text: string): string[] => text.match(/\d+/g) ?? [];
+export const promise = /\b(?:i will|i'll|i shall|let me|follow (?:thee|you)|i can (?:take|bring|show|lead))\b/i;
+export const numbers = (text: string): string[] => text.match(/\d+/g) ?? [];
 // Capitalised words that are not the first of a sentence: names and places to keep.
-const names = (text: string) =>
+export const names = (text: string) =>
   [...text.matchAll(/(?<![.!?]\s|^)\b([A-Z][a-z']+(?:\s[A-Z][a-z']+)*)/g)]
     .map((match) => match[1] ?? '')
     .filter((name) => !['I', 'Thee', 'Thou', 'Thy'].includes(name));
@@ -135,7 +137,7 @@ export async function phrase(options: {
     const reason = rejection(options.authored, text);
     if (reason) {
       usage.rejected++;
-      console.error(`[phrasing] kept "${options.authored}"; "${text}" ${reason}`);
+      info(`[phrasing] kept "${options.authored}"; "${text}" ${reason}`);
       return fallback;
     }
     if (!known.includes(text)) variants.set(options.authored, [...known, text]);

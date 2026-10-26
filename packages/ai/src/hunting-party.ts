@@ -58,7 +58,10 @@ const leave = (ctx: FighterContext, reason: string) => {
 // party protocol, and the fighter is not invited again for a while.
 async function answerInvite(ctx: FighterContext, leader: number, size: number, decisions?: DecisionCoordinator) {
   const name = ctx.session.world.entities.get(leader)?.name ?? 'a fighter';
-  if (!decisions) return true;
+  if (!decisions) {
+    const trust = ctx.checkpoint.personal?.partners[leader]?.trust ?? 0;
+    return trust >= 0.25 || ctx.template.behavior.cooperation >= 0.25;
+  }
   const present = () => !!ctx.session.world.entities.get(leader)?.position;
   const pick = await decisions.choose({
     kind: 'party-invite',
@@ -144,6 +147,11 @@ export async function organizeParty(ctx: FighterContext, decisions?: DecisionCoo
   if (!party && (free.length < 2 || free.some((m) => m.serial < serial))) return;
   const own = party ?? { leader: serial, members: new Set([serial]) };
   parties.set(serial, own);
+  free.sort(
+    (a, b) =>
+      (ctx.checkpoint.personal?.partners[b.serial]?.trust ?? 0) -
+      (ctx.checkpoint.personal?.partners[a.serial]?.trust ?? 0)
+  );
   for (const member of free.slice(0, MAX_MEMBERS - own.members.size)) {
     try {
       session.party('add');

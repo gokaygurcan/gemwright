@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { runCommand } from './process';
@@ -18,6 +18,8 @@ export interface PullParts {
   logs?: boolean;
   backups?: boolean;
   output?: string;
+  // After a complete pull into .gemwright/pulls, delete every older pull there.
+  cleanup?: boolean;
 }
 interface Entry {
   part: string;
@@ -145,11 +147,18 @@ export async function pull(parts: PullParts, directory = process.cwd()): Promise
     join(out, 'manifest.json'),
     `${JSON.stringify({ pulledAt: new Date().toISOString(), entries }, null, 2)}\n`
   );
+  // Only a complete pull replaces the older ones: a failed part would otherwise lose the last good copy.
+  if (parts.cleanup && !parts.output && entries.every((entry) => !entry.error)) {
+    const pulls = join(directory, '.gemwright/pulls');
+    const older = (await readdir(pulls)).filter((name) => name !== stamp);
+    for (const name of older) await rm(join(pulls, name), { recursive: true, force: true });
+    if (older.length) console.log(`Removed ${older.length} older pull${older.length === 1 ? '' : 's'}.`);
+  }
   const failed = entries.filter((e) => e.error).length;
   console.log(`\nSaved to ${out} (${entries.length - failed} pulled${failed ? `, ${failed} failed` : ''}).`);
 }
 
-async function railway(args: string[], directory: string): Promise<string> {
+export async function railway(args: string[], directory: string): Promise<string> {
   const { code, stdout, stderr } = await runCommand(['railway', ...args], directory);
   if (code !== 0) throw new Error(stderr.split('\n').filter(Boolean).at(-1) || stdout || `railway ${args[0]} failed`);
   return stdout;
@@ -176,7 +185,7 @@ async function size(path: string): Promise<number | undefined> {
   return info?.isFile() ? info.size : undefined;
 }
 
-async function readJson<T>(path: string): Promise<T | undefined> {
+export async function readJson<T>(path: string): Promise<T | undefined> {
   return readFile(path, 'utf8').then(
     (text) => JSON.parse(text) as T,
     () => undefined

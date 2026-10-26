@@ -2,6 +2,7 @@ import { nearAnyGround, returnHome, travelNear } from './cemeteries';
 import { type DecisionCoordinator, type DecisionPick, decisionGuard, decisionState } from './decisions';
 import { dungeonWalker, inAnyDungeon } from './dungeon-tools';
 import { rememberExperience } from './experience';
+import { rememberDeath } from './fight-confidence';
 import { Died, type FighterContext, observedThreat } from './fighter-context';
 import { distance } from './navigation';
 import { gumpCommands } from './protocol/gumps';
@@ -161,6 +162,7 @@ export function createFighterRecovery(
       trip.deathSite = { ...lastSeen };
       trip.recovery.locationSource = 'last-seen';
     }
+    rememberDeath(session);
     phase('death-recorded', 'Preserving the recovery goal and observed death location');
   };
   const resurrect = async () => {
@@ -171,7 +173,8 @@ export function createFighterRecovery(
       await identifyPersonalCorpse();
       session.setWarMode(false);
       // The closest healer or ankh, anywhere on the map (moongate when far).
-      if (dead()) await resurrectGhost(ctx);
+      // Fighters weigh their corpse trip themselves (corpseRecoveryChoice), so no automatic one.
+      if (dead()) await resurrectGhost(ctx, false);
       stats.resurrections++;
       if (!trip.recovery) throw new Error('Missing persisted death recovery');
       trip.recovery.stage = 'corpse';

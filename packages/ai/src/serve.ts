@@ -6,6 +6,7 @@ import { type PopulationConfig, validateConfig } from './config';
 import { validateConnection } from './connection';
 import { validateDecisionConfig } from './decision-provider';
 import { setWars } from './guild-wars';
+import { info, logToStdout } from './log';
 import { enablePhrasing } from './phrasing';
 import { CLIENT_VERSION } from './protocol/packets';
 import { runPopulation } from './run-population';
@@ -17,6 +18,9 @@ import { applyWorld, world } from './world';
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
 // container lives, creating accounts by ordinary login as needed. Configuration comes from the
 // environment the deployment sets; all state lives on the /app/data volume.
+// A service: progress goes to stdout, so the host's error view shows only failures.
+logToStdout();
+
 const data = process.env.AI_DATA ?? '/app/data';
 const required = (name: string) => {
   const value = process.env[name];
@@ -77,7 +81,7 @@ const dbPath = join(data, 'residents.sqlite');
 const store = new ResidentStore(dbPath, shard.id);
 try {
   const reconciled = store.reconcile(population);
-  console.error(
+  info(
     `[serve] ${profile.expansion} shard ${shard.id}: ${reconciled.active} residents active, ${reconciled.created} new`
   );
   checkProvisioning(store.list().filter((r) => r.desiredActive && !r.binding && !store.credentials(r.id)).length);

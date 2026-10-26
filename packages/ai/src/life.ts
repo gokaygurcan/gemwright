@@ -1,14 +1,18 @@
 import { skillId } from '@gemwright/common/skills';
 
+import { checkedDelay } from './action-purpose';
 import { Blocked } from './blocked';
 import { chaosOf } from './chaos';
 import type { CharacterTemplate } from './config';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
 import { guildTurn } from './guilds';
 import { housingTurn, leisureAtHome } from './house-life';
-import { cityLandmarks, serviceLocations } from './locations';
+import { cityLandmarks, pickLocation, serviceLocations } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import { type createNavigator, distance } from './navigation';
+import { meetNeeds } from './need-planning';
+import { goalPhaseBias } from './personal-goals';
+import { personalTurn } from './personal-turn';
 import { playerPull } from './player-insight';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
@@ -17,6 +21,7 @@ import { scavenge } from './scavenge';
 import { trainable } from './skill-training';
 import { crowdFactor, pickWeighted, residentsNear } from './spread';
 import type { Checkpoint } from './store';
+import { learnedPlaceCost } from './strategy-learning';
 import type { Terrain } from './terrain';
 import { type LifePhase, world } from './world';
 
@@ -107,7 +112,9 @@ function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
     visit: (0.5 + sociability) * (curve.visit ?? 1),
     dungeon: 0.5 + riskTolerance
   };
-  const weights = valid.map((p) => ((mix?.[p] ?? 0) / mean(config.minutes[p])) * (shade[p] ?? 1));
+  const weights = valid.map(
+    (p) => ((mix?.[p] ?? 0) / mean(config.minutes[p])) * (shade[p] ?? 1) * goalPhaseBias(ctx, p)
+  );
   let roll = Math.random() * weights.reduce((sum, w) => sum + w, 0);
   for (const [i, p] of valid.entries()) {
     roll -= weights[i] ?? 0;
@@ -194,7 +201,7 @@ async function linger(ctx: LifeContext, city: string, until: number) {
   });
   while (Date.now() < until) {
     ctx.check();
-    await Bun.sleep(4000);
+    await checkedDelay(4000, ctx.check);
     if (await pickUp(ctx).catch(() => false)) continue;
     if (Math.random() < 0.08) {
       const here = ctx.position();
@@ -210,7 +217,7 @@ async function linger(ctx: LifeContext, city: string, until: number) {
 
 // A plain bank visit, as a player checks in: "bank" opens the box, "balance" reports the gold.
 async function bankVisit(ctx: LifeContext) {
-  const bank = serviceLocations(ctx.city, 'banker')[0];
+  const bank = pickLocation(ctx.city, 'banker');
   if (!bank) return;
   ctx.phase('errands', `Checking in at the ${ctx.city} bank`);
   await goTo(ctx, bank);
@@ -221,16 +228,26 @@ async function bankVisit(ctx: LifeContext) {
 }
 
 function destination(ctx: LifeContext): string | undefined {
-  const home = serviceLocations(ctx.city, 'banker')[0];
+  const home = pickLocation(ctx.city, 'banker');
   const towns = Object.entries(world.cities)
     .filter(([name, entry]) => entry.enabled && entry.startingCity && name.toLowerCase() !== ctx.city.toLowerCase())
     .flatMap(([name]) => {
-      const bank = serviceLocations(name, 'banker')[0];
+      const bank = pickLocation(name, 'banker');
       if (!bank) return [];
       // Nearer towns, towns with fewer residents about (spread.ts) and towns where players were
       // lately heard (player-insight.ts) are likelier.
       const busy = crowdFactor(residentsNear(bank, 60, ctx.session.world.serial ?? undefined), 4, 15);
-      return [{ name, weight: (busy * playerPull(bank)) / Math.max(200, home ? distance(home, bank) : 1000) }];
+      return [
+        {
+          name,
+          weight:
+            (busy * playerPull(bank)) /
+            Math.max(
+              200,
+              (home ? distance(home, bank) : 1000) + learnedPlaceCost(ctx.checkpoint, ctx.session.world.map ?? 1, bank)
+            )
+        }
+      ];
     });
   return pickWeighted(towns, (t) => t.weight)?.name;
 }
@@ -240,6 +257,16 @@ function destination(ctx: LifeContext): string | undefined {
 // phase lasts at least a second and always yields, even when the phase found nothing to do.
 export async function lifeTurn(ctx: LifeContext): Promise<boolean> {
   const started = Date.now();
+  if (await personalTurn(ctx)) return true;
+  const need = await meetNeeds(ctx);
+  if (need === 'handled') return true;
+  if (need === 'work') {
+    if (ctx.checkpoint.life?.phase !== 'work') {
+      ctx.checkpoint.life = { phase: 'work', until: Date.now() + 60_000 };
+      ctx.phase('work', 'Earning and supplying my needs before optional plans');
+    }
+    return false;
+  }
   if (await pickUp(ctx).catch(() => false)) return true;
   // A house to buy or visit, guild business (house-life.ts, guilds.ts).
   if ((await society(ctx, housingTurn)) || (await society(ctx, guildTurn))) return true;
@@ -319,7 +346,7 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
             await linger(ctx, town, life.until);
           } finally {
             // However the stay went, the visit ends at home.
-            const home = serviceLocations(ctx.city, 'banker')[0];
+            const home = pickLocation(ctx.city, 'banker');
             if (home && ctx.session.phase === 'ready') {
               ctx.phase('visit', `Heading home to ${ctx.city}`);
               await goTo(ctx, home).catch((error) => ctx.log(`The way home failed: ${error}`));

@@ -86,6 +86,7 @@ export function dungeonWalker(
     check,
     phase,
     log: ctx.log,
+    wary: () => false,
     onStep: () => {
       if (stopForThreats() && threatClose()) throw new Engaged('Monster closing in');
     }

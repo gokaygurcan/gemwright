@@ -4,6 +4,7 @@ import { tally } from './activity';
 import { chargedPurchase } from './bank-gold';
 import { storedPieces } from './bank-space';
 import { craftRecipes } from './craft-training';
+import { buttonFor } from './gump-flow';
 import { serviceLocations } from './locations';
 import type { createMinerServices } from './miner-services';
 import { approachMobile } from './mobile-approach';
@@ -55,19 +56,7 @@ export const EXCEPTIONAL = [1044155, 1044156];
 export const FAILED = [1044043, 1044157, 500287];
 export const STOP = [1044038, 1044267, 1044037, 1044153];
 
-// Finds the gump button placed beside a localized label (CraftGump puts each button 35 px left of
-// and 3 px above its label), so a reordered recipe list cannot press the wrong item.
-export function buttonFor(layout: string, cliloc: number): number | undefined {
-  const commands = gumpCommands(layout);
-  const label = commands.find((c) => c[0]?.startsWith('xmfhtml') && Number(c[5]) === cliloc);
-  if (!label) return;
-  const [x, y] = [Number(label[1]), Number(label[2])];
-  return commands
-    .filter(
-      (c) => c[0] === 'button' && c[5] === '1' && Number(c[2]) === y - 3 && Number(c[1]) < x && x - Number(c[1]) <= 40
-    )
-    .map((c) => Number(c[7]))[0];
-}
+export { buttonFor } from './gump-flow';
 
 export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
   const { session, terrain, city, navigate, position, check, phase, log, carried, checkpoint } = ctx;

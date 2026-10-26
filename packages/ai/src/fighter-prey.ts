@@ -1,6 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
 
 import { type Monster, monsters } from './dungeons';
+import { fightConfidence } from './fight-confidence';
 import { bandage, type FighterContext, healPotion, weaponSkill } from './fighter-context';
 import { alliesNear } from './hunting-party';
 import { distance } from './navigation';
@@ -65,19 +66,54 @@ export function readyFor(ctx: FighterContext, type: string, group = 1): boolean 
   if (!monster) return false;
   const tier = tierOf(monster);
   if (tier === 'unsupported') return false;
-  if (tier === 'common') return true;
+  if (tier === 'common') return fightCost(ctx, type, group) <= 0.5;
   const scale = (group >= 3 && ['brute', 'caster'].includes(tier)) || (group >= 4 && tier === 'knight') ? 0.6 : 1;
   const [weapon, tactics, maxHits, armor] = requirements[tier].map((value) => value * scale);
   const combat = ctx.template.archetype?.primarySkills.includes('Magery') ? 'Magery' : weaponSkill(ctx.template);
   const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
   const status = ctx.status();
   return (
+    fightCost(ctx, type, group) <= 0.5 &&
     skill(combat) >= (weapon ?? 0) &&
     skill('Tactics') >= (tactics ?? 0) &&
     status.maxHits >= (maxHits ?? 0) &&
     status.armor >= (armor ?? 0)
   );
 }
+// A fight against one creature of a kind, estimated with ServUO's hit chance ((attacker skill + 20)
+// over twice (defender skill + 20)), equal swing rates and the character's typical damage per hit
+// (8 plus a tenth of Tactics; spells for mages): the share of the character's maximum health it
+// loses before the creature dies, without healing. Over half is a fight not worth picking; a
+// group splits the damage.
+export function fightCost(ctx: FighterContext, type: string, group = 1): number {
+  const monster = monsters.find((m) => m.type === type);
+  if (!monster?.hits || !monster.damage) return Infinity;
+  const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
+  const own = combatSkill(ctx);
+  const theirs = monster.wrestling ?? 50;
+  const hits = ((monster.hits[0] ?? 0) + (monster.hits[1] ?? 0)) / 2;
+  const damage = ((monster.damage[0] ?? 0) + (monster.damage[1] ?? 0)) / 2;
+  const hitChance = (attacker: number, defender: number) =>
+    Math.min(1, Math.max(0.02, (attacker + 20) / (2 * (defender + 20))));
+  const swings = hits / (8 + skill('Tactics') / 10) / hitChance(own, theirs);
+  const taken = (swings * hitChance(theirs, own) * damage) / Math.max(1, group);
+  return taken / Math.max(1, ctx.status().maxHits);
+}
+
+// The skill a character fights with: Magery for mages, else its weapon skill.
+export function combatSkill(ctx: FighterContext): number {
+  const name = ctx.template.archetype?.primarySkills.includes('Magery') ? 'Magery' : weaponSkill(ctx.template);
+  return ctx.session.world.skills.get(skillId(name))?.value ?? 0;
+}
+
+// Whether fighting a kind still teaches: ServUO gains come from fights that are neither sure nor
+// hopeless, so the creature's skill should be near the character's (from 25 below to 15 above).
+export function teaches(ctx: FighterContext, type: string): boolean {
+  const theirs = monsters.find((m) => m.type === type)?.wrestling ?? 50;
+  const own = combatSkill(ctx);
+  return theirs >= own - 25 && theirs <= own + 15;
+}
+
 // The gold a kind's loot packs carry, for choosing grounds worth the walk.
 export const goldOf = (type: string) => monsters.find((m) => m.type === type)?.gold ?? 0;
 
@@ -119,6 +155,9 @@ export function engageable(ctx: FighterContext, mobile: Entity): { ok: boolean; 
   const menace = near.find((other) => ['lich', 'unsupported', 'knight'].includes(profileOf(other)?.tier ?? ''));
   if (menace && profile.tier !== profileOf(menace)?.tier)
     return { ok: false, reason: `${menace.name} nearby (${profileOf(menace)?.note})` };
+  // Every fight, common ones too, is sized up first: the target and whatever would join in.
+  const sized = fightConfidence(ctx, mobile);
+  if (!sized.ok) return { ok: false, reason: `${mobile.name} too risky: ${sized.reason}` };
   if (profile.tier === 'common') return { ok: true, reason: profile.note };
   if (profile.tier === 'unsupported') return { ok: false, reason: `${mobile.name}: ${profile.note}` };
   // A hunting party of three takes on casters and brutes, four also knights: thresholds drop to

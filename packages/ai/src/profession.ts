@@ -1,11 +1,23 @@
+import { DangerInterrupt, urgentAction } from './action-purpose';
+import { bankSurplus, knownBankGold } from './bank-gold';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
 import { threatsNear } from './danger';
+import { escapeDanger, interruptForDanger } from './danger-response';
+import { replaceDeathRobe } from './death-robe';
 import type { DecisionCoordinator } from './decisions';
 import type { RunRecord } from './dungeon-context';
+import { escortOpportunity } from './escort';
+import { tidyPack, workGear } from './inventory';
 import { type LifeContext, lifeTurn } from './life';
-import { serviceLocations } from './locations';
+import { pickLocation, townAt } from './locations';
+import { info } from './log';
+import { checkLoop, watchStep } from './loop-watch';
+import { healOthers, mendAfterDeath } from './mend';
 import { createNavigator, distance } from './navigation';
+import { lighten } from './overload';
+import { personalTurn } from './personal-turn';
+import { playerVendorTurn } from './player-vendors';
 import { type DungeonRole, professionDungeonTurn } from './profession-dungeon';
 import { readyForDungeons } from './progression';
 import { Layer } from './protocol/layers';
@@ -14,9 +26,12 @@ import type { Entity, Position, WorldView } from './protocol/world';
 import { noticePeers } from './relationships';
 import { isGhost, resurrectGhost } from './resurrection';
 import { scavenge } from './scavenge';
+import { sellingTurn } from './selling';
 import { isSetback, passSetback } from './setback';
+import { sideTradeTurn } from './side-trade';
 import { trainSupportingSkill } from './skill-training';
 import type { Checkpoint } from './store';
+import { learnWork } from './strategy-learning';
 import { Terrain } from './terrain';
 
 // Shared runtime for the newer professions (fisher, tailor, bard, tamer, thief): context, the main
@@ -74,12 +89,14 @@ export async function runProfession(
   const city = template.creation.city.toLowerCase();
   const progress: Record<string, number> = {};
   const tag = options.label ? `${name}:${options.label}` : name;
-  const log = (message: string) => console.error(`[${tag}] ${message}`);
+  const log = (message: string) => info(`[${tag}] ${message}`);
   const persist = () => options.save(checkpoint);
   const phase = (value: string, note: string) => {
-    checkpoint.goal = { kind: name, phase: value };
+    watchStep(session, tag, value, note);
+    checkpoint.goal = { kind: name, phase: value, note: note };
+    learnWork(session, checkpoint, template);
     noticePeers(session, checkpoint, options.peers, template.behavior.sociability);
-    void converse({ session, checkpoint, template, city, peers: options.peers, decisions: options.decisions });
+    void converse({ session, checkpoint, template, city, peers: options.peers, decisions: options.decisions, persist });
     checkpoint.memories = [...checkpoint.memories.slice(-49), { at: new Date().toISOString(), text: note }];
     persist();
     log(`${value}: ${note}`);
@@ -93,8 +110,10 @@ export async function runProfession(
     return session.world.status;
   };
   const check = () => {
+    checkLoop(session);
     if (options.stopping?.() || Date.now() >= deadline) throw new Error(`${name} run duration reached`);
     if (session.phase !== 'ready') throw new Error(`${name} disconnected; reconnect before continuing`);
+    interruptForDanger(session, !['tamer', 'bard', 'thief'].includes(name));
   };
   const backpack = () => {
     const pack = session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
@@ -154,34 +173,60 @@ export async function runProfession(
     while (Date.now() < deadline) {
       try {
         check();
+        // Housekeeping before anything else: the pack and clothes are tidied even on a turn spent
+        // begging or shopping (the robes of every death piled up behind those turns).
+        if (!isGhost(ctx)) {
+          await replaceDeathRobe(ctx);
+          await lighten(session, backpack(), (item) => workGear.has(item.graphic), log);
+          await tidyPack(session, backpack(), log, terrain);
+          await mendAfterDeath(ctx, log, ctx.city);
+          if (await healOthers(ctx, log)) continue;
+        }
+        if (await personalTurn(life)) continue;
         if (dungeon && (await professionDungeonTurn(ctx, dungeon, options.recordRun, false))) continue;
         if (await scavenge(ctx)) continue;
         if (isGhost(ctx)) {
           await resurrectGhost(ctx);
           continue;
         }
+        if (await bankSurplus(ctx, ctx.city)) continue;
+        // Selling is a task like any other: chosen when the pack holds goods to sell (selling.ts).
+        if (await sellingTurn(ctx)) continue;
         if (status().hits < status().maxHits / 2) {
+          // Hurt among monsters (a bard in a cemetery): to the bank first, then rest there.
+          const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
+          if (bank && threatsNear(session, ctx.position(), 10).length) await escapeDanger(ctx, bank);
           await passSetback({ ...ctx, items, archetype: template.archetype }, 'health is below half');
           continue;
         }
+        if (await escortOpportunity(ctx, status().gold + knownBankGold(checkpoint))) continue;
         if (await lifeTurn(life)) continue;
         // Those who do not fight leave monsters to others: back to the town bank (danger.ts).
-        const bank = serviceLocations(ctx.city, 'banker')[0];
+        const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
         // Already at the bank, it stays put: a town is as safe as it gets, so the work goes on.
         const near = bank ? threatsNear(session, ctx.position(), 8) : [];
         if (!['tamer', 'bard', 'thief'].includes(name) && bank && near.length && distance(ctx.position(), bank) > 6) {
           const seen = near.map((m) => `${m.name ?? 'something'} (0x${m.graphic.toString(16)})`).join(', ');
           phase('avoiding', `Monsters about (${seen}); heading back to town`);
-          await ctx.navigate(bank, 3).catch(() => {});
+          await urgentAction(session, 'escape', () => ctx.navigate(bank, 3)).catch(() => {});
           await Bun.sleep(2000);
           continue;
         }
+        // Players' shops in reach: something useful bought now and then (player-vendors.ts).
+        if (await playerVendorTurn(ctx)) continue;
+        // Work that does not pay gives way to a side trade for a while (side-trade.ts).
+        if (await sideTradeTurn(ctx, name)) continue;
         const started = Date.now();
         await turn(ctx);
         // Every resident shares one event loop: a turn that found nothing to do (no spot, no target)
         // must not spin, so a turn lasts at least a second and always yields.
         await Bun.sleep(Math.max(0, 1000 - (Date.now() - started)));
       } catch (error) {
+        if (error instanceof DangerInterrupt) {
+          const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
+          await escapeDanger(ctx, bank);
+          continue;
+        }
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;
         await passSetback(
           { ...ctx, items, archetype: template.archetype },

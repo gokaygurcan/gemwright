@@ -2,7 +2,7 @@ import type { DungeonContext, DungeonRun, RunRecord } from './dungeon-context';
 import { recoverDungeonCorpse } from './dungeon-death';
 import { inAnyDungeon } from './dungeon-tools';
 import { dungeonTurn } from './dungeon-turn';
-import { serviceLocations } from './locations';
+import { pickLocation } from './locations';
 import type { ProfessionContext } from './profession';
 import { isGhost } from './resurrection';
 
@@ -26,7 +26,7 @@ function professionDungeon(ctx: ProfessionContext, role: DungeonRole, record?: (
     template: ctx.template,
     checkpoint: ctx.checkpoint,
     deadline: ctx.deadline,
-    home: serviceLocations(ctx.city, 'banker')[0] ?? ctx.position(),
+    home: pickLocation(ctx.city, 'banker') ?? ctx.position(),
     position: ctx.position,
     check: ctx.check,
     phase: ctx.phase,

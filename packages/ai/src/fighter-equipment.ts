@@ -63,9 +63,9 @@ export function createFighterEquipment(
   };
   const gear = createFighterGear(ctx, services.contextAction);
   const bankSupplies = async () => {
-    // Home banks first; Britain's when no banker answered there.
-    const banks =
-      ctx.home.city === 'Britain' ? ctx.home.banks : [...ctx.home.banks, ...serviceLocations('Britain', 'banker')];
+    // The home town's banks; Britain's only for a town without one. (Crossing the map to another
+    // bank finds the same box, and the trip back is where penniless fighters died.)
+    const banks = ctx.home.banks.length ? ctx.home.banks : serviceLocations('Britain', 'banker');
     // Bankers wander around their spawn point, so a bank visit looks from a few spots before
     // giving up on that bank: the landmark, then a few tiles to either side.
     const spots = (landmark: { x: number; y: number }) => [
@@ -141,6 +141,9 @@ export function createFighterEquipment(
       // Put on whatever the bank provided before buying anything new.
       await gear.dress();
     }
+    // Penniless, there is nothing to buy: no walk past every shop (fighter.ts earns first).
+    const broke = !fundsStale(ctx.checkpoint) && spendable() < 20;
+    if (!hasSword() && broke) return;
     if (!hasSword()) {
       // Bows come from the bowyer; melee weapons from the smiths.
       const vendors =

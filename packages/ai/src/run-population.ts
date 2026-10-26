@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 
 import { loopLag } from './activity';
 import { decisionReport } from './decisions';
+import { info } from './log';
 import { type ResidentOptions, runResident, withRuntime } from './run-session';
 import { temperamentOf } from './temperament';
 
@@ -58,10 +59,13 @@ export async function runPopulation(
           : activities.includes('lumberjack') || activities.includes('chop')
             ? 'lumberjack'
             : 'fighter');
-      const log = (text: string) => console.error(`[population] ${resident.proposedName}: ${text}`);
+      const log = (text: string) => info(`[population] ${resident.proposedName}: ${text}`);
       log(`arriving as ${role}`);
       let failures = 0;
       while (true) {
+        const offlineUntil = shared.store.get(resident.id)?.checkpoint.personal?.habits?.offlineUntil ?? 0;
+        while (Date.now() < offlineUntil && !shared.stopping()) await Bun.sleep(1000);
+        if (shared.stopping()) return { residentId: resident.id, outcome: 'finished' as const };
         try {
           await runResident(
             shared,
@@ -69,6 +73,7 @@ export async function runPopulation(
               ...options,
               exercise: false,
               reconnect: false,
+              naturalSessions: !!options.continuous,
               ...(profession
                 ? { profession: { behavior: profession, assets: options.assets } }
                 : { [`${role}Assets`]: options.assets })

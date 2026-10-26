@@ -1,6 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
 
 import type { CharacterArchetype } from './archetypes';
+import { supportingOf } from './archetypes';
 import { outgrewYoung, readyForDungeons, renounceYoung } from './progression';
 import type { PlayerSession } from './protocol/session';
 
@@ -14,7 +15,10 @@ export function desiredLock(current: number, target: number): 0 | 1 | 2 {
 // above it. Skills: build skills (primary, supporting, template goals) rise until their cap and
 // then lock; every other skill falls, so the 700-point total goes to the build.
 export function maintainLocks(session: PlayerSession, archetype: CharacterArchetype, goals: string[]) {
-  const build = new Set([...archetype.primarySkills, ...archetype.supportingSkills, ...goals].map(skillId));
+  // Fishing stays open too: it is the side trade anyone may take up (side-trade.ts).
+  const build = new Set(
+    [...archetype.primarySkills, ...(supportingOf(archetype) ?? []), ...goals, 'Fishing'].map(skillId)
+  );
   const sentStats: number[] = [];
   let announced = false;
   let renounced = false;

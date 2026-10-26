@@ -1,11 +1,12 @@
+import { canPause } from './action-purpose';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
 
 // Talking competes with moving for the same hands: the mouse steers, the keyboard types. A resident
-// on the move answers in a word or two, lowercase and sometimes mistyped, or not at all; a real
-// conversation needs both sides standing still. When a player addresses a resident, it decides to
-// ignore them, answer in passing, or stop: more likely when it is sociable, when the player stands
-// close by, and when the player keeps trying. While engaged, every walk waits (navigation.ts) until
+// on the move answers briefly, lowercase and sometimes mistyped, but always answers a player; a real
+// conversation needs both sides standing still. When a player addresses a resident, it answers in
+// passing or stops: stopping is more likely when it is sociable, when the player stands close by,
+// keeps trying, or asks a real question. While engaged, every walk waits (navigation.ts) until
 // the player leaves, says goodbye, or a quiet minute passes; replies then take typing time.
 interface Engagement {
   partner: number;
@@ -23,6 +24,10 @@ export const noteStep = (session: PlayerSession) => steppedAt.set(session, Date.
 export const moving = (session: PlayerSession) => Date.now() - (steppedAt.get(session) ?? 0) < 2000;
 
 export function engagedWith(session: PlayerSession) {
+  if (!canPause(session)) {
+    engagements.delete(session);
+    return undefined;
+  }
   const now = engagements.get(session);
   if (!now) return undefined;
   const partner = session.world.entities.get(now.partner);
@@ -53,7 +58,11 @@ export function consider(
   partner: number,
   sociability: number,
   intent: string
-): 'engaged' | 'brief' | 'ignore' {
+): 'engaged' | 'brief' {
+  if (!canPause(session)) {
+    endEngagement(session);
+    return 'brief';
+  }
   const now = Date.now();
   const current = engagedWith(session);
   if (current?.partner === partner) {
@@ -75,12 +84,15 @@ export function consider(
     sociability * 0.3 +
     (close ? 0.15 : 0) +
     ((tries.get(partner)?.length ?? 1) - 1) * 0.2 +
-    (intent === 'wait' || intent === 'trade' ? 0.3 : 0);
+    (intent === 'wait' || intent === 'trade' ? 0.3 : 0) +
+    // A real question deserves stopping for: where it is going, what it needs, what it does.
+    (['plans', 'needs', 'doing', 'where', 'help'].includes(intent) ? 0.4 : 0);
   if (Math.random() < chance) {
     engagements.set(session, { partner, until: now + 60_000 });
     return 'engaged';
   }
-  return Math.random() < 0.5 + sociability * 0.4 ? 'brief' : 'ignore';
+  // A player who speaks is always answered: in passing, if not standing.
+  return 'brief';
 }
 
 // What a busy resident types with one hand: a word or two, lowercase, sometimes with a slip.
@@ -90,15 +102,13 @@ const brief: Record<string, string[]> = {
   trade: ['busy rn', 'not now', 'later'],
   doing: ['working', 'busy', 'on my way'],
   bye: ['bye', 'cya', 'fw'],
-  acknowledge: ['k', 'ok', 'aye']
+  acknowledge: ['k', 'ok', 'aye'],
+  chatter: ['hm?', 'yes?', 'aye?']
 };
 export function terse(intent: string): string | undefined {
-  const options = brief[intent] ?? (intent === 'chatter' ? undefined : ['busy, sry']);
+  const options = brief[intent] ?? ['busy, sry'];
   const line = options?.[Math.floor(Math.random() * options.length)];
-  if (!line || line.length < 3 || Math.random() > 0.25) return line;
-  // A slip of one hand: two neighbouring letters swapped.
-  const i = 1 + Math.floor(Math.random() * (line.length - 2));
-  return line.slice(0, i) + (line[i + 1] ?? '') + (line[i] ?? '') + line.slice(i + 2);
+  return line;
 }
 
 // Typing time for a line: about five characters a second standing, a quick burst on the move.

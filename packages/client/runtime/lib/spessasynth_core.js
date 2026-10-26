@@ -6864,7 +6864,7 @@ var ModulatorSource = class ModulatorSource {
 	*/
 	index;
 	/**
-	* If this field is set to true, the MIDI Controller Palette is selected. The ‘index’ field value corresponds to one of the 128
+	* If this field is set to true, the MIDI Controller Palette is selected. The 'index' field value corresponds to one of the 128
 	* MIDI Continuous Controller messages as defined in the MIDI specification.
 	*/
 	isCC;

@@ -100,9 +100,26 @@ Saves a copy of the deployed shard locally, on demand: the server's world saves,
 # in the project directory: everything
 gemwright pull
 
-# or only some parts; --backups adds the server's own Backups folder
-gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>]
+# or only some parts; --backups adds the server's own Backups folder,
+# --cleanup deletes older pulls once this one is complete
+gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
 ```
+
+To pull on a schedule, run `gemwright pull --cleanup` from a cron job.
+
+### Restore a pull
+
+Puts a pull back on a Railway deployment: the world saves (ServUO) and the AI residents database. The files are uploaded to each volume first, then each service restarts and swaps them in on boot; the replaced files stay on the volume (`server/Saves.before-restore`, `residents.sqlite.before-restore`). Restoring the world disconnects everyone and returns the shard to that save, so the command always asks first.
+
+```bash
+# the newest pull, everything in it
+gemwright restore
+
+# a specific pull, or only some parts; --yes skips the question
+gemwright restore [--from <pull folder>] [--server] [--ai] [--yes]
+```
+
+The shard and AI services need a deployment made with this version, whose start scripts do the swap.
 
 ### Next steps
 

@@ -99,6 +99,32 @@ export function allServiceLocations(service: ServiceType): Landmark[] {
   return [...catalog].flatMap(([key, points]) => (key.endsWith(`:${service}`) ? [...points] : []));
 }
 
+// Where to go for a service: any of the town's landmarks of that kind, at random, so residents do
+// not all walk to the same spot (the nearer ones more often when a starting point is given).
+export function pickLocation(
+  city: string,
+  service: ServiceType,
+  from?: { x: number; y: number }
+): Landmark | undefined {
+  const points = serviceLocations(city, service);
+  if (points.length < 2) return points[0];
+  const score = (point: Landmark) =>
+    (from ? Math.max(Math.abs(point.x - from.x), Math.abs(point.y - from.y)) : 0) + Math.random() * 60;
+  return [...points].sort((a, b) => score(a) - score(b))[0];
+}
+
+// The town a resident is in or nearest to (by its nearest shop or bank, within 250 tiles), else its
+// home town: shops, banks and shelter come from where it is, not from where it was born.
+export function townAt(at: { x: number; y: number }, home: string): string {
+  const tiles = (p: { x: number; y: number }) => Math.max(Math.abs(p.x - at.x), Math.abs(p.y - at.y));
+  return (
+    [...catalog.values()]
+      .flat()
+      .filter((point) => tiles(point) < 250)
+      .sort((a, b) => tiles(a) - tiles(b))[0]?.city ?? home
+  );
+}
+
 export function serviceLocation(city: string, service: ServiceType): Landmark {
   const point = serviceLocations(city, service)[0];
   if (!point) throw new Error(`No ${service} landmark configured for ${city}`);

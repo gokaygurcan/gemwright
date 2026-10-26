@@ -12,6 +12,7 @@ import {
   ProviderFailure
 } from './decision-provider';
 import { experienceSummary } from './experience';
+import { info } from './log';
 import { mountEquipment } from './mount-types';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
@@ -366,7 +367,7 @@ export class DecisionCoordinator {
       trace.reason = reason;
       trace.selected = id;
       this.save(checkpoint);
-      console.error(`[decision] ${options.kind}: ${id} (${source}; ${reason})`);
+      info(`[decision] ${options.kind}: ${id} (${source}; ${reason})`);
       return { id, traceId: trace.id };
     };
     const day = new Date().toISOString().slice(0, 10);

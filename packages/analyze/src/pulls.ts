@@ -19,8 +19,9 @@ export function newestPull(directory = process.cwd()) {
 
 // The shard's latest world save, pulled from its deployment into a new pull folder. ServUO
 // writes the save on its own timer, so this is as current as its last save.
-export async function pullLatest(directory = process.cwd()) {
-  await pull({ server: true }, directory);
+// With `cleanup`, older pulls are deleted once the new one is complete.
+export async function pullLatest(directory = process.cwd(), cleanup = false) {
+  await pull({ server: true, cleanup }, directory);
   return newestPull(directory);
 }
 

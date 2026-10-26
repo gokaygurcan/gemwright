@@ -1,3 +1,5 @@
+import { info } from './log';
+
 interface RecoverableSession {
   phase: string;
   reconnectable: boolean;
@@ -47,7 +49,7 @@ export async function superviseBehavior<S extends RecoverableSession, R>(options
       await sleep(Math.min(500 * 2 ** recoveryAttempts, 5000, Math.max(0, options.deadline - now())));
       if (options.stopping() || now() >= options.deadline) break;
       recoveryAttempts++;
-      console.error(
+      info(
         `[session] Reconnecting interrupted behavior (${recoveryAttempts}/${options.maxReconnects}); rebuilding player observations`
       );
       let timer: ReturnType<typeof setTimeout> | undefined;

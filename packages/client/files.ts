@@ -34,6 +34,6 @@ export function runtimeFiles(files: GameFile[]): GameFile[] {
     (file) => !/\.(mp3|mid|png)$/i.test(file.path) && file.path.toLowerCase() !== 'string_dictionary.uop'
   );
   if (selected.some((file) => file.bytes > 0x7fffffff))
-    throw new Error('A game file exceeds the runtime’s 2 GiB per-file limit.');
+    throw new Error("A game file exceeds the runtime's 2 GiB per-file limit.");
   return selected;
 }

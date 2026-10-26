@@ -673,7 +673,15 @@
   },
   "housing": {
     "note": "Residents build only on the lots of these districts (catalogs/house-lots.json, built by src/build-lots.ts from the map files). With no district, nobody buys a house. Each lot is 9x13 tiles: a 7x7 classic house with the yard ServUO requires (HousePlacement.cs) and walkways. `reserve` is the gold kept in the bank after paying.",
-    "districts": [],
+    "districts": [
+      {
+        "name": "Minoc mines",
+        "x": 2630,
+        "y": 530,
+        "width": 115,
+        "height": 55
+      }
+    ],
     "reserve": 3000
   }
 }

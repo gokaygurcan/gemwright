@@ -55,7 +55,7 @@ function dataBar() {
 export function layout(title: string, body: string, query = '') {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)} · Gemwright save</title><style>${STYLE}${SCENE_STYLE}</style></head><body><header>
-<a class="home" href="/">Gemwright save</a><form class="search" action="/search"><input name="q" value="${escapeHtml(query)}" placeholder="Name, type or serial" autofocus aria-label="Search"><button>Search</button></form>${dataBar()}
+<a class="home" href="/">Gemwright save</a><a href="/players">Players</a><form class="search" action="/search"><input name="q" value="${escapeHtml(query)}" placeholder="Name, type or serial" autofocus aria-label="Search"><button>Search</button></form>${dataBar()}
 </header><main>${body}</main></body></html>`;
 }
 

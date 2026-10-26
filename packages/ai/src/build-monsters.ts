@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 // Offline build of catalogs/monsters.json: the stats of every creature a dungeon room or a Trammel
 // spawner (Spawns/trammel.xml) brings out, and of every monster and animal script, read from the
 // pinned ServUO Scripts/Mobiles constructors (the same numbers uoguide.com publishes): health,
-// damage, combat skills, armor, whether it attacks on sight (FightMode) and its loot packs.
+// damage, combat skills, armor, whether it attacks on sight (FightMode), its AI type and its loot packs.
 //   bun packages/ai/src/build-monsters.ts --servuo <ServUO> --dungeons packages/ai/catalogs/dungeons --output packages/ai/catalogs/monsters.json
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -100,6 +100,10 @@ for (const type of [...wanted].sort()) {
     poison: skill(body, 'Poisoning'),
     fame: Number(/Fame\s*=\s*(\d+)/.exec(body)?.[1] ?? 0),
     aggressive: ['Closest', 'Strongest', 'Weakest', 'Evil'].includes(mode),
+    // Its server brain (BaseAI subclass) and how it picks targets: casters, archers that keep their
+    // distance, berserkers that attack anything, healers that heal their allies.
+    ai: /AIType\.AI_(\w+)/.exec(body)?.[1] ?? null,
+    fightMode: mode,
     tactics: skill(body, 'Tactics'),
     wrestling: skill(body, 'Wrestling'),
     armor: Number(/VirtualArmor\s*=\s*(\d+)/.exec(body)?.[1] ?? 0),

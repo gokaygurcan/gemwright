@@ -4,6 +4,8 @@ import { unsafeCheck } from './danger';
 import { miningCatalog } from './mining-catalog';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
+import { residentContext } from './resident-context';
+import { learnedPlaceCost } from './strategy-learning';
 import type { Point, Terrain } from './terrain';
 
 // Chooses the next mining spot: walkable rock, cave land, or cave-floor statics near the miner,
@@ -42,6 +44,7 @@ export async function findMiningSite(options: {
       ...point,
       score:
         distance(origin, point) +
+        learnedPlaceCost(residentContext(session)?.checkpoint, session.world.map ?? 1, point) +
         (anchor ? distance(point, anchor) * 0.4 : 0) +
         crowding(point) -
         (point.floor ? 18 : 0)

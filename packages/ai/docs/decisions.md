@@ -24,7 +24,7 @@ Pass a file with `--decisions` on `session` or `population`.
 
 ## State and guards
 
-`decisions.ts` builds state from ordinary observations only: template and archetype, temperament, training goals, position, status, up to 24 backpack item totals, recent activities, recent decisions with their outcomes, and experience summaries ([experience](experience.md)). While a request is pending, the coordinator checks every 25 ms that identity, map, position, health, combatant, cursor and connection are unchanged; a change cancels the request (`observations-changed`). The chosen candidate's preconditions are checked again before it runs.
+`decisions.ts` builds state from ordinary observations only: template and archetype, temperament, training goals, position, status, up to 24 backpack item totals, recent activities, recent decisions with their outcomes, and experience summaries. While a request is pending, the coordinator checks every 25 ms that identity, map, position, health, combatant, cursor and connection are unchanged; a change cancels the request (`observations-changed`). The chosen candidate's preconditions are checked again before it runs.
 
 Every decision is a trace in the checkpoint (the last 24): kind, candidates, baseline, the model's choice and probabilities, latency, tokens, who decided (`model`, `local`, `fallback`, `stale`) and why, and the execution outcome reported afterwards. Decision memory has its own schema version.
 
@@ -39,7 +39,7 @@ Every decision is a trace in the checkpoint (the last 24): kind, candidates, bas
 | `party-plan`, `party-invite`, `party-answer` | A leader's target; join or decline a party; join now, recover first, or sit a fight out. |
 | `life-phase` | The next life phase at a break point: work, dungeon, errands, leisure, visit or practice ([population](population.md#life-phases)). |
 | `help-request` | Offer advice or decline. |
-| `speech-addressee`, `speech-intent`, `speech-reply` | Whether a line is meant for this resident, what it means, and which truthful reply to give ([conversation](conversation.md)). |
+| `speech-addressee`, `speech-intent`, `speech-reply` | Whether a line is meant for this resident, what it means, and which truthful reply to give. |
 
 ## Comparing with the baseline
 
@@ -47,4 +47,4 @@ Each kind keeps lifetime tallies in `checkpoint.decisions.tally`: decisions, how
 
 `bun run packages/ai/src/index.ts decisions --config <population.json>` reports a fleet summary (tallies summed per kind, and who decided each retained trace and why Jev was not asked) and per-resident tallies. Measured latency is about 250 ms median and 340 ms at the 90th percentile. In conversation tests Jev clearly outperformed the local rules: they looped on greetings and repeats where Jev did not. A population-scale comparison is still to run.
 
-Related: [persistence](persistence.md) · [fighter](fighter.md).
+Related: [persistence](persistence.md).

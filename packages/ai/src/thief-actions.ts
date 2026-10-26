@@ -3,7 +3,7 @@ import { gold } from '@gemwright/common/items';
 import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import { Blocked } from './blocked';
 import { recognised } from './fighter-prey';
-import { type ServiceType, serviceLocations } from './locations';
+import { pickLocation, type ServiceType } from './locations';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
@@ -104,7 +104,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
 
   // Stolen loot: everything the thief carries that is not a reagent or its spellbook.
   const loot = (ctx: ProfessionContext) => ctx.carried().filter((item) => !keep.has(item.graphic));
-  const homeAnchor = (ctx: ProfessionContext) => serviceLocations(ctx.city, 'banker')[0];
+  const homeAnchor = (ctx: ProfessionContext) => pickLocation(ctx.city, 'banker');
 
   // Gold is lost on death and vendors charge the bank directly, so nothing worth keeping stays in
   // the pack across trips; graveyard refuse was already dropped where it was taken.
@@ -455,7 +455,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
       trip.thefts >= TRIP_THEFTS ||
       trip.attempts >= TRIP_ATTEMPTS ||
       trip.failures >= TRIP_FAILURES ||
-      status.weight > status.maxWeight * 0.6
+      status.weight > status.maxWeight * 0.9
     ) {
       state.mode = 'back';
     }

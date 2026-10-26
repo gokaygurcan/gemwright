@@ -1,9 +1,11 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
 import { skillId } from '@gemwright/common/skills';
 
+import { checkedDelay } from './action-purpose';
 import type { CharacterArchetype } from './archetypes';
+import { supportingOf } from './archetypes';
 import { type CraftContext, type CraftSkill, carpentry, tinkering, trainCraft } from './craft-training';
-import { serviceLocations } from './locations';
+import { pickLocation } from './locations';
 import { trainMagery } from './magery';
 import { buyAtMarket, goods } from './market';
 import { distance } from './navigation';
@@ -122,7 +124,7 @@ export async function practiseSkill(ctx: PracticeContext, practice: Practice) {
       if (session.phase !== 'ready') throw error;
       if (session.world.target) session.target(null);
     }
-    await Bun.sleep(Math.max(0, practice.delay + 150 + Math.random() * 450 - (Date.now() - startedAt)));
+    await checkedDelay(Math.max(0, practice.delay + 150 + Math.random() * 450 - (Date.now() - startedAt)), ctx.check);
   }
   log(`Practised ${practice.skill} ${uses} times`);
   return uses;
@@ -143,7 +145,7 @@ type TrainingContext = PracticeContext & {
 const ironRefill =
   (shop: NonNullable<TrainingContext['shop']>) =>
   async (_backpack: number, least: number): Promise<boolean> => {
-    const minoc = serviceLocations('minoc', 'banker')[0];
+    const minoc = pickLocation('minoc', 'banker');
     const want = Math.max(least * 3, 30);
     if (minoc && distance(shop.position(), minoc) < 300 && (await buyAtMarket(shop, 'iron ingots', want, 3)) >= least)
       return true;
@@ -177,10 +179,21 @@ const trainers: Record<string, (ctx: TrainingContext) => Promise<number>> = {
 
 // The archetype's supporting skills that can still be practised: a trainer exists and the skill is
 // below its cap and not locked (a maxed skill, 100.0 on the pinned shard, is never practised again).
+// A supporting skill follows the character's main skills: it is not practised more than 20 points
+// above the weakest of them, so idle practice cannot fill the skill cap with Anatomy and Eval Int
+// while the weapon skill or Magery that the next stage needs stays where it started.
+const LEAD = 20;
 export function trainable(session: PlayerSession, archetype?: CharacterArchetype): string[] {
-  return (archetype?.supportingSkills ?? ['Arms Lore']).filter((name) => {
+  const base = (name: string) => session.world.skills.get(skillId(name))?.base ?? 0;
+  const primaries = archetype?.primarySkills ?? [];
+  const ceiling = primaries.length ? Math.min(...primaries.map(base)) + LEAD : Infinity;
+  return (supportingOf(archetype) ?? ['Arms Lore']).filter((name) => {
     const skill = session.world.skills.get(skillId(name));
-    return !!trainers[name.replaceAll(' ', '')] && (skill?.base ?? 0) < (skill?.cap ?? 100) && skill?.lock !== 2;
+    return (
+      !!trainers[name.replaceAll(' ', '')] &&
+      (skill?.base ?? 0) < Math.min(skill?.cap ?? 100, ceiling) &&
+      skill?.lock !== 2
+    );
   });
 }
 
