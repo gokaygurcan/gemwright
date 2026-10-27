@@ -5,6 +5,9 @@ export type Intent =
   | 'greet'
   | 'doing'
   | 'where'
+  | 'safe'
+  | 'group'
+  | 'guide'
   | 'plans'
   | 'needs'
   | 'help'
@@ -31,6 +34,20 @@ export const intents: Record<Intent, { pattern?: RegExp; description: string }> 
     pattern:
       /where(?:'s| is| are)? (?:the |a |an )?(bank|healer|smith|blacksmith|stables?|moongate|gate|mines?|graveyard|cemetery)/i,
     description: 'Asks where a town service or place is.'
+  },
+  safe: {
+    pattern:
+      /\b(?:is it|is the (?:road|way|path)[\w ]*|it'?s) (?:safe|dangerous)\b|\b(?:any|seen any) (?:monsters|reds?|pks?|danger)\b|\bsafe (?:to (?:go|travel|walk)|out there|around here)\b/i,
+    description: 'Asks whether a road or place is safe, or whether there are monsters or reds about.'
+  },
+  guide: {
+    pattern: /\b(?:show|take|lead|guide|walk) me (?:to )?(?:the |a )?(bank|healer|smith|blacksmith|stables?)\b/i,
+    description: 'Asks to be shown the way to a place, walking there together.'
+  },
+  group: {
+    pattern:
+      /\b(?:wanna|want to|care to|will you|let'?s) (?:group|party|hunt together)\b|\bjoin (?:my|our) (?:party|group)\b|\b(?:lfg|lfm)\b/i,
+    description: 'Asks the listener to group up, join a party or hunt together.'
   },
   clarify: {
     pattern:

@@ -1,10 +1,11 @@
-import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES, HUMAN_BODIES } from '@gemwright/common/bodies';
 import { bandage } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
 import { urgentAction } from './action-purpose';
 import { threatsNear } from './danger';
 import { packItems } from './inventory';
+import { lasting } from './lasting';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
@@ -96,6 +97,30 @@ export async function healOthers(ctx: Ctx, log: (message: string) => void): Prom
   if (!here || Date.now() - (lastAid.get(session) ?? 0) < 10_000) return false;
   const bandages = skill(session, 'Healing') >= 40 && has(ctx, bandage);
   if (!bandages && !spellFor(ctx)) return false;
+  // A ghost in reach first: with Healing and Anatomy at 80 a bandage brings it back (ServUO
+  // BandageContext), the way a healer raises the dead at a bank. Each ghost once in ten minutes.
+  const raised = lasting('raised', session.world.serial ?? 0);
+  const ghost =
+    bandages && skill(session, 'Healing') >= 80 && skill(session, 'Anatomy') >= 80
+      ? [...session.world.entities.values()].find(
+          (m: Entity) =>
+            m.kind === 'mobile' &&
+            GHOST_BODIES.has(m.graphic) &&
+            !!m.position &&
+            distance(here, m.position) <= 10 &&
+            !raised.active(m.serial)
+        )
+      : undefined;
+  if (ghost?.position && !threatsNear(session, ghost.position, 8).length) {
+    raised.set(ghost.serial, Date.now() + 10 * 60_000);
+    lastAid.set(session, Date.now());
+    ctx.phase('raising', `Raising ${ghost.name ?? 'a ghost'} with a bandage`);
+    await ctx.navigate(ghost.position, 1).catch(() => {});
+    if (await healOnce(ctx, ghost.serial)) {
+      log(`Tried to raise ${ghost.name ?? 'a ghost'} with a bandage`);
+      return true;
+    }
+  }
   const hurt = [...session.world.entities.values()].find(
     (m: Entity) =>
       m.kind === 'mobile' &&

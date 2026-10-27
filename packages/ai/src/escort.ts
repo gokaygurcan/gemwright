@@ -4,10 +4,14 @@ import { gold } from '@gemwright/common/items';
 
 import { tally } from './activity';
 import { nearAnyGround } from './cemeteries';
+import { confinedToHaven } from './haven';
+import { setEscorting } from './human-pace';
+import { lasting } from './lasting';
 import { pickLocation } from './locations';
 import { type Gate, moongates, nearestGate, travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
+import { tuning } from './tuning';
 
 // Escort quests, a broke player's first income (ServUO BaseEscortable): townsfolk who want to go
 // to another town (nobles, mages, seekers of adventure, merchants) pay 500 to 1,000 gold on
@@ -38,27 +42,31 @@ const towns: Record<string, string> = {
   'Skara Brae': 'Skara Brae',
   Moonglow: 'Moonglow'
 };
-const GATE_WALK = 250;
+const GATE_WALK = tuning.escort.walkToGate;
+const SEEK_BELOW = tuning.escort.seekBelowGold;
 const spots = (
   JSON.parse(readFileSync(new URL('../locations/escorts.json', import.meta.url), 'utf8')) as {
     spots: { x: number; y: number }[];
   }
 ).spots;
-const refused = new WeakMap<object, Map<number, number>>();
 // Anyone may take an escort, but the penniless come first: residents with no gold at all register
 // here, and others leave the escorts around them alone.
 const broke = new Map<number, { x: number; y: number; at: number }>();
-const lastTry = new WeakMap<object, number>();
+const _lastTry = new WeakMap<object, number>();
 
 // Between turns: a resident with no gold looks for an escort every few minutes, anyone else every
-// twenty, and never next to a penniless one. True when it was paid.
+// twenty, and never next to a penniless one; one short of money also walks to where escorts
+// spawn. True when it was paid.
 export async function escortOpportunity(ctx: Ctx, funds: number): Promise<boolean> {
+  // Escorts lead to other towns: not for a Young resident of New Haven (haven.ts).
+  if (confinedToHaven(ctx.session)) return false;
   const here = ctx.position();
   if (funds <= 0) broke.set(ctx.serial, { ...here, at: Date.now() });
   else broke.delete(ctx.serial);
-  const wait = funds <= 0 ? 3 * 60_000 : 20 * 60_000;
-  if (Date.now() - (lastTry.get(ctx.session) ?? 0) < wait) return false;
-  lastTry.set(ctx.session, Date.now());
+  // An escort search that earned nothing is not tried again for two hours (ROADMAP.md step 2).
+  const tried = lasting('escort-try', ctx.serial);
+  if (tried.active('next')) return false;
+  tried.set('next', Date.now() + 2 * 3_600_000);
   if (
     funds > 0 &&
     [...broke].some(
@@ -66,19 +74,28 @@ export async function escortOpportunity(ctx: Ctx, funds: number): Promise<boolea
     )
   )
     return false;
-  if (await escortForPay(ctx)) return true;
-  // The penniless go looking where escorts spawn (locations/escorts.json): the nearest few spots
-  // within walking distance, never one inside a monster spawn.
-  if (funds > 0) return false;
+  if (await escortForPay(ctx)) {
+    tried.set('next', 0);
+    return true;
+  }
+  // Short of money, it goes looking where escorts spawn (locations/escorts.json): one of the
+  // nearest few spots within walking distance, at random, never one inside a monster spawn; a spot
+  // found empty is left alone for two hours (lasting.ts).
+  if (funds >= SEEK_BELOW) return false;
+  const empty = lasting('escort-spot', ctx.serial);
   const near = spots
-    .filter((spot) => distance(here, spot) <= 150 && !nearAnyGround(spot))
+    .filter((spot) => distance(here, spot) <= 150 && !nearAnyGround(spot) && !empty.active(`${spot.x},${spot.y}`))
     .sort((a, b) => distance(here, a) - distance(here, b))
     .slice(0, 3);
-  for (const spot of near) {
-    ctx.phase('escort-search', `Looking for someone to escort near ${spot.x},${spot.y}`);
-    await ctx.navigate(spot, 4).catch(() => {});
-    if (await escortForPay(ctx)) return true;
+  const spot = near[Math.floor(Math.random() * near.length)];
+  if (!spot) return false;
+  ctx.phase('escort-search', `Looking for someone to escort near ${spot.x},${spot.y}`);
+  await ctx.navigate(spot, 4).catch(() => {});
+  if (await escortForPay(ctx)) {
+    tried.set('next', 0);
+    return true;
   }
+  empty.set(`${spot.x},${spot.y}`, Date.now() + 2 * 3_600_000);
   return false;
 }
 
@@ -91,8 +108,8 @@ const destinationOf = (ctx: Ctx, escort: number, since: Set<unknown>) =>
 // One escort, start to payment; true when it was paid.
 export async function escortForPay(ctx: Ctx): Promise<boolean> {
   const { session, phase, log } = ctx;
-  const skip = refused.get(session) ?? new Map<number, number>();
-  refused.set(session, skip);
+  // Refusals outlive a restart (lasting.ts): the same escort is not asked again at once.
+  const skip = lasting('escort-refused', ctx.serial);
   const here = ctx.position();
   const candidates = [...session.world.entities.values()]
     .filter(
@@ -100,7 +117,7 @@ export async function escortForPay(ctx: Ctx): Promise<boolean> {
         m.kind === 'mobile' &&
         m.position &&
         distance(here, m.position) <= 18 &&
-        (skip.get(m.serial) ?? 0) < Date.now() &&
+        !skip.active(m.serial) &&
         m.serial !== ctx.serial
     )
     .sort((a, b) => distance(here, a.position ?? here) - distance(here, b.position ?? here))
@@ -116,7 +133,7 @@ export async function escortForPay(ctx: Ctx): Promise<boolean> {
     // NPC is free; walk up, then read the menu again for usable entries.
     const offered = await session.context(npc.serial).catch(() => []);
     if (!offered.some((e) => e.cliloc === ACCEPT) || !npc.position) continue;
-    skip.set(npc.serial, Date.now() + 30 * 60_000);
+    skip.set(npc.serial, Date.now() + 2 * 3_600_000);
     // Escorts wander: follow up to three times, reading the menu once next to them.
     let ask: { cliloc: number; index: number; flags: number } | undefined;
     let accept: typeof ask;
@@ -193,6 +210,17 @@ export async function escortForPay(ctx: Ctx): Promise<boolean> {
 // Walks a few tiles at a time so the follower stays close (it is lost after two minutes out of sight), waits
 // for it at the moongate so it comes through, and stops at the destination's bank.
 async function lead(ctx: Ctx, escort: number, from: Gate, to: Gate, bank: { x: number; y: number }) {
+  const { session } = ctx;
+  // Leading someone, a person walks (human-pace.ts).
+  setEscorting(session, true);
+  try {
+    await leadOn(ctx, escort, from, to, bank);
+  } finally {
+    setEscorting(session, false);
+  }
+}
+
+async function leadOn(ctx: Ctx, escort: number, from: Gate, to: Gate, bank: { x: number; y: number }) {
   const { session } = ctx;
   const follower = () => session.world.entities.get(escort)?.position;
   const waitFor = async (range: number) => {

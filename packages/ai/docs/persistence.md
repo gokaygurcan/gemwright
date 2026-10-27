@@ -36,9 +36,9 @@ Tables:
 - `credentials`: each resident's game account (schema version 3).
 - `skill_snapshots`: each resident's skills, saved at most once an hour (schema version 3).
 
-Bindings contain an account reference (`resident:<resident UUID>`) and the server's actual character serial, not a password. The resident database (schema version 3) stores each resident's unique ordinary account name and random password in its `credentials` table; the database file is owner-only (mode 0600, directory 0700), so a population is self-contained in its own container and volume. Accounts from the earlier `credentials/<resident UUID>.json` files are imported on first use; those files must still be private and not symlinks, and can be deleted once every resident has run. The same file keeps an hourly skill snapshot per resident (`skill_snapshots`, `src/skill-snapshots.ts`), reported by the `skills` command. Credentials are never included in proofs, model state, or CLI output. Missing credentials for an already bound resident require recovery; they are not silently replaced.
+Bindings contain an account reference (`resident:<resident UUID>`) and the server's actual character serial, not a password. The resident database (schema version 3) stores each resident's unique ordinary account name and random password in its `credentials` table; the database file is owner-only (mode 0600, directory 0700), so a population is self-contained in its own container and volume. The same file keeps an hourly skill snapshot per resident (`skill_snapshots`, `src/skill-snapshots.ts`), reported by the `skills` command. Credentials are never included in proofs, model state, or CLI output. Missing credentials for an already bound resident require recovery; they are not silently replaced.
 
-The first checkpoint format holds an optional goal (`kind`, `phase`), timestamped memories, and relationships with affinity and notes. It is an internal TypeScript interface, not a validated external import format or complete behavior serialization protocol. Checkpoints deliberately do not include authoritative game state. Expand and version this format before richer persisted behaviors are introduced.
+Checkpoints hold a resident's goal, memories, relationships, decisions, plans, its last look at itself (`self`) and its failed errands (`objectives`, each banned for two hours). They are an internal, versioned format (see above), and deliberately hold no authoritative game state.
 
 `saveProgress` checks the expected resident revision so a stale writer cannot silently overwrite a newer update. Reconciliation also increments revisions when activation or policy changes. A caller must reload after a revision conflict.
 
@@ -60,14 +60,6 @@ Death recovery must use actual ghost travel and valid resurrection interactions.
 
 ### Backups and operations
 
-The database (with credentials and skill snapshots) and local result files are under ignored `packages/ai/data/<shardId>/`. Keep that directory on persistent local storage when deploying. A process restart cannot preserve data on a hosting volume that is discarded.
-
-For the current CLI, close all users of the database before copying the data directory for backup. Do not copy only the main SQLite file while WAL writes are active. Add a supported consistent backup procedure before deploying a continuously running runtime. Coordinate restore decisions with the shard's own saves and re-observe server state after any restore.
+The database (with credentials and skill snapshots) lives in the shard's data directory ([population](population.md#data-directory)), which must be on persistent storage. On a deployed shard, `gemwright pull` takes a consistent snapshot of it alongside the world saves, and `gemwright restore` puts one back. Locally, stop every process using the database before copying it: copying only the main SQLite file while WAL writes are active is not a backup. Restore the database together with the matching world save; residents re-observe the server's state after any restore.
 
 Related: [reconnect](reconnect.md) · [decisions](decisions.md).
-
-## Personal history and agreements
-
-`residents.checkpoint_json` contains each resident's `personal` memory: timestamped episodes with a partner serial/name, an observed detail, and a completed or interrupted outcome; familiarity; goals; active outings and their plan stage; supply orders; habits; work-area learning; and confirmed loot/sale/deposit totals. The default database is `packages/ai/data/<shardId>/residents.sqlite`, or the configured `--db` path. The SQLite file must live on persistent storage in a deployment.
-
-History belongs to that resident. It is not a shared guild mind or a transcript of all speech. Eighty episodes from the last thirty days and forty partner records are retained; they survive logout and reconnect through ordinary checkpoint saves. A lost companion or an unfinished plan does not become a completed outing. Trust can favor familiar party members; it cannot supply an unseen location or replace the server's actual party roster.

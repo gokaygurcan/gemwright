@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import { necroReagentByName, reagentByName } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
 import type { FighterContext } from './fighter-context';
@@ -22,17 +23,14 @@ const spells = (
     spells: SpellDef[];
   }
 ).spells;
-const byName = new Map(spells.map((spell) => [spell.name, spell]));
-export const reagentGraphics: Record<string, number> = {
-  BlackPearl: 0x0f7a,
-  Bloodmoss: 0x0f7b,
-  Garlic: 0x0f84,
-  Ginseng: 0x0f85,
-  MandrakeRoot: 0x0f86,
-  Nightshade: 0x0f88,
-  SulfurousAsh: 0x0f8c,
-  SpidersSilk: 0x0f8d
-};
+// Necromancy's Pain Spike (ServUO PainSpikeSpell, registered 108, cast as 109): a warlock's
+// direct damage beside its Magery, and how it trains Necromancy in a fight.
+const necro: SpellDef[] = [
+  { name: 'Pain Spike', id: 109, circle: 1, words: 'In Sar', reagents: ['GraveDust', 'PigIron'] }
+];
+const byName = new Map([...spells, ...necro].map((spell) => [spell.name, spell]));
+export const reagentGraphics = reagentByName;
+const allReagents: Record<string, number> = { ...reagentByName, ...necroReagentByName };
 // MagerySpell mana per circle (ServUO m_ManaTable).
 const MANA = [0, 4, 6, 9, 11, 14, 20, 40, 50];
 
@@ -78,6 +76,7 @@ export async function castTurn(ctx: FighterContext, opponent: Entity, offensive 
   };
   state.set(ctx, memory);
   const skill = session.world.skills.get(skillId('Magery'))?.value ?? 0;
+  const necromancy = session.world.skills.get(skillId('Necromancy'))?.value ?? 0;
   const count = (graphic: number) =>
     ctx
       .contents()
@@ -92,7 +91,8 @@ export async function castTurn(ctx: FighterContext, opponent: Entity, offensive 
       (memory.retry.get(name) ?? 0) <= Date.now() &&
       skill >= 14.3 * (spell.circle - 1) &&
       status().mana >= (MANA[spell.circle] ?? 99) &&
-      spell.reagents.every((r) => count(reagentGraphics[r] ?? 0) > 0)
+      (spell.name !== 'Pain Spike' || necromancy >= 20) &&
+      spell.reagents.every((r) => count(allReagents[r] ?? 0) > 0)
     );
   };
   const pick = (...names: string[]) => names.find(usable);
@@ -140,7 +140,8 @@ export async function castTurn(ctx: FighterContext, opponent: Entity, offensive 
     else if (!targetPoisoned && status().mana > 15) choice = pick('Poison');
     else if (status().mana > 60 && usable('Explosion')) {
       choice = 'Explosion';
-    } else choice = pick('Energy Bolt', 'Lightning', 'Fireball', 'Magic Arrow');
+    } else if (necromancy >= 20 && Math.random() < 0.5 && usable('Pain Spike')) choice = 'Pain Spike';
+    else choice = pick('Energy Bolt', 'Lightning', 'Fireball', 'Magic Arrow');
   }
   if (!choice) return false;
   const target = self ? { serial: ctx.serial, graphic: 0 } : (ally ?? opponent);

@@ -1,13 +1,20 @@
+import { GHOST_BODIES } from '@gemwright/common/bodies';
+
 import { canPause, checkedDelay, urgentAction } from './action-purpose';
 import { Blocked } from './blocked';
 import { threatsNear } from './danger';
 import { directRoute } from './direct-route';
 import { holdWhileEngaged, noteStep } from './engagement';
+import { land, takeOff } from './flight';
+import { confinedToHaven, onHaven } from './haven';
+import { pauseFor, slip, walkingPace } from './human-pace';
+import { type Link, linkToward } from './links';
 import { mountEquipment } from './mount-types';
 import type { PlayerSession } from './protocol/session';
 import { registerTerrain } from './resident-context';
 import { pickUpInReach } from './scavenge';
 import { directionTo, type Terrain } from './terrain';
+import { noteTrouble } from './trouble';
 import { markUnreachable } from './unreachable';
 import { passingGreeting } from './wander';
 
@@ -46,7 +53,19 @@ export function createNavigator(options: {
   };
   const failuresByRoute = new Map<string, { until: number; count: number; error: Blocked }>();
   // Walking goes straight to the goal: no detours by way of places it has no business at.
-  const walk = (goal: { x: number; y: number; z?: number }, range: number) => go(goal, range);
+  // Gargoyles take wing for a long walk and land at its end (flight.ts).
+  const walk = async (goal: { x: number; y: number; z?: number }, range: number) => {
+    // A Young resident of New Haven does not leave Haven Island (haven.ts).
+    if (confinedToHaven(session) && onHaven(position()) && !onHaven(goal))
+      throw new Blocked('unreachable', `Staying on Haven Island while Young (not walking to ${goal.x},${goal.y})`);
+    const far = distance(position(), goal) > 40 && options.purpose !== 'escape' && options.purpose !== 'combat';
+    if (far) await takeOff(session);
+    try {
+      return await go(goal, range);
+    } finally {
+      if (far && session.phase === 'ready') await land(session).catch(() => {});
+    }
+  };
   const go = async (goal: { x: number; y: number; z?: number }, range: number) => {
     // Always give the event loop a turn: a caller looping on an already-reached goal must not
     // starve timers, the shard lease and every other session.
@@ -56,6 +75,9 @@ export function createNavigator(options: {
     let detouring = false;
     let seenThreats = new Set<number>();
     let waits = 0;
+    const linksTried = new Set<Link>();
+    // Where this walk began: a teleporter back to it is no way forward (Jhelom's pair of links).
+    const start = session.world.position ? { ...session.world.position } : undefined;
     const origins = new Map<string, number>();
     const triedDoors = new Set<number>();
     const lockedDoors = new Set<number>();
@@ -145,6 +167,9 @@ export function createNavigator(options: {
         continue;
       }
       if (!path?.length && avoid.size) {
+        // Ten minutes for monsters to move on; meanwhile shops, banks and gates elsewhere come first.
+        markUnreachable(goal, position(), 10 * 60_000);
+        noteTrouble(position(), 'dangerous');
         throw new Blocked(
           'dangerous',
           `Hostile creatures block every way to ${goal.x},${goal.y} (${wary.map((m) => `${m.name ?? 'something'} 0x${m.graphic.toString(16)} at ${m.position?.x},${m.position?.y}`).join(', ')})`
@@ -152,7 +177,17 @@ export function createNavigator(options: {
       }
       if (!path?.length) {
         if (lockedDoors.size) throw new Blocked('locked-door', `Locked door blocks every route to ${goal.x},${goal.y}`);
+        // No way on foot: a teleporter whose far end is nearer the goal (links.ts), walked onto.
+        const link = linkToward(position(), goal, linksTried, start);
+        if (link) {
+          linksTried.add(link);
+          phase('teleporter', `Taking the teleporter at ${link.from.x},${link.from.y}`);
+          await go(link.from, 0).catch(() => {});
+          await session.waitFor(() => distance(position(), link.to) <= 3, 'teleport', 4000).catch(() => {});
+          if (distance(position(), link.to) <= 3) continue;
+        }
         markUnreachable(goal, position());
+        noteTrouble(goal, 'unreachable');
         throw new Blocked('unreachable', `No walkable route to ${goal.x},${goal.y}`);
       }
       for (const point of path) {
@@ -173,7 +208,7 @@ export function createNavigator(options: {
           await session.walk(direction);
           await Bun.sleep(Math.max(0, 110 - (performance.now() - turnAt)));
         }
-        const ghost = [0x192, 0x193, 0x25f, 0x260].includes(session.world.entities.get(serial)?.graphic ?? 0);
+        const ghost = GHOST_BODIES.has(session.world.entities.get(serial)?.graphic ?? 0);
         if (
           !ghost &&
           !options.avoidRest &&
@@ -206,15 +241,18 @@ export function createNavigator(options: {
           }
           if (canPause(session) && status().stamina <= 3) throw new Error('Stamina did not recover enough to continue');
         }
+        const urgent = options.purpose === 'escape' || options.purpose === 'combat';
         const running =
           !options.walkOnly?.() &&
+          // Through a crowd or leading someone, people walk (human-pace.ts).
+          (urgent || !walkingPace(session)) &&
           (options.runClose || distance(position(), goal) > 3) &&
           (ghost || (status().stamina >= status().maxStamina * 0.35 && status().weight < status().maxWeight * 0.95));
         // Standing to talk with a player pauses every walk (engagement.ts).
         await holdWhileEngaged(session);
         check();
         const sentAt = performance.now();
-        const accepted = await session.walk(direction, point.z, running);
+        const accepted = await session.walk(slip(direction, urgent), point.z, running);
         noteStep(session);
         const mounted = !!mountEquipment(session.world);
         const interval = mounted
@@ -222,6 +260,9 @@ export function createNavigator(options: {
           : (running ? 210 : 390) + Math.random() * (running ? 20 : 40);
         await Bun.sleep(Math.max(0, interval - (performance.now() - sentAt)));
         await options.onStep?.();
+        // Now and then a stop on the way, as a person looks around (human-pace.ts).
+        const pause = pauseFor(session, urgent);
+        if (pause) await checkedDelay(pause, check);
         // Every fourth step, loose valuables within reach are taken without leaving the route (not
         // by a thief sneaking up on a mark, whose stealth a lift could break).
         if (accepted && canPause(session) && (travelled & 3) === 0 && !options.walkOnly?.())

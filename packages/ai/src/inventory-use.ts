@@ -1,4 +1,4 @@
-import { gold, isDeathRobe } from '@gemwright/common/items';
+import { gold, isDeathRobe, ore, reagents } from '@gemwright/common/items';
 
 import { canPause } from './action-purpose';
 import { weaponsFor } from './fighter-context';
@@ -94,11 +94,11 @@ export async function usefulGift(session: PlayerSession, item: Entity): Promise<
 
   const profession = professionOf(ctx.template.id)?.[0] ?? ctx.template.archetype?.id ?? '';
   const materials: Record<string, number[]> = {
-    miner: [0x1bf2, 0x19b7, 0x19b8, 0x19b9, 0x19ba],
+    miner: [0x1bf2, ...ore], // iron ingots, ore
     lumberjack: [0x1bd7, 0x1bdd],
     tailor: [0x1766, 0x1767, 0x0f95, 0x0df8, 0x0e1d, 0x0e1e, 0x0e1f, 0x0f9e, 0x0f9f],
     bowyer: [0x1bd7, 0x1bdd, 0x1bd1, 0x1bd4],
-    alchemist: [0x0f0e, 0x0f7a, 0x0f7b, 0x0f84, 0x0f85, 0x0f86, 0x0f88, 0x0f8c, 0x0f8d]
+    alchemist: [0x0f0e, ...reagents] // bottles, reagents
   };
   if (materials[profession]?.includes(item.graphic)) return true;
   return betterEquipment(session, item);

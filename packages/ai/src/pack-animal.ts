@@ -1,3 +1,4 @@
+import { knownBankGold } from './bank-gold';
 import { saving } from './housing';
 import { pickLocation } from './locations';
 import { createMountServices } from './mount-services';
@@ -6,6 +7,7 @@ import { distance } from './navigation';
 import { petSource } from './pets';
 import { Layer } from './protocol/layers';
 import type { Entity } from './protocol/world';
+import { animalFromResident } from './resident-offers';
 
 // A gatherer's pack horse or llama, bought from the animal trainer like the riding horse (ServUO
 // SBAnimalTrainer: pack horse 631, pack llama 565 gold). Its StrongBackpack holds 1600 stones and
@@ -16,13 +18,20 @@ import type { Entity } from './protocol/world';
 export const packBodies = new Set([0x123, 0x124]);
 const OPEN_PACK = 3006145;
 const CAPACITY = 1500;
-// The pack animal takes a follower slot beside the riding horse, which is bought first.
+// The pack animal takes a follower slot, beside a riding horse when there is one.
 const RESERVE = 300;
+// Bought only when it has shown it is needed, as players do: loads that filled the pack and sent
+// the gatherer to town, three of them, and savings beyond its price, so a newcomer never spends
+// its first gold on one before it has gathered anything.
+const LOADS_BEFORE_BUYING = 3;
+const SAVINGS_BEYOND_PRICE = 1500;
+const PRICE = 631; // pack horse (SBAnimalTrainer); the llama is 565
 
 export function createPackAnimal(ctx: MountContext, city: string) {
   const { session, checkpoint, position, navigate, phase, persist, log, check } = ctx;
   checkpoint.packAnimal ??= { schemaVersion: 1, state: 'seeking' };
-  const memory: MountMemory & { load?: number; searches?: number; abandoned?: number } = checkpoint.packAnimal;
+  const memory: MountMemory & { load?: number; searches?: number; abandoned?: number; fullLoads?: number } =
+    checkpoint.packAnimal;
   const services = createMountServices(ctx, city, RESERVE, { bodies: packBodies, name: 'pack animal' });
   let calledAt = 0;
   petSource(session, 'pack-animal', () => (memory.horse === undefined ? [] : [memory.horse]));
@@ -60,8 +69,14 @@ export function createPackAnimal(ctx: MountContext, city: string) {
   // Buys one when there is none, the follower slot is free and the gold allows; never a duplicate.
   const acquire = async () => {
     if (memory.horse !== undefined || (memory.retryAfter ?? 0) > Date.now()) return;
-    const mount = checkpoint.mount?.state;
-    if (mount !== 'owned' && mount !== 'riding') return;
+    if (!memory.pending && memory.state !== 'missing') {
+      const savings = (session.world.status?.gold ?? 0) + knownBankGold(checkpoint);
+      if ((memory.fullLoads ?? 0) < LOADS_BEFORE_BUYING || savings < PRICE + SAVINGS_BEYOND_PRICE) return;
+    }
+    // A free follower slot is all it needs; a riding horse is a separate choice (a gargoyle,
+    // which cannot ride, still keeps a pack animal).
+    const status = session.world.status;
+    if (status && (status.followers ?? 0) >= (status.maxFollowers ?? 5)) return;
     if (memory.pending) {
       if (await discover(memory.pending.before)) return;
       if (Date.now() - memory.pending.at < 30 * 60_000) return;
@@ -115,6 +130,8 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     }
     // A second pack animal after losing one waits while the resident saves for a house.
     if (memory.abandoned && saving(ctx)) return;
+    // A tamer's spare pack animal nearby comes cheaper than the stable's (resident-offers.ts).
+    if ((await animalFromResident(ctx, 'pack')) && (await discover())) return;
     try {
       await services.purchase(memory, discover);
     } catch (error) {
@@ -235,5 +252,10 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     return moved;
   };
 
-  return { acquire, keepUp, stow, unload, has: () => memory.horse !== undefined };
+  // A load that filled the pack (the gatherer's town trip): evidence a pack animal would help.
+  const fullLoad = () => {
+    memory.fullLoads = (memory.fullLoads ?? 0) + 1;
+    persist();
+  };
+  return { acquire, keepUp, stow, unload, fullLoad, has: () => memory.horse !== undefined };
 }

@@ -35,10 +35,10 @@ const NO_MANA = 502625;
 const NO_REAGENTS = 502630;
 const FIZZLE = 502632;
 
-type MageryContext = CraftContext & { backpack: () => number };
+export type MageryContext = CraftContext & { backpack: () => number };
 
 // Buys up to `amount` of each wanted graphic from the mage in one visit.
-async function shop(ctx: MageryContext, wanted: Map<number, number>, budget: number) {
+export async function shop(ctx: MageryContext, wanted: Map<number, number>, budget: number) {
   const { session } = ctx;
   return atVendor(ctx, 'mage', 3006103, async (vendor) => {
     const before = session.world.received.get(0x74) ?? 0;
@@ -168,12 +168,11 @@ const combatScrolls = new Map([
 // a day, and only until it is known to be in the book (kept with the resident, so restarts do not
 // repeat it): a cast answered with "You do not have that spell!" decides whether to buy its scroll.
 export async function prepareSpellbook(ctx: MageryContext) {
-  const { session, carried } = ctx;
+  const { session } = ctx;
   ctx.checkpoint.spells ??= { checked: 0, has: [] };
   const spells = ctx.checkpoint.spells;
   if (spells.checked > Date.now() - 24 * 3_600_000) return;
   spells.checked = Date.now();
-  const has = (graphic: number) => carried(ctx.backpack()).some((item) => item.graphic === graphic);
   // A book in hand or in a bag counts: a caster never buys a second one.
   const ownsBook = () =>
     packItems(session, ctx.backpack()).some((item) => item.graphic === book) ||
@@ -182,20 +181,32 @@ export async function prepareSpellbook(ctx: MageryContext) {
   if (!ownsBook()) spells.has = [];
   if (!ownsBook() && !(await shop(ctx, new Map([[book, 1]]), 30))) return;
   for (const [id, scroll] of combatScrolls) {
-    if (spells.has.includes(id)) continue;
     if (session.world.target) break;
-    const seen = new Set(session.world.journal);
-    session.useSkill(id, true);
-    await Bun.sleep(1500);
-    if (session.world.target) session.target(null);
-    if (!session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL)) {
-      spells.has.push(id);
-      continue;
-    }
-    if (!has(scroll) && !(await shop(ctx, new Map([[scroll, 1]]), 40))) continue;
-    const item = carried(ctx.backpack()).find((i) => i.graphic === scroll);
-    const target = carried(ctx.backpack()).find((i) => i.graphic === book);
-    if (item && target) await session.moveItem(item.serial, target.serial).catch(() => {});
-    if (item && !session.world.entities.has(item.serial)) spells.has.push(id);
+    await ensureSpell(ctx, id, scroll);
   }
+}
+
+// Puts one spell in the book: tried by casting once (and the cursor dropped), its scroll bought
+// from the mage only when the server answers "You do not have that spell!". True when it is in.
+export async function ensureSpell(ctx: MageryContext, id: number, scroll: number): Promise<boolean> {
+  const { session, carried } = ctx;
+  ctx.checkpoint.spells ??= { checked: 0, has: [] };
+  const spells = ctx.checkpoint.spells;
+  if (spells.has.includes(id)) return true;
+  if (session.world.target) return false;
+  const seen = new Set(session.world.journal);
+  session.useSkill(id, true);
+  await Bun.sleep(1500);
+  if (session.world.target) session.target(null);
+  if (!session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL)) {
+    spells.has.push(id);
+    return true;
+  }
+  const has = () => carried(ctx.backpack()).some((item) => item.graphic === scroll);
+  if (!has() && !(await shop(ctx, new Map([[scroll, 1]]), 40))) return false;
+  const item = carried(ctx.backpack()).find((i) => i.graphic === scroll);
+  const target = carried(ctx.backpack()).find((i) => i.graphic === book);
+  if (item && target) await session.moveItem(item.serial, target.serial).catch(() => {});
+  if (item && !session.world.entities.has(item.serial)) spells.has.push(id);
+  return spells.has.includes(id);
 }

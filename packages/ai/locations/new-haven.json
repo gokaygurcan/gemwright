@@ -1,0 +1,522 @@
+{
+ "schemaVersion": 1,
+ "source": "ServUO Data/Regions.xml, Spawns/trammel.xml and PublicMoongate.cs (Haven Island)",
+ "island": {
+  "x0": 3314,
+  "y0": 2345,
+  "x1": 3814,
+  "y1": 3095
+ },
+ "town": {
+  "x0": 3423,
+  "y0": 2480,
+  "x1": 3534,
+  "y1": 2623
+ },
+ "moongate": {
+  "x": 3450,
+  "y": 2677,
+  "z": 25
+ },
+ "mines": {
+  "x": 3481,
+  "y": 2757,
+  "radius": 55
+ },
+ "docks": {
+  "x": 3514,
+  "y": 2602
+ },
+ "services": {
+  "banker": [
+   {
+    "name": "New Haven banker",
+    "x": 3484,
+    "y": 2572
+   },
+   {
+    "name": "New Haven banker",
+    "x": 3484,
+    "y": 2576
+   },
+   {
+    "name": "New Haven banker",
+    "x": 3484,
+    "y": 2570
+   }
+  ],
+  "animal-trainer": [
+   {
+    "name": "New Haven animaltrainer",
+    "x": 3527,
+    "y": 2576
+   }
+  ],
+  "fisherman": [
+   {
+    "name": "New Haven fisherman",
+    "x": 3520,
+    "y": 2598
+   },
+   {
+    "name": "New Haven fisherguildmaster",
+    "x": 3501,
+    "y": 2608
+   },
+   {
+    "name": "New Haven fisherman",
+    "x": 3501,
+    "y": 2608
+   },
+   {
+    "name": "New Haven fisherman",
+    "x": 3504,
+    "y": 2612
+   }
+  ],
+  "mage": [
+   {
+    "name": "New Haven holymage",
+    "x": 3502,
+    "y": 2414
+   },
+   {
+    "name": "New Haven mage",
+    "x": 3495,
+    "y": 2530
+   },
+   {
+    "name": "New Haven mage",
+    "x": 3484,
+    "y": 2500
+   },
+   {
+    "name": "New Haven scribe",
+    "x": 3481,
+    "y": 2534
+   },
+   {
+    "name": "New Haven scribe",
+    "x": 3471,
+    "y": 2528
+   },
+   {
+    "name": "New Haven mage",
+    "x": 3495,
+    "y": 2532
+   },
+   {
+    "name": "New Haven mageguildmaster",
+    "x": 3495,
+    "y": 2527
+   }
+  ],
+  "tinker": [
+   {
+    "name": "New Haven tinker",
+    "x": 3458,
+    "y": 2528
+   },
+   {
+    "name": "New Haven tinkerguildmaster",
+    "x": 3458,
+    "y": 2528
+   }
+  ],
+  "mining-tools": [
+   {
+    "name": "New Haven tinker",
+    "x": 3458,
+    "y": 2528
+   },
+   {
+    "name": "New Haven tinkerguildmaster",
+    "x": 3458,
+    "y": 2528
+   },
+   {
+    "name": "New Haven miner",
+    "x": 3506,
+    "y": 2746
+   },
+   {
+    "name": "New Haven miner",
+    "x": 3526,
+    "y": 2536
+   }
+  ],
+  "blacksmith": [
+   {
+    "name": "New Haven blacksmith",
+    "x": 3525,
+    "y": 2537
+   },
+   {
+    "name": "New Haven armorer",
+    "x": 3474,
+    "y": 2539
+   },
+   {
+    "name": "New Haven blacksmith",
+    "x": 3470,
+    "y": 2539
+   },
+   {
+    "name": "New Haven blacksmithguildmaster",
+    "x": 3526,
+    "y": 2536
+   },
+   {
+    "name": "New Haven blacksmithguildmaster",
+    "x": 3469,
+    "y": 2536
+   },
+   {
+    "name": "New Haven blacksmith",
+    "x": 3469,
+    "y": 2539
+   },
+   {
+    "name": "New Haven ironworker",
+    "x": 3526,
+    "y": 2536
+   }
+  ],
+  "tailor": [
+   {
+    "name": "New Haven tailor",
+    "x": 3496,
+    "y": 2552
+   },
+   {
+    "name": "New Haven weaver",
+    "x": 3496,
+    "y": 2552
+   },
+   {
+    "name": "New Haven tailor",
+    "x": 3497,
+    "y": 2552
+   },
+   {
+    "name": "New Haven tailorguildmaster",
+    "x": 3494,
+    "y": 2551
+   },
+   {
+    "name": "New Haven weaver",
+    "x": 3496,
+    "y": 2547
+   }
+  ],
+  "provisioner": [
+   {
+    "name": "New Haven provisioner",
+    "x": 3507,
+    "y": 2553
+   }
+  ],
+  "alchemist": [
+   {
+    "name": "New Haven alchemist",
+    "x": 3495,
+    "y": 2529
+   },
+   {
+    "name": "New Haven herbalist",
+    "x": 3484,
+    "y": 2500
+   },
+   {
+    "name": "New Haven alchemist",
+    "x": 3463,
+    "y": 2567
+   },
+   {
+    "name": "New Haven herbalist",
+    "x": 3470,
+    "y": 2519
+   },
+   {
+    "name": "New Haven herbalist",
+    "x": 3462,
+    "y": 2568
+   }
+  ],
+  "cook": [
+   {
+    "name": "New Haven baker",
+    "x": 3463,
+    "y": 2576
+   },
+   {
+    "name": "New Haven cook",
+    "x": 3497,
+    "y": 2518
+   }
+  ],
+  "weaponsmith": [
+   {
+    "name": "New Haven weaponsmith",
+    "x": 3471,
+    "y": 2539
+   }
+  ],
+  "carpenter": [
+   {
+    "name": "New Haven carpenter",
+    "x": 3444,
+    "y": 2637
+   }
+  ],
+  "bard": [
+   {
+    "name": "New Haven bard",
+    "x": 3414,
+    "y": 2602
+   }
+  ],
+  "healer": [
+   {
+    "name": "New Haven healerguildmaster",
+    "x": 3464,
+    "y": 2558
+   },
+   {
+    "name": "New Haven healer",
+    "x": 3462,
+    "y": 2559
+   }
+  ],
+  "jeweler": [
+   {
+    "name": "New Haven jeweler",
+    "x": 3508,
+    "y": 2553
+   }
+  ],
+  "graveyard": [
+   {
+    "name": "Old Haven",
+    "x": 3650,
+    "y": 2510
+   }
+  ]
+ },
+ "grounds": [
+  {
+   "name": "bogling and greater mongbat near 3357,2666",
+   "center": {
+    "x": 3357,
+    "y": 2666
+   },
+   "radius": 30,
+   "creatures": {
+    "Bogling": 2,
+    "GreaterMongbat": 2
+   }
+  },
+  {
+   "name": "bogling and greater mongbat near 3369,2709",
+   "center": {
+    "x": 3369,
+    "y": 2709
+   },
+   "radius": 30,
+   "creatures": {
+    "Bogling": 2,
+    "GreaterMongbat": 2
+   }
+  },
+  {
+   "name": "bogling and greater mongbat near 3373,2621",
+   "center": {
+    "x": 3373,
+    "y": 2621
+   },
+   "radius": 30,
+   "creatures": {
+    "Bogling": 2,
+    "GreaterMongbat": 2
+   }
+  },
+  {
+   "name": "mongbat and zombie near 3407,2652",
+   "center": {
+    "x": 3407,
+    "y": 2652
+   },
+   "radius": 30,
+   "creatures": {
+    "Mongbat": 4,
+    "Zombie": 2,
+    "Skeleton": 2
+   }
+  },
+  {
+   "name": "mongbat and ettin near 3470,2741",
+   "center": {
+    "x": 3470,
+    "y": 2741
+   },
+   "radius": 30,
+   "creatures": {
+    "Mongbat": 5,
+    "Ettin": 3
+   }
+  },
+  {
+   "name": "mongbat and bogling near 3549,2409",
+   "center": {
+    "x": 3549,
+    "y": 2409
+   },
+   "radius": 30,
+   "creatures": {
+    "Mongbat": 3,
+    "Bogling": 3
+   }
+  },
+  {
+   "name": "mongbat and bogling near 3575,2523",
+   "center": {
+    "x": 3575,
+    "y": 2523
+   },
+   "radius": 30,
+   "creatures": {
+    "Mongbat": 2,
+    "Bogling": 2
+   }
+  },
+  {
+   "name": "zombie and wraith near 3602,2455",
+   "center": {
+    "x": 3602,
+    "y": 2455
+   },
+   "radius": 30,
+   "creatures": {
+    "Zombie": 2,
+    "Wraith": 2,
+    "Ghoul": 2,
+    "Skeleton": 2
+   }
+  },
+  {
+   "name": "zombie near 3625,2594",
+   "center": {
+    "x": 3625,
+    "y": 2594
+   },
+   "radius": 30,
+   "creatures": {
+    "Zombie": 10
+   }
+  },
+  {
+   "name": "zombie near 3649,2591",
+   "center": {
+    "x": 3649,
+    "y": 2591
+   },
+   "radius": 30,
+   "creatures": {
+    "Zombie": 10
+   }
+  },
+  {
+   "name": "zombie and skeleton near 3651,2509",
+   "center": {
+    "x": 3651,
+    "y": 2509
+   },
+   "radius": 30,
+   "creatures": {
+    "Zombie": 49,
+    "Skeleton": 49,
+    "Drelgor": 19
+   }
+  },
+  {
+   "name": "skeleton near 3651,2627",
+   "center": {
+    "x": 3651,
+    "y": 2627
+   },
+   "radius": 30,
+   "creatures": {
+    "Skeleton": 17
+   }
+  },
+  {
+   "name": "skeleton and zombie near 3673,2500",
+   "center": {
+    "x": 3673,
+    "y": 2500
+   },
+   "radius": 30,
+   "creatures": {
+    "Skeleton": 5,
+    "Zombie": 5,
+    "SkeletalKnight": 5
+   }
+  },
+  {
+   "name": "mongbat near 3690,2422",
+   "center": {
+    "x": 3690,
+    "y": 2422
+   },
+   "radius": 30,
+   "creatures": {
+    "Mongbat": 4
+   }
+  },
+  {
+   "name": "mongbat near 3742,2520",
+   "center": {
+    "x": 3742,
+    "y": 2520
+   },
+   "radius": 30,
+   "creatures": {
+    "Mongbat": 4
+   }
+  },
+  {
+   "name": "greater mongbat near 3754,2530",
+   "center": {
+    "x": 3754,
+    "y": 2530
+   },
+   "radius": 30,
+   "creatures": {
+    "GreaterMongbat": 5
+   }
+  },
+  {
+   "name": "corpser and lizardman near 3772,2771",
+   "center": {
+    "x": 3772,
+    "y": 2771
+   },
+   "radius": 30,
+   "creatures": {
+    "Corpser": 2,
+    "Lizardman": 2
+   }
+  },
+  {
+   "name": "greater mongbat near 3776,2585",
+   "center": {
+    "x": 3776,
+    "y": 2585
+   },
+   "radius": 30,
+   "creatures": {
+    "GreaterMongbat": 4
+   }
+  }
+ ]
+}

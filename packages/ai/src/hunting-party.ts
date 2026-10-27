@@ -1,4 +1,5 @@
 import { tally } from './activity';
+import { appraise } from './appraise';
 import { type DecisionCoordinator, decisionState } from './decisions';
 import { type FighterContext, weaponSkill } from './fighter-context';
 import { distance } from './navigation';
@@ -44,6 +45,12 @@ const leave = (ctx: FighterContext, reason: string) => {
   if (!party) return;
   party.members.delete(ctx.serial);
   parties.delete(ctx.serial);
+  // Hunting together makes friends: each partner is liked a little more (relationships.ts).
+  for (const member of [party.leader, ...party.members]) {
+    const name = member === ctx.serial ? undefined : ctx.session.world.entities.get(member)?.name;
+    const known = name ? ctx.checkpoint.relationships[name] : undefined;
+    if (known) known.affinity = Math.min(1, known.affinity + 0.1);
+  }
   if (party.leader === ctx.serial) for (const member of party.members) parties.delete(member);
   try {
     ctx.session.party('leave', ctx.serial);
@@ -60,7 +67,10 @@ async function answerInvite(ctx: FighterContext, leader: number, size: number, d
   const name = ctx.session.world.entities.get(leader)?.name ?? 'a fighter';
   if (!decisions) {
     const trust = ctx.checkpoint.personal?.partners[leader]?.trust ?? 0;
-    return trust >= 0.25 || ctx.template.behavior.cooperation >= 0.25;
+    // One who looks able (appraise.ts) is worth following even without history.
+    const inviter = ctx.session.world.entities.get(leader);
+    const able = inviter ? appraise(ctx.session, inviter, ctx.checkpoint.self).wouldHuntWith : false;
+    return trust >= 0.25 || able || ctx.template.behavior.cooperation >= 0.25;
   }
   const present = () => !!ctx.session.world.entities.get(leader)?.position;
   const pick = await decisions.choose({
@@ -71,6 +81,9 @@ async function answerInvite(ctx: FighterContext, leader: number, size: number, d
       inviter: name,
       partySize: size,
       affinity: ctx.checkpoint.relationships[name]?.affinity ?? 0,
+      inviterLooks: ctx.session.world.entities.get(leader)
+        ? appraise(ctx.session, ctx.session.world.entities.get(leader) as Entity, ctx.checkpoint.self).opinion
+        : undefined,
       health: Math.round((ctx.status().hits / Math.max(1, ctx.status().maxHits)) * 100) / 100
     }),
     candidates: [
@@ -144,15 +157,23 @@ export async function organizeParty(ctx: FighterContext, decisions?: DecisionCoo
         m.position &&
         distance(m.position, ctx.position()) <= RANGE
     );
-  if (!party && (free.length < 2 || free.some((m) => m.serial < serial))) return;
+  // Sized up first (appraise.ts): a fighter hunts beside those about its match or stronger; a weak
+  // one is glad of anyone armed. Two are enough for a party.
+  const me = ctx.checkpoint.self;
+  const worth = new Map(free.map((m) => [m.serial, appraise(session, m, me)]));
+  const welcome = free.filter(
+    (m) => worth.get(m.serial)?.wouldHuntWith || ((me?.power ?? 1) < 0.4 && worth.get(m.serial)?.weapon)
+  );
+  if (!party && (welcome.length < 1 || welcome.some((m) => m.serial < serial))) return;
   const own = party ?? { leader: serial, members: new Set([serial]) };
   parties.set(serial, own);
-  free.sort(
+  welcome.sort(
     (a, b) =>
       (ctx.checkpoint.personal?.partners[b.serial]?.trust ?? 0) -
-      (ctx.checkpoint.personal?.partners[a.serial]?.trust ?? 0)
+        (ctx.checkpoint.personal?.partners[a.serial]?.trust ?? 0) ||
+      (worth.get(b.serial)?.power ?? 0) - (worth.get(a.serial)?.power ?? 0)
   );
-  for (const member of free.slice(0, MAX_MEMBERS - own.members.size)) {
+  for (const member of welcome.slice(0, MAX_MEMBERS - own.members.size)) {
     try {
       session.party('add');
       await session.waitFor(() => session.world.target !== null, 'party member cursor', 3000);
@@ -163,8 +184,8 @@ export async function organizeParty(ctx: FighterContext, decisions?: DecisionCoo
       if (session.world.target) session.target(null);
     }
   }
-  if (own.members.size === 1 && !free.some((m) => invites.get(m.serial) === serial)) parties.delete(serial);
-  else ctx.log(`Leading a hunting party; invited ${free.length} nearby fighters`);
+  if (own.members.size === 1 && !welcome.some((m) => invites.get(m.serial) === serial)) parties.delete(serial);
+  else ctx.log(`Leading a hunting party; invited ${welcome.length} nearby fighters`);
 }
 
 // Dungeon parties (dungeon-party.ts) form through the same ServUO party and share this registry,

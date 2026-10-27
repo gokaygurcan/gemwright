@@ -1,3 +1,5 @@
+import { ore } from '@gemwright/common/items';
+
 import { packItems } from './inventory';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
@@ -9,7 +11,7 @@ import type { Entity } from './protocol/world';
 const DECAY_MS = 50 * 60_000;
 // Cheap and heavy, put down first: ore (12 stones a piece), logs, boards, hides, ingots, sand.
 const heavyFirst = [
-  [0x19b7, 0x19b8, 0x19b9, 0x19ba], // ore
+  [...ore], // ore
   [0x1bdd, 0x1be0], // logs
   [0x1bd7, 0x1bd8], // boards
   [0x1078, 0x1079], // hides

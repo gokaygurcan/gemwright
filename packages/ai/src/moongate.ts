@@ -1,14 +1,18 @@
 import { GHOST_BODIES } from '@gemwright/common/bodies';
 
+import { areaHere, gateArea, strandedAt } from './areas';
 import { Blocked } from './blocked';
 import { threatsNear } from './danger';
 import { dangerAhead } from './danger-response';
+import { confinedToHaven } from './haven';
+import { lasting } from './lasting';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { gatherPets } from './pets';
 import { moongateDestination } from './protocol/gumps';
 import type { PlayerSession } from './protocol/session';
 import type { Position } from './protocol/world';
+import { recallFor } from './recall';
 import { noteStranded, strandedOften, useStuckMenu } from './stuck';
 import { reachableFrom } from './unreachable';
 
@@ -21,7 +25,9 @@ export const moongates = {
   yew: { x: 771, y: 752, z: 5, label: 1012006 },
   minoc: { x: 2701, y: 692, z: 5, label: 1012007 },
   trinsic: { x: 1828, y: 2948, z: -20, label: 1012008 },
-  skara: { x: 643, y: 2067, z: 5, label: 1012009 }
+  skara: { x: 643, y: 2067, z: 5, label: 1012009 },
+  // PublicMoongate.cs PMEntry for New Haven (Trammel).
+  newhaven: { x: 3450, y: 2677, z: 25, label: 1078098 }
 } as const;
 export type Gate = keyof typeof moongates;
 
@@ -45,6 +51,9 @@ export async function travelByMoongate(
   to: Gate
 ) {
   const { session, position, navigate, phase } = ctx;
+  // A Young resident of New Haven only ever takes the gate home (haven.ts).
+  if (confinedToHaven(session) && to !== 'newhaven')
+    throw new Blocked('unreachable', `Staying on Haven Island while Young (not taking the gate to ${to})`);
   const here = position();
   const order = (Object.keys(moongates) as Gate[]).sort(
     (a, b) => distance(here, moongates[a]) - distance(here, moongates[b])
@@ -53,8 +62,13 @@ export async function travelByMoongate(
   let from: Gate | undefined;
   // A gate within walking range first: walking to a far one crosses the wilds (and its monsters).
   // Stranded farther out (a desert, a far mine), the nearest gates it can walk to, however far.
-  const near = order.filter((gate) => distance(here, moongates[gate]) <= 500);
-  for (const candidate of near.length ? near : order.slice(0, 3)) {
+  // Only gates in its own walkable area (areas.ts); none at all means walking out is impossible.
+  const own = order.filter((gate) => {
+    const area = areaHere(here);
+    return area === undefined || gateArea(moongates[gate]) === area;
+  });
+  const near = own.filter((gate) => distance(here, moongates[gate]) <= 500);
+  for (const candidate of near.length ? near : own.slice(0, 3)) {
     if (!reachableFrom(moongates[candidate], here) || dangerAhead(session, here, moongates[candidate])) continue;
     phase('moongate-travel', `Walking to the ${candidate} moongate to travel to ${to}`);
     try {
@@ -66,15 +80,20 @@ export async function travelByMoongate(
     from = candidate;
     break;
   }
+  // Stranded with a marked rune anywhere: recall to it, as a player would (recall.ts).
+  if (!from && (await recallFor(session)?.(target, 10_000))) return;
   if (!from) noteStranded(session);
+  // In an area with no moongate it is stranded for sure: help at once, not after three tries.
   if (
     !from &&
-    strandedOften(session) &&
+    (strandedAt(here) || strandedOften(session)) &&
     (await useStuckMenu({ session, phase, log: (m) => phase('stuck', m) }, to, 'no moongate within reach'))
   )
     return;
   if (!from) throw new Blocked('unreachable', `No public moongate can be reached on foot from ${here.x},${here.y}`);
   if (from === to) return;
+  if (lasting('gate-ban', session.world.serial ?? -1).active(`${from}>${to}`))
+    throw new Blocked('unreachable', `The ${from} moongate failed to take me to ${to} lately`);
   const item = [...session.world.entities.values()].find(
     (entity) => entity.graphic === 0x0f6c && entity.position && distance(position(), entity.position) <= 1
   );
@@ -96,7 +115,15 @@ export async function travelByMoongate(
   const choice = gump && moongateDestination(gump.layout, target.label);
   if (!gump || choice === undefined) throw new Error(`${to} was not offered on the Trammel moongate page`);
   session.replyGump(gump.serial, gump.id, 1, [choice]);
-  await session.waitFor(() => distance(position(), target) <= 2 && session.world.map === 1, `arrival at ${to}`);
+  // The far gate sets one down beside it, not always on the catalogued tile. A crossing that never
+  // arrives is not tried again for two hours (ROADMAP.md step 2).
+  const crossing = lasting('gate-ban', session.world.serial ?? -1);
+  try {
+    await session.waitFor(() => distance(position(), target) <= 6 && session.world.map === 1, `arrival at ${to}`);
+  } catch {
+    crossing.set(`${from}>${to}`, Date.now() + 2 * 3_600_000);
+    throw new Blocked('unreachable', `The ${from} moongate did not take me to ${to}`);
+  }
   phase('moongate-arrival', `Arrived through the ${to} moongate`);
   // Monsters waiting at the far gate: straight back through it, as a player steps back in,
   // and the road there is remembered as dangerous for a while.

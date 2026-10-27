@@ -1,9 +1,11 @@
-import { isDeathRobe } from '@gemwright/common/items';
+import { gold, isDeathRobe } from '@gemwright/common/items';
 import { LAYERS } from '@gemwright/common/layers';
 
 import type { CraftContext } from './craft-training';
+import { isGargoyle } from './flight';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
+import { buyOffer, findOffer } from './resident-offers';
 import type { Terrain } from './terrain';
 import { buyFrom } from './vendor-trade';
 
@@ -47,8 +49,9 @@ const SHIRT = 0x1517; // shirt, 12 gold
 const CLOTHES = { reserve: 50, perHour: 100 };
 const lastTry = new WeakMap<PlayerSession, number>();
 
-// New clothes for a resident still in the death robe with nothing of its own: at most every half
-// hour, and only once it has a robe's price and the reserve. Then the robe comes off.
+// New clothes for a resident still in the death robe with nothing of its own: from a resident
+// tailor nearby when there is one, else the shop at most every half hour with a robe's price and
+// the reserve. Then the robe comes off.
 export async function replaceDeathRobe(ctx: CraftContext & { backpack: () => number }): Promise<boolean> {
   const { session } = ctx;
   // Each death in the robe leaves the old one in the pack (it is newbied, so it survives death).
@@ -58,8 +61,22 @@ export async function replaceDeathRobe(ctx: CraftContext & { backpack: () => num
     await putDown(session, spare.serial, n);
   if (!wearsDeathRobe(session)) return false;
   if (await shedDeathRobe(session, ctx.terrain, ctx.carried(ctx.backpack()))) return true;
+  // Human robes and shirts do not fit a gargoyle; it keeps its own gear (flight.ts).
+  if (isGargoyle(session)) return false;
+  if (Date.now() - (lastTry.get(session) ?? 0) < 30 * 60_000) return false;
+  // A resident tailor nearby sells for less than the shop (resident-offers.ts): even the
+  // poorest can afford a shirt from one.
+  const coins = ctx
+    .carried(ctx.backpack())
+    .filter((i) => i.graphic === gold && !i.hue)
+    .reduce((n, i) => n + (i.amount ?? 1), 0);
+  const offer = findOffer('clothes', ctx.position(), 40, coins, ctx.serial);
+  if (offer && (await buyOffer(ctx, offer).catch(() => false))) {
+    lastTry.set(session, Date.now());
+    return shedDeathRobe(session, ctx.terrain, ctx.carried(ctx.backpack()));
+  }
   const funds = (session.world.status?.gold ?? 0) + (ctx.checkpoint.funds?.bank ?? 0);
-  if (funds < 18 + CLOTHES.reserve || Date.now() - (lastTry.get(session) ?? 0) < 30 * 60_000) return false;
+  if (funds < 18 + CLOTHES.reserve) return false;
   lastTry.set(session, Date.now());
   ctx.phase('buying-clothes', 'Buying a robe to wear instead of the death robe');
   for (const graphic of [ROBE, SHIRT])

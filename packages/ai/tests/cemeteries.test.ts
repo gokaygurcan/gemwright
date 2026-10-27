@@ -25,6 +25,7 @@ test('a fighter moves on to grounds its skills meet: graveyards early, ogres and
       template: { archetype: { primarySkills: ['Swordsmanship'], supportingSkills: [] }, behavior: {} },
       session: {
         world: {
+          childrenOf: () => [{ layer: 1, graphic: 0x13ff }],
           skills: new Map([
             [skillId('Swordsmanship'), { value: swords, base: swords }],
             [skillId('Tactics'), { value: swords, base: swords }]

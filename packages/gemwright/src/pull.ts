@@ -89,27 +89,32 @@ export async function pull(parts: PullParts, directory = process.cwd()): Promise
     const aiService = ai?.service;
     const aiVolume = ai?.volume;
     if (want.ai && aiService && aiVolume) {
-      // A consistent copy made inside the container, downloaded, then removed from the volume.
-      const snapshot = `pull-${stamp}.sqlite`;
+      // A consistent copy made in the container's temporary folder (never on the volume), streamed
+      // back over SSH as base64 and removed there in the same command.
+      const snapshot = `/tmp/pull-${stamp}.sqlite`;
+      const target = join(out, 'ai/residents.sqlite');
       const made = await railway(
         [
           'ssh',
           ...scope,
           '--service',
           aiService,
-          `cd /app/data && bun -e "new (require('bun:sqlite').Database)('residents.sqlite').exec(\\"VACUUM INTO '${snapshot}'\\")"`
+          `cd /app/data && bun -e "new (require('bun:sqlite').Database)('residents.sqlite').exec(\\"VACUUM INTO '${snapshot}'\\")" && base64 ${snapshot}; rm -f ${snapshot}`
         ],
         directory
       ).then(
-        () => true,
+        async (encoded) => {
+          const bytes = Buffer.from(encoded.replace(/[^A-Za-z0-9+/=]/g, ''), 'base64');
+          if (!bytes.subarray(0, 15).equals(Buffer.from('SQLite format 3'))) return false;
+          await mkdir(dirname(target), { recursive: true });
+          await writeFile(target, bytes);
+          return true;
+        },
         () => false
       );
       if (made) {
-        await record('ai', 'ai/residents.sqlite', () => download(aiVolume, `/${snapshot}`, 'ai/residents.sqlite'));
-        await railway(
-          ['volume', ...scope, 'files', '--volume', aiVolume, 'delete', `/${snapshot}`, '--yes', '--json'],
-          directory
-        ).catch(() => console.log(`Left /${snapshot} on the AI volume; delete it when convenient.`));
+        entries.push({ part: 'ai', path: 'ai/residents.sqlite', bytes: await size(target) });
+        console.log('Pulled ai: ai/residents.sqlite');
       } else {
         // Without a snapshot: the database with its write-ahead log, which SQLite replays on open.
         for (const file of ['residents.sqlite', 'residents.sqlite-wal'])
@@ -160,7 +165,17 @@ export async function pull(parts: PullParts, directory = process.cwd()): Promise
 
 export async function railway(args: string[], directory: string): Promise<string> {
   const { code, stdout, stderr } = await runCommand(['railway', ...args], directory);
-  if (code !== 0) throw new Error(stderr.split('\n').filter(Boolean).at(-1) || stdout || `railway ${args[0]} failed`);
+  // The whole message: Railway's reason can come before a closing hint line.
+  if (code !== 0)
+    throw new Error(
+      stderr
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('> Select'))
+        .join(' ') ||
+        stdout ||
+        `railway ${args[0]} failed`
+    );
   return stdout;
 }
 

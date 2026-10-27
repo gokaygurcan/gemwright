@@ -24,3 +24,13 @@ export function characterList(packet: Buffer): { characters: string[]; cities: C
   }
   return { characters, cities };
 }
+
+// Server list (0xA8): each entry's index and name.
+export function serverList(packet: Buffer): { index: number; name: string }[] {
+  const count = packet.readUInt16BE(4);
+  if (count > 100 || packet.length !== 6 + count * 40) throw new Error('Invalid server list');
+  return Array.from({ length: count }, (_, i) => ({
+    index: packet.readUInt16BE(6 + i * 40),
+    name: text(packet, 8 + i * 40, 32)
+  }));
+}

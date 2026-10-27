@@ -22,6 +22,16 @@ export interface DecisionConfig {
   // Shared by every resident in one population (spend-ledger.ts); $5 a month is about $0.16 a day.
   maxPopulationDailyCostUsd: number;
   maxRequestBytes: number;
+  // The share of residents that ask the model (0-1); the rest decide locally, as the baseline the
+  // model is compared against at population scale (analyze /decisions).
+  share: number;
+}
+
+// Whether a resident is in the model's share: fixed by its id, so the groups stay the same.
+export function inModelShare(residentId: string, share: number) {
+  let hash = 0;
+  for (const char of residentId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return hash % 100 < Math.round(share * 100);
 }
 
 export function validateDecisionConfig(value: unknown): DecisionConfig {
@@ -38,7 +48,8 @@ export function validateDecisionConfig(value: unknown): DecisionConfig {
     maxRequestsPerDay: 200,
     maxDailyCostUsd: 0.02,
     maxPopulationDailyCostUsd: 0.16,
-    maxRequestBytes: 12000
+    maxRequestBytes: 12000,
+    share: 1
   };
   if (Object.keys(config).some((key) => !Object.hasOwn(defaults, key)))
     throw new Error('Unknown decision configuration field');
@@ -48,6 +59,9 @@ export function validateDecisionConfig(value: unknown): DecisionConfig {
     !['jev', 'local'].includes(result.provider) ||
     !['jev-1.13.0', 'jev-1.14.0'].includes(result.model) ||
     typeof result.credentialEnv !== 'string' ||
+    typeof result.share !== 'number' ||
+    result.share < 0 ||
+    result.share > 1 ||
     !/^[A-Z][A-Z0-9_]{0,79}$/.test(result.credentialEnv)
   )
     throw new Error('Unsupported decision provider, model, or credential reference');

@@ -1,5 +1,13 @@
 # gemwright
 
+## 0.7.0
+
+### Minor Changes
+
+- AI residents live by one goal: grow stronger and richer through their trade, without dying. They know what they wear, carry and own at every moment, do their job first (a fighter with any weapon fights; bandages only shorten recovery), remember errands that gained nothing and leave them for two hours, choose only places they can actually walk to (a new map of walkable areas built from the client files), and a loop guard sends any resident that repeats itself or stands still for five minutes back to its job. Trades without their tool and money for one earn bare-handed instead of begging.
+  
+  The save analyzer opens on the list of pulls, with buttons to fetch a new pull, analyze or delete one, and is now a Preact app with sortable tables and a Loops page. `gemwright pull` no longer leaves database copies on the AI volume. Shard-specific settings (cohorts, retired residents) stay with the shard instead of the package, and the shipped catalogues are rebuilt from the ServUO source.
+
 ## 0.6.0
 
 ### Minor Changes

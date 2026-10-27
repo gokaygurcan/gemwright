@@ -98,7 +98,7 @@
     "New Haven": {
       "facet": 1,
       "enabled": true,
-      "startingCity": false
+      "startingCity": true
     },
     "Wind": {
       "facet": 1,
@@ -550,6 +550,50 @@
       "supplies": {
         "fletcher's tools": 1
       }
+    },
+    "scribe-mage": {
+      "archetype": "scribe-mage",
+      "behavior": "fighter",
+      "share": 0,
+      "creation": {
+        "namePrefix": "Scribe",
+        "skills": {
+          "Magery": 50,
+          "Inscription": 50
+        }
+      },
+      "homes": {},
+      "trainingGoals": {
+        "Magery": 100,
+        "Inscription": 100,
+        "Eval Int": 100
+      },
+      "riskTolerance": 0.4,
+      "supplies": {
+        "bandage": 20
+      }
+    },
+    "warlock": {
+      "archetype": "warlock",
+      "behavior": "fighter",
+      "share": 0,
+      "creation": {
+        "namePrefix": "Warlock",
+        "skills": {
+          "Necromancy": 50,
+          "Magery": 50
+        }
+      },
+      "homes": {},
+      "trainingGoals": {
+        "Necromancy": 100,
+        "Magery": 100,
+        "Spirit Speak": 100
+      },
+      "riskTolerance": 0.45,
+      "supplies": {
+        "bandage": 20
+      }
     }
   },
   "workAreas": {
@@ -569,6 +613,12 @@
         "y": 1195,
         "weight": 1,
         "toolCity": "Britain"
+      },
+      {
+        "city": "New Haven",
+        "x": 3481,
+        "y": 2757,
+        "weight": 0
       }
     ],
     "woods": [
@@ -607,11 +657,17 @@
         "x": 647,
         "y": 2080,
         "weight": 1
+      },
+      {
+        "city": "New Haven",
+        "x": 3460,
+        "y": 2700,
+        "weight": 0
       }
     ]
   },
   "population": {
-    "max": 250
+    "max": 300
   },
   "lifecycle": {
     "note": "Each resident moves between life phases at natural break points (back in town, after banking). `mix` names the time split in `mixes` (shares of time); temperament shifts each resident around it. `minutes` bounds each phase's length; at most `maxSwitchesPerMinute` residents per 50 in the runtime change phase in any minute. `chaos` (0-1) is how unpredictable residents are: detours by real places, passing greetings, changes of plan; a shard's `ai.chaos` overrides it.",

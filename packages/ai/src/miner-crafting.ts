@@ -1,9 +1,9 @@
 import { skillId } from '@gemwright/common/skills';
 
 import { tally } from './activity';
-import { chargedPurchase } from './bank-gold';
+import { chargedPurchase, knownBankGold } from './bank-gold';
 import { storedPieces } from './bank-space';
-import { craftRecipes } from './craft-training';
+import { type CraftSkill, craftRecipes } from './craft-training';
 import { buttonFor } from './gump-flow';
 import { serviceLocations } from './locations';
 import type { createMinerServices } from './miner-services';
@@ -33,6 +33,17 @@ const recipes = craftRecipes('Blacksmith')
     pays: recipe.pays ?? 0,
     ingots: recipe.amount
   }));
+
+// The smith's craft for bulk orders (bulk-orders.ts): every blacksmith recipe, iron from the bank.
+export const blacksmithing: CraftSkill = {
+  skill: 'Blacksmith',
+  vendor: 'blacksmith',
+  tools: smithTools,
+  toolPrice: 30,
+  material: ingot,
+  recipes: craftRecipes('Blacksmith'),
+  unitCost: 5
+};
 
 // Expected gold per ingot: a failed craft loses half the ingots (CraftItem, ConsumeType.Half).
 export function bestRecipe(blacksmith: number) {
@@ -121,6 +132,28 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
     return undefined;
   };
 
+  // CraftGump's "Smelt Item" (GetButtonID(6, 1)) and Resmelt.cs's replies: melted (1044270, or
+  // 500418 for a bought piece) or refused (1044272, 1044269 for no forge near).
+  const SMELT_BUTTON = 14;
+  const SMELTED = [1044270, 500418];
+  const NOT_SMELTED = [1044272, 1044269];
+  // A smith with savings melts its own pieces back into ingots (two thirds come back) to keep
+  // practising when the iron runs out, instead of selling them. True when one melted.
+  const smelt = async (piece: Entity) => {
+    const gump = craftGump();
+    if (!gump) return false;
+    const seen = new Set(session.world.journal);
+    session.replyGump(gump.serial, gump.id, SMELT_BUTTON, []);
+    await session.waitFor(() => session.world.target !== null, 'smelt cursor', 4000).catch(() => {});
+    if (!session.world.target) return false;
+    session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
+    const reply = () =>
+      session.world.journal.find((e) => !seen.has(e) && [...SMELTED, ...NOT_SMELTED].includes(e.cliloc ?? 0))?.cliloc;
+    await session.waitFor(() => reply() !== undefined, 'smelt result', 6000).catch(() => {});
+    return SMELTED.includes(reply() ?? 0);
+  };
+  const SMELT_SAVINGS = 2000;
+
   // Turns carried iron into the best-value item, keeping a remainder too small for one more.
   // Returns the serials crafted, ready to sell.
   const craft = async (backpack: number): Promise<Entity[]> => {
@@ -143,8 +176,24 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
     await navigate(spot, 0);
     const before = new Set(carried(backpack).map((item) => item.serial));
     let made = 0;
-    for (let attempt = 0; attempt < 60 && iron(backpack) >= recipe.ingots; attempt++) {
+    let melted = 0;
+    const affluent = knownBankGold(checkpoint) >= SMELT_SAVINGS && skill < 100;
+    for (let attempt = 0; attempt < 60; attempt++) {
       check();
+      if (iron(backpack) < recipe.ingots) {
+        const pieces = affluent
+          ? carried(backpack).filter(
+              (item) =>
+                !before.has(item.serial) &&
+                item.graphic !== ingot &&
+                !smithTools.has(item.graphic) &&
+                !checkpoint.keep?.includes(item.serial)
+            )
+          : [];
+        const meltedBefore = melted;
+        for (const piece of pieces) if (await smelt(piece)) melted++;
+        if (melted === meltedBefore || iron(backpack) < recipe.ingots) break;
+      }
       if (ctx.status().weight > ctx.status().maxWeight * 0.85) break;
       const tool = carried(backpack).find((item) => smithTools.has(item.graphic));
       if (!tool) break;
@@ -205,7 +254,10 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
     }
     checkpoint.memories = [
       ...checkpoint.memories.slice(-49),
-      { at: new Date().toISOString(), text: `Crafted ${made} ${recipe.name}s` }
+      {
+        at: new Date().toISOString(),
+        text: `Crafted ${made} ${recipe.name}s${melted ? `, melted ${melted} back into ingots` : ''}`
+      }
     ];
     ctx.persist();
     return carried(backpack).filter(

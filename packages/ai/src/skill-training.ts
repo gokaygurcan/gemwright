@@ -11,6 +11,7 @@ import { buyAtMarket, goods } from './market';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
+import { practiseInscription, practiseNecromancy } from './spell-practice';
 import { buyFrom } from './vendor-trade';
 
 const TOO_SOON = 500118; // You must wait a few moments to use another skill.
@@ -19,7 +20,7 @@ const ARMS = new Set([0x0e85, 0x0e86, 0x0f43, 0x0f44, 0x0f49, 0x0f4a, 0x13b9, 0x
 const HUMANS = HUMAN_ELF_BODIES;
 const HORSES = new Set([0xc8, 0xe2, 0xe4, 0xcc]);
 
-interface PracticeContext {
+export interface PracticeContext {
   session: PlayerSession;
   check: () => void;
   phase: (phase: string, note: string) => void;
@@ -72,7 +73,10 @@ const practices: Record<string, Practice> = {
   AnimalLore: { skill: 'AnimalLore', delay: 1000, target: (ctx) => others(ctx, HORSES) },
   Hiding: { skill: 'Hiding', delay: 10000, target: 'none' },
   DetectHidden: { skill: 'DetectHidden', delay: 10000, target: 'ground' },
-  Stealth: { skill: 'Stealth', delay: 10000, target: 'none', before: 'Hiding' }
+  Stealth: { skill: 'Stealth', delay: 10000, target: 'none', before: 'Hiding' },
+  // Active skills without a target (a warlock's Spirit Speak; Meditation while short of mana).
+  SpiritSpeak: { skill: 'SpiritSpeak', delay: 5000, target: 'none' },
+  Meditation: { skill: 'Meditation', delay: 5000, target: 'none' }
 };
 
 export async function practiseSkill(ctx: PracticeContext, practice: Practice) {
@@ -174,7 +178,10 @@ const trainers: Record<string, (ctx: TrainingContext) => Promise<number>> = {
   ),
   Tinkering: craftTrainer(tinkering),
   Carpentry: craftTrainer(carpentry),
-  Magery: ({ shop, until }) => (shop ? trainMagery(shop, until) : Promise.resolve(0))
+  Magery: ({ shop, until }) => (shop ? trainMagery(shop, until) : Promise.resolve(0)),
+  // Scrolls of the spells in the book (scribe.ts); Wraith Form on and off for Necromancy.
+  Inscription: ({ shop, until }) => (shop ? practiseInscription(shop, until) : Promise.resolve(0)),
+  Necromancy: (ctx) => practiseNecromancy(ctx)
 };
 
 // The archetype's supporting skills that can still be practised: a trainer exists and the skill is
@@ -183,11 +190,15 @@ const trainers: Record<string, (ctx: TrainingContext) => Promise<number>> = {
 // above the weakest of them, so idle practice cannot fill the skill cap with Anatomy and Eval Int
 // while the weapon skill or Magery that the next stage needs stays where it started.
 const LEAD = 20;
+const PRACTISED_PRIMARIES = new Set(['Inscription', 'Necromancy']);
 export function trainable(session: PlayerSession, archetype?: CharacterArchetype): string[] {
   const base = (name: string) => session.world.skills.get(skillId(name))?.base ?? 0;
   const primaries = archetype?.primarySkills ?? [];
   const ceiling = primaries.length ? Math.min(...primaries.map(base)) + LEAD : Infinity;
-  return (supportingOf(archetype) ?? ['Arms Lore']).filter((name) => {
+  // Primary skills whose only practice is this (no trade or fight trains them): a scribe mage's
+  // Inscription, a warlock's Necromancy. They are not held to the ceiling of the weakest primary.
+  const primaryPractice = primaries.filter((name) => PRACTISED_PRIMARIES.has(name));
+  const supporting = (supportingOf(archetype) ?? ['Arms Lore']).filter((name) => {
     const skill = session.world.skills.get(skillId(name));
     return (
       !!trainers[name.replaceAll(' ', '')] &&
@@ -195,6 +206,11 @@ export function trainable(session: PlayerSession, archetype?: CharacterArchetype
       skill?.lock !== 2
     );
   });
+  const own = primaryPractice.filter((name) => {
+    const skill = session.world.skills.get(skillId(name));
+    return (skill?.base ?? 0) < (skill?.cap ?? 100) && skill?.lock !== 2;
+  });
+  return [...own, ...supporting];
 }
 
 // Tries the archetype's trainable supporting skills in random order until one practises.

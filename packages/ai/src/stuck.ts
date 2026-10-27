@@ -1,37 +1,35 @@
+import { lasting } from './lasting';
 import { gumpCommands } from './protocol/gumps';
 import type { PlayerSession } from './protocol/session';
+import { noteTrouble } from './trouble';
 
 // The Help menu's "My character is physically stuck" (ServUO HelpGump button 2, then StuckMenu):
 // a choice of town, a wait of 10 seconds to 2 minutes frozen in place, then a teleport there. A
 // player uses it when there is no way out on foot; the server allows two uses in 24 hours. A
 // resident does the same when it keeps dying where it is (three deaths within the hour) or cannot
-// walk to any moongate.
+// walk to any moongate. Deaths and uses are kept across restarts (lasting.ts).
 const TOWNS = ['Britain', 'Trinsic', 'Vesper', 'Minoc', 'Yew', 'Cove']; // StuckMenu buttons 1-6
 const HELP_STUCK = 2;
 const CHOOSE_TOWN = 1011027;
 const DAY = 24 * 3_600_000;
-const deaths = new Map<number, number[]>();
-const uses = new Map<number, number[]>();
 
 type Ctx = { session: PlayerSession; phase: (phase: string, note: string) => void; log: (message: string) => void };
 
 export function noteDeath(session: PlayerSession) {
   const me = session.world.serial;
   if (me === null) return;
-  deaths.set(me, [...(deaths.get(me) ?? []).filter((at) => Date.now() - at < 3_600_000), Date.now()]);
+  lasting('deaths', me).set(Date.now(), Date.now() + 3_600_000);
 }
 
 // No moongate within reach, again and again: walking out has failed.
-const stranded = new Map<number, number[]>();
 export function noteStranded(session: PlayerSession) {
-  const me = session.world.serial ?? -1;
-  stranded.set(me, [...(stranded.get(me) ?? []).filter((at) => Date.now() - at < 3_600_000), Date.now()]);
+  lasting('stranded', session.world.serial ?? -1).set(Date.now(), Date.now() + 3_600_000);
 }
 export const strandedOften = (session: PlayerSession) =>
-  (stranded.get(session.world.serial ?? -1) ?? []).length >= 3 || dyingOverAndOver(session);
+  lasting('stranded', session.world.serial ?? -1).count() >= 3 || dyingOverAndOver(session);
 
 export function dyingOverAndOver(session: PlayerSession) {
-  return (deaths.get(session.world.serial ?? -1) ?? []).filter((at) => Date.now() - at < 3_600_000).length >= 3;
+  return lasting('deaths', session.world.serial ?? -1).count() >= 3;
 }
 
 const gumpWith = (session: PlayerSession, match: (commands: string[][]) => boolean) =>
@@ -43,9 +41,13 @@ export async function useStuckMenu(ctx: Ctx, home: string, why: string): Promise
   const me = session.world.serial;
   const from = session.world.position;
   if (me === null || !from || session.world.target) return false;
-  const used = (uses.get(me) ?? []).filter((at) => Date.now() - at < DAY);
-  if (used.length >= 2) return false;
+  if (lasting('stuck-menu', me).count() >= 2) return false;
+  // One ask per half hour, whatever came of the last one: a refusal must not become a loop.
+  const asked = lasting('stuck-ask', me);
+  if (asked.active('last')) return false;
+  asked.set('last', Date.now() + 30 * 60_000);
   ctx.phase('stuck', `Asking for help: ${why}`);
+  noteTrouble(from, 'stuck');
   session.requestHelp();
   const help = await session
     .waitFor(
@@ -56,7 +58,16 @@ export async function useStuckMenu(ctx: Ctx, home: string, why: string): Promise
     .then(() => gumpWith(session, (c) => c.some((x) => x[0] === 'button' && Number(x[7]) === HELP_STUCK)))
     .catch(() => undefined);
   if (!help) return false;
-  session.replyGump(help.serial, help.id, HELP_STUCK, []);
+  // A gump can close between being seen and being answered (another gump took its place).
+  const reply = (serial: number, id: number, button: number) => {
+    try {
+      session.replyGump(serial, id, button, []);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (!reply(help.serial, help.id, HELP_STUCK)) return false;
   const towns = await session
     .waitFor(
       () => !!gumpWith(session, (c) => c.some((x) => x[0]?.startsWith('xmfhtml') && Number(x[5]) === CHOOSE_TOWN)),
@@ -72,8 +83,8 @@ export async function useStuckMenu(ctx: Ctx, home: string, why: string): Promise
   }
   const own = TOWNS.findIndex((town) => town.toLowerCase() === home.toLowerCase());
   const index = own >= 0 ? own : Math.floor(Math.random() * TOWNS.length);
-  session.replyGump(towns.serial, towns.id, index + 1, []);
-  uses.set(me, [...used, Date.now()]);
+  if (!reply(towns.serial, towns.id, index + 1)) return false;
+  lasting('stuck-menu', me).set(Date.now(), Date.now() + DAY);
   const moved = () => {
     const at = session.world.position;
     return !!at && Math.max(Math.abs(at.x - from.x), Math.abs(at.y - from.y)) > 30;

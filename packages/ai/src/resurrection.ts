@@ -6,7 +6,9 @@ import { Blocked } from './blocked';
 import { recoverOwnCorpse } from './corpse-recovery';
 import { threatsNear } from './danger';
 import { resurrectionButton } from './fighter-recovery';
+import { recordEvent } from './gossip';
 import { tidyPack } from './inventory';
+import { lasting } from './lasting';
 import { allServiceLocations } from './locations';
 import { mendAfterDeath } from './mend';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
@@ -65,6 +67,11 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
     seenDeath.set(session, Date.now());
     const near = threatsNear(session, fell, 14).map((m) => m.name ?? `0x${m.graphic.toString(16)}`);
     log(`[death] died at ${fell.x},${fell.y}${near.length ? ` near ${[...new Set(near)].join(', ')}` : ''}`);
+    // The day's death log, by place and what was near (lasting.ts; the save browser's /trouble).
+    const cause = (near[0] ?? 'unknown').replace(/[|,]/g, ' ');
+    lasting('death-log').set(`${ctx.serial}|${fell.x},${fell.y}|${cause}|${Date.now()}`, Date.now() + 24 * 3_600_000);
+    const me = session.world.entities.get(ctx.serial)?.name ?? 'someone';
+    recordEvent(ctx.serial, (place) => `${me} got killed ${near[0] ? `by ${near[0]} ` : ''}${place} earlier`, fell);
   }
   const offer = () => [...session.world.gumps.values()].find((gump) => resurrectionButton(gump.layout) !== undefined);
   const all = [

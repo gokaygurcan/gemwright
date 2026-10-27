@@ -1,3 +1,4 @@
+import { gold } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
 import { TOOLS } from './bank-gold';
@@ -6,11 +7,15 @@ import type { CraftSkill } from './craft-training';
 import { craftRecipes, trainCraft } from './craft-training';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
+import { postOffer, shopShare } from './resident-offers';
+import { sideTradeTurn } from './side-trade';
 import { woolToBolt } from './tailor-wool';
 import { buyFrom, sellTo } from './vendor-trade';
 import { orderDemand, reservedFor } from './work-orders';
 
 const cloth = 0x1766;
+// Below this, material for training is not bought at a loss (gold carried and banked).
+const POOR = 2000;
 const uncutCloth = 0x1767;
 const boltOfCloth = 0x0f95;
 const scissors = new Set([0x0f9e, 0x0f9f]);
@@ -69,6 +74,27 @@ async function refill(ctx: ProfessionContext, least: number) {
   return (await woolToBolt(ctx)) && (await cutCloth(ctx));
 }
 
+// What a resident in a death robe needs first, and the shop's price for each (SBTailor).
+const garments = new Map([
+  [0x1f03, 18], // robe
+  [0x1517, 12] // shirt
+]);
+function postGarments(ctx: ProfessionContext) {
+  const spare = ctx
+    .carried()
+    .filter((item) => garments.has(item.graphic) && !item.hue)
+    .slice(0, 4);
+  for (const item of spare)
+    postOffer({
+      seller: ctx.serial,
+      kind: 'clothes',
+      item: item.serial,
+      label: item.graphic === 0x1f03 ? 'robe' : 'shirt',
+      price: shopShare(garments.get(item.graphic) ?? 12),
+      at: ctx.position()
+    });
+}
+
 // A tailor works in town: buys cloth from the tailor (or cuts it from uncut cloth and bolts), sews
 // the garment `chooseRecipe` picks (training up to its skill goal, then only what pays) and sells it
 // back, five minutes at a time.
@@ -105,9 +131,23 @@ export const runTailor = (options: ProfessionOptions) =>
     // Bulk orders first: a tailor's steady income (bulk-orders.ts).
     const sewing = ctx.session.world.skills.get(skillId('Tailoring'))?.base ?? 0;
     if (await bulkOrderTurn({ ...ctx, refill: (_pack, least) => refill(ctx, least) }, tailoring, sewing)) return;
+    // Robes and shirts are kept back and offered to residents at a discount (resident-offers.ts).
+    postGarments(ctx);
+    // No garment sells for more than the cloth it takes from the shop (2 gold a yard; 0 of 27
+    // DefTailoring recipes pay), so a tailor short of savings sews only free cloth: wool from the
+    // sheep, spun and woven. Without any, it earns at a side trade instead of sewing at a loss.
+    const poor = ctx.count(gold) + (ctx.checkpoint.funds?.bank ?? 0) < POOR;
+    if (poor && ctx.count(cloth) < 10) {
+      if ((await woolToBolt(ctx)) && (await cutCloth(ctx))) ctx.log('Sewing with cloth from wool, not bought');
+      else if (await sideTradeTurn(ctx, 'tailor', true)) return;
+    }
     const until = Math.min(ctx.deadline, Date.now() + 5 * 60_000);
     const made = await trainCraft(
-      { ...ctx, refill: (_pack, least) => refill(ctx, least) },
+      {
+        ...ctx,
+        refill: (_pack, least) => (poor ? Promise.resolve(false) : refill(ctx, least)),
+        hold: new Set(garments.keys())
+      },
       tailoring,
       ctx.backpack(),
       until,

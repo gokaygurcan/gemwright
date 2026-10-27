@@ -10,6 +10,7 @@ import { allServiceLocations, pickLocation } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import { Layer } from './protocol/layers';
+import { sellingTurn } from './selling';
 import { buyFrom, buyTool, sellTo } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
@@ -147,6 +148,13 @@ export const fishingTurn =
     if (pole.parent !== ctx.serial) await session.equipItem(pole.serial, Layer.TwoHanded);
     const spot = findSpot(ctx, home ? { ...home, z: ctx.position().z } : ctx.position(), avoid);
     if (!spot) throw new Blocked('unreachable', 'No reachable shore near home');
+    // A pack already full of other things: sold first, or the cast would never come (inventory.ts).
+    const holdsFish = () => ctx.carried().some((i) => fish.has(i.graphic));
+    if (packFull(session, ctx.backpack(), 0.85) && !holdsFish()) {
+      await sellingTurn(ctx).catch(() => false);
+      if (packFull(session, ctx.backpack(), 0.85))
+        throw new Blocked('overweight', 'The pack is full of things no shop here takes; not fishing into it');
+    }
     phase('fishing-travel', `Walking to the water at ${spot.water.x},${spot.water.y}`);
     try {
       await ctx.navigate(spot.stand, 0);
@@ -190,6 +198,10 @@ export const fishingTurn =
       phase('selling', 'Selling the catch to a fisherman');
       const earned = await sellTo(ctx, 'fisherman', (item) => fish.has(item.graphic));
       ctx.progress.earned = (ctx.progress.earned ?? 0) + earned;
+      // Nobody here bought it: a setback (setback.ts) waits longer each time, instead of fishing
+      // the same load again within seconds.
+      if (!earned && ctx.carried().some((i) => fish.has(i.graphic)))
+        throw new Blocked('no-vendor', 'No fisherman here bought the catch');
       if (home && distance(ctx.position(), home) > 300) await reachRegion(ctx, home);
     }
   };

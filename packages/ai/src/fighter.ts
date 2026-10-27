@@ -5,13 +5,32 @@ import { tally } from './activity';
 import { recoverWithAid } from './aid-recovery';
 import { knownBankGold } from './bank-gold';
 import { Blocked, type BlockedReason, blockedReason } from './blocked';
-import { atGround, groundOf, nextGround, patrolPoints, travelToGround } from './cemeteries';
+import {
+  atGround,
+  fightBack,
+  groundOf,
+  hurtOnTheWay,
+  nextGround,
+  patrolPoints,
+  retreatedFrom,
+  travelToGround
+} from './cemeteries';
 import type { DecisionPick } from './decisions';
 import { dungeonTurn } from './dungeon-turn';
 import { escortOpportunity } from './escort';
 import { reconcileExperience } from './experience';
 import { createFighterCombat } from './fighter-combat';
-import { Died, type FighterContext, ghosts, homeOf, huntable, observedThreat, Retreat } from './fighter-context';
+import {
+  Ambushed,
+  Died,
+  type FighterContext,
+  ghosts,
+  homeOf,
+  huntable,
+  newFighterStats,
+  observedThreat,
+  Retreat
+} from './fighter-context';
 import { fighterDungeon, fighterLife } from './fighter-dungeon';
 import { fightOpponent } from './fighter-encounter';
 import { createFighterEquipment } from './fighter-equipment';
@@ -22,18 +41,19 @@ import { createFighterRecovery } from './fighter-recovery';
 import { registerFighterSocial } from './fighter-social';
 import { createFighterTown } from './fighter-town';
 import { fieldUpkeep, planTownTrip } from './fighter-trip';
-import { tidyPack } from './inventory';
 import { lifeTurn } from './life';
 import { info } from './log';
 import { checkLoop, watchStep } from './loop-watch';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
 import { personalTurn } from './personal-turn';
+import { playerPartyTurn } from './player-party';
 import { Layer } from './protocol/layers';
 import { observeResident } from './resident-observation';
 import type { ResidentOptions } from './resident-options';
 import { scavenge } from './scavenge';
 import { isSetback, passSetback } from './setback';
+import { housekeeping } from './shared-turn';
 import { trainSupportingSkill } from './skill-training';
 import { Terrain } from './terrain';
 
@@ -88,6 +108,8 @@ export async function runFighter(options: ResidentOptions) {
     abandonedBandageCursor: false,
     fightingSerial: null
   };
+  // Built below; check runs after.
+  let self: FighterContext | undefined;
   const check = () => {
     checkLoop(session);
     if (options.stopping?.() || Date.now() >= deadline) throw new Error('Fighter run duration reached or interrupted');
@@ -97,19 +119,7 @@ export async function runFighter(options: ResidentOptions) {
       state.abandonedBandageCursor = false;
     }
     if (dead() && !state.recovering) throw new Died('Character died');
-    if (
-      !state.recovering &&
-      !takingUrgentAction(session) &&
-      recentlyHurt(session) &&
-      nearby().some(
-        (entity) =>
-          entity.position &&
-          !session.world.deaths.has(entity.serial) &&
-          observedThreat(entity, session.world.combatant) &&
-          distance(position(), entity.position) < 8
-      )
-    )
-      throw new Retreat('Taking damage outside combat; returning to safety');
+    if (!state.recovering && !takingUrgentAction(session) && recentlyHurt(session) && self) hurtOnTheWay(self);
     if (
       state.recoveringCorpse &&
       (status().hits < status().maxHits * 0.8 ||
@@ -191,23 +201,7 @@ export async function runFighter(options: ResidentOptions) {
     session.use(container);
     await session.waitFor(() => (session.world.received.get(0x3c) ?? 0) > before, 'container contents', 4000);
   };
-  const stats: FighterContext['stats'] = {
-    kills: 0,
-    looted: 0,
-    sold: 0,
-    bankedGold: 0,
-    bankedItems: 0,
-    retreats: 0,
-    resurrections: 0,
-    tacticalBreaks: 0,
-    reengagements: 0,
-    burstEscapes: 0,
-    completedBandages: 0,
-    failedBandages: 0,
-    recoveredItems: 0,
-    abandonedCorpses: 0,
-    replacementWeapons: 0
-  };
+  const stats = newFighterStats();
   let patrolIndex = template.behavior.temperament?.patrolOffset ?? 0;
   const unreachable = new Set<number>();
   let blockedStreak = 0;
@@ -255,6 +249,7 @@ export async function runFighter(options: ResidentOptions) {
     state,
     stats
   };
+  self = ctx;
   mounts = createMountController(
     {
       ...ctx,
@@ -334,6 +329,7 @@ export async function runFighter(options: ResidentOptions) {
       await mounts.acquire();
     }
   };
+  let ambusher: Ambushed['attacker'] | undefined;
   let initialized = false;
   let outcome = 'completed';
   let blocked: BlockedReason | undefined;
@@ -344,13 +340,18 @@ export async function runFighter(options: ResidentOptions) {
       await Bun.sleep(Math.max(0, turnAt + 250 - Date.now()));
       turnAt = Date.now();
       try {
+        // Housekeeping each turn, before a setup that may fail (shared-turn.ts).
+        if (!dead() && (await housekeeping(errands.asProfession(), (item) => !ctx.trip.loot.includes(item.serial))))
+          continue;
+        if (await playerPartyTurn(ctx)) continue;
         if (!initialized) {
           await initialize();
           initialized = true;
         }
         check();
-        // Old death robes, spare books and tools out of the pack every turn, not only in town.
-        if (!dead()) await tidyPack(session, ctx.backpack(), log, ctx.terrain);
+        const attacker = ambusher;
+        ambusher = undefined;
+        if (await fightBack(ctx, attacker, defeat)) continue;
         if (await errands.shopPlayers()) continue;
         const personalLife = fighterLife(
           ctx,
@@ -489,8 +490,13 @@ export async function runFighter(options: ResidentOptions) {
           phase('blocked', `${error.message}; choosing another course`);
           continue;
         }
+        if (error instanceof Ambushed) {
+          ambusher = error.attacker;
+          continue;
+        }
         if (error instanceof Retreat) {
           stats.retreats++;
+          retreatedFrom(ctx);
           trip.pending = 'return';
           phase('retreating', error.message);
           session.setWarMode(false);
@@ -499,7 +505,7 @@ export async function runFighter(options: ResidentOptions) {
           continue;
         }
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;
-        // No weapon or healing and nothing to buy them with: paid work (an escort) before waiting.
+        // No weapon or healing and no money for them: paid work first (fighter-errands.ts).
         if (
           /No usable sword|No affordable stocked weapon|No healing supplies/.test(String(error)) &&
           (await escortOpportunity(ctx, status().gold + knownBankGold(checkpoint)).catch(() => false))

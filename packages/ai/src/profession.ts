@@ -1,34 +1,25 @@
 import { DangerInterrupt, urgentAction } from './action-purpose';
-import { bankSurplus, knownBankGold } from './bank-gold';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
 import { threatsNear } from './danger';
 import { escapeDanger, interruptForDanger } from './danger-response';
-import { replaceDeathRobe } from './death-robe';
 import type { DecisionCoordinator } from './decisions';
 import type { RunRecord } from './dungeon-context';
-import { escortOpportunity } from './escort';
-import { tidyPack, workGear } from './inventory';
+import { workGear } from './inventory';
 import { type LifeContext, lifeTurn } from './life';
 import { pickLocation, townAt } from './locations';
 import { info } from './log';
 import { checkLoop, watchStep } from './loop-watch';
-import { healOthers, mendAfterDeath } from './mend';
 import { createNavigator, distance } from './navigation';
-import { lighten } from './overload';
-import { personalTurn } from './personal-turn';
-import { playerVendorTurn } from './player-vendors';
 import { type DungeonRole, professionDungeonTurn } from './profession-dungeon';
 import { readyForDungeons } from './progression';
 import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import type { Entity, Position, WorldView } from './protocol/world';
 import { noticePeers } from './relationships';
-import { isGhost, resurrectGhost } from './resurrection';
 import { scavenge } from './scavenge';
-import { sellingTurn } from './selling';
 import { isSetback, passSetback } from './setback';
-import { sideTradeTurn } from './side-trade';
+import { sideTurn, upkeepTurn } from './shared-turn';
 import { trainSupportingSkill } from './skill-training';
 import type { Checkpoint } from './store';
 import { learnWork } from './strategy-learning';
@@ -165,6 +156,7 @@ export async function runProfession(
     dungeon: dungeon && (() => professionDungeonTurn(ctx, dungeon, options.recordRun, true)),
     dungeonReady: () => !!dungeon?.ready(ctx) && readyForDungeons(session, template.archetype)
   };
+  const shared = { trade: name, keep: (item: Entity) => workGear.has(item.graphic), life };
   let stopped = `${name} run duration reached`;
   try {
     phase('reconcile', 'Reading current inventory and status; previous transactions are never replayed');
@@ -173,33 +165,10 @@ export async function runProfession(
     while (Date.now() < deadline) {
       try {
         check();
-        // Housekeeping before anything else: the pack and clothes are tidied even on a turn spent
-        // begging or shopping (the robes of every death piled up behind those turns).
-        if (!isGhost(ctx)) {
-          await replaceDeathRobe(ctx);
-          await lighten(session, backpack(), (item) => workGear.has(item.graphic), log);
-          await tidyPack(session, backpack(), log, terrain);
-          await mendAfterDeath(ctx, log, ctx.city);
-          if (await healOthers(ctx, log)) continue;
-        }
-        if (await personalTurn(life)) continue;
+        // Upkeep first, the same for every trade (shared-turn.ts).
+        if (await upkeepTurn(ctx, shared)) continue;
         if (dungeon && (await professionDungeonTurn(ctx, dungeon, options.recordRun, false))) continue;
         if (await scavenge(ctx)) continue;
-        if (isGhost(ctx)) {
-          await resurrectGhost(ctx);
-          continue;
-        }
-        if (await bankSurplus(ctx, ctx.city)) continue;
-        // Selling is a task like any other: chosen when the pack holds goods to sell (selling.ts).
-        if (await sellingTurn(ctx)) continue;
-        if (status().hits < status().maxHits / 2) {
-          // Hurt among monsters (a bard in a cemetery): to the bank first, then rest there.
-          const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
-          if (bank && threatsNear(session, ctx.position(), 10).length) await escapeDanger(ctx, bank);
-          await passSetback({ ...ctx, items, archetype: template.archetype }, 'health is below half');
-          continue;
-        }
-        if (await escortOpportunity(ctx, status().gold + knownBankGold(checkpoint))) continue;
         if (await lifeTurn(life)) continue;
         // Those who do not fight leave monsters to others: back to the town bank (danger.ts).
         const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
@@ -212,10 +181,7 @@ export async function runProfession(
           await Bun.sleep(2000);
           continue;
         }
-        // Players' shops in reach: something useful bought now and then (player-vendors.ts).
-        if (await playerVendorTurn(ctx)) continue;
-        // Work that does not pay gives way to a side trade for a while (side-trade.ts).
-        if (await sideTradeTurn(ctx, name)) continue;
+        if (await sideTurn(ctx, shared)) continue;
         const started = Date.now();
         await turn(ctx);
         // Every resident shares one event loop: a turn that found nothing to do (no spot, no target)

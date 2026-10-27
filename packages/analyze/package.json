@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@gemwright/common": "workspace:*",
-    "gemwright": "workspace:*"
+    "gemwright": "workspace:*",
+    "preact": "11.0.1"
   }
 }

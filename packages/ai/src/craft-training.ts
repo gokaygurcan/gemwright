@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { skillId } from '@gemwright/common/skills';
 
 import { tally } from './activity';
+import { withinReach } from './areas';
 import {
   canSpendOnTraining,
   chargedPurchase,
@@ -173,7 +174,8 @@ export async function atVendor(
       ctx.log(`Trying another ${vendorType}: ${ctx.checkpoint.objectives?.[key]?.reason}`);
       continue;
     }
-    if (distance(position(), shop) < 300 && !reachableFrom(shop, position())) continue;
+    if ((distance(position(), shop) < 300 && !reachableFrom(shop, position())) || !withinReach(position(), shop))
+      continue;
     try {
       const gate = nearestGate(shop);
       if (distance(position(), shop) > 300 && distance(position(), moongates[gate]) > 2)

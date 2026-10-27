@@ -5,12 +5,15 @@ import { skillId } from '@gemwright/common/skills';
 import { tally } from './activity';
 import { Blocked } from './blocked';
 import { recognised } from './fighter-prey';
+import { confinedToHaven } from './haven';
 import { mountEquipment } from './mount-types';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import type { DungeonRole } from './profession-dungeon';
 import type { Entity } from './protocol/world';
+import { foundAtGround, tamingSpot } from './tamer-grounds';
 import { companion, fightWithPet, readyBow, shoots, veterinary } from './tamer-pet';
+import { keepOffers, offerPet } from './tamer-sales';
 
 interface Tamable {
   name: string;
@@ -61,6 +64,7 @@ export const runTamer = (options: ProfessionOptions) => {
     async (ctx) => {
       const { session, phase, log, status } = ctx;
       if (await fightWithPet(ctx, (m) => !!profile(m))) return;
+      await keepOffers(ctx, (pet) => release(ctx, pet));
       // Archery tamers re-arm between fights, never in the middle of one.
       if (shoots(ctx)) await readyBow(ctx);
       const skill = session.world.skills.get(skillId('AnimalTaming'))?.base ?? 0;
@@ -86,19 +90,22 @@ export const runTamer = (options: ProfessionOptions) => {
         .sort((a, b) => b.profile.minTame - a.profile.minTame);
       const target = candidates[0];
       if (!target || free < 1) {
-        // Nothing to tame here: search the countryside around where the search began, so the
-        // search does not drift off across the land one random step at a time. The area is wide (120
-        // tiles each way) to find animals worth taming; the walk there steers around monsters
+        // Nothing to tame here: go where animals of its level live (tamer-grounds.ts), else
+        // search the countryside around where the search began. The walk steers around monsters
         // (navigation.ts) and leaves when attacked (danger-response.ts).
+        const ground = free >= 1 ? tamingSpot(ctx.serial, ctx.position(), skill, confinedToHaven(session)) : undefined;
         if (!searchFrom.has(session) || distance(ctx.position(), searchFrom.get(session) ?? ctx.position()) > 300)
           searchFrom.set(session, ctx.position());
         const from = searchFrom.get(session) ?? ctx.position();
-        const spot = ctx.terrain.stand(
-          from.x + Math.round((Math.random() - 0.5) * 240),
-          from.y + Math.round((Math.random() - 0.5) * 240),
-          ctx.position().z
-        );
-        phase('tamer-search', 'Looking for animals to tame');
+        const spot = ground
+          ? ctx.terrain.stand(ground.x, ground.y, ctx.position().z)
+          : ctx.terrain.stand(
+              from.x + Math.round((Math.random() - 0.5) * 240),
+              from.y + Math.round((Math.random() - 0.5) * 240),
+              ctx.position().z
+            );
+        if (ground?.far) phase('tamer-travel', `Heading for animals of my level near ${ground.x},${ground.y}`);
+        else phase('tamer-search', 'Looking for animals to tame');
         if (spot)
           await ctx.navigate(spot, 2).catch((error) => {
             if (!(error instanceof Blocked)) throw error;
@@ -107,6 +114,7 @@ export const runTamer = (options: ProfessionOptions) => {
       }
       const { mobile, profile: kind } = target;
       tried.add(mobile.serial);
+      foundAtGround(ctx.serial);
       phase('taming', `Taming ${mobile.name ?? kind.name} (needs ${kind.minTame})`);
       if (mobile.position && distance(ctx.position(), mobile.position) > 3) await ctx.navigate(mobile.position, 2);
       const seen = new Set(session.world.journal);
@@ -148,6 +156,8 @@ export const runTamer = (options: ProfessionOptions) => {
         session.say('all follow me');
         return;
       }
+      // A spare mount or pack animal is worth more to a resident than set free (tamer-sales.ts).
+      if (offerPet(ctx, pet, kind.mount)) return;
       phase('releasing', `Releasing the ${kind.name} to keep followers free`);
       await release(ctx, pet);
     },

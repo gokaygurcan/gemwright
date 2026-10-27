@@ -14,6 +14,8 @@ export interface ShardProfile {
   expansion: Expansion;
   // Races new residents are created as (gemwright.json `ai.races`).
   races: Race[];
+  // The shard's timezone (gemwright.json `timezone`), for the time of day residents live by.
+  timezone: string;
   provisioning: {
     // Logging in with an unknown account creates it (ServUO AccountHandler AutoAccountCreation).
     autoCreateAccounts: boolean;
@@ -29,6 +31,7 @@ const defaults: ShardProfile = {
   protocol: `classic-${CLIENT_VERSION}`,
   expansion: 'ej',
   races: ['human', 'elf'],
+  timezone: 'UTC',
   provisioning: { autoCreateAccounts: true }
 };
 let current = defaults;
@@ -66,6 +69,7 @@ export async function loadShardProfile(path?: string): Promise<ShardProfile> {
     ...defaults,
     expansion,
     races: races.length ? races : ['human'],
+    timezone: typeof value.timezone === 'string' ? value.timezone : 'UTC',
     provisioning: {
       autoCreateAccounts: servuo.autoCreateAccounts !== false,
       accountsPerIp: typeof servuo.accountsPerIp === 'number' ? servuo.accountsPerIp : undefined

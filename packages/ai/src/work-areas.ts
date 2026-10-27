@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
+import { recallFor } from './recall';
 
 interface WorkArea {
   city: string;
@@ -22,7 +23,11 @@ const catalog = (
 if (catalog.schemaVersion !== 1 || catalog.facet !== 1) throw new Error('Unsupported work-area catalog');
 
 // A stable, weighted per-resident pick, so the population spreads the way the lore suggests.
-export function workArea(kind: 'mining' | 'woods', key: string): WorkArea {
+export function workArea(kind: 'mining' | 'woods', key: string, home?: string): WorkArea {
+  // An area kept for its own town (weight 0: New Haven's mountains and woods) is worked only by
+  // residents of that town; everyone else keeps the weighted pick below.
+  const own = home && catalog[kind].find((a) => a.weight === 0 && a.city.toLowerCase() === home.toLowerCase());
+  if (own) return own;
   let hash = 0;
   for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   const areas = catalog[kind];
@@ -36,12 +41,17 @@ export function workArea(kind: 'mining' | 'woods', key: string): WorkArea {
   return area;
 }
 
+// Every configured area of a kind (side-gathering.ts: the nearest one to a side trade).
+export const workAreas = (kind: 'mining' | 'woods'): readonly WorkArea[] => catalog[kind];
+
 // From another region, take the moongate nearest the destination before walking, as players do.
 export async function reachRegion(
   ctx: Pick<MountContext, 'session' | 'position' | 'navigate' | 'phase'>,
   point: { x: number; y: number }
 ) {
   if (distance(ctx.position(), point) <= 300) return;
+  // A caster with a rune marked near there recalls instead (recall.ts).
+  if (await recallFor(ctx.session)?.(point)) return;
   const gate = nearestGate(point);
   if (distance(ctx.position(), moongates[gate]) > 2) await travelByMoongate(ctx, gate);
 }

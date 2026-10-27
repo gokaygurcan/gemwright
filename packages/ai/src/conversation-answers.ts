@@ -6,9 +6,12 @@ import { activityLine } from './conversation-facts';
 import type { DecisionCoordinator } from './decisions';
 import { type Intent, intents } from './dialogue';
 import { quoteTo } from './engagement';
+import { askGuide } from './guide';
 import { learnQuality } from './item-quality';
+import { lasting } from './lasting';
 import { type ServiceType, serviceLocations } from './locations';
 import { carriedOf, ceiling, floor, type Good, goods, priceAt } from './market';
+import { moongates, nearestGate } from './moongate';
 import { distance } from './navigation';
 import { readTradeTalk } from './player-trade';
 import { Layer } from './protocol/layers';
@@ -63,7 +66,10 @@ export async function worldAnswer(
           ? `The ${nearest.name} cemetery is ${directions(here, nearest.center)}. Beware the undead.`
           : undefined;
       }
-      if (/gate/.test(asked)) return 'The moongates are marked on any map; I would not guess the nearest from here.';
+      if (/gate/.test(asked)) {
+        const gate = moongates[nearestGate(here)];
+        return `The nearest moongate is ${directions(here, gate)}.`;
+      }
       const service = places[asked];
       const spot = service
         ? [...serviceLocations(city, service), ...serviceLocations('Britain', service)].sort(
@@ -74,6 +80,31 @@ export async function worldAnswer(
         ? `The ${asked}? Thou shouldst find it ${directions(here, spot)}, near ${spot.name}.`
         : `I know not where to find the ${asked || 'place'} from here.`;
     }
+    case 'guide': {
+      const asked =
+        text
+          .match(intents.guide.pattern ?? /$^/)?.[1]
+          ?.toLowerCase()
+          .replace(/s$/, '') ?? '';
+      const service = places[asked] ?? places[`${asked}s`];
+      const spot = service
+        ? [...serviceLocations(city, service)].sort((a, b) => distance(here, a) - distance(here, b))[0]
+        : undefined;
+      if (!spot || distance(here, spot) > 60 || /fight|engag/.test(checkpoint.goal?.phase ?? ''))
+        return spot ? `The ${asked} is ${directions(here, spot)}.` : `I know not where the ${asked} is from here.`;
+      askGuide(session, { to: spot, name, place: asked });
+      return `Follow me, ${name}, I'll show thee.`;
+    }
+    case 'group': {
+      const fighter =
+        !!template.archetype &&
+        /Swords|Fencing|Mace|Archery|Magery|Wrestling/.test(template.archetype.primarySkills.join(' '));
+      return fighter && template.behavior.cooperation >= 0.4
+        ? `Aye, ${name}, send me an invite.`
+        : `I'm no fighter, ${name}, but good hunting.`;
+    }
+    case 'safe':
+      return safetyAnswer(session, here, text);
     case 'help': {
       // A cooperation judgement: the provider weighs helping against what the resident is doing.
       const fighting = /fight|engag/.test(checkpoint.goal?.phase ?? '');
@@ -164,4 +195,27 @@ function wantedBy(template: CharacterTemplate): Good[] {
     wants.push('heal potions', 'cure potions');
   if ('Tinkering' in template.behavior.trainingGoals) wants.push('iron ingots');
   return wants;
+}
+
+// What this resident has seen itself (danger.ts keeps it by 16-tile area for twenty minutes, and
+// calls it heard), around here or near a town the question names. Never a guess.
+function safetyAnswer(session: PlayerSession, here: { x: number; y: number }, text: string) {
+  const town = Object.keys(moongates).find((name) => new RegExp(`\\b${name}\\b`, 'i').test(text));
+  const bank = town ? serviceLocations(town, 'banker')[0] : undefined;
+  const around = bank ?? here;
+  const seen = lasting('danger', session.world.serial ?? 0);
+  const near: { x: number; y: number }[] = [];
+  for (let dx = -5; dx <= 5; dx++)
+    for (let dy = -5; dy <= 5; dy++) {
+      const cx = (around.x >> 4) + dx;
+      const cy = (around.y >> 4) + dy;
+      if (seen.active(`${cx},${cy}`)) near.push({ x: cx * 16 + 8, y: cy * 16 + 8 });
+    }
+  const where = town ? `near ${town}` : 'hereabouts';
+  if (!near.length) return `Quiet enough ${where}, as far as I have seen. Keep thine eyes open all the same.`;
+  const closest = near.sort((a, b) => distance(around, a) - distance(around, b))[0] ?? around;
+  return `I saw trouble ${where} not long ago, ${town ? 'around' : ''} ${directions(here, closest)}. Mind thyself.`.replace(
+    '  ',
+    ' '
+  );
 }

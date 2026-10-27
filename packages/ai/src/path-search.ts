@@ -6,6 +6,10 @@ export interface RouteRequest {
   goal: { x: number; y: number };
   range: number;
   blocked: string[];
+  // 8-tile cells where walks keep failing (trouble.ts): each step there costs more.
+  penalties?: number[];
+  penaltyCost?: number;
+  wide?: boolean;
   targetZ?: number;
   partial?: boolean;
 }
@@ -134,6 +138,7 @@ export class RouteSearch {
     this.size = 0;
     const { start, goal, range, targetZ } = request;
     const blocked = new Set(request.blocked);
+    const penalties = new Set(request.penalties ?? []);
     const estimate = (x: number, y: number) => {
       const dx = Math.abs(x - goal.x),
         dy = Math.abs(y - goal.y);
@@ -157,7 +162,9 @@ export class RouteSearch {
     let best = 0;
     let found = -1;
     let exhausted = false;
-    const expansionLimit = this.expansionBudget ?? (distance(start.x, start.y) <= 38 ? 8192 : 200000);
+    // Near goals get a small budget; `wide` asks for the full one (a short way that needs a long
+    // detour round a wall or a river, retried by terrain.ts).
+    const expansionLimit = this.expansionBudget ?? (distance(start.x, start.y) <= 38 && !request.wide ? 8192 : 200000);
     const current: Point = { ...start };
     const height = (x: number, y: number) =>
       terrain.standingZ ? terrain.standingZ(x, y, current.z, current) : terrain.stand(x, y, current.z, current)?.z;
@@ -195,7 +202,9 @@ export class RouteSearch {
         const turn =
           parent >= 0 &&
           (Math.sign(current.x - this.x[parent]!) !== dx || Math.sign(current.y - this.y[parent]!) !== dy);
-        const cost = this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : this.offRoad) + (turn ? 0.08 : 0);
+        const trouble = penalties.size && penalties.has((x >> 3) * 1024 + (y >> 3)) ? (request.penaltyCost ?? 4) : 0;
+        const cost =
+          this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : this.offRoad) + (turn ? 0.08 : 0) + trouble;
         if (other >= 0 && this.costs[other]! <= cost) continue;
         if (other < 0) {
           if (this.count === this.capacity) {

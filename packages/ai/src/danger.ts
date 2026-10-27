@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
 
+import { callOutReds, hearCalls } from './danger-calls';
+import { lasting } from './lasting';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
@@ -43,16 +45,17 @@ const hostile = (session: PlayerSession, mobile: Entity) =>
       : (aggressive.has(mobile.graphic) || sharedThreat(session, mobile)) &&
         [3, 4, 5, 6].includes(mobile.notoriety ?? 0)));
 const REMEMBER_MS = 20 * 60_000;
-const remembered = new WeakMap<PlayerSession, Map<string, number>>();
 const cell = (point: { x: number; y: number }) => `${point.x >> 4},${point.y >> 4}`;
 
 export function threatsNear(session: PlayerSession, point: { x: number; y: number }, radius: number) {
-  const seen = remembered.get(session) ?? new Map<string, number>();
-  remembered.set(session, seen);
+  const seen = lasting('danger', session.world.serial ?? 0);
   const threats = [...session.world.entities.values()].filter(
     (mobile) => hostile(session, mobile) && !!mobile.position && !session.world.deaths.has(mobile.serial)
   );
   for (const threat of threats) if (threat.position) seen.set(cell(threat.position), Date.now() + REMEMBER_MS);
+  // Red players are called out, and others' calls heard (danger-calls.ts).
+  callOutReds(session, threats, (mobile) => humans.has(mobile.graphic));
+  hearCalls(session, seen, cell);
   return threats.filter((threat) => threat.position && distance(point, threat.position) <= radius);
 }
 
@@ -60,8 +63,7 @@ export function threatsNear(session: PlayerSession, point: { x: number; y: numbe
 // one was lately seen. Threats are read once, when the check is made.
 export function unsafeCheck(session: PlayerSession) {
   const threats = threatsNear(session, session.world.position ?? { x: 0, y: 0 }, Number.POSITIVE_INFINITY);
-  const seen = remembered.get(session);
+  const seen = lasting('danger', session.world.serial ?? 0);
   return (point: { x: number; y: number }) =>
-    (seen?.get(cell(point)) ?? 0) > Date.now() ||
-    threats.some((threat) => threat.position && distance(point, threat.position) <= 10);
+    seen.active(cell(point)) || threats.some((threat) => threat.position && distance(point, threat.position) <= 10);
 }

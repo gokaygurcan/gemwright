@@ -12,7 +12,7 @@ import { CLIENT_VERSION } from './protocol/packets';
 import { runPopulation } from './run-population';
 import { checkProvisioning, loadShardProfile } from './shard-profile';
 import { ResidentStore } from './store';
-import { applyWorld, world } from './world';
+import { applyWorld, type Cohorts, world } from './world';
 
 // The deployed AI service (gemwright deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
@@ -30,7 +30,7 @@ const required = (name: string) => {
 
 const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
   id: string;
-  ai?: { population?: number; decisions?: string; speech?: string; chaos?: number; wars?: boolean };
+  ai?: { population?: number; decisions?: string; speech?: string; chaos?: number; wars?: boolean; cohorts?: Cohorts };
 };
 enablePhrasing(shard.ai?.speech === 'claude');
 // How unpredictable residents are (chaos.ts): the shard's setting, else the world's, else 0.3.
@@ -51,7 +51,9 @@ const base = {
   templates: [],
   allocation: { mode: 'fixed', entries: [] }
 };
-const population: PopulationConfig = validateConfig(applyWorld(base as unknown as PopulationConfig, count));
+const population: PopulationConfig = validateConfig(
+  applyWorld(base as unknown as PopulationConfig, count, shard.ai?.cohorts)
+);
 await writeFile(join(data, 'population.json'), `${JSON.stringify(population, null, 2)}\n`);
 const connection = validateConnection({
   schemaVersion: 1,
@@ -73,13 +75,16 @@ const decisionConfig = validateDecisionConfig(
         maxRequestsPerRun: 1000,
         maxRequestsPerDay: 200,
         maxDailyCostUsd: 0.02,
-        maxPopulationDailyCostUsd: 0.16
+        maxPopulationDailyCostUsd: 0.16,
+        // Half the residents ask Jev, half decide locally, to compare them (analyze /decisions).
+        share: 0.5
       }
     : { provider: 'local' }
 );
 const dbPath = join(data, 'residents.sqlite');
 const store = new ResidentStore(dbPath, shard.id);
 try {
+  // Residents retired by hand (retired.json in the data folder) no longer log in and are not replaced.
   const reconciled = store.reconcile(population);
   info(
     `[serve] ${profile.expansion} shard ${shard.id}: ${reconciled.active} residents active, ${reconciled.created} new`

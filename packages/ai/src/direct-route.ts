@@ -1,4 +1,7 @@
+import { teleporterTiles } from './links';
 import type { Point, Terrain } from './terrain';
+
+const teleporters = new Set(teleporterTiles);
 
 // Most travel is an unobstructed stretch. Reserve A* for the obstacle ahead.
 export function directRoute(
@@ -19,7 +22,8 @@ export function directRoute(
     const dy = Math.sign(goal.y - point.y);
     const x = point.x + dx;
     const y = point.y + dy;
-    if (blocked.has(`${x},${y}`)) break;
+    // A teleporter is stepped on only as the goal itself (links.ts).
+    if (blocked.has(`${x},${y}`) || (teleporters.has(`${x},${y}`) && (x !== goal.x || y !== goal.y))) break;
     const next = terrain.stand(x, y, point.z, point);
     if (
       !next ||

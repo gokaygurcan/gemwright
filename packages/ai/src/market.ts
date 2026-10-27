@@ -5,14 +5,14 @@ import type { CharacterTemplate } from './config';
 import { dangerAhead } from './danger-response';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
 import { guildmates } from './guilds';
-import { quality } from './item-quality';
-import { allServiceLocations, pickLocation, type ServiceType, townAt } from './locations';
+import { allServiceLocations, pickLocation, townAt } from './locations';
+import { knownSeller, noteLine, noteSeller, supplyShift } from './market-supply';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { playerUnitPrice } from './player-insight';
 import type { PlayerSession } from './protocol/session';
-import type { Entity, JournalEntry, Position } from './protocol/world';
+import type { JournalEntry, Position } from './protocol/world';
 import type { Checkpoint } from './store';
 import { buyByTrade, lastFailure, sellByTrade } from './trade-deal';
 import { endTrade, expectTrade } from './trade-guard';
@@ -30,67 +30,10 @@ import { orderDemand } from './work-orders';
 // happens at the town's bank, or at the good's shop in a town without one (Yew). Buyers and sellers
 // both travel there. `lot` is the smallest deal worth the trip. Shop prices: SBCarpenter (boards),
 // SBAlchemist (the lesser potions; regular ones share their graphic).
-export type Good =
-  | 'boards'
-  | 'heal potions'
-  | 'cure potions'
-  | 'poison potions'
-  | 'iron ingots'
-  | 'exceptional bows'
-  | 'arrows'
-  | 'bolts'
-  | 'cloth'
-  | 'bandages';
-interface GoodDef {
-  graphic: number;
-  // Several graphics for one good (bow and composite bow); `graphic` alone otherwise.
-  graphics?: readonly number[];
-  // Only exceptional pieces count (item-quality.ts).
-  exceptional?: boolean;
-  // What a crafter makes for it, best first.
-  recipes?: readonly string[];
-  shopPays: number;
-  shopCharges: number;
-  market: string;
-  shop: ServiceType;
-  lot: number;
-}
-export const goods: Record<Good, GoodDef> = {
-  arrows: { graphic: 0x0f3f, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
-  bolts: { graphic: 0x1bfb, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
-  cloth: { graphic: 0x1766, shopPays: 1, shopCharges: 2, market: 'britain', shop: 'tailor', lot: 10 },
-  bandages: { graphic: 0x0e21, shopPays: 1, shopCharges: 5, market: 'britain', shop: 'healer', lot: 10 },
-  boards: { graphic: 0x1bd7, shopPays: 2, shopCharges: 3, market: 'yew', shop: 'carpenter', lot: 10 },
-  'heal potions': { graphic: 0x0f0c, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
-  'cure potions': { graphic: 0x0f07, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
-  'poison potions': { graphic: 0x0f0a, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
-  // SBBlacksmith: sells iron at 5 (only 16 in stock), buys at 4; Minoc is the miners' town.
-  'iron ingots': { graphic: 0x1bf2, shopPays: 4, shopCharges: 5, market: 'minoc', shop: 'blacksmith', lot: 10 },
-  // A bowyer's exceptional bows and composite bows (item-quality.ts) for archers. Shops buy any bow
-  // back for at most 27 (SBRangedWeapon), so the band starts above that and runs to 80.
-  'exceptional bows': {
-    graphic: 0x13b2,
-    graphics: [0x13b2, 0x26c2],
-    exceptional: true,
-    // What the bowyer makes for it, best first; normal results go to the shop.
-    recipes: ['composite bow', 'bow'],
-    shopPays: 27,
-    shopCharges: 81,
-    market: 'yew',
-    shop: 'bowyer',
-    lot: 1
-  }
-};
+export { type Good, goodMatch, goods } from './market-goods';
 
-// The items a good covers: plain (unhued) ones of its graphics, and only exceptional ones when so.
-export const goodMatch = (good: Good) => {
-  const def = goods[good];
-  const graphics = def.graphics ?? [def.graphic];
-  return (item: Entity) =>
-    graphics.includes(item.graphic) &&
-    (!item.hue || good === 'cloth') &&
-    (!def.exceptional || quality(item) === 'exceptional');
-};
+import { type Good, goodMatch, goods } from './market-goods';
+
 // The recipes that make a good, best first (an exceptional good's); none for plain goods.
 export const goodRecipes = (good: Good): readonly string[] => goods[good].recipes ?? [];
 export const carriedOf = (session: PlayerSession, backpack: number, good: Good) =>
@@ -127,6 +70,9 @@ export const priceAt = (good: Good, n: number, share: number) =>
   );
 
 // How hard to bargain: Jev's pick when configured, otherwise the resident's temperament.
+// Supply and demand heard lately move the price within the shop band (market-supply.ts).
+const lean = (share: number, good: Good) => Math.max(0.05, Math.min(0.95, share + supplyShift(good)));
+
 async function stance(ctx: MarketContext, kind: string, good: Good): Promise<number> {
   // Bolder residents (risk shift -0.15..0.15) bargain harder.
   const bold = ctx.template?.behavior.temperament?.riskShift ?? 0;
@@ -147,7 +93,8 @@ async function stance(ctx: MarketContext, kind: string, good: Good): Promise<num
         : bold < -0.05
           ? 'soft'
           : 'fair';
-  if (!ctx.decisions || !ctx.template) return levels[baseline];
+  if (!ctx.decisions || !ctx.template)
+    return lean(kind === 'market-ask' ? levels[baseline] : 1 - levels[baseline], good);
   const pick = await ctx.decisions.choose({
     kind,
     checkpoint: ctx.checkpoint,
@@ -170,7 +117,7 @@ async function stance(ctx: MarketContext, kind: string, good: Good): Promise<num
   });
   const chosen = (pick?.id ?? baseline) as keyof typeof levels;
   ctx.decisions.finish(ctx.checkpoint, pick, 'completed', `Market stance: ${chosen}`);
-  return kind === 'market-ask' ? levels[chosen] : 1 - levels[chosen];
+  return lean(kind === 'market-ask' ? levels[chosen] : 1 - levels[chosen], good);
 }
 
 const firstName = (session: PlayerSession, serial: number) =>
@@ -199,6 +146,7 @@ function heard(session: PlayerSession, seen: Set<JournalEntry>) {
     seen.add(entry);
     if (!entry.text || entry.serial === session.world.serial) continue;
     const line = parseMarketLine(entry.text);
+    if (line && (line.kind === 'selling' || line.kind === 'buying')) noteLine(line.good, line.kind, entry.serial);
     if (line) fresh.push({ entry, ...line });
   }
   return fresh;
@@ -326,15 +274,20 @@ async function bidAtMarket(ctx: MarketContext, good: Good, want: number, minutes
       const name = (line.entry.name ?? '').split(' ')[0] ?? '';
       const n = Math.min(need, line.n);
       const price = Math.round((line.total / line.n) * n);
-      // A guildmate's lot comes before a stranger's (guilds.ts).
+      // A guildmate's lot comes before a stranger's (guilds.ts), a known seller's before a new one's.
+      const preferred = (serial: number) =>
+        guildmates(session.world.serial ?? 0, serial)
+          ? 3
+          : (ctx.checkpoint.personal?.partners[serial]?.trust ?? 0) >= 0.3
+            ? 2
+            : knownSeller(good, serial)
+              ? 1
+              : 0;
       const busy =
         courting &&
         courting.until > Date.now() &&
         courting.serial !== line.entry.serial &&
-        !(
-          guildmates(session.world.serial ?? 0, line.entry.serial) &&
-          !guildmates(session.world.serial ?? 0, courting.serial)
-        );
+        !(preferred(line.entry.serial) > preferred(courting.serial));
       if (line.kind === 'selling') {
         if (busy) continue;
         session.say(`${name}, ${n} ${good} for ${price <= ceiling(good, n) ? price : priceAt(good, n, share)} gold`);
@@ -362,9 +315,16 @@ async function bidAtMarket(ctx: MarketContext, good: Good, want: number, minutes
         done,
         reason: done ? undefined : lastFailure(session)
       });
-      if (done) bought += line.n;
+      if (done) {
+        bought += line.n;
+        noteSeller(good, line.entry.serial);
+      }
     }
     if (Date.now() - shoutedAt > 45_000) {
+      // Only what it can pay for, pack and bank together: an empty purse keeps quiet.
+      const carried = session.world.childrenOf(ctx.backpack()).filter((item) => item.graphic === gold);
+      const purse = carried.reduce((n, item) => n + (item.amount ?? 1), 0) + (ctx.checkpoint.funds?.bank ?? 0);
+      if (purse < priceAt(good, need, share)) break;
       ctx.phase('market-buying', `Looking to buy ${need} ${good} at the bank`);
       session.say(`Buying ${need} ${good} for ${priceAt(good, need, share)} gold`);
       shoutedAt = Date.now();

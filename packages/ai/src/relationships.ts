@@ -1,7 +1,10 @@
 import { tally } from './activity';
+import { appraise } from './appraise';
 import { noteSpoken, quietNow } from './conversation';
+import { gossipFor } from './gossip';
 import { distance } from './navigation';
 import type { PlayerSession } from './protocol/session';
+import { sharedMemoryLine } from './resident-memory';
 import { reportPosition } from './spread';
 import type { Checkpoint } from './store';
 
@@ -54,7 +57,13 @@ export function noticePeers(
     ) {
       lastGreeting.set(checkpoint, now);
       try {
-        const line = greeting(name, seen) ?? `Hail, ${name}.`;
+        // News first, when there is some (gossip.ts): what this resident saw or was told.
+        const news = Math.random() < 0.4 ? gossipFor(session.world.serial ?? 0, mobile.serial) : undefined;
+        // Someone it shares a memory with is greeted with it now and then (resident-memory.ts).
+        const memory = Math.random() < 0.5 ? sharedMemoryLine(checkpoint, mobile.serial) : undefined;
+        const line = memory
+          ? `${name.split(' ')[0]}! ${memory}`
+          : `${greeting(name, seen) ?? `Hail, ${name}.`}${news ? ` ${news}` : ''}`;
         session.say(line);
         tally(session, 'speech');
         noteSpoken(checkpoint, mobile.serial, name, line, true);
@@ -62,12 +71,15 @@ export function noticePeers(
         // Not ready to speak; the encounter is still recorded.
       }
     }
+    // Sized up from what it wears, against how it sees itself (appraise.ts).
+    const appraisal = appraise(session, mobile, checkpoint.self);
     checkpoint.relationships[name] = {
       affinity: previous?.affinity ?? 0,
-      note: `Fellow resident, last seen near ${mobile.position.x},${mobile.position.y}`,
+      note: `Fellow resident, last seen near ${mobile.position.x},${mobile.position.y}; ${appraisal.opinion}`,
       seen,
       lastSeen: new Date(now).toISOString(),
-      peer: true
+      peer: true,
+      appraisal
     };
   }
   const entries = Object.entries(checkpoint.relationships);

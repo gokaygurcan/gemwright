@@ -1,34 +1,32 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/bodies';
-import { gold } from '@gemwright/common/items';
 
 import { DangerInterrupt } from './action-purpose';
 import { openOwnBackpack } from './backpack';
-import { bankSurplus, offersBank, openBankBox, queryBankBalance } from './bank-gold';
+import { Blocked } from './blocked';
 import { threatsNear, unsafeCheck } from './danger';
 import { escapeDanger, interruptForDanger } from './danger-response';
-import { replaceDeathRobe, shedDeathRobe, wearsDeathRobe } from './death-robe';
-import { leavesEarly, packFull, packItems, packSummary, tidyPack } from './inventory';
+import { replaceDeathRobe } from './death-robe';
+import { leavesEarly, packFull, packItems, packSummary } from './inventory';
 import { lifeTurn } from './life';
 import { pickLocation, townAt } from './locations';
 import { info } from './log';
 import { checkLoop, watchStep } from './loop-watch';
 import { chopTree } from './lumber-chop';
-import { buyHatchetFrom, hatchets, vendorMenu } from './lumber-shop';
+import { sellBoards, storeAtBank } from './lumber-sell';
+import { buyHatchetFrom, hatchets } from './lumber-shop';
 import { treeStatics } from './lumber-trees';
 import { sellAtMarket } from './market';
-import { approachVendor } from './mobile-approach';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
 import { createPackAnimal } from './pack-animal';
-import { personalTurn } from './personal-turn';
 import { Layer } from './protocol/layers';
+import type { Entity } from './protocol/world';
 import { observeResident } from './resident-observation';
 import type { ResidentOptions } from './resident-options';
-import { isGhost, resurrectGhost } from './resurrection';
+import { isGhost } from './resurrection';
 import { scavenge } from './scavenge';
-import { sellingTurn } from './selling';
 import { isSetback, passSetback } from './setback';
-import { loopSideTrade } from './side-trade';
+import { asProfession, sideTurn, upkeepTurn } from './shared-turn';
 import { trainSupportingSkill } from './skill-training';
 import { learnedPlaceCost } from './strategy-learning';
 import { Terrain } from './terrain';
@@ -44,7 +42,7 @@ const REGROW = 30 * 60_000;
 export async function runLumberjack(options: ResidentOptions) {
   const { session, template } = options;
   // Each lumberjack works its own woods (work-areas.json) and sells in that city.
-  const woods = workArea('woods', options.label ?? template.id);
+  const woods = workArea('woods', options.label ?? template.id, template.creation.city);
   const city = woods.city.toLowerCase();
   const serial = session.world.serial;
   if (serial === null || session.world.map !== 1) throw new Error('The lumberjack supports Trammel Britain');
@@ -209,37 +207,20 @@ export async function runLumberjack(options: ResidentOptions) {
       if (carpenter && count(board) > 0) {
         phase('selling', `Taking ${count(board)} boards to the carpenter`);
         await navigate(carpenter, 4);
-        for (const mobile of [...session.world.entities.values()]) {
-          if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-          const entry = await vendorMenu(session, mobile, 3006104);
-          if (!entry) continue;
-          await approachVendor({ session, terrain, position, navigate, check, serial }, mobile.serial);
-          session.world.sellOffers.delete(mobile.serial);
-          const current = await vendorMenu(session, mobile, 3006104);
-          if (!current) continue;
-          session.selectContext(mobile.serial, current.index);
-          const offered = await session
-            .waitFor(() => session.world.sellOffers.has(mobile.serial), 'carpenter buying list', 2500)
-            .then(() => true)
-            .catch(() => false);
-          if (!offered) continue;
-          const sale = (session.world.sellOffers.get(mobile.serial) ?? []).filter((offer) => {
-            const item = session.world.entities.get(offer.serial);
-            return (
-              item?.parent === backpackSerial() && item.graphic === board && !item.hue && offer.amount === item.amount
-            );
-          });
-          if (!sale.length) continue;
-          const gold = status().gold;
-          await session.sell(
-            mobile.serial,
-            sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
-          );
-          await session.refreshStatus();
-          progress.sold += sale.reduce((sum, offer) => sum + offer.amount, 0);
-          progress.earned += status().gold - gold;
-          phase('sold', `Sold boards for ${status().gold - gold} gold`);
-          break;
+        const sold = await sellBoards({
+          session,
+          terrain,
+          position,
+          navigate,
+          check,
+          serial,
+          status,
+          backpack: backpackSerial
+        });
+        if (sold) {
+          progress.sold += sold.amount;
+          progress.earned += sold.earned;
+          phase('sold', `Sold boards for ${sold.earned} gold`);
         }
       }
       if (!(await packs?.unload(woodSet, 1, room))) break;
@@ -249,18 +230,10 @@ export async function runLumberjack(options: ResidentOptions) {
     if (bank && (status().gold > 0 || heavy())) {
       phase('bank-travel', heavy() ? 'Storing unsold wood and banking the earnings' : 'Banking the earnings');
       await navigate(bank, 4);
-      const banker = [...session.world.entities.values()].find(
-        (mobile) => mobile.kind === 'mobile' && mobile.position && distance(position(), mobile.position) <= 11
+      await storeAtBank(
+        { session, serial, position, terrain, navigate, check, checkpoint, carried },
+        heavy() ? [board, log] : []
       );
-      if (banker && (await offersBank(session, banker.serial))) {
-        const box = await openBankBox({ session, serial, position, terrain, navigate, check }, banker.serial);
-        const stored = heavy() ? [board, log] : [];
-        for (const item of carried().filter((entry) => entry.graphic === gold || stored.includes(entry.graphic))) {
-          await session.moveItem(item.serial, box);
-          await Bun.sleep(600);
-        }
-        await queryBankBalance({ session, serial, position, terrain, navigate, check, checkpoint }, banker.serial);
-      }
     }
     if (!tool()) await buyHatchet();
     await packs?.acquire();
@@ -281,6 +254,23 @@ export async function runLumberjack(options: ResidentOptions) {
       backpack: backpackSerial
     });
 
+  const professional = asProfession({
+    session,
+    serial,
+    terrain,
+    template,
+    checkpoint,
+    city,
+    deadline,
+    position,
+    status,
+    navigate,
+    check,
+    phase,
+    log: say,
+    persist,
+    backpack: backpackSerial
+  });
   let stopped = 'Lumberjack run duration reached';
   try {
     phase('reconcile', 'Reading current inventory; previous transactions are never replayed');
@@ -301,11 +291,21 @@ export async function runLumberjack(options: ResidentOptions) {
       persist,
       backpack: backpackSerial
     };
-    mounts = createMountController(animals, city, 150);
+    // A riding horse waits for savings: a newcomer's first gold goes on its work (mounts.ts).
+    mounts = createMountController(animals, city, 1000);
     packs = createPackAnimal(animals, city);
-    await mounts.acquire();
-    await packs.acquire();
-    await reachRegion({ session, position, navigate, phase }, woods);
+    // Hurt on the way (fetching animals, walking to the woods): clear of danger, then the loop
+    // carries on, instead of the run ending and starting over into the same trouble.
+    try {
+      await mounts.acquire();
+      await packs.acquire();
+      await reachRegion({ session, position, navigate, phase }, woods);
+    } catch (error) {
+      // No way to the woods yet (Blocked): the work loop and its setbacks deal with it.
+      if (error instanceof Blocked) say(`Could not reach the woods yet: ${error.message}`);
+      else if (!(error instanceof DangerInterrupt)) throw error;
+      else await escapeDanger({ session, check, phase, navigate }, pickLocation(townAt(position(), city), 'banker'));
+    }
     // Each lumberjack favours its own stand of trees in its woods.
     const offset = template.behavior.temperament?.miningAnchor;
     const anchor = offset ? { x: woods.x + Math.round(offset.dx / 2), y: woods.y + Math.round(offset.dy / 2) } : woods;
@@ -316,54 +316,12 @@ export async function runLumberjack(options: ResidentOptions) {
       turnAt = Date.now();
       try {
         check();
-        await tidyPack(session, backpackSerial(), say, terrain);
-        if (
-          await loopSideTrade(
-            {
-              session,
-              serial,
-              terrain,
-              template,
-              checkpoint,
-              city,
-              deadline,
-              position,
-              status,
-              navigate,
-              check,
-              phase,
-              log: say,
-              persist,
-              backpack: backpackSerial
-            },
-            'lumberjack'
-          )
-        )
-          continue;
-        await bankSurplus(
-          { session, serial, position, terrain, navigate, check, checkpoint, phase, backpack: backpackSerial },
-          city
-        );
-        if (
-          await sellingTurn({
-            session,
-            serial,
-            terrain,
-            position,
-            navigate,
-            check,
-            phase,
-            log: say,
-            checkpoint,
-            status,
-            city,
-            carried: (pack: number) => session.world.childrenOf(pack),
-            backpack: backpackSerial
-          })
-        )
-          continue;
-        if (
-          await personalTurn({
+        // Upkeep, selling, banking, rest, escorts, players' shops and a side trade after a loop,
+        // as for every trade (shared-turn.ts).
+        const shared = {
+          trade: 'lumberjack',
+          keep: (item: Entity) => hatchets.has(item.graphic),
+          life: {
             session,
             terrain,
             template,
@@ -376,18 +334,10 @@ export async function runLumberjack(options: ResidentOptions) {
             persist,
             navigate,
             practise: () => practise()
-          })
-        )
-          continue;
-        if (isGhost({ session, serial })) {
-          await resurrectGhost({ session, serial, terrain, position, navigate, check, phase, log: say });
-          continue;
-        }
-        if (wearsDeathRobe(session)) await shedDeathRobe(session, terrain, session.world.childrenOf(backpackSerial()));
-        if (status().hits < status().maxHits / 2) {
-          await setback('health is below half');
-          continue;
-        }
+          },
+          needed: (checkpoint.sideTrade?.until ?? 0) > Date.now()
+        };
+        if ((await upkeepTurn(professional, shared)) || (await sideTurn(professional, shared))) continue;
         if (
           await scavenge({
             session,
@@ -414,6 +364,8 @@ export async function runLumberjack(options: ResidentOptions) {
           continue;
         }
         if (heavy()) {
+          // A pack truly full (not a choice to stop early) counts toward a pack animal (pack-animal.ts).
+          if (packFull(session, backpackSerial())) packs.fullLoad();
           await town();
           full = false;
           // Back from town: a life break point (life.ts); errands are another town trip.

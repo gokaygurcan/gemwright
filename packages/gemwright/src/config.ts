@@ -53,6 +53,9 @@ export interface AiSettings {
   chaos?: number;
   // Whether the Order and Chaos guild alliances go to war with each other. Off by default.
   wars?: boolean;
+  // Residents of a fixed size started in one city, by profession weight, counted within
+  // population: { "New Haven": { count: 50, professions: { miner: 6, bard: 3 } } }.
+  cohorts?: Record<string, { count: number; professions: Record<string, number> }>;
 }
 
 export const configFilename = 'gemwright.json';
@@ -179,19 +182,30 @@ export function createConfig(input: {
       throw new Error('Invalid Sphere settings or scripts source.');
   }
   if (input.ai) {
-    const { population, decisions, speech, races, chaos, wars } = input.ai;
+    const { population, decisions, speech, races, chaos, wars, cohorts } = input.ai;
     if (
       emulator !== 'servuo' ||
-      (population !== undefined && (!Number.isInteger(population) || population < 0 || population > 250)) ||
+      (population !== undefined && (!Number.isInteger(population) || population < 0 || population > 300)) ||
       (decisions !== undefined && !['local', 'jev'].includes(decisions)) ||
       (speech !== undefined && !['authored', 'claude'].includes(speech)) ||
       (chaos !== undefined && (typeof chaos !== 'number' || !(chaos >= 0 && chaos <= 1))) ||
       (wars !== undefined && typeof wars !== 'boolean') ||
+      (cohorts !== undefined &&
+        (typeof cohorts !== 'object' ||
+          cohorts === null ||
+          Object.values(cohorts).some(
+            (c) =>
+              !Number.isInteger(c?.count) ||
+              c.count < 0 ||
+              typeof c.professions !== 'object' ||
+              c.professions === null ||
+              Object.values(c.professions).some((w) => typeof w !== 'number' || !(w >= 0))
+          ))) ||
       (races !== undefined &&
         (!Array.isArray(races) || !races.length || races.some((r) => !['human', 'elf', 'gargoyle'].includes(r))))
     )
       throw new Error(
-        'Invalid ai settings: ServUO only, population 0-250, decisions local or jev, speech authored or claude, races human, elf or gargoyle, chaos 0-1, wars true or false.'
+        'Invalid ai settings: ServUO only, population 0-300, decisions local or jev, speech authored or claude, races human, elf or gargoyle, chaos 0-1, wars true or false, cohorts { city: { count, professions: { id: weight } } }.'
       );
     // Elves arrive with Mondain's Legacy, gargoyles with Stygian Abyss.
     const era = expansions.findIndex((option) => option.value === expansion);

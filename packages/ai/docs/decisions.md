@@ -24,27 +24,18 @@ Pass a file with `--decisions` on `session` or `population`.
 
 ## State and guards
 
-`decisions.ts` builds state from ordinary observations only: template and archetype, temperament, training goals, position, status, up to 24 backpack item totals, recent activities, recent decisions with their outcomes, and experience summaries. While a request is pending, the coordinator checks every 25 ms that identity, map, position, health, combatant, cursor and connection are unchanged; a change cancels the request (`observations-changed`). The chosen candidate's preconditions are checked again before it runs.
+`decisions.ts` builds state from ordinary observations only: the life goal, the resident's live view of itself (`self.ts`: gear, gold, health, skills, what a death would cost), what it made of the people it met (`appraise.ts`), template and personality, position, status, up to 24 backpack item totals, recent events and decisions with their outcomes, and experience summaries. While a request is pending, the coordinator checks every 25 ms that identity, map, position, health, combatant, cursor and connection are unchanged; a change cancels the request (`observations-changed`). The chosen candidate's preconditions are checked again before it runs.
 
 Every decision is a trace in the checkpoint (the last 24): kind, candidates, baseline, the model's choice and probabilities, latency, tokens, who decided (`model`, `local`, `fallback`, `stale`) and why, and the execution outcome reported afterwards. Decision memory has its own schema version.
 
 ## Decision kinds
 
-| Kind | Chooses |
-| --- | --- |
-| `mining-activity` | Keep mining, smelt early, or bank early (mandatory weight, tool and safety rules run first). |
-| `hunting-opponent` | Which verified undead to fight, patrol on, or head to town; asked only when there is a real trade-off. |
-| `combat-tactics` | Press the attack, take a short bandaging break, or flee to town. |
-| `town-trip`, `corpse-recovery` | Whether to go to town early; whether to try recovering the corpse (hard limits stay local). |
-| `party-plan`, `party-invite`, `party-answer` | A leader's target; join or decline a party; join now, recover first, or sit a fight out. |
-| `life-phase` | The next life phase at a break point: work, dungeon, errands, leisure, visit or practice ([population](population.md#life-phases)). |
-| `help-request` | Offer advice or decline. |
-| `speech-addressee`, `speech-intent`, `speech-reply` | Whether a line is meant for this resident, what it means, and which truthful reply to give. |
+Each place that asks names its kind (`kind:` in its `decisions.choose` call), for example `life-phase`, `combat-tactics`, `party-invite` and the speech kinds; the report below lists those seen.
 
 ## Comparing with the baseline
 
 Each kind keeps lifetime tallies in `checkpoint.decisions.tally`: decisions, how many differed from the baseline, and the outcomes of agreeing and differing choices. Once a kind has 20 differing choices that succeed more than ten points less often than agreeing ones, Jev is no longer asked for that kind (`provider-underperforms-baseline`).
 
-`bun run packages/ai/src/index.ts decisions --config <population.json>` reports a fleet summary (tallies summed per kind, and who decided each retained trace and why Jev was not asked) and per-resident tallies. Measured latency is about 250 ms median and 340 ms at the 90th percentile. In conversation tests Jev clearly outperformed the local rules: they looped on greetings and repeats where Jev did not. A population-scale comparison is still to run.
+`bun run packages/ai/src/index.ts decisions --config <population.json>` reports a fleet summary (tallies summed per kind, and who decided each retained trace and why Jev was not asked) and per-resident tallies. Measured latency is about 250 ms median and 340 ms at the 90th percentile. `share` (0–1) in the decision configuration sends only that fraction of residents to Jev, fixed by resident id, so the rest decide locally and the two groups can be compared side by side.
 
 Related: [persistence](persistence.md).

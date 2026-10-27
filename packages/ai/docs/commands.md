@@ -24,10 +24,8 @@ bun run packages/ai/src/index.ts session --config <population.json> --connection
 bun run packages/ai/src/index.ts population --config <population.json> --connection <connection.json> \
   --assets <dir> --duration <seconds> [--shard <gemwright.json>] [--decisions <decisions.json>]
 
-# Checks.
-bun test packages/ai/tests
-bun run --cwd ai typecheck
-bunx --no-install biome check ai
+# Checks (from the repository root).
+bun run lint && bun run typecheck && bun run test
 ```
 
 `bun run packages/ai/src/index.ts --help` lists every option. `validate` and `plan` are pure; `reconcile` never creates accounts or logs in; `residents`, `decisions`, `skills` and `dungeons` need an existing database and never modify it. See [sessions](sessions.md) and [population](population.md) for the play commands.
@@ -35,36 +33,18 @@ bunx --no-install biome check ai
 ## Source layout
 
 ```text
-ai/
-  catalogs/        spells and tamable creatures
-  connections/     connection file example
-  decisions/       decision provider configurations
-  docs/            this documentation
-  locations/       place catalog, services, route corridors
-  templates/       archetypes and the population example
-  world/           world.json: facets, cities, professions, population cap
-  tests/           focused checks
-  data/            local state, never committed
-  src/
-    index.ts                      CLI
-    config.ts, archetypes.ts, world.ts, temperament.ts, names.ts   templates and population
-    store.ts, checkpoint-migrations.ts, credentials.ts, skill-snapshots.ts, ownership.ts   persistence
-    connection.ts, shard-profile.ts, connection-admission.ts      connecting to ServUO
-    protocol/                     packets, framing, transport, world view, session
-    run-session.ts, run-population.ts, behavior-supervisor.ts, setback.ts   running residents
-    terrain.ts, navigation.ts, path-*.ts, route-waypoints.ts, direct-route.ts, moongate.ts, work-areas.ts   movement
-    locations.ts, mobile-approach.ts, vendor-trade.ts, bank-gold.ts, service-experience.ts   town
-    miner*.ts, mining-catalog.ts  mining
-    lumberjack.ts, lumber-trees.ts
-    fighter*.ts, combat-risk.ts, cemeteries.ts, mage-combat.ts, hunting-party.ts, party-talk.ts   combat
-    resurrection.ts               death
-    profession*.ts, fisher.ts, tailor.ts, crafter.ts, bard.ts, tamer*.ts, thief*.ts   professions
-    mounts.ts, mount-*.ts
-    skills.ts, skill-training.ts, craft-training.ts, magery.ts, training.ts, stat-locks.ts, progression.ts   skills
-    decisions.ts, decision-provider.ts, experience.ts   decisions and memory
-    dialogue.ts, conversation.ts, relationships.ts      speech
-    dungeon*.ts                   dungeons
-    load-test.ts, stall-probe.ts, build-routes.ts, build-dungeons.ts, build-monsters.ts, build-crafts.ts, build-aggression.ts, report.ts   measurement, routes and catalogs
+packages/ai/
+  catalogs/      spells, monsters, tamables, hunting and taming grounds, crafts, house lots
+  connections/   connection file example
+  decisions/     decision provider configurations
+  docs/          this documentation
+  locations/     places, services, route corridors, teleporters, New Haven
+  templates/     archetypes and the population example
+  world/         world.json (facets, cities, professions, population cap) and names
+  tests/         focused checks
+  data/          local state per shard, never committed
+  src/           the runtime: CLI (index.ts), protocol/, one module per trade or activity,
+                 and offline catalog builders (build-*.ts), which read the ServUO source
 ```
 
 Related: [sessions](sessions.md) · [templates](templates.md).

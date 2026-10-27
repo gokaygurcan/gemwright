@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 
 import type { ConnectionConfig } from '../connection';
 import { timed } from '../stall-probe';
-import { characterList } from './characters';
+import { characterList, serverList } from './characters';
 import { purchaseItem, requestAnimalPurchase } from './commerce';
 import { gumpCommands } from './gumps';
 import { dropAtFeet, giveToMobile, moveItem } from './items';
@@ -18,7 +18,7 @@ import {
 import { requestSkills } from './skill-query';
 import { tradeAccept, tradeCancel } from './trade';
 import { Transport } from './transport';
-import { type Position, text, WorldView } from './world';
+import { type Position, WorldView } from './world';
 
 export type { CharacterRequest, Credentials, SessionPhase } from './session-types';
 
@@ -98,12 +98,7 @@ export class PlayerSession {
     if (opcode === 0x53 && this.phase !== 'ready')
       throw new Error(`Shard rejected character entry (reason ${packet.readUInt8(1)})`);
     if (opcode === 0xa8) {
-      const count = packet.readUInt16BE(4);
-      if (count > 100 || packet.length !== 6 + count * 40) throw new Error('Invalid server list');
-      this.servers = Array.from({ length: count }, (_, i) => ({
-        index: packet.readUInt16BE(6 + i * 40),
-        name: text(packet, 8 + i * 40, 32)
-      }));
+      this.servers = serverList(packet);
     } else if (opcode === 0x8c) {
       // Railway's advertised internal route is not trusted; keep the configured one.
       this.auth = packet.readUInt32BE(7);
@@ -461,6 +456,12 @@ export class PlayerSession {
   party(command: 'add' | 'accept' | 'decline' | 'leave' | 'say', leader = 0, text = ''): void {
     this.requireReady();
     this.send(packets.party(command, leader, text));
+  }
+
+  // A gargoyle takes off or lands (0xBF 0x32, ServUO ToggleFlying).
+  toggleFlying(): void {
+    this.requireReady();
+    this.send(packets.variable(0xbf, Buffer.from([0x00, 0x32, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00])));
   }
 
   // Lock 0 up, 1 down, 2 locked.

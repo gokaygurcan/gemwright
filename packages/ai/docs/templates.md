@@ -24,12 +24,12 @@ Each template contains:
 | `version` | Positive integer revision, increased whenever the template changes. |
 | `label` | Operator-facing description. |
 | `archetype` | Optional `{ "id": "swordsman", "version": 1 }` reference to a reusable long-term build from `packages/ai/templates/archetypes.json`. Validation resolves it into a full persisted snapshot. |
-| `creation.namePrefix` | Template codename for operator discussion; never used to generate new in-game names. Retained for configuration compatibility. |
+| `creation.namePrefix` | Operator codename for the template; never used for in-game names. |
 | `creation.city` | Requested starting city. |
 | `creation.skills` | Requested skill names and starting values in player-visible skill points. |
 | `creation.equipment` | Requested starting equipment identifiers; empty in the examples. |
-| `creation.provisioning` | Currently only `normal-character-creation`. The session command provisions through normal login and the ordinary creation packet when explicitly enabled. |
-| `behavior.activities` | Preferred activities. The first matching behavior name picks the runtime: `mine`, `chop`, `hunt`, or a profession (`tamer`, `thief`, `bard`, `fisher`, `tailor`). |
+| `creation.provisioning` | `normal-character-creation`: an ordinary login and character-creation screen. |
+| `behavior.activities` | Preferred activities. The first matching one picks the behavior: `mine`, `chop`, `hunt`, or a profession (`tamer`, `thief`, `bard`, `fisher`, `tailor`, `crafter`). |
 | `behavior.trainingGoals` | Desired future skill levels. |
 | `behavior.riskTolerance` | Number from 0 to 1. |
 | `behavior.sociability` | Number from 0 to 1. |
@@ -38,9 +38,9 @@ Each template contains:
 | `behavior.bankAtWeightRatio` | Preferred carrying-load ceiling, greater than 0 and at most 1; the miner samples smelting and banking thresholds below it. |
 | `behavior.corpseRecovery` | `seek-help`, `recover-if-safe`, or `replace-equipment`. |
 
-Population validation remains generic: it rejects structural mistakes without imposing one emulator's skill vocabulary. The ServUO provisioning adapter separately resolves supported skill names (including the `Swordsmanship` alias for `Swords`), allows at most three starting skills totaling 100 points with at most 50 each, requires an offered city, and refuses custom starting equipment. Behavioral activities describe preferences; the current miner is a specific implemented behavior, while general activity selection remains pending. Additional creation builds and custom shard vocabularies need explicit profile support.
+Population validation remains generic: it rejects structural mistakes without imposing one emulator's skill vocabulary. The ServUO provisioning adapter separately resolves supported skill names (including the `Swordsmanship` alias for `Swords`), allows at most three starting skills totaling 100 points with at most 50 each, requires an offered city, and refuses custom starting equipment.
 
-New residents receive a player name such as `Rowan Vale`, selected independently of profession from an original given-name and surname pool. The reference project's [NamePool](https://github.com/Klein187/uo-offline/blob/main/playerbots/source/CustomBots/NamePool.cs) inspired the approach; its lists and implementation are not imported. Selection is seeded by resident UUID, avoids case-insensitive collisions with all persisted residents (including parked ones), and is saved in `proposedName` during reconciliation. Provisioning uses that exact saved name and validates the server profile's 2–16-character limit. The initial pool holds 1,024 combinations; exhaustion stops creation with an explicit error. Name uniqueness is local to our roster; unrelated shard players are outside that guarantee. Names survive restarts and policy changes. Template prefixes and ordinals remain operator codenames. Legacy numeric labels are replaced during reconciliation only for residents without a server binding. Existing bound characters are not silently renamed or recreated. The already-created **Miner A** (`0x000036B4`) is intended to become **Rowan Vale** before this implementation stage is finished; the server-side rename is pending. Longer or unsupported names are rejected rather than silently truncated. The current ordinary human creation defaults request strength 40, dexterity 30, intelligence 10, and no extra equipment; the server applies its normal creation rules and starting kit. The resident UUID and actual server serial remain the identity, regardless of display name.
+New residents get a player name that fits their race and sex (`names.ts`, `world/names.json`): humans a given name and a surname, elves an elvish surname, gargoyles a single name in their own style. The pools draw on SphereServer's and ServUO's name lists plus authored ones. A name derives from the resident UUID, so it is stable, never repeats one already on the roster, and stays within ServUO's 16-character limit. It is saved during reconciliation and used at character creation; existing characters are never renamed or recreated. The resident UUID and server serial remain the identity, not the name. Starting stats are the ordinary 40 STR / 30 DEX / 10 INT request, with the server's normal starting kit.
 
 No arbitrary starting items, skills, or location changes will be injected into the world. If a requested template cannot be created through supported ordinary character creation, provisioning must reject it or require an explicit future design decision about shard setup. Never silently substitute a privileged mechanism.
 
@@ -82,7 +82,7 @@ List the complete catalog, including supporting skills, without a shard configur
 bun run packages/ai/src/index.ts archetypes
 ```
 
-The Minoc miner specializes in `craftsman@1`; adding the build does not turn its mining executor into a crafting executor. The swordsman example uses `swordsman@1` and requests its two primary skills, Swordsmanship 50 and Tactics 50, through normal creation. All starting builds still follow the supported profile's skill-point budget, and starting stats remain the existing 40 STR / 30 DEX / 10 INT request. Long-term stat training, skill locks, cap-aware training allocation, and the other combat/support executors remain roadmap work. Adding this catalog does not provision any new account or resident on the live shard.
+In the example, the Minoc miner uses `craftsman@1` and the swordsman `swordsman@1`, requesting Swordsmanship 50 and Tactics 50 through normal creation. Every starting build follows the server's skill-point budget.
 
 ### Template revision semantics
 
@@ -95,26 +95,7 @@ Residents retain both `creationVersion` and `policyVersion`:
 
 Changing creation fields in a new revision affects only residents created from that revision. An existing, not-yet-provisioned resident still retains its original creation snapshot. Operators must not expect a version bump to regenerate the roster.
 
-Removing a template from the active configuration parks its residents and preserves its historical snapshots. Reintroducing that template reuses residents in creation order. There is no resident deletion or template-history pruning command in this milestone.
-
-## Temperament
-
-Residents of one template are different people. `temperament.ts` derives a stable temperament from each resident id (no random state is stored), and `personalTemplate` shades the shared policy with it before a session starts:
-
-| Trait | Range | Effect |
-| --- | --- | --- |
-| `riskShift` | −0.15 to +0.15 | Added to risk tolerance (clamped 0–1); affects optional opponent tiers. |
-| `bankRatioShift` | −0.08 to +0.05 | Added to the bank-at-weight ratio (clamped 0.5–0.95). |
-| `carriedGold` | 800–2,500 | Carried gold that prompts a soft town trip. |
-| `fieldHealAt` | 0.75–0.95 | Health ratio below which a fighter bandages between fights. |
-| `patrolOffset`, `patrolReverse` | 0–3, either direction | Where and which way a fighter walks around the graveyard. |
-| `restlessness` | 0.7–1.3 | Life phases last 1/restlessness as long as configured ([population](population.md#life-phases)). |
-
-The temperament is also part of the decision state, so Jev sees each character's disposition. The configured template is never modified, and template revisions keep each resident's temperament.
-
-## Crafting
-
-Crafting recipes come from `catalogs/crafts/<skill>.json`: every recipe ServUO's craft menu offers that needs only the skill's basic material (alchemy: one reagent and a bottle), with its menu group and label, skill range, material count and what the trade's vendor pays. Gargoyle-only gear and recipes sharing a menu label are left out. Regenerate with `bun run packages/ai/src/build-crafts.ts --servuo <ServUO> --output packages/ai/catalogs/crafts`. Crafters train on the hardest recipe still teaching them that the vendor buys back until their skill goal, then craft only what pays (`chooseRecipe`); exceptional pieces are banked. Alchemists (Moonglow, Britain, Vesper) buy reagents and bottles from the alchemist and sell potions back; bowyers (Yew, Skara Brae, Britain) buy boards from the carpenter and sell bows and crossbows to the bowyer.
+Removing a template from the active configuration parks its residents and preserves its historical snapshots. Reintroducing that template reuses residents in creation order. Residents are never deleted; to stop one for good, list it in `retired.json` ([population](population.md#population-mix)).
 
 ## Appearance
 

@@ -80,6 +80,15 @@ const looks: Record<
   }
 };
 
+// Race and sex alone, picked exactly as appearanceOf does (names.ts names by them).
+export function lookOf(residentId: string, races: readonly Race[]): { race: Race; female: boolean } {
+  const allowed: readonly Race[] = races.length ? races : ['human'];
+  return {
+    race: allowed[Math.floor(unit(residentId, 'race') * allowed.length)] as Race,
+    female: unit(residentId, 'sex') < 0.5
+  };
+}
+
 export function appearanceOf(residentId: string, races: readonly Race[]): Appearance {
   const pick = <T>(list: readonly T[], salt: string): T => list[Math.floor(unit(residentId, salt) * list.length)] as T;
   const female = unit(residentId, 'sex') < 0.5;

@@ -19,7 +19,8 @@ const aliases: [RegExp, Good][] = [
   [/\bcure ?(?:pots?|potions?)?\b/i, 'cure potions'],
   [/\bpoison ?(?:pots?|potions?)?\b/i, 'poison potions'],
   [/\b(?:ingots?|iron|metal)\b/i, 'iron ingots'],
-  [/\b(?:bows?|composite bows?|longbows?)\b/i, 'exceptional bows']
+  [/\b(?:bows?|composite bows?|longbows?)\b/i, 'exceptional bows'],
+  [/\b(?:armou?r|plate|chain ?mail|ring ?mail|tunic|gorget)\b/i, 'exceptional armour']
 ];
 const buying = /\b(?:wtb|buy(?:ing)?|want(?:ing)?|need(?:ing)?|looking for|lf)\b/i;
 const selling = /\b(?:wts|sell(?:ing)?|have|got)\b/i;

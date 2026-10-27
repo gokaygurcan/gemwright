@@ -7,14 +7,14 @@ import { residentNeeds } from '../src/needs';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from '../src/objective-memory';
 import { behaviorFixture, required } from './behavior-fixture';
 
-test('a failed objective waits longer after repeated failures, reopens on changed supplies, and stays bounded', () => {
+test('a failed objective waits two hours, reopens on changed means, and stays bounded', () => {
   const { checkpoint } = behaviorFixture();
-  const first = failObjective(checkpoint, 'tool', 'poor', 'no stock', 1000);
-  const second = failObjective(checkpoint, 'tool', 'poor', 'no stock', first);
-  expect(second - first).toBeGreaterThan(first - 1000);
-  expect(objectiveBlocked(checkpoint, 'tool', 'poor', first + 1)).toBe(true);
-  expect(objectiveBlocked(checkpoint, 'tool', 'gift', first + 1)).toBe(false);
-  expect(objectiveBlocked(checkpoint, 'tool', 'poor', second)).toBe(false);
+  const until = failObjective(checkpoint, 'tool', 'poor', 'no stock', 1000);
+  expect(until - 1000).toBe(2 * 3_600_000);
+  expect(objectiveBlocked(checkpoint, 'tool', 'poor', until - 1)).toBe(true);
+  expect(objectiveBlocked(checkpoint, 'tool', 'gift', until - 1)).toBe(false);
+  expect(objectiveBlocked(checkpoint, 'tool', 'poor', until)).toBe(false);
+  const first = until;
   completeObjective(checkpoint, 'tool');
   expect(objectiveBlocked(checkpoint, 'tool', 'poor', first + 1)).toBe(false);
   for (let i = 0; i < 100; i++) failObjective(checkpoint, `tree:${i}`, 'depleted', 'empty', i);

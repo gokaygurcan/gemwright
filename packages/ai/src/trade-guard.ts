@@ -8,6 +8,7 @@ import type { PlayerSession } from './protocol/session';
 import type { Entity } from './protocol/world';
 import { residentContext } from './resident-context';
 import { rememberPartner } from './resident-memory';
+import { serveClaims } from './resident-offers';
 import { buyByTrade, lastFailure, sellByTrade } from './trade-deal';
 import { finishWorkOrder, orderQuote } from './work-orders';
 
@@ -51,6 +52,8 @@ export async function guardTradeTick(session: PlayerSession, now = Date.now()) {
     const old = windows.get(session);
     const serial = session.world.serial;
     const pack = session.world.childrenOf(serial ?? -1).find((item) => item.layer === Layer.Backpack);
+    // A buyer waiting for one of this resident's posted offers (resident-offers.ts).
+    if (pack && (!trade || trade.closed)) await serveClaims(session, pack.serial);
     if (old && (!trade || trade.closed || trade.mine !== old.mine)) {
       if (old.gift && pack) {
         old.closedAt ??= now;

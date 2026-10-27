@@ -1,14 +1,46 @@
 import { gold } from '@gemwright/common/items';
 
+import { knownBankGold } from './bank-gold';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
-import { bandage, type FighterContext, healPotion, observedThreat } from './fighter-context';
+import {
+  ammoFor,
+  bandage,
+  type FighterContext,
+  healPotion,
+  observedThreat,
+  weaponSkill,
+  weaponsFor
+} from './fighter-context';
 import { packFull } from './inventory';
 import { magicProperty } from './item-quality';
+import { forcedToWork } from './loop-watch';
+import { combatReagents } from './mage-combat';
+import { tuning } from './tuning';
 
 // Carried gold is lost on death, but a few coins are not worth a long ride to the bank.
-export const CARRIED_GOLD_LIMIT = 500;
+export const CARRIED_GOLD_LIMIT = tuning.fighter.carriedGold;
 
 const hasHealing = (ctx: FighterContext) => ctx.count(bandage) >= 5 || ctx.count(healPotion) >= 1;
+
+// A supply run before the fight that needs it: an archer nearly out of arrows or bolts, or a
+// caster out of a reagent its combat spells use, goes to town to restock (fighter-town.ts).
+// Only with the money for it: a broke archer brawls and a broke caster fights with its weapon,
+// instead of walking between town and the field.
+const supplyShortage = (ctx: FighterContext) => {
+  if (ctx.status().gold + knownBankGold(ctx.checkpoint) < tuning.fighter.supplyRunMinGold) return undefined;
+  if (weaponSkill(ctx.template) === 'Archery') {
+    const bow = ctx.session.world
+      .childrenOf(ctx.serial)
+      .find((item) => weaponsFor(ctx.template).has(item.graphic))?.graphic;
+    const ammo = ammoFor(bow);
+    if (ammo && ctx.count(ammo) < tuning.fighter.ammoLow) return 'nearly out of ammunition';
+  }
+  const archetype = ctx.template.archetype;
+  const casts = [...(archetype?.primarySkills ?? []), ...(archetype?.supportingSkills ?? [])].includes('Magery');
+  if (casts && combatReagents.some((reagent) => ctx.count(reagent) < tuning.fighter.reagentLow))
+    return 'out of a combat reagent';
+  return undefined;
+};
 
 const lootedWearables = (ctx: FighterContext) =>
   ctx
@@ -47,9 +79,13 @@ export function townNeed(ctx: FighterContext): { reason: string; hard: boolean }
   if (packFull(ctx.session, ctx.backpack(), 0.85))
     return { reason: `pack full: ${status.weight}/${status.maxWeight} stones`, hard: true };
   if (!hasHealing(ctx)) return { reason: 'healing supplies are nearly exhausted', hard: true };
+  const short = supplyShortage(ctx);
+  if (short) return { reason: short, hard: true };
   if (status.hits < status.maxHits * 0.5)
     return { reason: `health ${status.hits}/${status.maxHits} after field healing`, hard: true };
   const limit = ctx.template.behavior.temperament?.carriedGold ?? CARRIED_GOLD_LIMIT;
+  // A death loses all it carries: past twice its comfort limit the gold goes to the bank, no question.
+  if (ctx.count(gold) >= limit * 2) return { reason: `carrying ${ctx.count(gold)} gold, too much to risk`, hard: true };
   if (ctx.count(gold) >= limit) return { reason: `carrying ${ctx.count(gold)} gold`, hard: false };
   const magic = importantLoot(ctx);
   if (magic)
@@ -67,6 +103,8 @@ const deferred = new WeakMap<object, { reason: string; until: number }>();
 // provider with "return-town" as the deterministic baseline.
 export async function planTownTrip(ctx: FighterContext, decisions?: DecisionCoordinator): Promise<string | null> {
   const need = townNeed(ctx);
+  // The loop guard put it back to its job (loop-watch.ts). Only a hard need (badly hurt, overloaded) still sends it to town.
+  if (need && !need.hard && forcedToWork(ctx.session)) return null;
   if (!need || need.hard || !decisions) return need?.reason ?? null;
   const previous = deferred.get(ctx.trip);
   // Compare reasons without amounts: a purse growing from 1,500 to 1,520 gold is the same judgement.

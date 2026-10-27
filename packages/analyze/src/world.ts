@@ -67,6 +67,8 @@ export interface Item {
   worth?: number;
   // The ridden animal behind a mount item.
   mount?: number;
+  // Where a teleporter sends whoever steps on it, and whether it is switched on.
+  teleport?: { x: number; y: number; z: number; map: number; active: boolean };
   // Set when the record could not be decoded past its header (item sockets).
   partial?: boolean;
 }
@@ -293,6 +295,16 @@ function readItem(r: Reader, entry: Entry): Item {
   // Script data after the base: BankCheck version, worth; MountItem version, mount.
   if (item.type === 'Server.Items.BankCheck' && r.int() === 0) item.worth = r.int();
   if (item.type === 'Server.Mobiles.MountItem' && r.int() === 0) item.mount = r.int();
+  // Teleporter.Serialize, version 4: criminal and combat checks, source and destination effects,
+  // delay (ticks), sound (encoded), creatures, active, destination point and map.
+  if (item.type === 'Server.Items.Teleporter' && r.int() === 4) {
+    r.skip(4 + 8);
+    r.encodedInt();
+    r.skip(1);
+    const active = r.bool();
+    const [x, y, z] = [r.int(), r.int(), r.int()];
+    item.teleport = { x, y, z, map: r.byte(), active };
+  }
   return item;
 }
 

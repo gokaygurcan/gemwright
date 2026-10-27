@@ -102,6 +102,12 @@ const foreignBags = new Set([
 // comes off as soon as there is anything else to wear. Extras are dropped, where they decay.
 // Called between tasks by every runner and after every resurrection.
 const SPELLBOOK = 0x0efa;
+const PLAIN_BOOKS = new Set([
+  0x0fef, // brown book
+  0x0ff0, // tan book
+  0x0ff1, // red book
+  0x0ff2 // blue book
+]);
 const opened = new WeakSet<PlayerSession>();
 export async function tidyPack(
   session: PlayerSession,
@@ -123,6 +129,13 @@ export async function tidyPack(
   const books = items.filter((item) => item.graphic === SPELLBOOK);
   const spareBooks = worn.some((item) => item.graphic === SPELLBOOK) ? books : books.slice(1);
   const robes = items.filter(isDeathRobe);
+  // What the server hands every new character and no player keeps: the candle (and any light
+  // source, tiledata flag 0x800000) and the blank books. Spellbooks and runebooks stay.
+  const junk = items.filter(
+    (item) =>
+      item.parent === pack &&
+      (PLAIN_BOOKS.has(item.graphic) || (!!terrain && (terrain.tile(item.graphic, true).flags & 0x800000) !== 0))
+  );
   // Tools: one or two of each kind is plenty, and a lost one is cheap to replace.
   const tools = new Map<number, Entity[]>();
   for (const item of items.filter((i) => toolGraphics.has(i.graphic) && i.parent === pack))
@@ -143,10 +156,10 @@ export async function tidyPack(
   // Loaded on use: death-robe.ts reaches this module again through the vendor code.
   const { shedDeathRobe } = await import('./death-robe');
   if (terrain && (await shedDeathRobe(session, terrain, items))) log('Took off the death robe for my own clothes');
-  if (!spareBooks.length && !robes.length && !spareTools.length) return;
+  if (!spareBooks.length && !robes.length && !spareTools.length && !junk.length) return;
   const { putDown, refusals } = await import('./overload');
   let kept = 0;
-  for (const [n, item] of [...spareBooks, ...robes, ...spareTools].entries()) {
+  for (const [n, item] of [...spareBooks, ...robes, ...spareTools, ...junk].entries()) {
     if (!(await putDown(session, item.serial, n))) {
       kept++;
       // A refused lift usually means the pack listing is stale: it is read afresh next time.
@@ -155,7 +168,7 @@ export async function tidyPack(
     await Bun.sleep(300);
   }
   log(
-    `Tidied my pack: dropped ${spareBooks.length} spare spellbooks, ${robes.length} old death robes and ${spareTools.length} spare tools${kept ? ` (${kept} would not drop: ${refusals.get(session)})` : ''}`
+    `Tidied my pack: dropped ${spareBooks.length} spare spellbooks, ${robes.length} old death robes, ${spareTools.length} spare tools and ${junk.length} candles and blank books${kept ? ` (${kept} would not drop: ${refusals.get(session)})` : ''}`
   );
 }
 

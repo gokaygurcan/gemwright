@@ -4,8 +4,10 @@ import { monsters } from './dungeons';
 import { bandage, type FighterContext, healPotion } from './fighter-context';
 import { fightCost, recognised } from './fighter-prey';
 import { alliesNear } from './hunting-party';
+import { lasting } from './lasting';
 import { distance } from './navigation';
 import type { Entity } from './protocol/world';
+import { selfNow } from './self';
 
 // How sure a fighter is that it walks away from a fight, judged the way a player sizes one up: the
 // target, and everything near it that would join in (archers and casters from farther off). Each creature costs a share of the fighter's
@@ -20,9 +22,9 @@ const CASTERS = new Set(['Mage', 'NecroMage', 'Spellbinder', 'Spellweaving', 'My
 const RANGED = new Set([...CASTERS, 'Archer', 'OrcScout']);
 const casts = (stats?: { ai?: string | null; magery: number }) =>
   !!stats && (CASTERS.has(stats.ai ?? '') || stats.magery >= 50);
-const shaken = new WeakMap<object, number>();
 
-export const rememberDeath = (session: object) => shaken.set(session, Date.now());
+// Deaths are kept across restarts (lasting.ts, stuck.ts noteDeath); this hook stays for callers.
+export const rememberDeath = (_session: object) => {};
 
 const statsOf = (mobile: Entity) =>
   monsters.find(
@@ -62,8 +64,26 @@ export function fightConfidence(ctx: FighterContext, target: Entity): { ok: bool
   const loss = ((cost(target) + joining.reduce((sum, other) => sum + 0.7 * cost(other), 0)) * healed) / party;
   const healing = Math.min(0.4, (ctx.count(bandage) >= 5 ? 0.25 : 0) + Math.min(2, ctx.count(healPotion)) * 0.1);
   const margin = status.hits / Math.max(1, status.maxHits) + healing - loss;
-  const recentDeath = Date.now() - (shaken.get(ctx.session) ?? 0) < 3_600_000 ? 0.15 : 0;
-  const line = 0.35 + (0.5 - ctx.template.behavior.riskTolerance) * 0.4 + recentDeath + (Math.random() - 0.5) * 0.15;
+  // Dying is the worst outcome (it loses everything carried), so the line rises with each death
+  // in the last hour (kept across restarts) and with what a death would cost now: carried gold
+  // and loot. No new fight is started below 60% health at all.
+  if (status.hits < status.maxHits * 0.6)
+    return { ok: false, reason: `only ${Math.round((status.hits / Math.max(1, status.maxHits)) * 100)}% health` };
+  const recentDeath = Math.min(0.3, lasting('deaths', ctx.serial).count() * 0.1);
+  // What it knows of itself (self.ts): good gear and skill make it bolder; what it would lose
+  // (gear worn, gold and goods carried, against all it owns) makes it careful. Both grow with it.
+  const self = ctx.checkpoint ? selfNow(ctx.session, ctx.checkpoint, ctx.template) : undefined;
+  const stakes = self
+    ? Math.min(0.2, (self.atRisk / Math.max(1500, self.wealth)) * 0.2)
+    : Math.min(0.15, ((status.gold ?? 0) + (ctx.trip?.loot.length ?? 0) * 50) / 10_000);
+  const confidence = self ? (self.power - 0.5) * 0.3 : 0;
+  const line =
+    0.35 +
+    (0.5 - ctx.template.behavior.riskTolerance) * 0.4 +
+    recentDeath +
+    stakes -
+    confidence +
+    (Math.random() - 0.5) * 0.15;
   const crowd = joining.length ? `, ${joining.length} more nearby${casters ? ` (${casters} casting)` : ''}` : '';
   const reason = `expects to lose ${Math.round(loss * 100)}% of its health${crowd}; margin ${margin.toFixed(2)} against ${line.toFixed(2)}`;
   return { ok: margin >= line, reason };

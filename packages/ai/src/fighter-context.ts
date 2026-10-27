@@ -1,5 +1,6 @@
-import { bandage, gold, healPotion } from '@gemwright/common/items';
+import { bandage, gargishWeapons, gold, healPotion, weapons } from '@gemwright/common/items';
 
+import { withinReach } from './areas';
 import type { CharacterTemplate } from './config';
 import { type Landmark, pickLocation, type ServiceType, serviceLocation, serviceLocations } from './locations';
 import type { createNavigator } from './navigation';
@@ -16,12 +17,15 @@ export const graveyard = serviceLocation('Britain', 'graveyard');
 // A fighter's home town: its bank is the town point, and every service comes from that city, falling
 // back to Britain's when the city has none (world.json decides where fighters live).
 export function homeOf(city: string, position?: () => { x: number; y: number }) {
-  // Landmarks that proved unreachable from here are skipped; when none of the city's remain,
-  // Britain's are used.
-  const usable = (list: readonly Landmark[]) => (position ? list.filter((l) => reachableFrom(l, position())) : list);
+  // Landmarks that proved unreachable from here are tried last.
+  const usable = (list: readonly Landmark[]) =>
+    position ? list.filter((l) => reachableFrom(l, position()) && withinReach(position(), l)) : list;
+  // A town's own landmarks stay its own even when none proved reachable from where it stands now
+  // (the other half of Jhelom, across a teleporter): only a town without one uses Britain's.
   const all = (service: ServiceType) => {
-    const own = usable(serviceLocations(city, service));
-    return own.length ? own : usable(serviceLocations('Britain', service));
+    const listed = serviceLocations(city, service);
+    const own = usable(listed);
+    return own.length ? own : listed.length ? [...listed] : usable(serviceLocations('Britain', service));
   };
   // When every landmark proved unreachable on foot from here (an island town), the catalogued one
   // is still returned: callers travel with travelNear, which takes a moongate.
@@ -68,14 +72,19 @@ export const valuable = (graphic: number) =>
 
 export class Died extends Error {}
 export class Retreat extends Error {}
+// Attacked on the way by something it can fight: it turns and fights (fighter.ts), as a player would.
+export class Ambushed extends Error {
+  constructor(readonly attacker: Entity) {
+    super('Attacked on the way; fighting back');
+  }
+}
 
-// Weapon families by combat skill (ServUO item IDs); a fighter only equips and buys its own family.
+// Weapon families by combat skill (@gemwright/common/items); a fighter only equips and buys its own
+// family. Gargoyles wield only gargish weapons, listed with each family.
 const families: Record<string, number[]> = {
-  Swordsmanship: [0x13fe, 0x13ff, 0x0f5e, 0x0f5f, 0x13b5, 0x13b6, 0x0f60, 0x0f61],
-  // Kryss, spear, short spear, war fork, dagger.
-  Fencing: [0x1400, 0x1401, 0x0f62, 0x0f63, 0x1402, 0x1403, 0x1404, 0x1405, 0x0f51, 0x0f52],
-  // Club, mace, war mace, war hammer, hammer pick, maul.
-  'Mace Fighting': [0x13b3, 0x13b4, 0x0f5c, 0x0f5d, 0x1406, 0x1407, 0x1438, 0x1439, 0x143c, 0x143d, 0x143a, 0x143b],
+  Swordsmanship: [...weapons.Swordsmanship, ...gargishWeapons.Swordsmanship],
+  Fencing: [...weapons.Fencing, ...gargishWeapons.Fencing],
+  'Mace Fighting': [...weapons['Mace Fighting'], ...gargishWeapons['Mace Fighting']],
   // Bow, crossbow, heavy crossbow.
   Archery: [...rangedGraphics]
 };
@@ -86,6 +95,13 @@ export const weaponSkill = (template: CharacterTemplate) =>
       'Wrestling')
     : 'Swordsmanship';
 const sets = new Map(Object.entries(families).map(([skill, ids]) => [skill, new Set(ids)]));
+// Every melee weapon of any family: a stand-in when a fighter has none of its own (fighter-equipment.ts).
+export const meleeWeapons = new Set(
+  ['Swordsmanship', 'Fencing', 'Mace Fighting'].flatMap((skill) => families[skill] ?? [])
+);
+// The skill a weapon is used with (its family), Wrestling for none.
+export const familyOf = (graphic: number | undefined) =>
+  graphic === undefined ? 'Wrestling' : ([...sets].find(([, ids]) => ids.has(graphic))?.[0] ?? 'Wrestling');
 export const weaponsFor = (template: CharacterTemplate) => sets.get(weaponSkill(template)) ?? new Set<number>();
 export const arrow = 0x0f3f;
 export const bolt = 0x1bfb;
@@ -156,3 +172,22 @@ export interface FighterContext {
     number
   >;
 }
+
+// A fighter's run counters, all at zero.
+export const newFighterStats = (): FighterContext['stats'] => ({
+  kills: 0,
+  looted: 0,
+  sold: 0,
+  bankedGold: 0,
+  bankedItems: 0,
+  retreats: 0,
+  resurrections: 0,
+  tacticalBreaks: 0,
+  reengagements: 0,
+  burstEscapes: 0,
+  completedBandages: 0,
+  failedBandages: 0,
+  recoveredItems: 0,
+  abandonedCorpses: 0,
+  replacementWeapons: 0
+});

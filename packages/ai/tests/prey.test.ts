@@ -32,7 +32,7 @@ function fighter(options: {
     [skillId('Healing'), value(options.healing ?? 0)]
   ]);
   return {
-    session: { world: { skills } },
+    session: { world: { skills, childrenOf: () => [{ layer: 1, graphic: 0x13ff }] } },
     template: { behavior: { riskTolerance: 0.5 } },
     status: () => ({ hits: 90, maxHits: 90, armor: options.armor ?? 0 }),
     position: () => ({ x: 0, y: 10, z: 0, direction: 0 }),

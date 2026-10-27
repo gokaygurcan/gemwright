@@ -111,8 +111,11 @@ export function createFighterGear(
       phase('dressing', 'Discarding the death robe');
       await session.dropAtFeet(robe.serial);
     }
-    // A candle or torch in the off hand gives way to a shield (tiledata LightSource).
+    // A candle or torch in the off hand gives way to a shield (tiledata LightSource), or is
+    // simply put away; tidyPack then drops it.
     const light = holdsLight;
+    const held = worn(Layer.TwoHanded);
+    if (held && holdsLight(Layer.TwoHanded)) await session.moveItem(held.serial, ctx.backpack()).catch(() => {});
     for (const item of contents()) {
       check();
       const layer = wearLayer(item);
@@ -120,11 +123,9 @@ export function createFighterGear(
       // Hands belong to the weapon step: the weapon hand never takes other families' weapons, and
       // the off hand only shields and light sources (two-handed weapons also use layer 2).
       const tile = terrain.tile(item.graphic, true);
-      if (
-        layer === Layer.OneHanded ||
-        (layer === Layer.TwoHanded && !/shield|buckler/i.test(tile.name) && !(tile.flags & 0x800000))
-      )
-        continue;
+      // A candle or torch is never held: the off hand is for a shield (tidyPack drops lights).
+      if (layer === Layer.OneHanded || (layer === Layer.TwoHanded && !/shield|buckler/i.test(tile.name))) continue;
+      if (tile.flags & 0x800000) continue;
       if (refused.has(item.graphic)) continue;
       const looted = trip.loot.includes(item.serial);
       // A candle or torch shares the shield layer but is not armor: never compared or sold.

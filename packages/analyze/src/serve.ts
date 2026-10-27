@@ -1,18 +1,31 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { pull } from 'gemwright/src/pull';
+
+import app from '../web/index.html';
 import { type Analysis, analyze } from './analysis';
 import { findClientFiles } from './client';
-import { homePage, itemPage, layout, mobilePage, searchPage, status } from './pages';
-import { playersPage } from './players';
-import { pullLatest, savedAt } from './pulls';
+import { decisionsDoc } from './decisions';
+import type { Doc } from './doc';
+import { economyDoc } from './economy';
+import { historyDoc, readHistory, recordHistory } from './history';
+import { loopsDoc } from './loops';
+import { itemDoc, mobileDoc, overviewDoc, searchDoc } from './pages';
+import { playersDoc } from './players';
+import { deletePull, isStamp, listPulls, savesOf } from './pull-store';
+import { savedAt } from './pulls';
+import type { PullsResponse } from './pulls-api';
+import { replayDoc } from './replay';
+import { readResidents, residentsDoc } from './residents';
 import { search } from './search';
+import { readLasting, troubleDoc } from './trouble';
 
-// A local website over a shard's world save: search characters, mobiles and items by name, type
-// or serial, and open a page for each. Run from the shard folder, it pulls the deployment's
-// latest save at start and on Refresh; --local reads a Saves folder already on disk instead.
-//   bun packages/analyze/src/serve.ts [--local <Saves folder>] [--files <client files>] [--port 4100] [--cleanup]
-// --cleanup keeps only the newest pull after each one (gemwright pull --cleanup).
+// A local website over a shard's pulls (web/: a Preact app Bun bundles on the fly). Run from the
+// shard folder, it opens on the list of pulls (.gemwright/pulls): fetch a new one from the
+// deployment, delete one, or analyze one to search its characters, mobiles and items by name, type
+// or serial. --local analyzes a Saves folder already on disk instead.
+//   bun packages/analyze/src/serve.ts [--local <Saves folder>] [--files <client files>] [--port 4100]
 // With the game client's files (--files, else the repository's files/), character pages draw the
 // character with the client's own art.
 const { values } = parseArgs({
@@ -20,36 +33,69 @@ const { values } = parseArgs({
   options: {
     local: { type: 'string' },
     port: { type: 'string' },
-    files: { type: 'string' },
-    cleanup: { type: 'boolean' }
+    files: { type: 'string' }
   }
 });
-status.live = !values.local;
 const client = findClientFiles(values.files);
 if (!client) console.log('No client files found: character pages show tables only (pass --files).');
+const directory = process.cwd();
 
-const load = (saves: string): Analysis => {
-  const started = performance.now();
-  const loaded = analyze(saves);
-  status.savedAt = savedAt(saves);
-  console.log(`Read ${saves} in ${Math.round(performance.now() - started)} ms.`);
-  return loaded;
-};
-let analysis = load(values.local ? resolve(values.local) : await pullLatest(process.cwd(), values.cleanup));
-
-// One pull at a time; pages keep showing the previous save until the new one is read.
-async function refresh() {
-  if (status.refreshing) return;
-  status.refreshing = true;
-  status.error = undefined;
-  try {
-    analysis = load(await pullLatest(process.cwd(), values.cleanup));
-  } catch (error) {
-    status.error = `Refresh failed: ${error instanceof Error ? error.message : String(error)}`;
-  } finally {
-    status.refreshing = false;
-  }
+// The pull being analyzed, and what the pages read from it.
+interface Open {
+  stamp?: string;
+  label: string;
+  savedAt: string;
+  analysis: Analysis;
+  saves: string;
+  lasting: ReturnType<typeof readLasting>;
+  residents: ReturnType<typeof readResidents>;
+  history: ReturnType<typeof readHistory>;
 }
+let open: Open | undefined;
+const load = (saves: string, label: string, stamp?: string) => {
+  const started = performance.now();
+  const analysis = analyze(saves);
+  const residents = readResidents(saves);
+  recordHistory(saves, analysis, residents, savedAt(saves));
+  open = {
+    stamp,
+    label,
+    savedAt: savedAt(saves).toISOString(),
+    analysis,
+    saves,
+    lasting: readLasting(saves),
+    residents,
+    history: readHistory(saves)
+  };
+  console.log(`Read ${saves} in ${Math.round(performance.now() - started)} ms.`);
+};
+if (values.local) load(resolve(values.local), `Local save ${values.local}`);
+
+// One pull at a time, in the background; its progress lines go to the page.
+const pulling: { running: boolean; lines: string[]; error?: string } = { running: false, lines: [] };
+function fetchPull() {
+  if (pulling.running) return;
+  Object.assign(pulling, { running: true, lines: [], error: undefined });
+  const log = console.log;
+  console.log = (...args: unknown[]) => {
+    pulling.lines.push(args.map(String).join(' '));
+    log(...args);
+  };
+  pull({}, directory)
+    .catch((error) => {
+      pulling.error = `Pull failed: ${error instanceof Error ? error.message : String(error)}`;
+    })
+    .finally(() => {
+      console.log = log;
+      pulling.running = false;
+    });
+}
+
+const pullsResponse = (): PullsResponse => ({
+  pulls: listPulls(directory).map((p) => ({ ...p, at: p.at.toISOString() })),
+  pulling,
+  open: open && { stamp: open.stamp, label: open.label, savedAt: open.savedAt }
+});
 
 // Client art never changes while the server runs.
 const png = (bytes: Buffer | undefined) =>
@@ -58,37 +104,72 @@ const png = (bytes: Buffer | undefined) =>
         headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' }
       })
     : new Response('Not found', { status: 404 });
-const html = (body: string, code = 200) =>
-  new Response(body, { status: code, headers: { 'content-type': 'text/html; charset=utf-8' } });
-const missing = (what: string) =>
-  html(layout('Not found', `<h1>Not found</h1><p>No ${what} with that serial.</p>`), 404);
+const notFound = (what: string) => Response.json({ error: `No ${what} here.` }, { status: 404 });
+// A page of the open pull, or 409 when none is open (the app goes back to the pulls).
+const page = (make: (o: Open) => Doc | undefined, what = 'page') => {
+  if (!open) return Response.json({ error: 'No pull is open.' }, { status: 409 });
+  const doc = make(open);
+  return doc ? Response.json(doc) : notFound(what);
+};
+
 const server = Bun.serve({
   hostname: '127.0.0.1',
   port: Number(values.port ?? 4100),
-  // A pull downloads the whole Saves folder; the refresh request waits for it.
   idleTimeout: 0,
   routes: {
-    '/': () => html(homePage(analysis)),
-    '/players': () => html(playersPage(analysis)),
-    '/refresh': {
-      POST: async (request) => {
-        if (status.live) await refresh();
-        return Response.redirect(request.headers.get('referer') ?? '/', 303);
+    '/api/pulls': {
+      GET: () => Response.json(pullsResponse()),
+      POST: () => {
+        fetchPull();
+        return Response.json(pullsResponse());
       }
     },
-    '/search': (request) => {
+    '/api/pulls/:stamp': {
+      DELETE: (request) => {
+        const { stamp } = request.params;
+        if (stamp === open?.stamp) return Response.json({ error: 'That pull is open.' }, { status: 409 });
+        deletePull(stamp, directory);
+        return Response.json(pullsResponse());
+      }
+    },
+    '/api/pulls/:stamp/open': {
+      POST: (request) => {
+        const { stamp } = request.params;
+        if (!isStamp(stamp)) return notFound('pull');
+        try {
+          if (open?.stamp !== stamp) load(savesOf(stamp, directory), `Pull ${stamp}`, stamp);
+          return Response.json(pullsResponse());
+        } catch (error) {
+          return Response.json(
+            { error: `Could not analyze ${stamp}: ${error instanceof Error ? error.message : String(error)}` },
+            { status: 500 }
+          );
+        }
+      }
+    },
+    '/api/page/overview': () => page((o) => overviewDoc(o.analysis)),
+    '/api/page/players': () => page((o) => playersDoc(o.analysis)),
+    '/api/page/residents': () => page((o) => residentsDoc(o.analysis, o.residents)),
+    '/api/page/trouble': () => page((o) => troubleDoc(o.lasting)),
+    '/api/page/loops': () => page((o) => loopsDoc(o.lasting)),
+    '/api/page/history': () => page((o) => historyDoc(o.history)),
+    '/api/page/economy': () => page((o) => economyDoc(o.saves)),
+    '/api/page/decisions': () => page((o) => decisionsDoc(o.saves)),
+    '/api/page/search': (request) => {
       const query = new URL(request.url).searchParams.get('q') ?? '';
-      const hits = search(analysis, query);
-      // A serial that matches exactly one thing opens it directly.
-      const only = hits.length === 1 ? hits[0] : undefined;
-      if (only && /^(0x[0-9a-f]+|\d+)$/i.test(query.trim()))
-        return Response.redirect(`/${only.kind === 'item' ? 'item' : 'mobile'}/${only.serial}`, 302);
-      return html(searchPage(query, hits));
+      return page((o) => searchDoc(query, search(o.analysis, query)));
     },
-    '/mobile/:serial': (request) => {
-      const m = analysis.world.mobiles.get(Number(request.params.serial));
-      return m ? html(mobilePage(analysis, m, client)) : missing('mobile');
-    },
+    '/api/page/replay/:serial': (request) => page((o) => replayDoc(o.saves, Number(request.params.serial)), 'resident'),
+    '/api/page/mobile/:serial': (request) =>
+      page((o) => {
+        const m = o.analysis.world.mobiles.get(Number(request.params.serial));
+        return m && mobileDoc(o.analysis, m, client);
+      }, 'mobile'),
+    '/api/page/item/:serial': (request) =>
+      page((o) => {
+        const i = o.analysis.world.items.get(Number(request.params.serial));
+        return i && itemDoc(o.analysis, i);
+      }, 'item'),
     '/gump/:id': (request) => {
       const query = new URL(request.url).searchParams;
       return png(client?.gump(Number(request.params.id), Number(query.get('hue') ?? 0), query.has('partial')));
@@ -102,11 +183,9 @@ const server = Bun.serve({
       const size = Math.min(1024, Number(new URL(request.url).searchParams.get('size') ?? 128));
       return png(client?.radar(Number(map), Number(x), Number(y), size));
     },
-    '/item/:serial': (request) => {
-      const i = analysis.world.items.get(Number(request.params.serial));
-      return i ? html(itemPage(analysis, i)) : missing('item');
-    }
+    // Every other path is the app, which routes in the browser.
+    '/*': app
   },
-  fetch: () => missing('page')
+  development: process.env.NODE_ENV !== 'production'
 });
 console.log(`Save browser: http://${server.hostname}:${server.port}/`);

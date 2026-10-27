@@ -35,6 +35,8 @@ interface World {
   professions: Record<string, Profession>;
   // The most residents a runtime may bring in, whatever a command asks for.
   population?: { max: number };
+  // Groups living apart from the main population: a fixed count in one town, by profession weight
+  // (New Haven, haven.ts). Their templates are `<town>-<profession>`, like any other.
   // Life phases and the time split between them (life.ts).
   lifecycle?: {
     mix: string;
@@ -91,6 +93,33 @@ export function weightedPick(weights: Record<string, number>, key: string): stri
   })?.[0];
 }
 
+// The template of one profession in one home city.
+function templateFor(id: string, p: Profession, city: string): CharacterTemplate {
+  return {
+    id: `${slug(city)}-${id}`,
+    version: 1,
+    label: `${city} ${id}`,
+    creation: {
+      namePrefix: p.creation.namePrefix,
+      city,
+      skills: p.creation.skills,
+      equipment: [],
+      provisioning: 'normal-character-creation'
+    },
+    behavior: {
+      activities: [p.behavior, 'train', 'bank', 'restock', 'socialize'],
+      trainingGoals: p.trainingGoals,
+      riskTolerance: p.riskTolerance,
+      sociability: 0.5,
+      cooperation: 0.8,
+      supplies: p.supplies,
+      bankAtWeightRatio: 0.75,
+      corpseRecovery: p.behavior === 'fighter' ? 'recover-if-safe' : 'seek-help'
+    },
+    archetype: { id: p.archetype, version: 1 }
+  } as unknown as CharacterTemplate;
+}
+
 // One template per profession and allowed home city, with the profession's share split by home weight.
 export function worldTemplates(): { template: CharacterTemplate; weight: number }[] {
   return Object.entries(world.professions).flatMap(([id, p]) => {
@@ -99,44 +128,52 @@ export function worldTemplates(): { template: CharacterTemplate; weight: number 
     const total = homes.reduce((sum, [, w]) => sum + w, 0);
     return homes.map(([city, weight]) => ({
       weight: Math.max(1, Math.round((p.share * weight * 10) / total)),
-      template: {
-        id: `${slug(city)}-${id}`,
-        version: 1,
-        label: `${city} ${id}`,
-        creation: {
-          namePrefix: p.creation.namePrefix,
-          city,
-          skills: p.creation.skills,
-          equipment: [],
-          provisioning: 'normal-character-creation'
-        },
-        behavior: {
-          activities: [p.behavior, 'train', 'bank', 'restock', 'socialize'],
-          trainingGoals: p.trainingGoals,
-          riskTolerance: p.riskTolerance,
-          sociability: 0.5,
-          cooperation: 0.8,
-          supplies: p.supplies,
-          bankAtWeightRatio: 0.75,
-          corpseRecovery: p.behavior === 'fighter' ? 'recover-if-safe' : 'seek-help'
-        },
-        archetype: { id: p.archetype, version: 1 }
-      } as unknown as CharacterTemplate
+      template: templateFor(id, p, city)
+    }));
+  });
+}
+
+// A shard's cohorts (gemwright.json ai.cohorts): residents of a fixed size started in one city,
+// by profession weight, e.g. { "New Haven": { count: 50, professions: { miner: 6, ... } } }.
+export type Cohorts = Record<string, { count: number; professions: Record<string, number> }>;
+
+// Each cohort's templates and the number of residents for each, split by profession weight.
+export function cohortTemplates(cohorts: Cohorts = {}): { template: CharacterTemplate; count: number }[] {
+  return Object.entries(cohorts).flatMap(([city, cohort]) => {
+    if (!allowedHome(city)) return [];
+    const entries = Object.entries(cohort.professions).filter(([id]) => world.professions[id]);
+    const total = entries.reduce((sum, [, w]) => sum + w, 0);
+    const exact = entries.map(([id, w]) => ({ id, exact: total ? (cohort.count * w) / total : 0 }));
+    const counts = new Map(exact.map((e) => [e.id, Math.floor(e.exact)]));
+    let left = cohort.count - [...counts.values()].reduce((a, b) => a + b, 0);
+    for (const e of [...exact].sort((a, b) => (b.exact % 1) - (a.exact % 1)))
+      if (left-- > 0) counts.set(e.id, (counts.get(e.id) ?? 0) + 1);
+    return entries.map(([id]) => ({
+      template: templateFor(id, world.professions[id] as Profession, city),
+      count: counts.get(id) ?? 0
     }));
   });
 }
 
 // Adds the world's templates to a population (keeping existing ones) and allocates `count` residents
-// across them by weight.
-export function applyWorld(population: PopulationConfig, requested: number): PopulationConfig {
+// across them by weight, the shard's cohorts first.
+export function applyWorld(
+  population: PopulationConfig,
+  requested: number,
+  shardCohorts: Cohorts = {}
+): PopulationConfig {
   const max = world.population?.max;
   if (max !== undefined && requested > max)
     info(`[world] ${requested} residents requested; world.json caps the population at ${max}`);
-  const count = max === undefined ? requested : Math.min(requested, max);
+  const wanted = max === undefined ? requested : Math.min(requested, max);
+  // Cohorts first, at their fixed size; the main population takes the rest.
+  const cohorts = cohortTemplates(shardCohorts);
+  const cohortTotal = cohorts.reduce((sum, c) => sum + c.count, 0);
+  const count = Math.max(0, wanted - cohortTotal);
   const generated = worldTemplates();
   const existing = new Set(population.templates.map((t) => t.id));
   const raw = population as unknown as { templates: unknown[] };
-  for (const { template } of generated) if (!existing.has(template.id)) raw.templates.push(template);
+  for (const { template } of [...generated, ...cohorts]) if (!existing.has(template.id)) raw.templates.push(template);
   // Spread first, then weight: one resident per profession, then one per home, then the rest by
   // weight (largest remainder), so even a small population meets every kind of character.
   const counts = generated.map((g) => ({ templateId: g.template.id, count: 0 }));
@@ -164,10 +201,17 @@ export function applyWorld(population: PopulationConfig, requested: number): Pop
     const entry = counts[share.index];
     if (entry && left-- > 0) entry.count++;
   }
+  // A cohort larger than what was asked for is cut to fit, from the end of its list.
+  let room = wanted - counts.reduce((sum, c) => sum + c.count, 0);
+  const cohortCounts = cohorts.map((c) => {
+    const n = Math.max(0, Math.min(c.count, room));
+    room -= n;
+    return { templateId: c.template.id, count: n };
+  });
   return {
     ...population,
-    targetPopulation: count,
+    targetPopulation: wanted,
     // Zero counts stay listed: a population of zero is valid and parks everyone.
-    allocation: { mode: 'fixed', entries: counts }
+    allocation: { mode: 'fixed', entries: [...counts, ...cohortCounts] }
   } as PopulationConfig;
 }

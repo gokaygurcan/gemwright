@@ -6,6 +6,7 @@ import { lootProvoked } from './bard-loot';
 import { Blocked } from './blocked';
 import { cemeteries } from './cemeteries';
 import { prey, recognised } from './fighter-prey';
+import { HAVEN_CITY, isHavenTemplate } from './haven';
 import { allServiceLocations } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
@@ -73,7 +74,10 @@ export const runBard = (options: ProfessionOptions) =>
         if (!ctx.carried().some((i) => instruments.has(i.graphic)))
           throw new Blocked('missing-tool', 'No instrument bought');
       }
-      const grounds = professionOf(template.id)?.[1].grounds ?? { Britain: 1 };
+      // A New Haven bard plays where it lives (haven.ts).
+      const grounds = isHavenTemplate(template)
+        ? { [HAVEN_CITY]: 1 }
+        : (professionOf(template.id)?.[1].grounds ?? { Britain: 1 });
       const groundName = weightedPick(grounds, `${ctx.serial}:${Math.floor(Date.now() / 1_800_000)}`) ?? 'Britain';
       const ground = cemeteries.find((c) => c.name === groundName) ?? cemeteries[0];
       if (!ground) return;

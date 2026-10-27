@@ -73,14 +73,16 @@ export async function deployAi(directory: string, gameFiles: string) {
   // Shard settings the AI needs (expansion, account rules, AI settings); never client paths.
   const settings = {
     id: shard.id,
+    timezone: shard.timezone,
     emulator: shard.emulator,
     expansion: shard.expansion,
     servuo: { autoCreateAccounts: shard.servuo?.autoCreateAccounts, accountsPerIp: shard.servuo?.accountsPerIp },
     ai: shard.ai ?? {}
   };
   const jev = shard.ai?.decisions === 'jev';
+  // Without a key here, the one already set on the service is kept (it is never cleared).
   if (jev && !process.env.TYPESAFE_API_KEY)
-    throw new Error('ai.decisions is jev, but TYPESAFE_API_KEY is not set in this environment.');
+    console.log('ai.decisions is jev and TYPESAFE_API_KEY is not set here; keeping the key already on the service.');
   const claude = shard.ai?.speech === 'claude';
   if (claude && !process.env.ANTHROPIC_API_KEY)
     throw new Error('ai.speech is claude, but ANTHROPIC_API_KEY is not set in this environment.');
@@ -91,7 +93,7 @@ export async function deployAi(directory: string, gameFiles: string) {
     `UO_HOST=\${{${server.name}.RAILWAY_PRIVATE_DOMAIN}}`,
     'UO_PORT=2593',
     `GEMWRIGHT_SHARD=${JSON.stringify(settings)}`,
-    ...(jev ? [`TYPESAFE_API_KEY=${process.env.TYPESAFE_API_KEY}`] : []),
+    ...(jev && process.env.TYPESAFE_API_KEY ? [`TYPESAFE_API_KEY=${process.env.TYPESAFE_API_KEY}`] : []),
     ...(claude ? [`ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY}`] : []),
     'RAILWAY_DOCKERFILE_PATH=Dockerfile',
     '--skip-deploys',

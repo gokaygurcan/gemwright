@@ -18,6 +18,8 @@ export function activityLine(checkpoint: Checkpoint): string {
   if (/patrol|choosing-opponent|hunting|graveyard|changing-ground/.test(phase))
     return `I hunt the undead at the ${ground} cemetery.`;
   if (/thief/.test(phase)) return 'Minding mine own business.';
+  // On a side trade, from what it remembers paid (side-trade.ts).
+  if (phase === 'side-trade') return sideTradeLine(checkpoint);
   if (/mining|mine-travel/.test(phase)) return 'I work the mines, seeking good ore.';
   if (/smelt|forge/.test(phase)) return 'I am smelting ore at the forge.';
   if (/smithing/.test(phase)) return 'I am smithing a few shields to sell.';
@@ -76,3 +78,14 @@ export function factSheet(
 
 export const needsReply = (session: PlayerSession, checkpoint: Checkpoint, template: CharacterTemplate) =>
   needsLine(residentNeeds(session, checkpoint, template));
+
+function sideTradeLine(checkpoint: Checkpoint): string {
+  const note = checkpoint.goal?.note ?? '';
+  const what = /wood/i.test(note) ? 'chopping wood' : /ore/i.test(note) ? 'digging ore' : 'fishing';
+  const paid = Object.entries(checkpoint.paid ?? {})
+    .map(([kind, p]) => [kind, p.gold / Math.max(1, p.minutes)] as const)
+    .sort((a, b) => b[1] - a[1])[0];
+  return paid && paid[1] > 0
+    ? `${what.charAt(0).toUpperCase()}${what.slice(1)} on the side; ${paid[0] === 'fish' ? 'fishing' : paid[0] === 'wood' ? 'wood' : 'ore'} has paid me best lately.`
+    : `${what.charAt(0).toUpperCase()}${what.slice(1)} on the side, since my own work pays little just now.`;
+}

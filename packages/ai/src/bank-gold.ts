@@ -1,6 +1,7 @@
 import { gems, gold } from '@gemwright/common/items';
 
 import { tally } from './activity';
+import { lasting } from './lasting';
 import { serviceLocations } from './locations';
 import { approachMobile } from './mobile-approach';
 import type { MountContext } from './mount-types';
@@ -43,10 +44,10 @@ export const spendableGold = (session: MountContext['session'], backpack: number
 // vendor charged beyond the observed carried-gold decrease.
 // Training purchases (tools, reagents, spellbooks) are optional: they keep a 500-gold reserve and
 // spend at most 300 gold per hour. A crafter buying materials to sell (`business`) is earning, not
-// just training: it keeps 100 back and may spend 1,000 an hour, so a poor crafter can start out.
+// just training: it keeps 150 back (enough to buy its tool again after a death) and may spend 1,000 an hour.
 // With an unknown bank balance only carried gold counts.
 export const TRAINING = { reserve: 500, perHour: 300 };
-export const BUSINESS = { reserve: 100, perHour: 1000 };
+export const BUSINESS = { reserve: 150, perHour: 1000 };
 // The tool a resident's own work needs (an instrument, a pole, a blade, scissors) is bought with
 // whatever it has: without it there is no work and no income at all.
 export const TOOLS = { reserve: 0, perHour: 500 };
@@ -182,7 +183,6 @@ export async function withdrawAccountGold(
 // Carried gold and gems are lost with an unrecovered corpse: once the purse passes `limit`, or any
 // gem is carried, gems and the gold over `keep` go into the bank box at the nearest bank of `city`.
 // True when it deposited.
-const surplusRetry = new WeakMap<object, number>();
 
 // One of the town's banks, the nearer ones more often, and a different spot on its floor each time:
 // people do not all queue at one tile.
@@ -204,8 +204,10 @@ export async function bankSurplus(
   const jewels = () => session.world.childrenOf(ctx.backpack()).filter((item) => gems.has(item.graphic));
   if (carriedGold(session, ctx.backpack()) < limit && !jewels().length) return false;
   // A trip that found no banker is not repeated every turn.
-  if ((surplusRetry.get(session) ?? 0) > Date.now()) return false;
-  surplusRetry.set(session, Date.now() + 30 * 60_000);
+  // Kept across restarts: a trip that found no banker waits two hours (ROADMAP.md step 2).
+  const retry = lasting('bank-ban', session.world.serial ?? -1);
+  if (retry.active('surplus')) return false;
+  retry.set('surplus', Date.now() + 2 * 3_600_000);
   const bank = bankSpot(city, ctx.position());
   if (!bank) return false;
   ctx.phase('banking', 'Taking surplus gold and gems to the bank');
@@ -224,7 +226,7 @@ export async function bankSurplus(
       if ((coins.amount ?? 1) - kept > 0) await session.moveItem(coins.serial, box, (coins.amount ?? 1) - kept);
     }
     await queryBankBalance(ctx, mobile.serial).catch(() => 0);
-    surplusRetry.delete(session);
+    retry.set('surplus', 0);
     return true;
   }
   ctx.phase('banking-failed', `No banker answered near ${bank.x},${bank.y}; trying again later`);

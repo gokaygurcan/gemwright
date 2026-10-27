@@ -50,3 +50,9 @@ export function pickWeighted<T>(items: readonly T[], weight: (item: T) => number
   }
   return items.at(-1);
 }
+
+// Serials of residents seen within `radius` of a point in the last ten minutes (gossip.ts: who saw it).
+export function residentsAround(point: { x: number; y: number }, radius: number): number[] {
+  const now = Date.now();
+  return [...where].filter(([, seen]) => now - seen.at <= STALE_MS && distance(seen, point) <= radius).map(([s]) => s);
+}

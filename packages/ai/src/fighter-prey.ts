@@ -2,10 +2,12 @@ import { skillId } from '@gemwright/common/skills';
 
 import { type Monster, monsters } from './dungeons';
 import { fightConfidence } from './fight-confidence';
-import { bandage, type FighterContext, healPotion, weaponSkill } from './fighter-context';
+import { bandage, type FighterContext, familyOf, healPotion, meleeWeapons, weaponSkill } from './fighter-context';
 import { alliesNear } from './hunting-party';
 import { distance } from './navigation';
+import { Layer } from './protocol/layers';
 import type { Entity } from './protocol/world';
+import { equippedRanged } from './ranged-weapons';
 
 // Graveyard undead on the pinned ServUO shard (Scripts/Mobiles/Normal). Names come from the
 // ordinary single-click label; several share a body, so the body only narrows the candidates.
@@ -85,18 +87,29 @@ export function readyFor(ctx: FighterContext, type: string, group = 1): boolean 
 // (8 plus a tenth of Tactics; spells for mages): the share of the character's maximum health it
 // loses before the creature dies, without healing. Over half is a fight not worth picking; a
 // group splits the damage.
+const ranged = (ctx: FighterContext) => !!equippedRanged(ctx.session);
+
 export function fightCost(ctx: FighterContext, type: string, group = 1): number {
   const monster = monsters.find((m) => m.type === type);
   if (!monster?.hits || !monster.damage) return Infinity;
   const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
-  const own = combatSkill(ctx);
+  // What it really fights with (self.ts, read live): the weapon in hand and its skill, or fists.
+  const held = ctx.session.world
+    .childrenOf(ctx.serial)
+    .find((i) => (i.layer === Layer.OneHanded || i.layer === Layer.TwoHanded) && meleeWeapons.has(i.graphic));
+  const caster = ctx.template.archetype?.primarySkills.includes('Magery');
+  const own = caster ? combatSkill(ctx) : skill(familyOf(held?.graphic));
   const theirs = monster.wrestling ?? 50;
   const hits = ((monster.hits[0] ?? 0) + (monster.hits[1] ?? 0)) / 2;
   const damage = ((monster.damage[0] ?? 0) + (monster.damage[1] ?? 0)) / 2;
   const hitChance = (attacker: number, defender: number) =>
     Math.min(1, Math.max(0.02, (attacker + 20) / (2 * (defender + 20))));
-  const swings = hits / (8 + skill('Tactics') / 10) / hitChance(own, theirs);
-  const taken = (swings * hitChance(theirs, own) * damage) / Math.max(1, group);
+  // A weapon lands about 8 a swing (more with Tactics); fists about 2 (ServUO's 1-4 unarmed).
+  const perSwing = held || caster || ranged(ctx) ? 8 + skill('Tactics') / 10 : 2 + skill('Tactics') / 40;
+  const swings = hits / perSwing / hitChance(own, theirs);
+  // Armour takes part of each blow (the status armour rating, at most 60%).
+  const armour = 1 - Math.min(0.6, (ctx.status().armor ?? 0) / 100);
+  const taken = (swings * hitChance(theirs, own) * damage * armour) / Math.max(1, group);
   return taken / Math.max(1, ctx.status().maxHits);
 }
 

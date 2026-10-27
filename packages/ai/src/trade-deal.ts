@@ -184,3 +184,58 @@ async function buy(
   tally(session, 'tradeGoldOut', price);
   return done;
 }
+
+// A pet sold face to face: its Transfer entry (ServUO TransferEntry, 6113) targeted at the
+// buyer opens the trade window with a transfer token; the pet changes master when both accept.
+const TRANSFER = 3006113;
+export const sellPetByTrade = (session: PlayerSession, backpack: number, buyer: number, pet: number, price: number) =>
+  withPartner(session, buyer, async () => {
+    const coins = amountIn(session, backpack, isGold);
+    const entry = (await session.context(pet).catch(() => [])).find((e) => e.cliloc === TRANSFER && !(e.flags & 1));
+    if (!entry) return fail(session, 'pet cannot be transferred');
+    session.selectContext(pet, entry.index);
+    await session.waitFor(() => session.world.target !== null, 'transfer cursor', 4000).catch(() => {});
+    if (!session.world.target) return fail(session, 'no transfer cursor');
+    session.target({ serial: buyer, x: 0, y: 0, z: 0, graphic: session.world.entities.get(buyer)?.graphic ?? 0 });
+    await session.waitFor(() => opened(session, buyer), 'trade window', 8000).catch(() => {});
+    const trade = session.world.trade;
+    if (!trade || !opened(session, buyer)) return fail(session, 'window did not open');
+    const paid = () => amountIn(session, trade.theirs, isGold) >= price;
+    await session.waitFor(() => trade.closed || paid(), 'payment in the trade window', 60_000).catch(() => {});
+    if (!(await settle(session, paid))) {
+      session.cancelTrade();
+      return fail(session, paid() ? 'partner did not accept' : 'not paid');
+    }
+    await Bun.sleep(500);
+    if (amountIn(session, backpack, isGold) - coins < price) return fail(session, 'payment did not arrive');
+    tally(session, 'trades');
+    tally(session, 'tradeGoldIn', price);
+    return true;
+  });
+
+export const buyPetByTrade = (session: PlayerSession, backpack: number, seller: number, price: number) =>
+  withPartner(session, seller, async () => {
+    const coins = amountIn(session, backpack, isGold);
+    const followers = session.world.status?.followers ?? 0;
+    if (coins < price) return fail(session, 'coins not carried');
+    await session.waitFor(() => opened(session, seller), 'trade window', 60_000).catch(() => {});
+    const trade = session.world.trade;
+    if (!trade || !opened(session, seller)) return fail(session, 'window did not open');
+    const token = () => session.world.childrenOf(trade.theirs).some((item) => !isGold(item));
+    await session.waitFor(() => trade.closed || token(), 'transfer token', 15_000).catch(() => {});
+    if (!token() || !(await offer(session, backpack, trade.mine, isGold, price))) {
+      session.cancelTrade();
+      return fail(session, 'no pet offered');
+    }
+    if (!(await settle(session, () => token() && amountIn(session, trade.mine, isGold) >= price))) {
+      session.cancelTrade();
+      return fail(session, 'partner did not accept');
+    }
+    await Bun.sleep(1000);
+    await session.refreshStatus().catch(() => {});
+    if ((session.world.status?.followers ?? 0) <= followers && coins - amountIn(session, backpack, isGold) < price)
+      return fail(session, 'pet did not change hands');
+    tally(session, 'trades');
+    tally(session, 'tradeGoldOut', price);
+    return true;
+  });

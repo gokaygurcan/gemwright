@@ -1,0 +1,2198 @@
+{
+ "schemaVersion": 1,
+ "source": "ServUO Spawns/trammel.xml (tamable creatures by 48-tile cell)",
+ "grounds": [
+  {
+   "center": {
+    "x": 536,
+    "y": 962
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 20,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 20,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 20,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 20,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 550,
+    "y": 826
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantRat": {
+     "count": 3,
+     "minTame": 29.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 570,
+    "y": 1099
+   },
+   "radius": 24,
+   "creatures": {
+    "Sheep": {
+     "count": 15,
+     "minTame": 11.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 608,
+    "y": 2195
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 8,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 8,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 8,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 8,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 675,
+    "y": 939
+   },
+   "radius": 24,
+   "creatures": {
+    "Sheep": {
+     "count": 15,
+     "minTame": 11.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 676,
+    "y": 1178
+   },
+   "radius": 24,
+   "creatures": {
+    "Sheep": {
+     "count": 15,
+     "minTame": 11.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 747,
+    "y": 765
+   },
+   "radius": 24,
+   "creatures": {
+    "TimberWolf": {
+     "count": 11,
+     "minTame": 23.1
+    },
+    "DireWolf": {
+     "count": 11,
+     "minTame": 83.1
+    },
+    "GreatHart": {
+     "count": 11,
+     "minTame": 59.1
+    },
+    "Llama": {
+     "count": 11,
+     "minTame": 35.1
+    },
+    "Sheep": {
+     "count": 11,
+     "minTame": 11.1
+    },
+    "Hind": {
+     "count": 11,
+     "minTame": 23.1
+    },
+    "Boar": {
+     "count": 11,
+     "minTame": 29.1
+    },
+    "Pig": {
+     "count": 11,
+     "minTame": 11.1
+    },
+    "Goat": {
+     "count": 11,
+     "minTame": 11.1
+    },
+    "MountainGoat": {
+     "count": 11,
+     "minTame": -0.9
+    },
+    "Chicken": {
+     "count": 11,
+     "minTame": -0.9
+    },
+    "BlackBear": {
+     "count": 11,
+     "minTame": 35.1
+    },
+    "BrownBear": {
+     "count": 11,
+     "minTame": 41.1
+    },
+    "GrizzlyBear": {
+     "count": 11,
+     "minTame": 59.1
+    },
+    "Bird": {
+     "count": 11,
+     "minTame": -6.9
+    },
+    "Panther": {
+     "count": 11,
+     "minTame": 53.1
+    },
+    "RidableLlama": {
+     "count": 11,
+     "minTame": 29.1
+    },
+    "Horse": {
+     "count": 11,
+     "minTame": 29.1
+    },
+    "Eagle": {
+     "count": 11,
+     "minTame": 17.1
+    },
+    "Cougar": {
+     "count": 11,
+     "minTame": 41.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1059,
+    "y": 2461
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1070,
+    "y": 2256
+   },
+   "radius": 24,
+   "creatures": {
+    "Imp": {
+     "count": 4,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1072,
+    "y": 2195
+   },
+   "radius": 24,
+   "creatures": {
+    "Imp": {
+     "count": 4,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1127,
+    "y": 3583
+   },
+   "radius": 24,
+   "creatures": {
+    "Chicken": {
+     "count": 7,
+     "minTame": -0.9
+    },
+    "Sheep": {
+     "count": 7,
+     "minTame": 11.1
+    },
+    "Goat": {
+     "count": 5,
+     "minTame": 11.1
+    },
+    "Pig": {
+     "count": 5,
+     "minTame": 11.1
+    },
+    "Boar": {
+     "count": 5,
+     "minTame": 29.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1158,
+    "y": 2872
+   },
+   "radius": 24,
+   "creatures": {
+    "Alligator": {
+     "count": 3,
+     "minTame": 47.1
+    },
+    "GiantRat": {
+     "count": 3,
+     "minTame": 29.1
+    },
+    "StrongMongbat": {
+     "count": 3,
+     "minTame": 71.1
+    },
+    "Sewerrat": {
+     "count": 3,
+     "minTame": -0.9
+    },
+    "Snake": {
+     "count": 3,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1182,
+    "y": 3607
+   },
+   "radius": 24,
+   "creatures": {
+    "Chicken": {
+     "count": 6,
+     "minTame": -0.9
+    },
+    "Goat": {
+     "count": 4,
+     "minTame": 11.1
+    },
+    "Sheep": {
+     "count": 6,
+     "minTame": 11.1
+    },
+    "Boar": {
+     "count": 4,
+     "minTame": 29.1
+    },
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 4,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 4,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 4,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1186,
+    "y": 1633
+   },
+   "radius": 24,
+   "creatures": {
+    "Chicken": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Bird": {
+     "count": 7,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 7,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 7,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 7,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1215,
+    "y": 2195
+   },
+   "radius": 24,
+   "creatures": {
+    "Imp": {
+     "count": 4,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1216,
+    "y": 1823
+   },
+   "radius": 24,
+   "creatures": {
+    "Chicken": {
+     "count": 5,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1216,
+    "y": 2259
+   },
+   "radius": 24,
+   "creatures": {
+    "Imp": {
+     "count": 4,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1217,
+    "y": 1825
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 5,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 5,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1243,
+    "y": 2437
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1339,
+    "y": 1790
+   },
+   "radius": 24,
+   "creatures": {
+    "Chicken": {
+     "count": 9,
+     "minTame": -0.9
+    },
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 5,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Pig": {
+     "count": 4,
+     "minTame": 11.1
+    },
+    "Goat": {
+     "count": 4,
+     "minTame": 11.1
+    },
+    "Sheep": {
+     "count": 4,
+     "minTame": 11.1
+    },
+    "Boar": {
+     "count": 4,
+     "minTame": 29.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1387,
+    "y": 3109
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    },
+    "Gorilla": {
+     "count": 10,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1400,
+    "y": 3775
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 10,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 10,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 10,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 10,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1427,
+    "y": 2525
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1432,
+    "y": 1707
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 3,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 3,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 3,
+     "minTame": -21.3
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1435,
+    "y": 2261
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1435,
+    "y": 4000
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 5,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 5,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1550,
+    "y": 1658
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 15,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 15,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 15,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 15,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1595,
+    "y": 3045
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 5,
+     "minTame": 59.1
+    },
+    "Gorilla": {
+     "count": 5,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1619,
+    "y": 2725
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1635,
+    "y": 3253
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    },
+    "Gorilla": {
+     "count": 10,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1640,
+    "y": 1431
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1651,
+    "y": 612
+   },
+   "radius": 24,
+   "creatures": {
+    "TimberWolf": {
+     "count": 11,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1651,
+    "y": 2413
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1692,
+    "y": 1463
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1726,
+    "y": 1362
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1797,
+    "y": 1393
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1802,
+    "y": 1506
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1812,
+    "y": 1314
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1827,
+    "y": 3429
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    },
+    "Gorilla": {
+     "count": 10,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1833,
+    "y": 1245
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1845,
+    "y": 953
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 4,
+     "minTame": 59.1
+    },
+    "Scorpion": {
+     "count": 4,
+     "minTame": 47.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1862,
+    "y": 1434
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1872,
+    "y": 1347
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1877,
+    "y": 1515
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1898,
+    "y": 1265
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1912,
+    "y": 1302
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1915,
+    "y": 928
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 3,
+     "minTame": 59.1
+    },
+    "Scorpion": {
+     "count": 3,
+     "minTame": 47.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1931,
+    "y": 3205
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    },
+    "Gorilla": {
+     "count": 10,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1937,
+    "y": 2760
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 12,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 12,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 12,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 12,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1946,
+    "y": 2698
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantRat": {
+     "count": 5,
+     "minTame": 29.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1953,
+    "y": 824
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 3,
+     "minTame": 59.1
+    },
+    "Scorpion": {
+     "count": 3,
+     "minTame": 47.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1967,
+    "y": 1296
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 1980,
+    "y": 885
+   },
+   "radius": 24,
+   "creatures": {
+    "Scorpion": {
+     "count": 4,
+     "minTame": 47.1
+    },
+    "GiantSpider": {
+     "count": 4,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2013,
+    "y": 839
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 6,
+     "minTame": 59.1
+    },
+    "Scorpion": {
+     "count": 6,
+     "minTame": 47.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2035,
+    "y": 1023
+   },
+   "radius": 24,
+   "creatures": {
+    "Alligator": {
+     "count": 3,
+     "minTame": 47.1
+    },
+    "StrongMongbat": {
+     "count": 3,
+     "minTame": 71.1
+    },
+    "Sewerrat": {
+     "count": 3,
+     "minTame": -0.9
+    },
+    "Slime": {
+     "count": 3,
+     "minTame": 23.1
+    },
+    "Snake": {
+     "count": 3,
+     "minTame": 59.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2091,
+    "y": 3413
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantSpider": {
+     "count": 10,
+     "minTame": 59.1
+    },
+    "Gorilla": {
+     "count": 10,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2106,
+    "y": 2688
+   },
+   "radius": 24,
+   "creatures": {
+    "Chicken": {
+     "count": 6,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2116,
+    "y": 2710
+   },
+   "radius": 24,
+   "creatures": {
+    "GreatHart": {
+     "count": 10,
+     "minTame": 59.1
+    },
+    "Llama": {
+     "count": 10,
+     "minTame": 35.1
+    },
+    "Sheep": {
+     "count": 10,
+     "minTame": 11.1
+    },
+    "Hind": {
+     "count": 10,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2242,
+    "y": 1197
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 4,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 4,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 4,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2472,
+    "y": 434
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 5,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 5,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2481,
+    "y": 542
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 5,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 5,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2566,
+    "y": 622
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 3,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 3,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 3,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 3,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2682,
+    "y": 2118
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 5,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 5,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 5,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2687,
+    "y": 2218
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 4,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 4,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 4,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2779,
+    "y": 582
+   },
+   "radius": 24,
+   "creatures": {
+    "Alligator": {
+     "count": 3,
+     "minTame": 47.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2817,
+    "y": 2125
+   },
+   "radius": 24,
+   "creatures": {
+    "DireWolf": {
+     "count": 13,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2824,
+    "y": 617
+   },
+   "radius": 24,
+   "creatures": {
+    "Alligator": {
+     "count": 6,
+     "minTame": 47.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2833,
+    "y": 2246
+   },
+   "radius": 24,
+   "creatures": {
+    "DireWolf": {
+     "count": 13,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2904,
+    "y": 906
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 10,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 10,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 10,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 10,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2939,
+    "y": 746
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 10,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 10,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 10,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 10,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2950,
+    "y": 2239
+   },
+   "radius": 24,
+   "creatures": {
+    "DireWolf": {
+     "count": 9,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2966,
+    "y": 2138
+   },
+   "radius": 24,
+   "creatures": {
+    "DireWolf": {
+     "count": 5,
+     "minTame": 83.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 2972,
+    "y": 3436
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 12,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 12,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 12,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 12,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3396,
+    "y": 2645
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 4,
+     "minTame": -18.9
+    },
+    "TimberWolf": {
+     "count": 4,
+     "minTame": 23.1
+    },
+    "Eagle": {
+     "count": 4,
+     "minTame": 17.1
+    },
+    "Hind": {
+     "count": 4,
+     "minTame": 23.1
+    },
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    },
+    "Llama": {
+     "count": 4,
+     "minTame": 35.1
+    },
+    "Goat": {
+     "count": 4,
+     "minTame": 11.1
+    },
+    "GreatHart": {
+     "count": 4,
+     "minTame": 59.1
+    },
+    "Cougar": {
+     "count": 4,
+     "minTame": 41.1
+    },
+    "Panther": {
+     "count": 4,
+     "minTame": 53.1
+    },
+    "BlackBear": {
+     "count": 4,
+     "minTame": 35.1
+    },
+    "BrownBear": {
+     "count": 4,
+     "minTame": 41.1
+    },
+    "Rabbit": {
+     "count": 4,
+     "minTame": -18.9
+    },
+    "JackRabbit": {
+     "count": 4,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3403,
+    "y": 2572
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    },
+    "Eagle": {
+     "count": 3,
+     "minTame": 17.1
+    },
+    "Bird": {
+     "count": 3,
+     "minTame": -6.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3436,
+    "y": 2486
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 3,
+     "minTame": -18.9
+    },
+    "Eagle": {
+     "count": 3,
+     "minTame": 17.1
+    },
+    "Bird": {
+     "count": 3,
+     "minTame": -6.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3444,
+    "y": 2556
+   },
+   "radius": 24,
+   "creatures": {
+    "Cat": {
+     "count": 3,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3450,
+    "y": 2734
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 5,
+     "minTame": -18.9
+    },
+    "TimberWolf": {
+     "count": 5,
+     "minTame": 23.1
+    },
+    "Eagle": {
+     "count": 5,
+     "minTame": 17.1
+    },
+    "Hind": {
+     "count": 5,
+     "minTame": 23.1
+    },
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Llama": {
+     "count": 5,
+     "minTame": 35.1
+    },
+    "Goat": {
+     "count": 5,
+     "minTame": 11.1
+    },
+    "GreatHart": {
+     "count": 5,
+     "minTame": 59.1
+    },
+    "Cougar": {
+     "count": 5,
+     "minTame": 41.1
+    },
+    "Panther": {
+     "count": 5,
+     "minTame": 53.1
+    },
+    "BlackBear": {
+     "count": 5,
+     "minTame": 35.1
+    },
+    "BrownBear": {
+     "count": 5,
+     "minTame": 41.1
+    },
+    "Rabbit": {
+     "count": 5,
+     "minTame": -18.9
+    },
+    "JackRabbit": {
+     "count": 5,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3476,
+    "y": 2446
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 5,
+     "minTame": -18.9
+    },
+    "Bird": {
+     "count": 5,
+     "minTame": -6.9
+    },
+    "Pig": {
+     "count": 5,
+     "minTame": 11.1
+    },
+    "Horse": {
+     "count": 3,
+     "minTame": 29.1
+    },
+    "TimberWolf": {
+     "count": 3,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3487,
+    "y": 2549
+   },
+   "radius": 24,
+   "creatures": {
+    "Dog": {
+     "count": 10,
+     "minTame": -21.3
+    },
+    "Cat": {
+     "count": 10,
+     "minTame": -0.9
+    },
+    "Bird": {
+     "count": 10,
+     "minTame": -6.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3549,
+    "y": 2409
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 6,
+     "minTame": -18.9
+    },
+    "Bird": {
+     "count": 6,
+     "minTame": -6.9
+    },
+    "Rat": {
+     "count": 3,
+     "minTame": -0.9
+    },
+    "Pig": {
+     "count": 3,
+     "minTame": 11.1
+    },
+    "TimberWolf": {
+     "count": 6,
+     "minTame": 23.1
+    },
+    "Horse": {
+     "count": 3,
+     "minTame": 29.1
+    },
+    "Eagle": {
+     "count": 3,
+     "minTame": 17.1
+    },
+    "Hind": {
+     "count": 3,
+     "minTame": 23.1
+    },
+    "Llama": {
+     "count": 3,
+     "minTame": 35.1
+    },
+    "Goat": {
+     "count": 3,
+     "minTame": 11.1
+    },
+    "GreatHart": {
+     "count": 3,
+     "minTame": 59.1
+    },
+    "Cougar": {
+     "count": 3,
+     "minTame": 41.1
+    },
+    "Panther": {
+     "count": 3,
+     "minTame": 53.1
+    },
+    "BlackBear": {
+     "count": 3,
+     "minTame": 35.1
+    },
+    "BrownBear": {
+     "count": 3,
+     "minTame": 41.1
+    },
+    "Rabbit": {
+     "count": 3,
+     "minTame": -18.9
+    },
+    "JackRabbit": {
+     "count": 3,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3608,
+    "y": 2140
+   },
+   "radius": 24,
+   "creatures": {
+    "Sheep": {
+     "count": 20,
+     "minTame": 11.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3690,
+    "y": 2422
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 4,
+     "minTame": -18.9
+    },
+    "TimberWolf": {
+     "count": 4,
+     "minTame": 23.1
+    },
+    "Eagle": {
+     "count": 4,
+     "minTame": 17.1
+    },
+    "Hind": {
+     "count": 4,
+     "minTame": 23.1
+    },
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    },
+    "Llama": {
+     "count": 4,
+     "minTame": 35.1
+    },
+    "Goat": {
+     "count": 4,
+     "minTame": 11.1
+    },
+    "GreatHart": {
+     "count": 4,
+     "minTame": 59.1
+    },
+    "Cougar": {
+     "count": 4,
+     "minTame": 41.1
+    },
+    "Panther": {
+     "count": 4,
+     "minTame": 53.1
+    },
+    "BlackBear": {
+     "count": 4,
+     "minTame": 35.1
+    },
+    "BrownBear": {
+     "count": 4,
+     "minTame": 41.1
+    },
+    "Rabbit": {
+     "count": 4,
+     "minTame": -18.9
+    },
+    "JackRabbit": {
+     "count": 4,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3699,
+    "y": 1238
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 18,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 18,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 18,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 18,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3725,
+    "y": 2670
+   },
+   "radius": 24,
+   "creatures": {
+    "Sheep": {
+     "count": 20,
+     "minTame": 11.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3727,
+    "y": 2603
+   },
+   "radius": 24,
+   "creatures": {
+    "Sheep": {
+     "count": 10,
+     "minTame": 11.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3742,
+    "y": 2520
+   },
+   "radius": 24,
+   "creatures": {
+    "Mongbat": {
+     "count": 4,
+     "minTame": -18.9
+    },
+    "TimberWolf": {
+     "count": 4,
+     "minTame": 23.1
+    },
+    "Eagle": {
+     "count": 4,
+     "minTame": 17.1
+    },
+    "Hind": {
+     "count": 4,
+     "minTame": 23.1
+    },
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    },
+    "Llama": {
+     "count": 4,
+     "minTame": 35.1
+    },
+    "Goat": {
+     "count": 4,
+     "minTame": 11.1
+    },
+    "GreatHart": {
+     "count": 4,
+     "minTame": 59.1
+    },
+    "Cougar": {
+     "count": 4,
+     "minTame": 41.1
+    },
+    "Panther": {
+     "count": 4,
+     "minTame": 53.1
+    },
+    "BlackBear": {
+     "count": 4,
+     "minTame": 35.1
+    },
+    "BrownBear": {
+     "count": 4,
+     "minTame": 41.1
+    },
+    "Rabbit": {
+     "count": 4,
+     "minTame": -18.9
+    },
+    "JackRabbit": {
+     "count": 4,
+     "minTame": -18.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3754,
+    "y": 2530
+   },
+   "radius": 24,
+   "creatures": {
+    "GreaterMongbat": {
+     "count": 5,
+     "minTame": 71.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 3776,
+    "y": 2585
+   },
+   "radius": 24,
+   "creatures": {
+    "GreaterMongbat": {
+     "count": 4,
+     "minTame": 71.1
+    },
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4042,
+    "y": 579
+   },
+   "radius": 24,
+   "creatures": {
+    "PolarBear": {
+     "count": 40,
+     "minTame": 35.1
+    },
+    "Walrus": {
+     "count": 40,
+     "minTame": 35.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4080,
+    "y": 570
+   },
+   "radius": 24,
+   "creatures": {
+    "Walrus": {
+     "count": 30,
+     "minTame": 35.1
+    },
+    "PolarBear": {
+     "count": 30,
+     "minTame": 35.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4438,
+    "y": 1115
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 12,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 12,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 12,
+     "minTame": -21.3
+    },
+    "Rat": {
+     "count": 12,
+     "minTame": -0.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4450,
+    "y": 1154
+   },
+   "radius": 24,
+   "creatures": {
+    "Bird": {
+     "count": 4,
+     "minTame": -6.9
+    },
+    "Cat": {
+     "count": 4,
+     "minTame": -0.9
+    },
+    "Dog": {
+     "count": 4,
+     "minTame": -21.3
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4450,
+    "y": 1270
+   },
+   "radius": 24,
+   "creatures": {
+    "Eagle": {
+     "count": 13,
+     "minTame": 17.1
+    },
+    "Bird": {
+     "count": 13,
+     "minTame": -6.9
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4455,
+    "y": 1358
+   },
+   "radius": 24,
+   "creatures": {
+    "TimberWolf": {
+     "count": 7,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4456,
+    "y": 1434
+   },
+   "radius": 24,
+   "creatures": {
+    "TimberWolf": {
+     "count": 14,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4498,
+    "y": 1394
+   },
+   "radius": 24,
+   "creatures": {
+    "TimberWolf": {
+     "count": 9,
+     "minTame": 23.1
+    },
+    "FrostSpider": {
+     "count": 3,
+     "minTame": 74.7
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4504,
+    "y": 1458
+   },
+   "radius": 24,
+   "creatures": {
+    "TimberWolf": {
+     "count": 7,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4550,
+    "y": 1409
+   },
+   "radius": 24,
+   "creatures": {
+    "GreatHart": {
+     "count": 4,
+     "minTame": 59.1
+    },
+    "Hind": {
+     "count": 4,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4551,
+    "y": 949
+   },
+   "radius": 24,
+   "creatures": {
+    "GiantRat": {
+     "count": 5,
+     "minTame": 29.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4552,
+    "y": 1454
+   },
+   "radius": 24,
+   "creatures": {
+    "GreatHart": {
+     "count": 5,
+     "minTame": 59.1
+    },
+    "Hind": {
+     "count": 5,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4605,
+    "y": 1365
+   },
+   "radius": 24,
+   "creatures": {
+    "GreatHart": {
+     "count": 8,
+     "minTame": 59.1
+    },
+    "Hind": {
+     "count": 8,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4612,
+    "y": 1418
+   },
+   "radius": 24,
+   "creatures": {
+    "GreatHart": {
+     "count": 4,
+     "minTame": 59.1
+    },
+    "Hind": {
+     "count": 4,
+     "minTame": 23.1
+    }
+   }
+  },
+  {
+   "center": {
+    "x": 4615,
+    "y": 1469
+   },
+   "radius": 24,
+   "creatures": {
+    "GreatHart": {
+     "count": 4,
+     "minTame": 59.1
+    },
+    "Hind": {
+     "count": 4,
+     "minTame": 23.1
+    }
+   }
+  }
+ ]
+}

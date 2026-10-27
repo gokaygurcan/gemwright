@@ -4,8 +4,11 @@ import { inflateSync } from 'node:zlib';
 
 import { nameHash } from '@gemwright/common/uop';
 
+import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';
 import { RouteSearch } from './path-search';
+import { troubleCells } from './trouble';
+import { tuning } from './tuning';
 
 interface Tile {
   flags: number;
@@ -288,10 +291,30 @@ export class Terrain {
     signal?: AbortSignal,
     partial = false
   ): Promise<Point[] | null> {
-    const result = await PathPool.get(this.directory, this.facet, this.sharedBuffers()).run(
-      { start, goal, range, blocked: [...blocked], targetZ, partial },
-      signal
-    );
+    const request = (wide: boolean) =>
+      PathPool.get(this.directory, this.facet, this.sharedBuffers()).run(
+        {
+          start,
+          goal,
+          range,
+          // Teleporter tiles only when one is the goal: never stepped on by accident (links.ts).
+          blocked: [...blocked, ...teleporterTiles.filter((tile) => tile !== `${goal.x},${goal.y}`)],
+          penalties: troubleCells(),
+          penaltyCost: tuning.trouble.stepCost,
+          targetZ,
+          partial,
+          wide
+        },
+        signal
+      );
+    let result = await request(false);
+    // A near goal whose way runs far round (the small budget ran out): once more with the full one.
+    const end = result.path?.at(-1);
+    const short = !end || Math.max(Math.abs(end.x - goal.x), Math.abs(end.y - goal.y)) > range;
+    if (short && result.exhausted && result.expanded >= 8192 && !signal?.aborted) {
+      const wide = await request(true);
+      if (wide.path) result = wide;
+    }
     return result.path;
   }
 }

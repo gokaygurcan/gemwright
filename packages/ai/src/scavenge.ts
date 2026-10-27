@@ -1,5 +1,7 @@
 import { GHOST_BODIES } from '@gemwright/common/bodies';
-import { isDeathRobe } from '@gemwright/common/items';
+import { isDeathRobe, ore } from '@gemwright/common/items';
+import { skillId } from '@gemwright/common/skills';
+import { Tiledata } from '@gemwright/common/tiledata';
 
 import { Blocked } from './blocked';
 import { threatsNear } from './danger';
@@ -75,8 +77,11 @@ const skipped = new WeakMap<PlayerSession, Map<number, number>>();
 const ghosts = GHOST_BODIES;
 
 // Never a death robe: they are dropped to be rid of them.
-const worthwhile = (terrain: Terrain, item: Entity) =>
+// Ore is only worth carrying to someone who can smelt it (Mining 30 and more: miners); no shop
+// buys it, so anyone else leaves it lying.
+const worthwhile = (terrain: Terrain, item: Entity, session?: PlayerSession) =>
   !isDeathRobe(item) &&
+  !(ore.has(item.graphic) && (session?.world.skills.get(skillId('Mining'))?.base ?? 0) < 30) &&
   (kinds.some(([low, high]) => item.graphic >= low && item.graphic <= high) ||
     (terrain.tile(item.graphic, true).flags & WEARABLE) !== 0);
 
@@ -104,7 +109,7 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
         !skip.has(e.serial) &&
         distance(here, e.position) <= RANGE &&
         Math.abs(here.z - e.position.z) <= 10 &&
-        worthwhile(ctx.terrain, e) &&
+        worthwhile(ctx.terrain, e, session) &&
         !enoughTools(session, ctx.backpack(), e.graphic)
     )
     .sort((a, b) => distance(here, a.position ?? here) - distance(here, b.position ?? here))
@@ -120,8 +125,10 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
       `Picking up ${item.amount && item.amount > 1 ? `${item.amount} ` : ''}${name} lying at ${item.position.x},${item.position.y}`
     );
     await ctx.navigate(item.position, 1);
-    await session.moveItem(item.serial, ctx.backpack());
-    ctx.log(`Picked up ${name}`);
+    const amount = carryable(session, ctx.terrain, item);
+    if (amount < 1) return false;
+    await session.moveItem(item.serial, ctx.backpack(), amount);
+    ctx.log(`Picked up ${amount < (item.amount ?? 1) ? `${amount} of ${item.amount} ` : ''}${name}`);
     await useAcquiredItems(session);
   } catch (error) {
     if (session.phase !== 'ready') throw error;
@@ -134,6 +141,28 @@ export async function scavenge(ctx: ScavengeContext): Promise<boolean> {
 // While walking: a worthwhile item within lifting reach (ServUO lifts from 2 tiles) is taken
 // without leaving the route; anything farther waits for the next stop's scavenge. Quiet unless
 // something is taken. True when it picked something up.
+// How many of a stack it can take without passing 90% of its carrying weight (each piece's
+// weight from the client's tiledata: ore 2, 7 or 12 stones by pile size, logs 2, boards 1). A
+// pile too heavy to lift whole is taken in part, as a player splits a stack; the rest stays for
+// another trip. 0 when not even one fits.
+const tiledata = new Map<string, Tiledata>();
+export function carryable(session: PlayerSession, terrain: Terrain, item: Entity) {
+  const amount = item.amount ?? 1;
+  const status = session.world.status;
+  if (!status) return amount;
+  let each = 0;
+  try {
+    const data = tiledata.get(terrain.directory) ?? new Tiledata(terrain.directory);
+    tiledata.set(terrain.directory, data);
+    each = data.item(item.graphic).weight;
+  } catch {
+    // No tiledata to read (a test terrain): the whole stack, as before.
+  }
+  if (each <= 0) return amount;
+  const room = status.maxWeight * 0.9 - status.weight;
+  return Math.max(0, Math.min(amount, Math.floor(room / each)));
+}
+
 export async function pickUpInReach(session: PlayerSession, terrain: Terrain, log: (note: string) => void) {
   const serial = session.world.serial;
   const here = session.world.position;
@@ -158,7 +187,7 @@ export async function pickUpInReach(session: PlayerSession, terrain: Terrain, lo
       !skip.has(e.serial) &&
       distance(here, e.position) <= 2 &&
       Math.abs(here.z - e.position.z) <= 10 &&
-      worthwhile(terrain, e) &&
+      worthwhile(terrain, e, session) &&
       !enoughTools(session, pack.serial, e.graphic)
     )
       item = e;
@@ -167,8 +196,10 @@ export async function pickUpInReach(session: PlayerSession, terrain: Terrain, lo
   skip.set(item.serial, Date.now() + 60_000);
   const name = terrain.tile(item.graphic, true).name || 'item';
   try {
-    await session.moveItem(item.serial, pack.serial);
-    log(`Picked up ${name} in passing`);
+    const amount = carryable(session, terrain, item);
+    if (amount < 1) return false;
+    await session.moveItem(item.serial, pack.serial, amount);
+    log(`Picked up ${amount < (item.amount ?? 1) ? `${amount} of ${item.amount} ` : ''}${name} in passing`);
     await useAcquiredItems(session);
     return true;
   } catch {

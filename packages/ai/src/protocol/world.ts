@@ -1,6 +1,6 @@
 import type { HealthChange } from '../combat-risk';
 import { EntityMap } from './entity-map';
-import { applyHealthBar, applyPartyRoster } from './group-observations';
+import { applyHealthBar, applyParty } from './group-observations';
 import { gumpLayout } from './gumps';
 import type { TargetCursor } from './packets';
 import { speechEntry } from './speech';
@@ -52,6 +52,8 @@ export class WorldView {
   statLocks: number[] | null = null;
   readonly skills = new Map<number, { value: number; base: number; cap: number; lock: number }>();
   readonly partyMembers = new Set<number>();
+  // The last party invitation received (PartyInvitation, 0xBF 0x06 0x07): its leader and when.
+  partyInvite: { leader: number; at: number } | null = null;
   readonly healthChanges: HealthChange[] = [];
   readonly swings = new Map<number, { target: number; at: number }>();
   readonly damage = new Map<number, { at: number; amount: number }>();
@@ -98,7 +100,7 @@ export class WorldView {
     if (entity.serial === this.serial && entity.position) this.position = entity.position;
   }
 
-  private addJournal(entry: Omit<JournalEntry, 'at'>): void {
+  addJournal(entry: Omit<JournalEntry, 'at'>): void {
     this.journal.push({ ...entry, at: new Date().toISOString() });
     if (this.journal.length > 200) this.journal.shift();
   }
@@ -442,13 +444,7 @@ export class WorldView {
         this.prompt = { serial: packet.readUInt32BE(3), id: packet.readUInt32BE(7) };
         break;
       case 0xbf:
-        applyPartyRoster(this, packet);
-        // Party chat (PartyTextMessage): 3 private, 4 to all; sender serial, Unicode text.
-        if (packet.readUInt16BE(3) === 0x06 && [3, 4].includes(packet.readUInt8(5))) {
-          const serial = packet.readUInt32BE(6);
-          const name = this.entities.get(serial)?.name ?? '';
-          this.addJournal({ serial, name, text: unicode(packet, 10), party: true });
-        }
+        applyParty(this, packet);
         if (packet.readUInt16BE(3) === 0x14) {
           if (packet.readUInt16BE(5) !== 2) throw new Error('Unsupported context menu format');
           const serial = packet.readUInt32BE(7);

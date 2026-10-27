@@ -1,4 +1,8 @@
+import { gold as goldCoin, reagentByName } from '@gemwright/common/items';
+import { skillId } from '@gemwright/common/skills';
+
 import { BUSINESS } from './bank-gold';
+import { bulkOrderTurn } from './bulk-orders';
 import { type CraftSkill, craftRecipes, trainCraft } from './craft-training';
 import type { DecisionCoordinator } from './decisions';
 import { learnQuality } from './item-quality';
@@ -7,13 +11,14 @@ import { buyAtMarket, carriedOf, type Good, goodRecipes, goods, sellAtMarket } f
 import { earnBoards } from './material-income';
 import { playerDemand } from './player-insight';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
+import { sideTradeTurn } from './side-trade';
 import { buyFrom } from './vendor-trade';
 import { orderDemand } from './work-orders';
 
 // Town crafters beyond the tailor: each buys its material from the trade's shop, crafts what
 // `chooseRecipe` picks (training up to its skill goal, then only what pays), sells to the trade's
 // vendor and banks exceptional pieces (craft-training.ts), five minutes at a time.
-const reagents = { blackPearl: 0x0f7a, bloodmoss: 0x0f7b, bottle: 0x0f0e };
+const bottle = 0x0f0e;
 const board = 0x1bd7;
 
 // DefAlchemy potions: each takes its own reagent and a bottle, all sold by the alchemist (SBAlchemist:
@@ -26,7 +31,7 @@ export const alchemy: CraftSkill = {
   material: 0x0f85,
   recipes: craftRecipes('Alchemy'),
   unitCost: 3,
-  costs: { [reagents.blackPearl]: 5, [reagents.bloodmoss]: 5, [reagents.bottle]: 5 }
+  costs: { [reagentByName.BlackPearl ?? 0]: 5, [reagentByName.Bloodmoss ?? 0]: 5, [bottle]: 5 }
 };
 
 // DefBowFletching bows and crossbows from boards (the carpenter's, 3 gold); the bowyer buys them back.
@@ -62,12 +67,28 @@ function runCrafter(name: string, craft: CraftSkill) {
       return true;
     return buyFrom(ctx, source.shop, new Map([[graphic, want]]), source.price);
   };
+  const forMarketGoods = () => (Object.keys(goods) as Good[]).filter((g) => goods[g].shop === craft.vendor);
   return (options: ProfessionOptions) =>
     runProfession(name, options, async (ctx) => {
+      // Bulk orders first, the steady income the shop offers (bulk-orders.ts); orders for
+      // recipes this craft does not know are declined there.
+      const skill = ctx.session.world.skills.get(skillId(craft.skill))?.base ?? 0;
+      const bulk = {
+        ...ctx,
+        refill: (_pack: number, least: number, graphic: number) =>
+          refill({ ...ctx, limits: BUSINESS }, least, graphic, options.decisions)
+      };
+      if (await bulkOrderTurn(bulk, craft, skill)) return;
+      // Potions sell to the shop for less than their bottle and reagent cost (0 of 17 DefAlchemy
+      // recipes pay at SBAlchemist prices): an alchemist short of savings makes only what residents
+      // have ordered, and otherwise earns at a side trade. Bowyers' bows do pay, so they work on.
+      const savings = ctx.count(goldCoin) + (ctx.checkpoint.funds?.bank ?? 0);
+      const ordered = forMarketGoods().some((good) => orderDemand(ctx.session, good) > 0);
+      if (name === 'alchemist' && savings < 2000 && !ordered && (await sideTradeTurn(ctx, name, true))) return;
       const until = Math.min(ctx.deadline, Date.now() + 5 * 60_000);
       // Market goods this craft makes are kept from the shop for residents: plain ones by graphic
       // (alchemists' potions), exceptional ones by quality (bowyers' bows; normal bows are sold).
-      const forMarket = (Object.keys(goods) as Good[]).filter((g) => goods[g].shop === craft.vendor);
+      const forMarket = forMarketGoods();
       const plain = forMarket.filter((g) => !goods[g].exceptional);
       const hold = new Set(plain.map((g) => goods[g].graphic as number));
       const made = await trainCraft(

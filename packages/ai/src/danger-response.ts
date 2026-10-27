@@ -2,6 +2,7 @@ import { DangerInterrupt, recentlyHurt, takingUrgentAction, urgentAction } from 
 import { shelterNearHelper } from './aid';
 import { Blocked } from './blocked';
 import { threatsNear } from './danger';
+import { reactionDelay } from './human-pace';
 import type { PlayerSession } from './protocol/session';
 import { residentTerrain } from './resident-context';
 
@@ -10,9 +11,24 @@ import { residentTerrain } from './resident-context';
 // after an escape the sighting alone does not send them off again.
 const SIGHTED = 7;
 const escapedAt = new WeakMap<PlayerSession, number>();
+// Something swung at this resident in the last three seconds (the server's swing packet, 0x2F,
+// names attacker and target): it is under attack before the first blow even lands.
+export function beingAttacked(session: PlayerSession) {
+  const me = session.world.serial;
+  for (const [attacker, swing] of session.world.swings)
+    if (
+      swing.target === me &&
+      attacker !== me &&
+      Date.now() - swing.at < 3000 &&
+      !session.world.partyMembers.has(attacker)
+    )
+      return true;
+  return false;
+}
+
 export function interruptForDanger(session: PlayerSession, sighted = true) {
   if (takingUrgentAction(session)) return;
-  if (recentlyHurt(session)) throw new DangerInterrupt();
+  if (recentlyHurt(session) || beingAttacked(session)) throw new DangerInterrupt();
   const here = session.world.position;
   if (!sighted || !here || Date.now() - (escapedAt.get(session) ?? 0) < 60_000) return;
   if (threatsNear(session, here, SIGHTED).length) throw new DangerInterrupt();
@@ -46,6 +62,8 @@ export async function escapeDanger(
 ) {
   const { session } = ctx;
   await urgentAction(session, 'escape', async () => {
+    // A moment to take it in before running, as a person reacts (human-pace.ts).
+    await Bun.sleep(reactionDelay());
     ctx.phase('escaping', 'Leaving danger before returning to work');
     if (session.world.target) session.target(null);
     const terrain = residentTerrain(session);

@@ -11,6 +11,12 @@ export const HUMAN_BODIES = new Set([
   0x29b // gargoyle female
 ]);
 
+// Gargoyle bodies: they fly instead of riding, and wear only gargish gear.
+export const GARGOYLE_BODIES = new Set([
+  0x29a, // gargoyle male
+  0x29b // gargoyle female
+]);
+
 // Human and elf bodies only (gargoyles cannot mount, wear human clothing or be begged from).
 export const HUMAN_ELF_BODIES = new Set([
   0x190, // human male
@@ -30,5 +36,7 @@ export const GHOST_BODIES = new Set([
   0x192, // human male ghost
   0x193, // human female ghost
   0x25f, // elf male ghost
-  0x260 // elf female ghost
+  0x260, // elf female ghost
+  0x2b6, // gargoyle female ghost
+  0x2b7 // gargoyle male ghost
 ]);

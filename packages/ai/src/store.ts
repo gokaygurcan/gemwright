@@ -1,12 +1,14 @@
 import { Database } from 'bun:sqlite';
-import { chmodSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { chmodSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { ActivityRecorder, activitySchema } from './activity';
+import { lookOf } from './appearance';
 import { migrateCheckpoint } from './checkpoint-migrations';
 import type { Checkpoint } from './checkpoint-types';
 import { allocatePopulation, type CharacterTemplate, type PopulationConfig, validateConfig } from './config';
 import { playerName } from './names';
+import { shardProfile } from './shard-profile';
 import { SpendLedger } from './spend-ledger';
 import { timed } from './stall-probe';
 
@@ -92,11 +94,21 @@ export interface DungeonRunRecord {
   deaths: number;
 }
 
+// Residents a world no longer plays: retired.json beside that world's database (its data folder),
+// so each shard keeps its own list and none ships with the package.
+export const retiredResidents = (dir: string): Set<string> => {
+  const file = join(dir, 'retired.json');
+  if (!existsSync(file)) return new Set();
+  return new Set(
+    (JSON.parse(readFileSync(file, 'utf8')) as { residents: { id: string }[] }).residents.map((r) => r.id)
+  );
+};
+
 export class ResidentStore {
   private readonly db: Database;
 
   constructor(
-    path: string,
+    private readonly path: string,
     readonly shardId: string
   ) {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
@@ -185,6 +197,16 @@ export class ResidentStore {
       this.db.close();
       throw error;
     }
+  }
+
+  metadata(key: string): string | null {
+    return (
+      this.db.query<{ value: string }, [string]>('SELECT value FROM metadata WHERE key = ?').get(key)?.value ?? null
+    );
+  }
+
+  setMetadata(key: string, value: string) {
+    this.db.query('INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)').run(key, value);
   }
 
   credentials(residentId: string): { username: string; password: string } | null {
@@ -303,7 +325,13 @@ export class ResidentStore {
     return row ? JSON.parse(row.snapshot) : null;
   }
 
-  reconcile(input: PopulationConfig): { created: number; active: number; parked: number } {
+  // `retired`: resident ids that no longer play (retired.json in the database's folder). They
+  // stay counted in their template's allocation, so nobody is created in their place, and are
+  // never activated.
+  reconcile(
+    input: PopulationConfig,
+    retired: ReadonlySet<string> = this.path === ':memory:' ? new Set() : retiredResidents(dirname(this.path))
+  ): { created: number; active: number; parked: number } {
     const config = validateConfig(input);
     if (config.shardId !== this.shardId) throw new Error('Configuration belongs to a different shard');
     const allocation = allocatePopulation(config);
@@ -338,18 +366,18 @@ export class ResidentStore {
             .all(template.id);
           for (const row of existing) {
             if (row.binding_json || row.proposed_name !== `${template.creation.namePrefix} ${row.ordinal}`) continue;
-            const name = playerName(row.id, reservedNames);
+            const name = playerName(row.id, reservedNames, lookOf(row.id, shardProfile().races));
             reservedNames.add(name);
             this.db
               .query('UPDATE residents SET proposed_name = ?, revision = revision + 1 WHERE id = ?')
               .run(name, row.id);
           }
-          for (const row of existing.slice(0, target)) desired.add(row.id);
+          for (const row of existing.filter((r) => !retired.has(r.id)).slice(0, target)) desired.add(row.id);
           let ordinal = existing.at(-1)?.ordinal ?? 0;
           for (let index = existing.length; index < target; index++) {
             ordinal++;
             const id = crypto.randomUUID();
-            const name = playerName(id, reservedNames);
+            const name = playerName(id, reservedNames, lookOf(id, shardProfile().races));
             reservedNames.add(name);
             this.db
               .query(`INSERT INTO residents

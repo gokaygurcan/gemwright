@@ -5,9 +5,12 @@ import { Blocked } from './blocked';
 import { chaosOf } from './chaos';
 import type { CharacterTemplate } from './config';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
+import { driveBias, hadFun, strongestDrive } from './drives';
 import { guildTurn } from './guilds';
+import { confinedToHaven } from './haven';
 import { housingTurn, leisureAtHome } from './house-life';
 import { cityLandmarks, pickLocation, serviceLocations } from './locations';
+import { forcedToWork } from './loop-watch';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import { type createNavigator, distance } from './navigation';
 import { meetNeeds } from './need-planning';
@@ -18,6 +21,8 @@ import { Layer } from './protocol/layers';
 import type { PlayerSession } from './protocol/session';
 import type { Position } from './protocol/world';
 import { scavenge } from './scavenge';
+import { selfNow } from './self';
+import { shardProfile } from './shard-profile';
 import { trainable } from './skill-training';
 import { crowdFactor, pickWeighted, residentsNear } from './spread';
 import type { Checkpoint } from './store';
@@ -102,18 +107,49 @@ export function skillCurve(p: number): Partial<Record<LifePhase, number>> {
   return { work: 1 + 0.5 * (1 - p), practice: 2 - p, leisure: 0.3 + 0.7 * p, visit: p * p };
 }
 
+// Seasons of activity: evenings bring more leisure, visits and dungeon groups, late nights more
+// quiet work and practice, weekends more dungeons. Only the weights shift; every phase stays
+// possible, and work, selling and recovery are never held back.
+function season(phase: LifePhase, now = new Date()) {
+  // The shard's own clock (gemwright.json timezone): its evenings are its players' evenings.
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: shardProfile().timezone,
+    hour: 'numeric',
+    hourCycle: 'h23',
+    weekday: 'short'
+  }).formatToParts(now);
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? now.getUTCHours());
+  const weekend = ['Sat', 'Sun'].includes(parts.find((p) => p.type === 'weekday')?.value ?? '');
+  const evening = hour >= 17 && hour < 23;
+  const night = hour < 6;
+  const social = phase === 'leisure' || phase === 'visit';
+  let weight = 1;
+  if (evening && (social || phase === 'dungeon')) weight *= 1.4;
+  if (night && (phase === 'work' || phase === 'practice')) weight *= 1.3;
+  if (night && social) weight *= 0.7;
+  if (weekend && phase === 'dungeon') weight *= 1.5;
+  return weight;
+}
+
 function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
   const { sociability, riskTolerance } = ctx.template.behavior;
   const curve = skillCurve(skillProgress(ctx));
+  // Traits (temperament.ts): a homebody seldom visits other towns; a restless one goes out more.
+  const { homebody = 1, restlessness = 1 } = ctx.template.behavior.temperament ?? {};
   const shade: Partial<Record<LifePhase, number>> = {
     work: curve.work,
     practice: curve.practice,
     leisure: (0.5 + sociability) * (curve.leisure ?? 1),
-    visit: (0.5 + sociability) * (curve.visit ?? 1),
+    visit: ((0.5 + sociability) * (curve.visit ?? 1) * restlessness) / homebody,
     dungeon: 0.5 + riskTolerance
   };
   const weights = valid.map(
-    (p) => ((mix?.[p] ?? 0) / mean(config.minutes[p])) * (shade[p] ?? 1) * goalPhaseBias(ctx, p)
+    (p) =>
+      ((mix?.[p] ?? 0) / mean(config.minutes[p])) *
+      (shade[p] ?? 1) *
+      goalPhaseBias(ctx, p) *
+      season(p) *
+      driveBias(ctx, p)
   );
   let roll = Math.random() * weights.reduce((sum, w) => sum + w, 0);
   for (const [i, p] of valid.entries()) {
@@ -125,12 +161,16 @@ function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
 
 async function choose(ctx: LifeContext): Promise<LifePhase> {
   // Practice only while a supporting skill can still rise (skill-training.ts): maxed ones are done.
+  // A Young resident of New Haven neither visits other towns nor goes below (haven.ts).
+  const confined = confinedToHaven(ctx.session);
   const valid = phases.filter((p) =>
-    p === 'dungeon'
-      ? !!ctx.dungeon && !!ctx.dungeonReady?.()
-      : p === 'practice'
-        ? trainable(ctx.session, ctx.template.archetype).length > 0
-        : true
+    confined && (p === 'visit' || p === 'dungeon')
+      ? false
+      : p === 'dungeon'
+        ? !!ctx.dungeon && !!ctx.dungeonReady?.()
+        : p === 'practice'
+          ? trainable(ctx.session, ctx.template.archetype).length > 0
+          : true
   );
   let baseline = localPick(ctx, valid);
   // A change of plans (chaos.ts): a planned visit or leisure sometimes becomes something else.
@@ -256,6 +296,8 @@ function destination(ctx: LifeContext): string | undefined {
 // work waits; false means work now. Every resident shares one event loop, so a turn spent on a
 // phase lasts at least a second and always yields, even when the phase found nothing to do.
 export async function lifeTurn(ctx: LifeContext): Promise<boolean> {
+  // The loop guard put it back to its job (loop-watch.ts).
+  if (forcedToWork(ctx.session)) return false;
   const started = Date.now();
   if (await personalTurn(ctx)) return true;
   const need = await meetNeeds(ctx);
@@ -303,17 +345,36 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
       if (life.until === 0) life.phase = 'work';
       life.until = now + 60_000;
     } else {
-      const phase = await choose(ctx);
+      let phase = await choose(ctx);
+      // A break (leisure, a visit) is earned: only after the resident grew richer or more skilled
+      // since its last one (self.ts), and it stays short. Otherwise it works.
+      const me = selfNow(ctx.session, ctx.checkpoint, ctx.template);
+      const last = ctx.checkpoint.lastBreak;
+      if (
+        (phase === 'leisure' || phase === 'visit') &&
+        last &&
+        me.wealth <= last.wealth &&
+        me.skillTotal <= last.skillTotal
+      )
+        phase = 'work';
+      if (phase === 'leisure' || phase === 'visit')
+        ctx.checkpoint.lastBreak = { at: now, wealth: me.wealth, skillTotal: me.skillTotal };
       const restless = ctx.template.behavior.temperament?.restlessness ?? 1;
       // Chaos (chaos.ts) stretches or cuts a phase short by up to half its length either way.
       const swing = 1 + (Math.random() * 2 - 1) * 0.5 * chaosOf(ctx.session);
-      life = { phase, until: now + ((between(config.minutes[phase]) * swing) / restless) * 60_000 };
+      const minutes = (between(config.minutes[phase]) * swing) / restless;
+      life = {
+        phase,
+        until: now + (phase === 'leisure' || phase === 'visit' ? Math.min(10, minutes) : minutes) * 60_000
+      };
       if (phase === 'visit') life.city = destination(ctx);
       ctx.checkpoint.life = life;
       switches.push(now);
+      if (phase === 'leisure' || phase === 'visit') hadFun(ctx.session.world.serial ?? 0);
+      const why = strongestDrive(ctx, phase);
       ctx.phase(
         'life',
-        `Next: ${phase}${life.city ? ` to ${life.city}` : ''} for about ${Math.round((life.until - now) / 60_000)} minutes`
+        `Next: ${phase}${life.city ? ` to ${life.city}` : ''} for about ${Math.round((life.until - now) / 60_000)} minutes${why ? `, for ${why}` : ''}`
       );
     }
     ctx.persist();

@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
 
+import { withinReach } from './areas';
+import { reachableFrom } from './unreachable';
+
 export type ServiceType =
   | 'animal-trainer'
   | 'banker'
@@ -60,6 +63,13 @@ for (const [city, services] of Object.entries(guide.cities)) {
   for (const [service, entries] of Object.entries(services) as [ServiceType, Reference[]][])
     merged[service] = [...(merged[service] ?? []), ...entries];
 }
+// New Haven's shops, from the vendor spawners in the ServUO source (locations/new-haven.json).
+const havenServices = (
+  JSON.parse(readFileSync(new URL('../locations/new-haven.json', import.meta.url), 'utf8')) as {
+    services: Record<string, Reference[]>;
+  }
+).services;
+bindings.cities['New Haven'] = { ...bindings.cities['New Haven'], ...havenServices } as Bindings['cities'][string];
 const catalog = new Map<string, readonly Landmark[]>();
 for (const [city, services] of Object.entries(bindings.cities)) {
   for (const [service, entries] of Object.entries(services)) {
@@ -106,7 +116,10 @@ export function pickLocation(
   service: ServiceType,
   from?: { x: number; y: number }
 ): Landmark | undefined {
-  const points = serviceLocations(city, service);
+  const all = serviceLocations(city, service);
+  // A place that just failed from here (no route, or monsters in the way) gives way to another.
+  const open = from ? all.filter((point) => reachableFrom(point, from) && withinReach(from, point)) : all;
+  const points = open.length ? open : all;
   if (points.length < 2) return points[0];
   const score = (point: Landmark) =>
     (from ? Math.max(Math.abs(point.x - from.x), Math.abs(point.y - from.y)) : 0) + Math.random() * 60;

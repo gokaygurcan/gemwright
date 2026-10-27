@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "archetypes": [
+    {
+      "id": "scribe-mage",
+      "version": 1,
+      "primarySkills": ["Magery", "Inscription"],
+      "supportingSkills": [
+        "Eval Int",
+        "Meditation",
+        "Magic Resist",
+        "Wrestling"
+      ],
+      "stats": {
+        "str": 60,
+        "dex": 25,
+        "int": 100
+      }
+    },
+    {
+      "id": "warlock",
+      "version": 1,
+      "primarySkills": ["Necromancy", "Magery"],
+      "supportingSkills": [
+        "Spirit Speak",
+        "Eval Int",
+        "Meditation",
+        "Magic Resist",
+        "Wrestling"
+      ],
+      "stats": {
+        "str": 80,
+        "dex": 25,
+        "int": 100
+      }
+    }
+  ]
+}

@@ -1,10 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { skillId } from '@gemwright/common/skills';
-
 import { markResidents } from './activity';
-import { appearanceOf } from './appearance';
 import { runBard } from './bard';
 import { superviseBehavior } from './behavior-supervisor';
 import { registerChaos } from './chaos';
@@ -12,23 +9,25 @@ import type { PopulationConfig } from './config';
 import type { ConnectionConfig } from './connection';
 import { connectionAdmission } from './connection-admission';
 import { runAlchemist, runBowyer } from './crafter';
+import { creationRequest } from './creation-request';
 import { residentCredentials } from './credentials';
-import type { DecisionConfig } from './decision-provider';
+import { type DecisionConfig, inModelShare } from './decision-provider';
 import { DecisionCoordinator } from './decisions';
+import { earnBareHanded } from './earn-bare-handed';
 import { runFighter } from './fighter';
 import { runFisher } from './fisher';
 import { watchForGuards } from './guards';
+import { registerHaven } from './haven';
+import { loadLasting, saveLasting } from './lasting';
 import { info } from './log';
 import { runLumberjack } from './lumberjack';
 import { runMiner } from './miner';
 import { RuntimeOwnership } from './ownership';
 import { PathPool } from './path-pool';
 import { Layer } from './protocol/layers';
-import { createCharacter } from './protocol/packets';
-import { type CharacterRequest, PlayerSession } from './protocol/session';
+import { PlayerSession } from './protocol/session';
 import { enableSessionHabits } from './resident-context';
 import { SessionBreak } from './session-habits';
-import { shardProfile } from './shard-profile';
 import { recordSkills } from './skill-snapshots';
 import { maintainLocks } from './stat-locks';
 import { type Resident, ResidentStore } from './store';
@@ -37,27 +36,7 @@ import { runTamer } from './tamer';
 import { personalTemplate } from './temperament';
 import { runThief } from './thief';
 import { guardTrades } from './trade-guard';
-
-function creationRequest(store: ResidentStore, resident: Resident, enabled: boolean): CharacterRequest {
-  if (!enabled || resident.binding) return { slot: 0 };
-  const template = store.template(resident.templateId, resident.creationVersion);
-  if (!template) throw new Error('Resident creation template is missing');
-  if (template.creation.equipment.length)
-    throw new Error('Custom starting equipment cannot be provisioned through this ordinary creation profile');
-  const name = resident.proposedName;
-  const skills = Object.entries(template.creation.skills).map(([skill, value]) => {
-    const id = skillId(skill);
-    return { id, value };
-  });
-  const create = {
-    name,
-    city: template.creation.city,
-    skills,
-    appearance: appearanceOf(resident.id, shardProfile().races)
-  };
-  createCharacter({ ...create, city: 0, slot: 0 });
-  return { slot: 0, create };
-}
+import { reportTrouble } from './trouble';
 
 async function exercise(session: PlayerSession) {
   const before = { ...session.world.position };
@@ -167,9 +146,14 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       options.create && !resident.binding,
       join(dataDirectory, 'credentials')
     );
-    const decisions = options.decisionConfig
+    // Residents outside the model's share decide locally: the baseline it is compared against.
+    const config =
+      options.decisionConfig?.provider === 'jev' && !inModelShare(resident.id, options.decisionConfig.share)
+        ? { ...options.decisionConfig, provider: 'local' as const }
+        : options.decisionConfig;
+    const decisions = config
       ? new DecisionCoordinator(
-          options.decisionConfig,
+          config,
           (checkpoint) => {
             resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
           },
@@ -230,6 +214,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     if (options.minerAssets || options.fighterAssets || options.lumberjackAssets || options.profession) {
       const totals: Record<string, number> = {};
       const behave = async (session: PlayerSession, seconds: number) => {
+        registerHaven(session, template);
         const peers = new Map(
           store
             .bindings()
@@ -250,6 +235,12 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
             resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
           }
         };
+        // No tool and no money for one: bare-handed earning first.
+        const workAssets = options.minerAssets ?? options.lumberjackAssets ?? options.profession?.assets;
+        if (workAssets && !options.fighterAssets)
+          common.seconds = await earnBareHanded(session, template, resident.checkpoint, seconds, stopping, (spell) =>
+            runFighter({ ...common, seconds: spell, assets: workAssets, recordRun: () => {} })
+          );
         if (options.minerAssets) {
           const result = await runMiner({ ...common, assets: options.minerAssets });
           for (const [key, value] of Object.entries(result))
@@ -419,9 +410,12 @@ export async function withRuntime<T>(
   const sessions = new Map<string, PlayerSession>();
   const activity = store.activityRecorder();
   // Reports are never worth a resident: a failed save is logged and skipped.
+  loadLasting(store.metadata('lasting'));
   const recordActivity = () => {
     try {
       activity.save(sessions);
+      store.setMetadata('lasting', saveLasting());
+      reportTrouble();
     } catch (error) {
       console.error(`[activity] save failed: ${error instanceof Error ? error.message : error}`);
     }

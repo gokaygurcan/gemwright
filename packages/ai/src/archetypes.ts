@@ -1,6 +1,9 @@
 import { skillId } from '@gemwright/common/skills';
 
 import catalog from '../templates/archetypes.json';
+// New Haven's builds live in their own file: the original catalog stays exactly as stored
+// templates recorded it (store.ts compares snapshots).
+import havenCatalog from '../templates/archetypes-new-haven.json';
 
 export interface CharacterArchetype {
   id: string;
@@ -53,8 +56,11 @@ function validate(value: unknown): CharacterArchetype {
   };
 }
 
-if (catalog.schemaVersion !== 1) throw new Error('Unsupported archetype catalog version');
-export const archetypes: readonly CharacterArchetype[] = catalog.archetypes.map(validate);
+if (catalog.schemaVersion !== 1 || havenCatalog.schemaVersion !== 1)
+  throw new Error('Unsupported archetype catalog version');
+export const archetypes: readonly CharacterArchetype[] = [...catalog.archetypes, ...havenCatalog.archetypes].map(
+  validate
+);
 if (new Set(archetypes.map((build) => `${build.id}@${build.version}`)).size !== archetypes.length)
   throw new Error('Duplicate archetype versions');
 

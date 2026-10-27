@@ -19,6 +19,8 @@ export interface Temperament {
   miningAnchor: { dx: number; dy: number };
   // Life phases last 1/restlessness as long as configured (life.ts); restless residents switch more.
   restlessness: number;
+  // Above 1 a homebody, staying in its own town; below 1 it likes to travel (life.ts visits).
+  homebody: number;
 }
 
 function unit(seed: string, salt: string): number {
@@ -37,7 +39,8 @@ export function temperamentOf(residentId: string): Temperament {
     patrolOffset: Math.floor(between('patrol', 0, 4)),
     patrolReverse: unit(residentId, 'reverse') < 0.5,
     miningAnchor: { dx: Math.round(between('mine-x', -60, 60)), dy: Math.round(between('mine-y', -60, 60)) },
-    restlessness: Number(between('restless', 0.7, 1.3).toFixed(2))
+    restlessness: Number(between('restless', 0.7, 1.3).toFixed(2)),
+    homebody: Number(between('homebody', 0.5, 2).toFixed(2))
   };
 }
 

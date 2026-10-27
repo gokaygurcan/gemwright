@@ -16,16 +16,16 @@ Start here, then read only the topic you need. Paths in commands are relative to
 | Topic | Covers |
 | --- | --- |
 | [Commands](commands.md) | Every command, and the source layout. |
-| [Templates and archetypes](templates.md) | Character templates, archetypes, temperament, allocation and revision rules. |
+| [Templates and archetypes](templates.md) | Character templates, archetypes, allocation and revision rules. |
 | [Persistence](persistence.md) | The resident database, checkpoints, credentials, skill snapshots, crash recovery. |
 | [Sessions](sessions.md) | The headless client, ServUO profile and provisioning, protocol capabilities. |
 | [Reconnect](reconnect.md) | Automatic reconnect and interrupted-encounter reconciliation. |
-| [Population](population.md) | Running many residents, the world configuration, performance. |
+| [Population](population.md) | Running many residents, the data directory, and how residents decide (the life goal). |
 | [Locations](locations.md) | The landmark catalog, terrain, stairs, doors and NPC approaches. |
 
 ## Behavior
 
-What residents do lives in the code, one module per trade or activity (`src/fighter.ts`, `src/miner.ts`, `src/profession.ts`, `src/escort.ts` and so on), not in design docs here: docs that described past decisions as the plan kept repeating them. Where each skill is trained is the owner's [skill usage guide](skill-usage.md). Open work and the direction are in the [roadmap](../../../ROADMAP.md).
+Every resident follows one goal and a few rules ([how residents decide](population.md#how-residents-decide)). What they do lives in the code, one module per trade or activity (`src/fighter.ts`, `src/miner.ts`, `src/profession.ts`, `src/escort.ts` and so on), not in design docs here: docs that described past decisions as the plan kept repeating them. Where each skill is trained is in the [skill usage guide](skill-usage.md). Open work and the direction are in the [roadmap](../../../ROADMAP.md).
 
 ## Decisions
 
@@ -33,6 +33,6 @@ What residents do lives in the code, one module per trade or activity (`src/figh
 | --- | --- |
 | [Decisions](decisions.md) | Jev and the local rules: contract, budgets, traces, baseline comparison. |
 
-## Keeping documentation small
+## Contributing to these docs
 
-Update the topic a change belongs to; this index only lists topics. Every agent-authored file stays under 5,000 estimated tokens (bytes / 4, so 20,000 bytes, per the root `AGENTS.md`). Docs describe how things work now: dated run logs belong in commit messages, not here.
+Update the topic a change belongs to; this index only lists topics. Docs describe how things work now, and each file stays under 20 KB.

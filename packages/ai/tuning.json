@@ -1,0 +1,17 @@
+{
+  "escort": { "seekBelowGold": 1000, "walkToGate": 250 },
+  "fighter": {
+    "supplyRunMinGold": 150,
+    "ammoLow": 20,
+    "reagentLow": 3,
+    "carriedGold": 500
+  },
+  "sideTrade": {
+    "checkHours": 3,
+    "spellHours": 2,
+    "lessonTo": 30,
+    "lessonMinGold": 500
+  },
+  "trouble": { "holdHours": 6, "penaltyAt": 3, "stepCost": 4 },
+  "taming": { "emptySearches": 6, "givenUpHours": 1 }
+}

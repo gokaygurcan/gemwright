@@ -1,4 +1,4 @@
-import type { WorldView } from './world';
+import { unicode, type WorldView } from './world';
 
 export function applyHealthBar(world: WorldView, packet: Buffer) {
   if (packet.length < 9) throw new Error('Truncated health-bar status');
@@ -27,5 +27,18 @@ export function applyPartyRoster(world: WorldView, packet: Buffer) {
     if (packet.length !== offset + count * 4) throw new Error('Invalid party member list');
     world.partyMembers.clear();
     for (let i = 0; i < count; i++) world.partyMembers.add(packet.readUInt32BE(offset + i * 4));
+  }
+}
+
+// Party packets (0xBF 0x06): the roster, an invitation (7: its leader) and party chat (3 private,
+// 4 to all: sender serial, Unicode text, kept in the journal).
+export function applyParty(world: WorldView, packet: Buffer) {
+  applyPartyRoster(world, packet);
+  if (packet.readUInt16BE(3) !== 0x06) return;
+  if (packet.readUInt8(5) === 0x07) world.partyInvite = { leader: packet.readUInt32BE(6), at: Date.now() };
+  if ([3, 4].includes(packet.readUInt8(5))) {
+    const serial = packet.readUInt32BE(6);
+    const name = world.entities.get(serial)?.name ?? '';
+    world.addJournal({ serial, name, text: unicode(packet, 10), party: true });
   }
 }

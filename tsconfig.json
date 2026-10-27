@@ -6,6 +6,7 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "allowJs": true,
     "types": ["bun"],
 
@@ -27,5 +28,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["packages/*/*.ts", "packages/client/web", "packages/*/src", "packages/*/tests"]
+  "include": ["packages/*/*.ts", "packages/client/web", "packages/*/src", "packages/*/tests", "packages/analyze/web"]
 }

@@ -2,6 +2,8 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'n
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { reagentByName } from '@gemwright/common/items';
+
 // Offline build of catalogs/crafts/<skill>.json from the pinned ServUO source: every recipe of the craft
 // skills residents use that needs only the skill's basic material (DefBlacksmithy, DefCarpentry,
 // DefTailoring, DefTinkering in Scripts/Services/Craft), with its menu group and label, skill
@@ -49,16 +51,6 @@ const words = (type: string) =>
 
 // Reagents an alchemy recipe may use as its material (item graphics), and the bottle every potion
 // also takes (DefAlchemy AddRes Bottle).
-const reagents: Record<string, number> = {
-  BlackPearl: 0x0f7a,
-  Bloodmoss: 0x0f7b,
-  Garlic: 0x0f84,
-  Ginseng: 0x0f85,
-  MandrakeRoot: 0x0f86,
-  Nightshade: 0x0f88,
-  SulfurousAsh: 0x0f8c,
-  SpidersSilk: 0x0f8d
-};
 const BOTTLE = 0x0f0e;
 
 function recipes(def: string, material: string, prices: Map<string, number>) {
@@ -78,7 +70,7 @@ function recipes(def: string, material: string, prices: Map<string, number>) {
     const bottle = material === 'Reagent' && /AddRes\(index, typeof\(Bottle\), \d+, 1,/.test(own);
     const extra =
       /\b(AddSkill|AddRecipe|AddRequiredSkill)\(/.test(own) || (own.match(/AddRes\(/g)?.length ?? 0) > (bottle ? 1 : 0);
-    const matches = material === 'Reagent' ? !!reagents[resource ?? ''] && bottle : resource === material;
+    const matches = material === 'Reagent' ? !!reagentByName[resource ?? ''] && bottle : resource === material;
     if (!type || !matches || extra || seen.has(type)) return [];
     seen.add(type);
     return [
@@ -91,7 +83,7 @@ function recipes(def: string, material: string, prices: Map<string, number>) {
         amount: Number(amount),
         pays: prices.get(type) ?? 0,
         ...(material === 'Reagent'
-          ? { material: reagents[resource ?? ''], extra: [{ graphic: BOTTLE, amount: 1 }] }
+          ? { material: reagentByName[resource ?? ''], extra: [{ graphic: BOTTLE, amount: 1 }] }
           : {})
       }
     ];

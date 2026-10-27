@@ -1,6 +1,6 @@
 import { gold } from '@gemwright/common/items';
 
-import { chargedPurchase, knownBankGold, offersBank, openBankBox, queryBankBalance } from './bank-gold';
+import { chargedPurchase, fundsStale, knownBankGold, offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import { nearAnyGround, travelNear } from './cemeteries';
 import { replaceDeathRobe } from './death-robe';
 import {
@@ -17,13 +17,16 @@ import { saving } from './housing';
 import { packItems } from './inventory';
 import { learnQuality, shopSafe } from './item-quality';
 import { allServiceLocations } from './locations';
+import { forcedToWork } from './loop-watch';
 import { pocketReserve, recordIncome } from './loot-economy';
 import { combatReagents } from './mage-combat';
 import { buyAtMarket, goodMatch, goods } from './market';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
+import { errand } from './objective-memory';
 import { Layer } from './protocol/layers';
 import type { Entity } from './protocol/world';
+import { travelScrolls } from './scribe';
 import { createServiceExperience } from './service-experience';
 
 export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>) {
@@ -123,7 +126,19 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     await session.equipItem(bow.serial, ctx.terrain.tile(bow.graphic, true).layer || Layer.TwoHanded).catch(() => {});
     log('Wielding an exceptional bow bought from a bowyer');
   };
+  // Savings to spare and no exceptional body armour: one from a resident smith (market.ts).
+  const upgradeArmour = async () => {
+    const exceptional = goodMatch('exceptional armour');
+    const worn = session.world.childrenOf(ctx.serial);
+    await learnQuality(session, worn);
+    if (worn.some(exceptional) || saving(ctx) || ctx.status().gold + knownBankGold(ctx.checkpoint) < 2000) return;
+    if (!(await buyAtMarket({ ...ctx, city: ctx.home.city }, 'exceptional armour', 1, 3).catch(() => 0))) return;
+    await learnQuality(session, contents());
+    // Worn by the inventory pass when it beats what is on (inventory-use.ts).
+    log('Bought exceptional armour from a resident smith');
+  };
   const restock = async () => {
+    if (forcedToWork(session)) return;
     const table = supplies();
     // Fighters living in a potion market town try fellow residents first (market.ts).
     for (const good of ['heal potions', 'cure potions', 'poison potions'] as const) {
@@ -133,6 +148,10 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     }
     // Now and then an archer looks for an exceptional bow at the bow market (market.ts).
     if (weaponSkill(ctx.template) === 'Archery' && Math.random() < 0.25) await upgradeBow();
+    // Melee fighters now and then look for a resident smith's armour.
+    else if (weaponSkill(ctx.template) !== 'Archery' && Math.random() < 0.15) await upgradeArmour();
+    // Nothing to buy with: no shopping walk at all.
+    if (status().gold + knownBankGold(checkpoint) < 50 && !fundsStale(checkpoint)) return;
     phase('restocking', 'Looking for supplies sold by ordinary vendors');
     const stops = [
       ...(weaponSkill(ctx.template) === 'Archery' ? ctx.home.all('bowyer') : []),
@@ -142,57 +161,73 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     for (const shop of stops) {
       check();
       if ([...table].every(([graphic, [, enough]]) => count(graphic) >= (enough ?? 0))) break;
-      await navigate(shop, 5);
-      const needs = [...table].filter(([graphic, [want]]) => count(graphic) < (want ?? 0)).map(([graphic]) => graphic);
-      for (const mobile of learning.order(nearby(), 3006103, needs)) {
-        const before = session.world.received.get(0x74) ?? 0;
-        if (!(await contextAction(mobile, 3006103, needs))) continue;
-        try {
-          await session.waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'vendor stock', 2500);
-        } catch {
-          check();
-          learning.record(mobile, 3006103, 'unavailable', needs);
+      // A shop in another town (Britain's, for an island town lacking one) is worth the moongate
+      // trip only with nothing at all to heal with, and at most every two hours: supplies are
+      // optional, hunting is the job.
+      if (distance(shop, ctx.home.town) > 300) {
+        const broke = status().gold + knownBankGold(checkpoint) < 100;
+        if (broke || ctx.count(bandage) || ctx.count(healPotion) || Date.now() < (checkpoint.farShopAfter ?? 0))
           continue;
-        }
-        const offers = [...session.world.buyOffers.values()].flat();
-        if (
-          !offers.some((offer) => {
+        checkpoint.farShopAfter = Date.now() + 2 * 3_600_000;
+        ctx.persist();
+      }
+      // A stop that buys nothing is not walked to again for two hours (objective-memory.ts).
+      await errand(ctx, `restock:${shop.x},${shop.y}`, `restocking at ${shop.x},${shop.y}`, async () => {
+        await travelNear(ctx, shop, 5);
+        const needs = [...table]
+          .filter(([graphic, [want]]) => count(graphic) < (want ?? 0))
+          .map(([graphic]) => graphic);
+        for (const mobile of learning.order(nearby(), 3006103, needs)) {
+          const before = session.world.received.get(0x74) ?? 0;
+          if (!(await contextAction(mobile, 3006103, needs))) continue;
+          try {
+            await session.waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'vendor stock', 2500);
+          } catch {
+            check();
+            learning.record(mobile, 3006103, 'unavailable', needs);
+            continue;
+          }
+          const offers = [...session.world.buyOffers.values()].flat();
+          if (
+            !offers.some((offer) => {
+              const item = session.world.entities.get(offer.serial);
+              const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
+              return item && stock?.parent === mobile.serial && needs.includes(item.graphic) && (item.amount ?? 0) > 0;
+            })
+          )
+            learning.record(mobile, 3006103, 'no-stock', needs);
+          for (const offer of offers) {
             const item = session.world.entities.get(offer.serial);
             const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
-            return item && stock?.parent === mobile.serial && needs.includes(item.graphic) && (item.amount ?? 0) > 0;
-          })
-        )
-          learning.record(mobile, 3006103, 'no-stock', needs);
-        for (const offer of offers) {
-          const item = session.world.entities.get(offer.serial);
-          const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
-          const limits = item ? table.get(item.graphic) : undefined;
-          if (!item || stock?.parent !== mobile.serial || !limits) continue;
-          await session.refreshStatus();
-          // Vendors charge carried gold, then the bank; keep 150 of the combined funds untouched.
-          const funds = status().gold + knownBankGold(checkpoint) - 150;
-          // A reagent stock of ninety costs more than ordinary supplies; other purchases stay small.
-          const cap = combatReagents.includes(item.graphic) ? 600 : 200;
-          const wanted = (limits[0] ?? 0) - count(item.graphic);
-          const amount = Math.min(
-            wanted,
-            item.amount ?? 1,
-            Math.floor(Math.max(0, funds) / offer.price),
-            Math.floor(cap / offer.price)
-          );
-          if (amount < 1 || amount * offer.price > cap || offer.price > (limits[2] ?? 0)) continue;
-          await approachVendor(ctx, mobile.serial);
-          await chargedPurchase(ctx, amount * offer.price, () =>
-            session.purchaseItem(mobile.serial, item.serial, ctx.backpack(), amount, Math.min(cap, funds))
-          );
-          learning.record(mobile, 3006103, 'success', needs);
-          log(`Bought ${amount} supplies (graphic ${item.graphic.toString(16)})`);
-          await Bun.sleep(700);
+            const limits = item ? table.get(item.graphic) : undefined;
+            if (!item || stock?.parent !== mobile.serial || !limits) continue;
+            await session.refreshStatus();
+            // Vendors charge carried gold, then the bank; keep 150 of the combined funds untouched.
+            const funds = status().gold + knownBankGold(checkpoint) - 150;
+            // A reagent stock of ninety costs more than ordinary supplies; other purchases stay small.
+            const cap = combatReagents.includes(item.graphic) ? 600 : 200;
+            const wanted = (limits[0] ?? 0) - count(item.graphic);
+            const amount = Math.min(
+              wanted,
+              item.amount ?? 1,
+              Math.floor(Math.max(0, funds) / offer.price),
+              Math.floor(cap / offer.price)
+            );
+            if (amount < 1 || amount * offer.price > cap || offer.price > (limits[2] ?? 0)) continue;
+            await approachVendor(ctx, mobile.serial);
+            await chargedPurchase(ctx, amount * offer.price, () =>
+              session.purchaseItem(mobile.serial, item.serial, ctx.backpack(), amount, Math.min(cap, funds))
+            );
+            learning.record(mobile, 3006103, 'success', needs);
+            log(`Bought ${amount} supplies (graphic ${item.graphic.toString(16)})`);
+            await Bun.sleep(700);
+          }
         }
-      }
+      });
     }
   };
   const sellLoot = async () => {
+    if (forcedToWork(session)) return;
     phase('selling', 'Offering recorded loot to vendors who actually buy those items');
     const saleStops = [
       ...(contents().some(
@@ -217,119 +252,132 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     for (const shop of saleStops) {
       if (!contents().some((item) => trip.loot.includes(item.serial) && item.graphic !== gold)) break;
       // The shop may be across water (Britain's for an island town): travelNear takes the moongate.
-      await travelNear(ctx, shop, 5);
-      for (const mobile of learning.order(nearby(), 3006104)) {
-        session.world.sellOffers.delete(mobile.serial);
-        if (!(await contextAction(mobile, 3006104))) continue;
-        try {
-          await session.waitFor(() => session.world.sellOffers.has(mobile.serial), 'vendor buying list', 2200);
-        } catch {
-          check();
-          continue;
-        }
-        const offers = session.world.sellOffers.get(mobile.serial) ?? [];
-        const sale = offers
-          .filter(
+      // A stop that buys nothing is not walked to again for two hours (objective-memory.ts).
+      await errand(ctx, `sell:${shop.x},${shop.y}`, `selling at ${shop.x},${shop.y}`, async () => {
+        await travelNear(ctx, shop, 5);
+        for (const mobile of learning.order(nearby(), 3006104)) {
+          session.world.sellOffers.delete(mobile.serial);
+          if (!(await contextAction(mobile, 3006104))) continue;
+          try {
+            await session.waitFor(() => session.world.sellOffers.has(mobile.serial), 'vendor buying list', 2200);
+          } catch {
+            check();
+            continue;
+          }
+          const offers = session.world.sellOffers.get(mobile.serial) ?? [];
+          const sale = offers
+            .filter(
+              (item) =>
+                item.price > 0 &&
+                trip.loot.includes(item.serial) &&
+                contents().some(
+                  (owned) =>
+                    owned.serial === item.serial &&
+                    owned.graphic !== gold &&
+                    shopSafe(owned) &&
+                    // Travel scrolls are worth more to residents than to the mage (scribe.ts).
+                    !travelScrolls.has(owned.graphic) &&
+                    ![bandage, healPotion, curePotion].includes(owned.graphic)
+                )
+            )
+            .slice(0, 99);
+          if (!sale.length) continue;
+          await approachVendor(ctx, mobile.serial);
+          const coinsBefore = contents()
+            .filter((item) => item.graphic === gold)
+            .reduce((n, item) => n + (item.amount ?? 1), 0);
+          const stockBefore = new Map(contents().map((item) => [item.serial, item.amount ?? 1]));
+          await session.sell(
+            mobile.serial,
+            sale.map((item) => ({ serial: item.serial, amount: item.amount }))
+          );
+          const coinsAfter = contents()
+            .filter((item) => item.graphic === gold)
+            .reduce((n, item) => n + (item.amount ?? 1), 0);
+          const sold = sale.filter(
             (item) =>
-              item.price > 0 &&
-              trip.loot.includes(item.serial) &&
-              contents().some(
-                (owned) =>
-                  owned.serial === item.serial &&
-                  owned.graphic !== gold &&
-                  shopSafe(owned) &&
-                  ![bandage, healPotion, curePotion].includes(owned.graphic)
-              )
-          )
-          .slice(0, 99);
-        if (!sale.length) continue;
-        await approachVendor(ctx, mobile.serial);
-        const coinsBefore = contents()
-          .filter((item) => item.graphic === gold)
-          .reduce((n, item) => n + (item.amount ?? 1), 0);
-        const stockBefore = new Map(contents().map((item) => [item.serial, item.amount ?? 1]));
-        await session.sell(
-          mobile.serial,
-          sale.map((item) => ({ serial: item.serial, amount: item.amount }))
-        );
-        const coinsAfter = contents()
-          .filter((item) => item.graphic === gold)
-          .reduce((n, item) => n + (item.amount ?? 1), 0);
-        const sold = sale.filter(
-          (item) =>
-            (contents().find((owned) => owned.serial === item.serial)?.amount ?? 0) <
-            (stockBefore.get(item.serial) ?? 0)
-        );
-        if (!sold.length || coinsAfter <= coinsBefore) continue;
-        recordIncome(checkpoint, 'soldGold', coinsAfter - coinsBefore);
-        learning.record(mobile, 3006104, 'success');
-        stats.sold += sold.length;
-        trip.loot = trip.loot.filter((id) => contents().some((item) => item.serial === id));
-        persist();
-        await session.refreshStatus();
-        log(`Sold ${sale.length} loot items; gold ${status().gold}`);
-        await Bun.sleep(700);
-      }
-    }
-  };
-  const bank = async () => {
-    // A fighter whose corpse was lost still wears the death robe: new clothes once it can pay.
-    await replaceDeathRobe({ ...ctx, city: ctx.home.city, carried: (pack: number) => session.world.childrenOf(pack) });
-    phase('banking', 'Banking profits and unsold valuables; vendors can charge the bank directly');
-    // The home town's banks, then the nearest others; a banker remembered as unavailable is tried
-    // again on the second pass rather than leaving the gold unbanked.
-    const others = allServiceLocations('banker')
-      .filter((b) => !ctx.home.banks.some((h) => h.x === b.x && h.y === b.y))
-      .sort((a, b) => distance(position(), a) - distance(position(), b))
-      .slice(0, 2);
-    for (const [pass, location] of [
-      ...ctx.home.banks.map((l) => [0, l] as const),
-      ...others.map((l) => [1, l] as const)
-    ]) {
-      await navigate(location, 4);
-      const bankers = learning.order(nearby(), 3006105);
-      if (!bankers.length) log(`No vendor in view at the bank near ${location.x},${location.y}`);
-      for (const mobile of bankers) {
-        const opened = await openBank(mobile, pass > 0);
-        if (opened === undefined) continue;
-        const box = { serial: opened };
-        await Bun.sleep(500);
-        // Keep a small purse for player trades and any unsettled companion share.
-        let pocket = pocketReserve(checkpoint);
-        for (const item of contents()) {
-          check();
-          if (item.graphic === gold) {
-            const kept = Math.min(pocket, item.amount ?? 1);
-            pocket -= kept;
-            const deposit = (item.amount ?? 1) - kept;
-            if (deposit <= 0) continue;
-            await session.moveItem(item.serial, box.serial, deposit);
-            stats.bankedGold += deposit;
-            recordIncome(checkpoint, 'bankedGold', deposit);
-          } else if (trip.loot.includes(item.serial) && packItems(session, box.serial).length < 100) {
-            // The bank box holds 125 items; past 100 unsold loot stays out of it (inventory.ts).
-            await session.moveItem(item.serial, box.serial);
-            stats.bankedItems++;
-          } else continue;
-          trip.loot = trip.loot.filter((id) => id !== item.serial);
+              (contents().find((owned) => owned.serial === item.serial)?.amount ?? 0) <
+              (stockBefore.get(item.serial) ?? 0)
+          );
+          if (!sold.length || coinsAfter <= coinsBefore) continue;
+          recordIncome(checkpoint, 'soldGold', coinsAfter - coinsBefore);
+          learning.record(mobile, 3006104, 'success');
+          stats.sold += sold.length;
+          trip.loot = trip.loot.filter((id) => contents().some((item) => item.serial === id));
           persist();
+          await session.refreshStatus();
+          log(`Sold ${sale.length} loot items; gold ${status().gold}`);
           await Bun.sleep(700);
         }
-        trip.loot = trip.loot.filter((id) => contents().some((item) => item.serial === id));
-        learning.record(mobile, 3006105, 'success');
-        await queryBankBalance(ctx, mobile.serial);
-        trip.killsSinceBank = 0;
-        trip.pending = 'hunt';
-        delete trip.encounter;
-        persist();
-        await session.refreshStatus();
-        log(
-          `Bank confirmed: ${stats.bankedGold} gold and ${stats.bankedItems} valuables deposited this run; bank balance ${checkpoint.funds?.bank ?? 'unknown'}`
-        );
-        return;
-      }
+      });
     }
-    throw new Error('No observed banker offered access');
+  };
+  // A bank trip that deposits or learns nothing is not made again for two hours.
+  const bank = async () => {
+    if (forcedToWork(session)) return;
+    await errand(ctx, 'bank', 'a bank trip', async () => {
+      // A fighter whose corpse was lost still wears the death robe: new clothes once it can pay.
+      await replaceDeathRobe({
+        ...ctx,
+        city: ctx.home.city,
+        carried: (pack: number) => session.world.childrenOf(pack)
+      });
+      phase('banking', 'Banking profits and unsold valuables; vendors can charge the bank directly');
+      // The home town's banks, then the nearest others; a banker remembered as unavailable is tried
+      // again on the second pass rather than leaving the gold unbanked.
+      const others = allServiceLocations('banker')
+        .filter((b) => !ctx.home.banks.some((h) => h.x === b.x && h.y === b.y))
+        .sort((a, b) => distance(position(), a) - distance(position(), b))
+        .slice(0, 2);
+      for (const [pass, location] of [
+        ...ctx.home.banks.map((l) => [0, l] as const),
+        ...others.map((l) => [1, l] as const)
+      ]) {
+        await navigate(location, 4);
+        const bankers = learning.order(nearby(), 3006105);
+        if (!bankers.length) log(`No vendor in view at the bank near ${location.x},${location.y}`);
+        for (const mobile of bankers) {
+          const opened = await openBank(mobile, pass > 0);
+          if (opened === undefined) continue;
+          const box = { serial: opened };
+          await Bun.sleep(500);
+          // Keep a small purse for player trades and any unsettled companion share.
+          let pocket = pocketReserve(checkpoint);
+          for (const item of contents()) {
+            check();
+            if (item.graphic === gold) {
+              const kept = Math.min(pocket, item.amount ?? 1);
+              pocket -= kept;
+              const deposit = (item.amount ?? 1) - kept;
+              if (deposit <= 0) continue;
+              await session.moveItem(item.serial, box.serial, deposit);
+              stats.bankedGold += deposit;
+              recordIncome(checkpoint, 'bankedGold', deposit);
+            } else if (trip.loot.includes(item.serial) && packItems(session, box.serial).length < 100) {
+              // The bank box holds 125 items; past 100 unsold loot stays out of it (inventory.ts).
+              await session.moveItem(item.serial, box.serial);
+              stats.bankedItems++;
+            } else continue;
+            trip.loot = trip.loot.filter((id) => id !== item.serial);
+            persist();
+            await Bun.sleep(700);
+          }
+          trip.loot = trip.loot.filter((id) => contents().some((item) => item.serial === id));
+          learning.record(mobile, 3006105, 'success');
+          await queryBankBalance(ctx, mobile.serial);
+          trip.killsSinceBank = 0;
+          trip.pending = 'hunt';
+          delete trip.encounter;
+          persist();
+          await session.refreshStatus();
+          log(
+            `Bank confirmed: ${stats.bankedGold} gold and ${stats.bankedItems} valuables deposited this run; bank balance ${checkpoint.funds?.bank ?? 'unknown'}`
+          );
+          return;
+        }
+      }
+      throw new Error('No observed banker offered access');
+    });
   };
   const rest = async () => {
     if (status().hits < status().maxHits * 0.9 && nearAnyGround(position())) await navigate(ctx.home.town, 4);

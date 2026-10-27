@@ -31,7 +31,10 @@ const aliases: Record<string, Good> = {
   'heal potions': 'heal potions',
   'cure potions': 'cure potions',
   'poison potions': 'poison potions',
-  'exceptional bows': 'exceptional bows'
+  'exceptional bows': 'exceptional bows',
+  armour: 'exceptional armour',
+  armor: 'exceptional armour',
+  'exceptional armour': 'exceptional armour'
 };
 export function parseWorkOrder(text: string) {
   const match = text
@@ -69,7 +72,8 @@ export function canSupply(session: PlayerSession, good: Good): boolean {
     'heal potions': ['alchemist'],
     'cure potions': ['alchemist'],
     'poison potions': ['alchemist'],
-    'exceptional bows': ['bowyer']
+    'exceptional bows': ['bowyer'],
+    'exceptional armour': ['miner']
   };
   return role[good]?.includes(profession) ?? false;
 }

@@ -1,3 +1,5 @@
+import { GARGOYLE_BODIES } from '@gemwright/common/bodies';
+
 import { approachMobile } from './mobile-approach';
 import { MOUNT_TOO_ILL, recoverMissingMount } from './mount-care';
 import { createMountServices } from './mount-services';
@@ -5,6 +7,7 @@ import { horseBodies, type MountContext, mountEquipment } from './mount-types';
 import { distance } from './navigation';
 import { petSource } from './pets';
 import type { Entity } from './protocol/world';
+import { animalFromResident } from './resident-offers';
 
 export function createMountController(ctx: MountContext, city: string, reserve = 250) {
   const { session, checkpoint, position, persist, check, phase, log } = ctx;
@@ -176,6 +179,8 @@ export function createMountController(ctx: MountContext, city: string, reserve =
     }
   };
   const acquire = async () => {
+    // Gargoyles cannot ride (ServUO BaseMount: "You cannot ride in your current form"); they fly.
+    if (GARGOYLE_BODIES.has(session.world.entities.get(ctx.serial)?.graphic ?? 0)) return;
     if (observe() || (memory.retryAfter ?? 0) > Date.now()) return;
     if (await ride()) return;
     if (memory.state === 'missing' && (await recoverMissingMount(ctx, city, memory, discover))) {
@@ -184,6 +189,12 @@ export function createMountController(ctx: MountContext, city: string, reserve =
       return;
     }
     if (memory.pending || memory.horse || memory.state === 'missing') return;
+    // A tamer's spare mount nearby comes cheaper than the stable's (resident-offers.ts).
+    if (await animalFromResident(ctx, 'mount')) {
+      await discover();
+      await ride();
+      return;
+    }
     try {
       await services.purchase(memory, discover);
       nextAttempt = 0;
