@@ -7,9 +7,10 @@ import { hearAid, observeAid } from './aid';
 import { answer } from './conversation-answer-flow';
 import type { Listener, Options } from './conversation-types';
 import { baselineIntent, type Intent, QUIET_MS, stopWords, threadFor } from './dialogue';
-import { endEngagement } from './engagement';
+import { endEngagement, patienceFor } from './engagement';
 import { independentAction } from './execution-session';
 import { groupMember } from './group-awareness';
+import { identify, identityKnown } from './identity';
 import { logger } from './log';
 import { parseMarketLine } from './market';
 import { distance } from './navigation';
@@ -40,6 +41,7 @@ export function converse(options: Options) {
     threads: new Map(),
     handled: new WeakSet(),
     known: new Set([...(options.peers?.values() ?? [])].map((name) => name.split(' ')[0]?.toLowerCase() ?? '')),
+    muted: new Set(),
     busy: false,
     lastSpoke: 0,
     quietUntil: 0,
@@ -89,8 +91,27 @@ async function listen(listener: Listener) {
   const here = session.world.position;
   if (!me || !here) return;
   const firstName = (me.name ?? '').split(' ')[0]?.toLowerCase() ?? '';
+  // Learn who the unheard-of speakers are before answering anything: one menu per new mobile (kept
+  // for hours), at most two per pass so a crowd of strangers cannot blow the observation deadline.
+  const strangers = new Set<number>();
+  for (const entry of session.world.journal) {
+    if (listener.handled.has(entry) || !entry.text || peers?.has(entry.serial)) continue;
+    if (entry.serial === session.world.serial || entry.serial === 0xffffffff) continue;
+    if (!session.world.entities.has(entry.serial)) continue;
+    strangers.add(entry.serial);
+  }
+  let asking = 0;
+  for (const serial of strangers) {
+    if (identityKnown(session, serial)) continue;
+    if (asking++ >= 2) break;
+    await identify(session, serial);
+  }
+  // A pass that answers several people (each reply costs thinking and typing time) is cut off after
+  // twenty seconds: the rest of the journal waits for the next tick, well inside the action budget.
+  const passStart = Date.now();
   for (const entry of session.world.journal) {
     if (listener.handled.has(entry)) continue;
+    if (Date.now() - passStart > 20_000) break;
     listener.handled.add(entry);
     hearAid(session, entry);
     if (hearPlanControl(session, entry)) continue;
@@ -124,6 +145,17 @@ async function listen(listener: Listener) {
       )
     )
       continue;
+    // A vendor, trainer, guildmaster or other NPC is never a conversation partner: it is dealt with
+    // through its own business, never in talk (no player replies to a vendor's patter). The shard's
+    // context menu for the speaker decides (identity.ts); players are answered whatever their
+    // notoriety or name. A speaker whose menu never came is answered as a person would be.
+    if (!(peers?.has(entry.serial) ?? false) && (await identify(session, entry.serial)) === 'npc') {
+      if (!listener.muted.has(entry.serial)) {
+        listener.muted.add(entry.serial);
+        log(session, `${entry.name ?? 'someone'}: "${(entry.text ?? '').slice(0, 40)}" -> an NPC; not answered`);
+      }
+      continue;
+    }
     const heardKey = `${entry.serial}:${entry.at}:${entry.text}`;
     // Market shouts and haggling (market.ts) are business, answered by the market, not small talk;
     // a player's line is recorded as a price and demand signal (activity.ts).
@@ -165,6 +197,39 @@ async function listen(listener: Listener) {
     if (forOther && !named) continue;
     // Fellow residents are answered only when they address this one; players also when close by.
     if (!named && !ongoing && (peer || !near)) continue;
+    // A crowd does not answer as one: a line that names nobody is left to the two residents nearest
+    // the speaker, the way a table works; the rest keep working.
+    if (!peer && !named && !ongoing && speaker?.position) {
+      const speakerAt = speaker.position;
+      const mine = distance(here, speakerAt);
+      const closer = [...(peers ?? new Map<number, string>())].filter(([serial]) => {
+        const at = serial === session.world.serial ? undefined : session.world.entities.get(serial)?.position;
+        return !!at && distance(at, speakerAt) < mine;
+      }).length;
+      if (closer >= 2) continue;
+    }
+    // Patience with one talker is finite (engagement.ts): the same line a third time, or a stream
+    // of lines, ends the conversation for a while with one spoken goodbye; a line naming the
+    // resident still gets a word in passing, everything else is not answered at all.
+    if (!peer) {
+      const patience = patienceFor(session, entry.serial, entry.text ?? '', {
+        named,
+        intent: baselineIntent(entry.text ?? '')
+      });
+      if (patience.verdict === 'decline') {
+        if (patience.say) {
+          log(session, `${entry.name ?? 'a player'}: "${(entry.text ?? '').slice(0, 40)}" -> ${patience.reason}`);
+          if (canPause(session) && session.phase === 'ready') {
+            await Bun.sleep(700);
+            if (session.phase === 'ready' && canPause(session)) {
+              session.say(patience.say);
+              tally(session, 'speech');
+            }
+          }
+        }
+        continue;
+      }
+    }
     // Speech aimed at this resident: a player's presence is recorded (when and where, not the words).
     notePlayer(session, heardKey, { kind: 'speech', serial: entry.serial, name: entry.name });
     const name = entry.name || speaker?.name || peers?.get(entry.serial) || 'friend';

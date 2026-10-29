@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
@@ -125,17 +125,24 @@ test('daily event files append across restarts and close only after acknowledged
       lifeEvent(f.session, 'work_result', 'observed', { counter: 'crafted', amount: run + 1 });
       await journal.close();
     }
-    const file = join(directory, `${new Date().toISOString().slice(0, 10)}.jsonl.gz`);
-    const lines = gunzipSync(await readFile(file))
-      .toString('utf8')
-      .trim()
-      .split('\n')
-      .map((line) => JSON.parse(line) as LifeEvent);
+    // History is written in bounded segments of the day, so read every segment of today.
+    const day = new Date().toISOString().slice(0, 10);
+    const files = (await readdir(directory)).filter(
+      (name) => name.startsWith(day) && name.endsWith('.jsonl.gz') && !name.includes('.trace.')
+    );
+    expect(files.length).toBeGreaterThan(0);
+    const lines: LifeEvent[] = [];
+    for (const name of files) {
+      const text = gunzipSync(await readFile(join(directory, name)))
+        .toString('utf8')
+        .trim();
+      for (const line of text.split('\n')) lines.push(JSON.parse(line) as LifeEvent);
+    }
     expect(lines).toHaveLength(4);
     expect(lines.filter((event) => event.type === 'work_result').map((event) => event.details.amount)).toEqual([1, 2]);
     expect(new Set(lines.map((event) => event.id)).size).toBe(4);
     expect(new Set(lines.map((event) => event.sessionId)).size).toBe(2);
-    expect((await stat(file)).mode & 0o777).toBe(0o600);
+    for (const name of files) expect((await stat(join(directory, name))).mode & 0o777).toBe(0o600);
     expect(errors).toEqual([]);
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -147,7 +154,8 @@ test('journal write failures are surfaced rather than silently dropping the hist
   const errors: Error[] = [];
   const journal = await openLifeJournal(directory, (error) => errors.push(error));
   try {
-    await mkdir(join(directory, `${new Date().toISOString().slice(0, 10)}.jsonl.gz`));
+    // A directory where the day's first history segment goes makes the write fail.
+    await mkdir(join(directory, `${new Date().toISOString().slice(0, 10)}.00000000.jsonl.gz`));
     const f = fixture();
     registerLifeEvents(f.session, 'resident-1', 'Test Resident', journal.append);
     const failure = await journal.flush().then(

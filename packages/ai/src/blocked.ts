@@ -5,7 +5,9 @@ export type BlockedReason =
   | 'insufficient-funds'
   | 'missing-tool'
   | 'overweight'
-  | 'dangerous';
+  | 'dangerous'
+  // The same step repeated without a gain: the plan is the impossibility, not the world.
+  | 'stuck';
 
 // A legal, explainable impossibility reported by server feedback or observations.
 // Behaviors either route around it or stop with this reason instead of retrying blindly.

@@ -133,3 +133,40 @@ export interface Checkpoint {
     pending?: 'smelt' | 'bank';
   };
 }
+
+// A checkpoint is rewritten for every resident every few seconds: anything unbounded inside it is
+// paid for twice, in memory and in durable writes (one 260 KB checkpoint times a hundred residents
+// is how a save burst filled the write queue). Histories keep their recent tail, which is what
+// behaviour reads; everything else in the checkpoint is already bounded where it is written.
+const keepRecent = <T>(map: Record<string, T> | undefined, max: number, rank: (value: T) => number) => {
+  if (!map) return map;
+  const entries = Object.entries(map);
+  if (entries.length <= max) return map;
+  return Object.fromEntries(entries.sort((a, b) => rank(b[1]) - rank(a[1])).slice(0, max));
+};
+export function boundCheckpoint(checkpoint: Checkpoint): Checkpoint {
+  if (checkpoint.memories.length > 50) checkpoint.memories = checkpoint.memories.slice(-50);
+  const decisions = checkpoint.decisions;
+  if (decisions?.history && decisions.history.length > 80) decisions.history = decisions.history.slice(-80);
+  const goal = checkpoint.workGoal;
+  if (goal) {
+    // Failed objectives are relearned; a dozen recent ones is all a plan consults.
+    goal.failed = keepRecent(goal.failed, 12, (entry) => entry.until);
+    goal.outcomes = goal.outcomes?.slice(-20);
+    goal.assumptions = goal.assumptions?.slice(-20);
+  }
+  checkpoint.objectives = keepRecent(checkpoint.objectives, 32, (entry) => entry.until ?? 0);
+  const relationships = keepRecent(checkpoint.relationships, 60, (entry) =>
+    entry.lastSeen ? Date.parse(entry.lastSeen) : 0
+  );
+  if (relationships) checkpoint.relationships = relationships;
+  const landmarks = checkpoint.landmarks;
+  if (landmarks) {
+    landmarks.vendors = keepRecent(landmarks.vendors, 24, (entry) => entry.at);
+    if (landmarks.forges.length > 50) landmarks.forges = landmarks.forges.slice(-50);
+    landmarks.depleted = landmarks.depleted?.slice(-300);
+  }
+  if (checkpoint.retreats && checkpoint.retreats.length > 8) checkpoint.retreats = checkpoint.retreats.slice(-8);
+  if (checkpoint.forSale && checkpoint.forSale.length > 40) checkpoint.forSale = checkpoint.forSale.slice(-40);
+  return checkpoint;
+}

@@ -31,13 +31,20 @@ export async function withRuntime<T>(
   let persistenceFailure: Error | undefined;
   let stopOnFailure = () => {};
   const persistence = await openPersistence(options.dbPath, options.population.shardId, (error) => {
+    // Write pressure is not a reason to end the town: the queue sheds telemetry and the writer
+    // catches up. Only a database that cannot commit at all stops the runtime.
+    if (/queue is full/i.test(error.message)) {
+      logger('runtime').error(`[persistence] ${error.message} (shedding telemetry, population kept)`);
+      return;
+    }
     persistenceFailure = error;
     logger('runtime').error(`[persistence] ${error.message}`);
     stopOnFailure();
   });
   const journal = await openLifeJournal(join(dirname(options.dbPath), 'life-events'), (error) => {
-    logger('runtime').error(`[life-events] ${error.message}`);
-    stopOnFailure();
+    // The journal is history, not state: if it cannot be written (disk reserve, a broken writer)
+    // the residents keep playing and their events are dropped until it recovers on the next start.
+    logger('runtime').error(`[life-events] ${error.message} (journal stopped; residents continue)`);
   }).catch(async (error) => {
     await persistence.close();
     throw error;
@@ -88,7 +95,7 @@ export async function withRuntime<T>(
   process.once('SIGTERM', stop);
   try {
     if (persistenceFailure) throw persistenceFailure;
-    ownership = new RuntimeOwnership(store, stop, store.flush);
+    ownership = new RuntimeOwnership(store, stop);
     store.reconcile(options.population);
     markResidents(store.list().flatMap((r) => (r.binding ? [Number(r.binding.characterSerial)] : [])));
     await store.flush();

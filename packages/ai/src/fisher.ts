@@ -8,6 +8,7 @@ import { Blocked } from './blocked';
 import { type CraftSkill, trainCraft } from './craft-training';
 import { fish, sellFishingCatch } from './fishing-catch';
 import { leavesEarly, packFull } from './inventory';
+import { eatMagicFish } from './inventory-use';
 import { allServiceLocations, pickLocation } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
@@ -139,6 +140,8 @@ export const fishingTurn =
     }
     // The pole is used from the pack: equipping it is optional on the shard and is refused while
     // mounted (two hands), which used to surface as an equipment setback.
+    // A magic fish among the catch is a blessing and weight: eaten before fishing on.
+    if (eatMagicFish(session)) log('Ate a strange fish whole for its blessing');
     const spot = findSpot(ctx, home ? { ...home, z: ctx.position().z } : ctx.position(), avoid);
     if (!spot) throw new Blocked('unreachable', 'No reachable shore near home');
     // A pack already full of other things: sold first, or the cast would never come (inventory.ts).

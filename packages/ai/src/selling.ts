@@ -1,6 +1,16 @@
 import { readdirSync } from 'node:fs';
 
-import { arrow, bandage, bolt, gems, gold, healPotion, isDeathRobe, reagents } from '@gemwright/common/items';
+import {
+  arrow,
+  bandage,
+  bolt,
+  gems,
+  gold,
+  healPotion,
+  isDeathRobe,
+  magicFish,
+  reagents
+} from '@gemwright/common/items';
 import type { Entity } from '@gemwright/network/world';
 
 import { Blocked } from './blocked';
@@ -159,7 +169,8 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
     let dumped = 0;
     for (const item of ctx.carried(ctx.backpack())) {
       if (dumped >= 5) break;
-      if (item.graphic === gold || kept(item) || reservedFor(session, item) || shopsFor(ctx, item).length) continue;
+      if (item.graphic === gold || magicFish.has(item.graphic)) continue;
+      if (kept(item) || reservedFor(session, item) || shopsFor(ctx, item).length) continue;
       if (session.world.childrenOf(item.serial).length) continue; // a bag with things inside
       if (await putDown(session, item.serial).catch(() => false)) dumped++;
     }

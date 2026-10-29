@@ -10,6 +10,7 @@ import { canSpendOnTraining, chargedPurchase, recordTrainingSpend, refreshFunds,
 import { Blocked } from './blocked';
 import { bankKept } from './craft-banking';
 import { sellCrafted as sell } from './craft-sales';
+import { confinedToHaven } from './haven';
 import { learnQuality, quality } from './item-quality';
 import { allServiceLocations, type ServiceType, serviceLocations, townAt, vendorLocations } from './locations';
 import { buttonFor, CREATED, EXCEPTIONAL, FAILED, STOP } from './miner-crafting';
@@ -162,7 +163,9 @@ export async function atVendor(
   // always travels (it is how the resident earns); buying only when it can pay for more than the
   // trip itself.
   const elsewhere =
-    cliloc === 3006104 || funds >= 100
+    // A Young resident of Haven cannot take a gate (haven.ts): other towns' shops are not trips it
+    // can make, so they are not tried at all (the block used to repeat every turn).
+    !confinedToHaven(session) && (cliloc === 3006104 || funds >= 100)
       ? alternatives.filter((shop) => !stops.some((stop) => stop.x === shop.x && stop.y === shop.y)).slice(0, 3)
       : [];
   // The shop landmark is the door; the vendor stands somewhere inside or beside it. The spawner data
@@ -189,14 +192,33 @@ export async function atVendor(
     ctx.checkpoint.landmarks.vendors[vendorKey] = { x: at.x, y: at.y, z: at.z, at: Date.now() };
     ctx.persist?.();
   };
-  const visits = [
+  const planned = [
     ...(remembered && !townBlocked && Date.now() - remembered.at < 86_400_000
       ? [{ point: remembered, inTown: true }]
       : []),
     ...stops.map((point) => ({ point, inTown: own.some((shop) => shop.x === point.x && shop.y === point.y) })),
-    ...spawns.map((point) => ({ point, inTown: true })),
-    ...elsewhere.map((point) => ({ point, inTown: false }))
+    ...spawns.map((point) => ({ point, inTown: true }))
   ];
+  // What is standing within sight that sells or buys this: a vendor the catalogue never knew about —
+  // a shop somebody added to the docks — is found by its menu, not by its address, and then
+  // remembered (learn) for the next visit. Tried in town, before any trip to another town.
+  const observed = [...session.world.entities.values()]
+    .filter(
+      (mobile) =>
+        mobile.kind === 'mobile' &&
+        mobile.notoriety === 7 &&
+        mobile.position &&
+        distance(position(), mobile.position) <= 60 &&
+        !planned.some((visit) => distance(visit.point, mobile.position as { x: number; y: number }) <= 3)
+    )
+    .sort(
+      (a, b) =>
+        distance(position(), a.position as { x: number; y: number }) -
+        distance(position(), b.position as { x: number; y: number })
+    )
+    .slice(0, 4)
+    .map((mobile) => ({ point: mobile.position as { x: number; y: number; z: number }, inTown: true }));
+  const visits = [...planned, ...observed, ...elsewhere.map((point) => ({ point, inTown: false }))];
   // Once this town's vendor answers with nothing for this objective, its other spawn points teach
   // nothing more on this visit; other towns are still tried.
   let townSettled = false;

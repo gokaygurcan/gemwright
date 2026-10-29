@@ -1,7 +1,9 @@
 import { expect, spyOn, test } from 'bun:test';
 
 import { urgentAction } from '../src/action-purpose';
+import { Blocked, blockedReason } from '../src/blocked';
 import { checkLoop, forcedToWork, noteNavigationStep, Stuck, watchStep } from '../src/loop-watch';
+import { registerGoal } from '../src/resident-goal';
 import { tally } from '../src/work-evidence';
 import { behaviorFixture, required } from './behavior-fixture';
 
@@ -137,4 +139,78 @@ test('small-area circling across navigation calls interrupts; travel and safety 
       expect(() => checkLoop(escaping.session)).not.toThrow();
     });
     expect(forcedToWork(escaping.session)).toBe(false);
+  }));
+
+// A loop is a blocked step of the plan, not a reason to end the session: the goal is blocked and
+// the trade takes another course, exactly like an unreachable road. Ending the run here was what
+// made the population log the resident out and back in around every loop.
+test('a loop is a blocked step with the goal blocked, not a session-ending error', () =>
+  withClock(() => {
+    const f = behaviorFixture();
+    registerGoal(f.session, f.checkpoint);
+    const now = Date.now();
+    f.checkpoint.workGoal = {
+      active: {
+        kind: 'learn',
+        key: 'tailor',
+        step: 'trade',
+        started: now,
+        until: now + 60_000,
+        stepUntil: now + 60_000,
+        budget: 0,
+        before: {}
+      } as never
+    };
+    for (let cycle = 0; cycle < 3; cycle++) {
+      watchStep(f.session, 'test', 'go', 'Going');
+      watchStep(f.session, 'test', 'back', 'Returning');
+    }
+    const error = (() => {
+      try {
+        checkLoop(f.session);
+      } catch (caught) {
+        return caught;
+      }
+    })();
+    expect(error).toBeInstanceOf(Blocked);
+    expect(blockedReason(error)).toBe('stuck');
+    expect(f.checkpoint.workGoal?.active).toBeUndefined();
+    expect(f.checkpoint.workGoal?.failed?.tailor?.until ?? 0).toBeGreaterThan(Date.now());
+  }));
+
+test('a second loop soon after the first holds the goal off for ten minutes', () =>
+  withClock((advance) => {
+    const f = behaviorFixture();
+    registerGoal(f.session, f.checkpoint);
+    const arm = () => {
+      const now = Date.now();
+      f.checkpoint.workGoal = {
+        active: {
+          kind: 'learn',
+          key: 'tailor',
+          step: 'trade',
+          started: now,
+          until: now + 60_000,
+          stepUntil: now + 60_000,
+          budget: 0,
+          before: {}
+        } as never
+      };
+    };
+    const strike = () => {
+      for (let cycle = 0; cycle < 3; cycle++) {
+        watchStep(f.session, 'test', 'go', 'Going');
+        watchStep(f.session, 'test', 'back', 'Returning');
+      }
+      try {
+        checkLoop(f.session);
+      } catch {}
+    };
+    arm();
+    strike();
+    expect(f.checkpoint.workGoal?.failed?.tailor?.until ?? 0).toBeLessThanOrEqual(Date.now() + 2 * 60_000);
+    advance(30_000);
+    arm();
+    strike();
+    expect(f.checkpoint.workGoal?.failed?.tailor?.until ?? 0).toBeGreaterThanOrEqual(Date.now() + 10 * 60_000);
   }));

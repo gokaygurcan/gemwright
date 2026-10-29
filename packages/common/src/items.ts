@@ -31,6 +31,10 @@ export const fishingPoles = new Set([
   0x0dbf, // fishing pole, facing east
   0x0dc0 // fishing pole, facing south
 ]);
+// Magic fish (ServUO MagicFish.cs): one graphic in four hues — prized (intelligence), wondrous
+// (dexterity), truly rare (strength) and peculiar (stamina). Eaten whole for the blessing, whose
+// size and duration the shard decides; no vendor buys one, so carrying one is all weight.
+export const magicFish = new Set([0x0dd6]);
 export const sewingKit = 0x0f9d;
 
 // Supplies a fighter or mage runs out of.

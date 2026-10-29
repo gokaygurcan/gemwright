@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { ActivityRecorder, activitySchema } from './activity';
 import { lookOf } from './appearance';
 import { migrateCheckpoint } from './checkpoint-migrations';
-import type { Checkpoint } from './checkpoint-types';
+import { boundCheckpoint, type Checkpoint } from './checkpoint-types';
 import { allocatePopulation, type CharacterTemplate, type PopulationConfig, validateConfig } from './config';
 import { playerName } from './names';
 import { shardProfile } from './shard-profile';
@@ -427,7 +427,7 @@ export class ResidentStore {
     checkpoint: Checkpoint,
     binding: Resident['binding']
   ): Resident {
-    const json = JSON.stringify(checkpoint);
+    const json = JSON.stringify(boundCheckpoint(checkpoint));
     const bindingJson = binding ? JSON.stringify(binding) : null;
     return this.db
       .transaction(() => {

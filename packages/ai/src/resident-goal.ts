@@ -110,6 +110,16 @@ export function failResidentGoal(session: PlayerSession, reason: string) {
   if (active) active.blocker = reason.slice(0, 240);
 }
 
+// A second loop soon after the first means the plan layer did not find another course: the goal that
+// kept looping is held off for longer, while the trade goes on with its own work.
+export function extendGoalBlock(session: PlayerSession, ms: number, now = Date.now()) {
+  const memory = bindings.get(session)?.workGoal;
+  const key = memory?.last?.key;
+  if (!memory?.failed || !key) return;
+  const failure = memory.failed[key];
+  if (failure) failure.until = Math.max(failure.until, now + ms);
+}
+
 const leases = new WeakMap<PlayerSession, number>();
 const permits = new WeakMap<PlayerSession, 'optional' | GoalStep>();
 const permission = new AsyncLocalStorage<{ session: PlayerSession; step: 'optional' | GoalStep }>();

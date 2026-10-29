@@ -21,6 +21,8 @@ export interface Listener {
   handled: WeakSet<JournalEntry>;
   // First names heard in speech or on the roster, to tell when a line is meant for someone else.
   known: Set<string>;
+  // NPC speakers noted once each, so a vendor's patter is skipped without flooding the log.
+  muted: Set<number>;
   busy: boolean;
   lastSpoke: number;
   // After a conversation ends the resident pauses talking to anyone, requests aside.

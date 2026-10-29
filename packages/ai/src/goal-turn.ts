@@ -22,6 +22,7 @@ import {
   attachGoal,
   blockGoal,
   chooseGoal,
+  failResidentGoal,
   type GoalSituation,
   goalPermission,
   leaseGoal,
@@ -34,6 +35,12 @@ import { passSetback } from './setback';
 import { housekeeping, optionalTurn } from './shared-turn';
 import { sideTradeTurn } from './side-trade';
 import { rememberBalance, workEvidence } from './work-evidence';
+
+// Status refreshes spent on observations that stayed unavailable (see the recover step below).
+const statusRefreshes = new WeakMap<
+  import('@gemwright/network/session').PlayerSession,
+  { count: number; at: number }
+>();
 
 // Securing-away-the-risk waits already spent on the same ground (see the recover step below).
 const riskWaits = new WeakMap<
@@ -225,8 +232,24 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
         return true;
       }
       if (state.safe && state.planning?.available === false) {
+        // Missing observations are a precondition, not a step: asking again every turn is a spin
+        // (it was the town's top loop). Two refreshes, then the goal is failed so the plan layer
+        // takes another course, and the asking is paced until the observations come back.
+        const refreshes = statusRefreshes.get(session) ?? { count: 0, at: 0 };
+        if (Date.now() - refreshes.at > 60_000) refreshes.count = 0;
+        refreshes.at = Date.now();
+        refreshes.count += 1;
+        statusRefreshes.set(session, refreshes);
+        if (refreshes.count > 2) {
+          failResidentGoal(session, 'Safety observations stay unavailable; cannot judge the work');
+          ctx.phase('reconciling-status', 'Observations still missing; waiting before asking again');
+          await checkedDelay(10_000, ctx.check);
+          return true;
+        }
         ctx.phase('reconciling-status', 'Refreshing missing or stale safety observations before resuming');
         await session.refreshStatus();
+        // One refresh is a request: give the shard a beat to answer before calling it stale again.
+        await checkedDelay(1500, ctx.check);
         return true;
       }
       // Safe and within the budget: the fallback recovery has nothing to secure or heal, so the

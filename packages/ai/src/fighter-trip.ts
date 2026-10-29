@@ -87,6 +87,10 @@ export function townNeed(ctx: FighterContext): { reason: string; hard: boolean }
   // A death loses all it carries: past twice its comfort limit the gold goes to the bank, no question.
   if (ctx.count(gold) >= limit * 2) return { reason: `carrying ${ctx.count(gold)} gold, too much to risk`, hard: true };
   if (ctx.count(gold) >= limit) return { reason: `carrying ${ctx.count(gold)} gold`, hard: false };
+  // Loot is money too, but a trip per handful costs more hunting time than the pieces are worth:
+  // ten carried pieces (or a full pack) is a sale trip before the next hunt.
+  const loot = ctx.trip.loot.length;
+  if (loot >= 10) return { reason: `carrying ${loot} looted pieces to sell`, hard: false };
   const magic = importantLoot(ctx);
   if (magic)
     return {

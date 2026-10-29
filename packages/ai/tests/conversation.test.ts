@@ -3,9 +3,77 @@ import { expect, test } from 'bun:test';
 import { intentOf } from '../src/conversation';
 import { activityLine, planLine } from '../src/conversation-facts';
 import { replyOptions, threadFor } from '../src/dialogue';
+import { type Identity, identityFrom } from '../src/identity';
 import { needsLine } from '../src/needs';
 import { replyRejection } from '../src/respond';
 import type { Checkpoint } from '../src/store';
+
+// The shard's context menu for the speaker is the fingerprint (identity.ts): business entries mean
+// an NPC to trade with, party entries mean a person. Notoriety and names decide nothing.
+test('the context menu entries tell an NPC from a player', () => {
+  const menu = (...clilocs: number[]) => clilocs.map((cliloc) => ({ cliloc }));
+  expect(identityFrom(menu(3006103))).toBe<Identity>('npc'); // Buy
+  expect(identityFrom(menu(3002133, 3006104))).toBe<Identity>('npc'); // Paperdoll + Sell
+  expect(identityFrom(menu(3006152))).toBe<Identity>('npc'); // Bulk Order Info
+  expect(identityFrom(menu(1152294))).toBe<Identity>('npc'); // Bribe
+  expect(identityFrom(menu(3002133, 3000197))).toBe<Identity>('player'); // Paperdoll + Add Party
+  expect(identityFrom(menu(3000198))).toBe<Identity>('player'); // Remove From Party
+  // A vendor that also offers party entries is still a vendor: business decides first.
+  expect(identityFrom(menu(3006103, 3000197))).toBe<Identity>('npc');
+  expect(identityFrom(menu(3002133))).toBe<Identity>('unknown'); // paperdoll alone tells nothing
+});
+
+test('patience runs out on small-talk repeats, and a name still gets a word', async () => {
+  const { patienceFor } = await import('../src/engagement');
+  const session = {} as never; // only a WeakMap key
+  const chat = (named = false) => ({ named, intent: 'greet' });
+  const t0 = Date.now();
+  expect(patienceFor(session, 1, 'hello there', chat(), t0).verdict).toBe('ok');
+  expect(patienceFor(session, 1, 'hello there!', chat(), t0 + 1000).verdict).toBe('ok');
+  const third = patienceFor(session, 1, 'Hello  there', chat(), t0 + 2000);
+  expect(third.verdict).toBe('decline');
+  expect(third.say).toContain('said that already');
+  // Bored: repeats are silenced without a word; a fresh line naming the resident gets one word a minute.
+  expect(patienceFor(session, 1, 'hello there', chat(), t0 + 3000).verdict).toBe('decline');
+  expect(patienceFor(session, 1, 'hello there', chat(true), t0 + 3500).verdict).toBe('decline');
+  expect(patienceFor(session, 1, 'are you there, friend?', chat(true), t0 + 4000).verdict).toBe('brief');
+  expect(patienceFor(session, 1, 'anyone home?', chat(true), t0 + 5000).verdict).toBe('decline');
+  // Another talker is unaffected, and the boredom lifts after its window.
+  expect(patienceFor(session, 2, 'hail', chat(), t0 + 6000).verdict).toBe('ok');
+  expect(patienceFor(session, 1, 'hail', chat(), t0 + 11 * 60_000).verdict).toBe('ok');
+});
+
+test('a stream of small talk from one talker also ends the conversation', async () => {
+  const { patienceFor } = await import('../src/engagement');
+  const session = {} as never;
+  const t0 = Date.now();
+  for (let n = 0; n < 5; n++)
+    expect(
+      patienceFor(session, 9, `line number ${n}`, { named: false, intent: 'chatter' }, t0 + n * 1000).verdict
+    ).toBe('ok');
+  const sixth = patienceFor(session, 9, 'line number five', { named: false, intent: 'chatter' }, t0 + 6000);
+  expect(sixth.verdict).toBe('decline');
+  expect(sixth.say).toBeDefined();
+});
+
+// A player may need the same answer twice (a dropped reply, a real need): requests are answered
+// until the same one is put five times, and only then does the resident say so and pause.
+test('requests do not bore a resident the way small talk does', async () => {
+  const { patienceFor } = await import('../src/engagement');
+  const session = {} as never;
+  const ask = { named: false, intent: 'where' };
+  const t0 = Date.now();
+  for (let n = 0; n < 4; n++)
+    expect(patienceFor(session, 7, 'where is the bank?', ask, t0 + n * 1000).verdict).toBe('ok');
+  const fifth = patienceFor(session, 7, 'where is the bank?', ask, t0 + 4000);
+  expect(fifth.verdict).toBe('decline');
+  expect(fifth.say).toContain('told thee');
+  // A real request still gets a word in passing while bored; idle small talk does not.
+  expect(patienceFor(session, 7, 'and where is the forge?', ask, t0 + 70_000).verdict).toBe('brief');
+  expect(patienceFor(session, 7, 'nice weather', { named: false, intent: 'chatter' }, t0 + 71_000).verdict).toBe(
+    'decline'
+  );
+});
 
 test('player lines map to supported intents', () => {
   expect(intentOf('hail there')).toBe('greet');

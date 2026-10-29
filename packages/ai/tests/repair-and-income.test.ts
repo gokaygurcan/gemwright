@@ -90,7 +90,7 @@ test('loot collects gold before heavy equipment and only accounts for actual rec
     stats,
     nearby: () => []
   } as unknown as FighterContext;
-  await createCorpseLooter(ctx, async () => {})(30);
+  await createCorpseLooter(ctx, async () => {})({ corpse: 30 });
   expect(moved).toEqual([32, 33, 31]);
   expect(stats.looted).toBe(2);
   expect(trip.loot).toEqual([33]);

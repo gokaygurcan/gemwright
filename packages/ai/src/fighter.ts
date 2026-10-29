@@ -277,7 +277,9 @@ export async function runFighter(options: ResidentOptions) {
     if (death) tally(session, 'kills');
     phase('looting', 'Collecting valuables from the defeated undead');
     await Bun.sleep(600);
-    await lootCorpse(death?.corpse);
+    // The corpse serial can arrive as 0 (or not at all): the looter finds the fresh corpse where
+    // the opponent fell instead of walking away from a kill with the gold still on it.
+    await lootCorpse(death);
     delete trip.encounter;
     persist();
   };
@@ -474,6 +476,15 @@ export async function runFighter(options: ResidentOptions) {
           if (state.fightingSerial !== null) unreachable.add(state.fightingSerial);
           state.fightingSerial = null;
           delete trip.encounter;
+          // A road to this ground that cannot be walked (a gate pair gone bad, no route at all) is
+          // grounds to hunt elsewhere for a while: "another course" means another graveyard.
+          if (/moongate|no route|no public route|walk/i.test(error.message)) {
+            const elsewhere = nextGround(ctx);
+            if (elsewhere !== trip.ground) {
+              log(`The road to the ${trip.ground} is closed; hunting at the ${elsewhere} instead`);
+              trip.ground = elsewhere;
+            }
+          }
           persist();
           session.setWarMode(false);
           phase('blocked', `${error.message}; choosing another course`);

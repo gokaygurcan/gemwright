@@ -157,9 +157,12 @@ export async function travelByMoongate(
   try {
     await session.waitFor(() => distance(position(), target) <= 6 && session.world.map === 1, `arrival at ${to}`);
   } catch {
-    crossing.set(`${from}>${to}`, Date.now() + 2 * 3_600_000);
+    // One failed crossing is a hint, not a two-hour wall: the gate is tried again in ten minutes
+    // (a timeout or a monster can interrupt a single use), and a success clears the pair outright.
+    crossing.set(`${from}>${to}`, Date.now() + 10 * 60_000);
     throw new Blocked('unreachable', `The ${from} moongate did not take me to ${to}`);
   }
+  crossing.set(`${from}>${to}`, 0);
   phase('moongate-arrival', `Arrived through the ${to} moongate`);
   // Monsters waiting at the far gate: straight back through it, as a player steps back in,
   // and the road there is remembered as dangerous for a while.

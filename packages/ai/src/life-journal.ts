@@ -15,6 +15,7 @@ export async function openLifeJournal(directory: string, onFailure: (error: Erro
   let commitMs = 0;
   let maxCommitMs = 0;
   let inflightBytes = 0;
+  let dropped = 0;
   let closed = false;
   let failure: Error | undefined;
   const waiting: { sequence: number; resolve: () => void; reject: (error: Error) => void }[] = [];
@@ -85,12 +86,12 @@ export async function openLifeJournal(directory: string, onFailure: (error: Erro
     append(event: TelemetryEvent) {
       if (failure || closed) return;
       const bytes = JSON.stringify(event).length * 2;
-      if (pendingBytes + bytes > 8 * 1024 * 1024)
-        return fail(
-          new Error(
-            `Life-event journal backlog exceeded 8 MiB (${pending.length} pending events, writer pending ${inflight ? Date.now() - sentAt : 0} ms); stopping runtime`
-          )
-        );
+      // Telemetry is never worth the town: a slow or full journal writer drops the newest events
+      // (and says so in its statistics) instead of stopping the runtime.
+      if (pendingBytes + bytes > 8 * 1024 * 1024) {
+        dropped++;
+        return;
+      }
       pending.push(structuredClone(event));
       pendingBytes += bytes;
       sequence++;
@@ -101,6 +102,7 @@ export async function openLifeJournal(directory: string, onFailure: (error: Erro
       storage,
       pendingEvents: pending.length,
       pendingBytes,
+      dropped,
       inflightBytes,
       inflightMs: inflight ? Date.now() - sentAt : 0,
       submitted: sequence,

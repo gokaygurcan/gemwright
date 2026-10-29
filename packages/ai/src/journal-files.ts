@@ -18,21 +18,43 @@ const traceTypes = new Set([
   'resident_health'
 ]);
 const tracePattern = /^\d{4}-\d{2}-\d{2}\.trace\.\d{8}\.jsonl\.gz$/;
+const dayPattern = /^(\d{4}-\d{2}-\d{2})(?:\.\d{8})?\.jsonl\.gz$/;
+interface JournalOptions {
+  traceBudgetBytes: number;
+  segmentBytes: number;
+  reserveBytes: number;
+  historyBudgetBytes: number;
+  historySegmentBytes: number;
+  historyMaxDays: number;
+}
+
+// The journal is append-only history for replay, but it shares the volume with the resident
+// database: unbounded daily files filled the disk (1.86 GB in a day, 1.9 GB free left overhead).
+// History is written in bounded segments and the oldest files are evicted by age and by budget, the
+// same way diagnostic traces already were; a full disk evicts before it refuses to write.
 export class JournalFiles {
   private traces: { name: string; bytes: number }[] = [];
+  private history: { name: string; bytes: number }[] = [];
   private traceBytes = 0;
   private historyBytes = 0;
   private evictedBytes = 0;
   private evictedFiles = 0;
   private diskCheckedAt = 0;
+  private readonly options: JournalOptions;
   constructor(
     private readonly directory: string,
-    private readonly options = {
+    options: Partial<JournalOptions> = {}
+  ) {
+    this.options = {
       traceBudgetBytes: 512 * 1024 * 1024,
       segmentBytes: 16 * 1024 * 1024,
-      reserveBytes: 128 * 1024 * 1024
-    }
-  ) {}
+      reserveBytes: 128 * 1024 * 1024,
+      historyBudgetBytes: 1024 * 1024 * 1024,
+      historySegmentBytes: 64 * 1024 * 1024,
+      historyMaxDays: 2,
+      ...options
+    };
+  }
   async initialize() {
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
     for (const name of (await readdir(this.directory)).sort()) {
@@ -42,13 +64,17 @@ export class JournalFiles {
       if (tracePattern.test(name)) {
         this.traces.push({ name, bytes: file.size });
         this.traceBytes += file.size;
-      } else this.historyBytes += file.size;
+      } else if (dayPattern.test(name)) {
+        this.history.push({ name, bytes: file.size });
+        this.historyBytes += file.size;
+      }
     }
   }
   statistics() {
     return {
       historyBytes: this.historyBytes,
       traceBytes: this.traceBytes,
+      historyBudgetBytes: this.options.historyBudgetBytes,
       traceBudgetBytes: this.options.traceBudgetBytes,
       evictedBytes: this.evictedBytes,
       evictedFiles: this.evictedFiles
@@ -65,7 +91,30 @@ export class JournalFiles {
     }
     return bytes.length;
   }
-  private async trim(incoming = 0) {
+  private async evict(name: string) {
+    const entry = this.history.find((file) => file.name === name);
+    if (!entry) return 0;
+    await unlink(join(this.directory, name));
+    this.history = this.history.filter((file) => file.name !== name);
+    this.historyBytes -= entry.bytes;
+    this.evictedBytes += entry.bytes;
+    this.evictedFiles++;
+    return entry.bytes;
+  }
+  // Oldest first, never the newest file (whose name is passed in), by day age and by total budget.
+  private async trim(incoming = 0, keep?: string) {
+    const removable = () => this.history.filter((file) => file.name !== keep);
+    const today = new Date().toISOString().slice(0, 10);
+    const oldestDay = new Date(Date.now() - this.options.historyMaxDays * 86_400_000).toISOString().slice(0, 10);
+    for (const file of removable()) {
+      const day = dayPattern.exec(file.name)?.[1] ?? today;
+      if (day < oldestDay) await this.evict(file.name);
+    }
+    while (this.historyBytes + incoming > this.options.historyBudgetBytes) {
+      const oldest = removable().sort((a, b) => a.name.localeCompare(b.name))[0];
+      if (!oldest) break;
+      await this.evict(oldest.name);
+    }
     const remove: typeof this.traces = [];
     let remaining = this.traceBytes;
     for (const trace of this.traces) {
@@ -74,6 +123,7 @@ export class JournalFiles {
       remaining -= trace.bytes;
     }
     if (!remove.length) return;
+    // The replay knows its trace window is incomplete from this event (replayComplete: false).
     const event = makeEvent(
       'journal',
       'journal_retention',
@@ -86,7 +136,10 @@ export class JournalFiles {
       },
       { level: 'warn' }
     );
-    this.historyBytes += await this.append(`${event.at.slice(0, 10)}.jsonl.gz`, [event], 6);
+    const segment = this.segment(event.at.slice(0, 10));
+    const written = await this.append(segment.name, [event], 6);
+    segment.bytes += written;
+    this.historyBytes += written;
     for (const trace of remove) {
       await unlink(join(this.directory, trace.name));
       this.traceBytes -= trace.bytes;
@@ -95,11 +148,25 @@ export class JournalFiles {
       this.traces = this.traces.filter((file) => file.name !== trace.name);
     }
   }
+  // A bounded segment of a day: the newest file for that day until it reaches the segment size.
+  private segment(day: string) {
+    const files = this.history
+      .filter((file) => dayPattern.exec(file.name)?.[1] === day)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const latest = files.at(-1);
+    if (latest && latest.bytes < this.options.historySegmentBytes && latest.name !== `${day}.jsonl.gz`) return latest;
+    const index = files.filter((file) => /\.\d{8}\.jsonl\.gz$/.test(file.name)).length;
+    const fresh = { name: `${day}.${String(index).padStart(8, '0')}.jsonl.gz`, bytes: 0 };
+    this.history.push(fresh);
+    this.history.sort((a, b) => a.name.localeCompare(b.name));
+    return fresh;
+  }
   async write(events: TelemetryEvent[]) {
     await this.trim();
     if (Date.now() - this.diskCheckedAt > 5000) {
       const disk = await statfs(this.directory);
-      if (Number(disk.bavail) * Number(disk.bsize) < this.options.reserveBytes)
+      const free = Number(disk.bavail) * Number(disk.bsize);
+      if (free < this.options.reserveBytes)
         throw new Error('Journal disk reserve reached; archive life-event history before continuing');
       this.diskCheckedAt = Date.now();
     }
@@ -115,7 +182,12 @@ export class JournalFiles {
     }
     for (const [key, group] of groups) {
       if (!key.endsWith('.trace')) {
-        this.historyBytes += await this.append(`${key}.jsonl.gz`, group, 6);
+        const day = key;
+        const segment = this.segment(day);
+        const bytes = await this.append(segment.name, group, 6);
+        segment.bytes += bytes;
+        this.historyBytes += bytes;
+        await this.trim(0, segment.name);
         continue;
       }
       const latest = this.traces.filter((file) => file.name.startsWith(`${key}.`)).at(-1);
@@ -131,7 +203,7 @@ export class JournalFiles {
         this.traces.sort((a, b) => a.name.localeCompare(b.name));
       }
       this.traceBytes += bytes;
-      await this.trim();
+      await this.trim(0, name);
     }
   }
 }

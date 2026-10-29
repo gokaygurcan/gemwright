@@ -104,12 +104,13 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
   const casts = () =>
     !!ctx.template.archetype &&
     [...ctx.template.archetype.primarySkills, ...ctx.template.archetype.supportingSkills].includes('Magery');
-  // Graphic: [target quantity, minimum on hand, maximum unit price].
+  // Graphic: [target quantity, minimum on hand, maximum unit price]. Targets are kept well above
+  // the minimum so a fighter spends its time fighting rather than walking back for supplies.
   const supplies = () => {
     const table = new Map([
-      [bandage, [30, 20, 8]],
-      [healPotion, [4, 3, 60]],
-      [curePotion, [3, 2, 60]]
+      [bandage, [80, 20, 8]],
+      [healPotion, [8, 3, 60]],
+      [curePotion, [6, 2, 60]]
     ]);
     const weapon = [...session.world.entities.values()].find(
       (item) => item.parent === ctx.serial && weaponsFor(ctx.template).has(item.graphic)
@@ -117,10 +118,10 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     const ammo = weaponSkill(ctx.template) === 'Archery' ? ammoFor(weapon ?? 0x13b2) : undefined;
     if (ammo) table.set(ammo, [150, 50, 4]);
     // Casters keep every reagent their combat spells use (SBMage sells them for 3-5 gold).
-    // Casters carry 80-100 of each reagent so they rarely walk back to the mage.
-    if (casts()) for (const reagent of combatReagents) table.set(reagent, [90, 30, 7]);
+    // Casters carry 150 of each reagent so they rarely walk back to the mage.
+    if (casts()) for (const reagent of combatReagents) table.set(reagent, [150, 30, 7]);
     // Poisoners coat their blade before each fight (fighter-poison.ts); alchemists sell the potions.
-    if (poisons(ctx)) table.set(poisonPotion, [10, 3, 40]);
+    if (poisons(ctx)) table.set(poisonPotion, [16, 3, 40]);
     return table;
   };
   const upgradeBow = async () => {

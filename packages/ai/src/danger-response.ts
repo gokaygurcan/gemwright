@@ -65,13 +65,22 @@ export async function escapeDanger(
   destination: { x: number; y: number } | undefined
 ) {
   const { session } = ctx;
+  // Escaping is the answer to danger: the danger checks that would interrupt ordinary work must
+  // not interrupt the escape itself (they used to throw out of it and end the whole run).
+  const check = () => {
+    try {
+      ctx.check();
+    } catch (error) {
+      if (!(error instanceof DangerInterrupt)) throw error;
+    }
+  };
   await urgentAction(session, 'escape', async () => {
     // A moment to take it in before running, as a person reacts (human-pace.ts).
     await Bun.sleep(reactionDelay());
     ctx.phase('escaping', 'Leaving danger before returning to work');
     if (session.world.target) session.target(null);
     const terrain = residentTerrain(session);
-    const shelter = terrain ? await shelterNearHelper(session, terrain, ctx.check) : undefined;
+    const shelter = terrain ? await shelterNearHelper(session, terrain, check) : undefined;
     // A refuge only counts when it is near and not past the attackers; otherwise it runs the
     // other way, back from them, as a player does, and the danger is remembered (dangerAhead).
     const here = session.world.position;
@@ -123,7 +132,7 @@ export async function escapeDanger(
         beingAttacked(session) ||
         (session.world.position && threatsNear(session, session.world.position, SIGHTED).length))
     ) {
-      ctx.check();
+      check();
       if ((recentlyHurt(session) || beingAttacked(session)) && Date.now() >= moveAt && terrain) {
         moveAt = Date.now() + 3000;
         const at = session.world.position;

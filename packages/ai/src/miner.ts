@@ -103,7 +103,10 @@ export async function runMiner(options: ResidentOptions) {
     log(`${value}: ${note}`);
   };
   const ghost = () => GHOST_BODIES.has(session.world.entities.get(serial)?.graphic ?? 0);
-  let reviving = false;
+  // Until the reconcile below knows whether this miner is dead, checks must not treat death as a
+  // run-ending condition: the first status read itself runs the check, and a dead miner that just
+  // logged back in would stop before ever reaching its resurrection (the relogin ghost loop).
+  let reviving = true;
   const revive = async () => {
     reviving = true;
     await resurrectGhost({ session, serial, terrain, position, navigate, check: () => {}, phase, log }).finally(() => {
@@ -198,6 +201,7 @@ export async function runMiner(options: ResidentOptions) {
     if (options.decisions) await session.refreshSkills();
     // A ghost cannot open its pack ("I am dead and cannot do that"): resurrection comes first.
     if (ghost()) await revive();
+    else reviving = false;
     const backpack = await openBackpack();
     backpackSerial = backpack;
     // Too heavy to walk anywhere (the bank, the forge): lighten first.

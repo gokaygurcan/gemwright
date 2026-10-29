@@ -1,4 +1,4 @@
-import { gold, isDeathRobe, ore, reagents } from '@gemwright/common/items';
+import { gold, isDeathRobe, magicFish, ore, reagents } from '@gemwright/common/items';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
@@ -78,6 +78,26 @@ function markForSale(ctx: { checkpoint: Checkpoint; persist?: () => void }, seri
   logger('inventory-use').info(`[equip] item ${serial} is no use here (${reason}); marked for sale`);
 }
 
+// A magic fish (magicFish) is eaten whole for its blessing: a stat or stamina for a while, as the
+// shard sets it. No vendor buys one, so a carried fish is all weight; if the shard answers that a
+// like effect is already on, the fish simply waits, and the resident does not ask again for a while.
+const fishUntil = new WeakMap<PlayerSession, number>();
+export function eatMagicFish(session: PlayerSession): boolean {
+  const serial = session.world.serial;
+  if (serial === null || session.world.target || Date.now() < (fishUntil.get(session) ?? 0)) return false;
+  const pack = session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
+  if (!pack) return false;
+  const fish = packItems(session, pack.serial).find((item) => magicFish.has(item.graphic));
+  if (!fish) return false;
+  session.use(fish.serial);
+  // About the blessing's usual life (ServUO sets a minute, shards a few): one fish at a time.
+  fishUntil.set(session, Date.now() + 3 * 60_000);
+  logger('inventory-use').info(
+    `[eat:${session.world.entities.get(serial)?.name ?? serial}] Ate a strange fish whole for its blessing; ${packItems(session, pack.serial).length} items in the pack`
+  );
+  return true;
+}
+
 export async function betterEquipment(session: PlayerSession, item: Entity): Promise<boolean> {
   const ctx = residentContext(session),
     terrain = residentTerrain(session),
@@ -145,6 +165,8 @@ export async function useAcquiredItems(session: PlayerSession): Promise<boolean>
     serial = session.world.serial;
   const pack = session.world.childrenOf(serial ?? -1).find((item) => item.layer === Layer.Backpack);
   if (!ctx || !terrain || serial === null || !pack) return false;
+  // A magic fish in the pack is a blessing going stale: eaten first, at the next safe pause.
+  if (eatMagicFish(session)) return true;
   busy.add(session);
   try {
     const blocked = refused.get(session) ?? new Map<number, number>();

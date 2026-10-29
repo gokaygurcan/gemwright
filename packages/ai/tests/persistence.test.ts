@@ -145,11 +145,18 @@ test('an external revision conflict stops persistence instead of overwriting a n
   }
 });
 
-test('the pending write queue is bounded even when storage does not acknowledge writes', () => {
+test('write pressure sheds telemetry and lets state through instead of stopping', () => {
   const queue = new PersistenceQueue(200);
-  expect(() => queue.push([{ sql: 'INSERT INTO metadata VALUES (?, ?)', args: ['key', 'x'.repeat(100)] }])).toThrow(
-    'full'
-  );
+  // A sample that cannot fit is dropped: telemetry is never worth a stopped population.
+  queue.push([{ sql: 'INSERT INTO activity_samples (at) VALUES (?)', args: ['x'.repeat(300)] }]);
+  expect(queue.dropped).toBe(1);
+  expect(queue.pendingBytes).toBe(0);
+  // A resident's state always goes through; it is coalesced to one pending write per resident.
+  const checkpoint =
+    'UPDATE residents SET checkpoint_json = ?, binding_json = ?, revision = revision + 1 WHERE id = ? AND revision = ?';
+  expect(() => queue.push([{ sql: checkpoint, args: ['x'.repeat(300), null, 'resident-1', 1] }])).not.toThrow();
+  expect(queue.overflow).toBe(1);
+  expect(queue.pendingBytes).toBeGreaterThan(0);
 });
 
 test('a full resident cohort is coalesced into one durable transaction', async () => {

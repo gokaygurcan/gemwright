@@ -1,17 +1,28 @@
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause, takingUrgentAction } from './action-purpose';
+import { Blocked } from './blocked';
 import { lasting } from './lasting';
 import { lifeEvent } from './life-events';
 import { logger } from './log';
-import { failResidentGoal, goalGuard, interruptGoal } from './resident-goal';
+import { extendGoalBlock, failResidentGoal, goalGuard, interruptGoal } from './resident-goal';
 import { positiveProgress, type WorkEvidence, workEvidence } from './work-evidence';
 
 const IDLE_MS = 5 * 60_000;
 const FORCE_MS = 20 * 60_000;
 const REPEATS = 3;
+const STRIKE_MS = 10 * 60_000;
 
-export class Stuck extends Error {}
+// A repeated step is a legal, explainable impossibility of the plan — like an unreachable road or an
+// empty shop — so it is a Blocked: the goal is blocked and the trade takes another course inside the
+// same session. It used to be a plain Error, which ended the run and made the population log the
+// resident out and back in: the login churn around every loop.
+export class Stuck extends Blocked {
+  constructor(message: string) {
+    super('stuck', message);
+    this.name = 'Stuck';
+  }
+}
 
 interface Watch {
   steps: string[];
@@ -27,6 +38,7 @@ const pending = new WeakMap<PlayerSession, string>();
 const forced = new WeakMap<PlayerSession, number>();
 const names = new WeakMap<PlayerSession, string>();
 const kept = lasting('loops');
+const strikes = new WeakMap<PlayerSession, { count: number; at: number }>();
 
 // Twenty minutes of nothing but its job after a loop.
 export const forcedToWork = (session: PlayerSession) => (forced.get(session) ?? 0) > Date.now();
@@ -45,6 +57,16 @@ function trigger(session: PlayerSession, watch: Watch, reason: string) {
   pending.set(session, reason);
   interruptGoal(session, reason);
   const name = names.get(session) ?? 'resident';
+  // A second loop soon after the first means the plan layer did not find another course: the goal
+  // that kept looping is held off for longer, and the trade goes on with its own work. A loop is
+  // never a reason to end the session (that made the population log the resident in and out).
+  const previous = strikes.get(session);
+  const count = previous && now - previous.at < STRIKE_MS ? previous.count + 1 : 1;
+  strikes.set(session, { count, at: now });
+  if (count >= 2) {
+    extendGoalBlock(session, 10 * 60_000, now);
+    logger('loop-watch').info(`[loop] ${name}: second loop soon after the first; the goal waits ten minutes`);
+  }
   logger('loop-watch').info(`[loop] ${name}: ${reason}`);
   kept.set(`${session.world.serial ?? 0}|${name}|${now}|${reason.slice(0, 160)}`, now + 24 * 3_600_000);
 }

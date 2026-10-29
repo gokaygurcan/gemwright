@@ -78,13 +78,11 @@ export async function openPersistence(path: string, shardId: string, onFailure: 
     if (waiting.length) send();
   });
   const enqueue = (writes: Write[]) => {
-    try {
-      queue.push(writes);
-    } catch (error) {
-      const problem = error instanceof Error ? error : new Error(String(error));
-      fail(problem);
-      throw problem;
-    }
+    if (failure || closed) return;
+    // A full queue is pressure, not a failure: the queue sheds telemetry and lets state through,
+    // and a commit is started at once when it is filling, so the population keeps playing.
+    queue.push(writes);
+    if (queue.pendingBytes > queue.softBytes) send();
   };
   const record = (write: Write) => {
     if (/^\s*PRAGMA\b/i.test(write.sql)) return;
@@ -174,12 +172,15 @@ export async function openPersistence(path: string, shardId: string, onFailure: 
     flush,
     statistics: () => ({
       pendingBytes: queue.pendingBytes,
+      softBytes: queue.softBytes,
       inflightBytes,
       commitMs,
       maxCommitMs,
       waiting: waiting.length,
       failure: failure?.message ?? null,
       coalesced: queue.coalesced,
+      dropped: queue.dropped,
+      overflow: queue.overflow,
       commits,
       committed,
       submitted: queue.sequence
