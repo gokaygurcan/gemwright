@@ -1,3 +1,6 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { JournalEntry } from '@gemwright/network/world';
+
 import { canPause } from './action-purpose';
 import { notePlayer, tally } from './activity';
 import { hearAid, observeAid } from './aid';
@@ -5,12 +8,11 @@ import { answer } from './conversation-answer-flow';
 import type { Listener, Options } from './conversation-types';
 import { baselineIntent, type Intent, QUIET_MS, stopWords, threadFor } from './dialogue';
 import { endEngagement } from './engagement';
+import { independentAction } from './execution-session';
 import { groupMember } from './group-awareness';
-import { info } from './log';
+import { logger } from './log';
 import { parseMarketLine } from './market';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { JournalEntry } from './protocol/world';
 import { registerResident } from './resident-context';
 import { asksSharedPlan, hearPlanControl } from './shared-plans';
 import type { Checkpoint } from './store';
@@ -49,7 +51,7 @@ export function converse(options: Options) {
       }
       if (listener.busy) return;
       listener.busy = true;
-      void listen(listener)
+      void independentAction(listener.options.session, 'observation', 'Observe nearby speech', () => listen(listener))
         .catch((error) =>
           log(listener.options.session, `listener error: ${error instanceof Error ? error.message : error}`)
         )
@@ -76,7 +78,9 @@ export function noteSpoken(checkpoint: Checkpoint, partner: number, name: string
 }
 
 const log = (session: PlayerSession, text: string) =>
-  info(`[talk:${session.world.entities.get(session.world.serial ?? -1)?.name ?? 'resident'}] ${text}`);
+  logger('conversation').info(
+    `[talk:${session.world.entities.get(session.world.serial ?? -1)?.name ?? 'resident'}] ${text}`
+  );
 
 async function listen(listener: Listener) {
   const { session, peers } = listener.options;

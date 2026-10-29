@@ -1,10 +1,11 @@
+import type { Entity } from '@gemwright/network/world';
+
 import { urgentAction } from './action-purpose';
 import type { FighterContext } from './fighter-context';
 import { engageable } from './fighter-prey';
 import { townNeed } from './fighter-trip';
 import { allyUnderPressure, refreshAllyHealth } from './group-awareness';
 import { castTurn } from './mage-combat';
-import type { Entity } from './protocol/world';
 import { registerCombat } from './resident-context';
 
 export function registerFighterSocial(

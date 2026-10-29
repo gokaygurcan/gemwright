@@ -9,6 +9,7 @@ import type { LifeContext } from './life';
 import { failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { updatePersonalGoals } from './personal-goals';
 import { registerResident, residentCombat } from './resident-context';
+import { goalAllows, goalControlled } from './resident-goal';
 import { sessionBreakTurn } from './session-habits';
 import { learnWork } from './strategy-learning';
 import { advertiseSupplyNeed, orderTurn } from './work-orders';
@@ -22,6 +23,8 @@ export async function personalTurn(ctx: LifeContext): Promise<boolean> {
   if (await residentCombat(ctx.session)?.support?.()) return true;
   await sessionBreakTurn(ctx);
   if (await useAcquiredItems(ctx.session)) return true;
+  if (goalControlled(ctx.session) && !goalAllows(ctx.session, 'optional') && !goalAllows(ctx.session, 'commitment'))
+    return false;
   const memory = ctx.checkpoint.personal;
   const key = `personal:${memory?.commitment?.id ?? memory?.orders.find((order) => ['accepted', 'ready'].includes(order.state))?.id ?? 'none'}`;
   const condition = suppliesCondition(ctx.session, ctx.checkpoint);

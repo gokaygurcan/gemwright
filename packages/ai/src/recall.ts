@@ -1,12 +1,12 @@
 import { gold } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { tally } from './activity';
 import { reagentGraphics } from './mage-combat';
 import { ensureSpell, shop } from './magery';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
-import type { PlayerSession } from './protocol/session';
 import { buyOffer, findOffer } from './resident-offers';
 import { RUNEBOOK } from './scribe';
 
@@ -39,7 +39,9 @@ async function castAt(ctx: ProfessionContext, spell: { id: number }, rune: numbe
   const seen = new Set(session.world.journal);
   const refused = () => session.world.journal.some((e) => !seen.has(e) && REFUSED.has(e.cliloc ?? 0));
   session.useSkill(spell.id, true);
-  await session.waitFor(() => session.world.target !== null || refused(), 'spell cursor', 4000).catch(() => {});
+  await session
+    .waitFor(() => session.world.target !== null || refused(), 'spell cursor', 4000, { resource: 'target' })
+    .catch(() => {});
   if (!session.world.target) return false;
   session.target({ serial: rune, x: 0, y: 0, z: 0, graphic: RUNE });
   await session.waitFor(() => done() || refused(), 'spell effect', 6000).catch(() => {});

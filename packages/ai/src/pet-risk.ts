@@ -1,5 +1,6 @@
-import { monsters } from './dungeons';
-import type { Entity } from './protocol/world';
+import type { Entity } from '@gemwright/network/world';
+
+import { monsters } from './monster-reference';
 
 const mean = (values: number[] | null) => (values?.length ? values.reduce((a, b) => a + b, 0) / values.length : 0);
 

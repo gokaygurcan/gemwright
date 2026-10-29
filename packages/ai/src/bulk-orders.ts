@@ -1,10 +1,12 @@
+import { gumpCommands } from '@gemwright/network/gumps';
+import type { Entity } from '@gemwright/network/world';
+
 import { tally } from './activity';
 import { type CraftSkill, chooseRecipe, trainCraft } from './craft-training';
+import { lifeEvent } from './life-events';
 import { pickLocation } from './locations';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
-import { gumpCommands } from './protocol/gumps';
-import type { Entity } from './protocol/world';
 
 // Bulk orders, a crafter's steady income (ServUO BulkOrderSystem, the new system from Time of
 // Legends): a shopkeeper of the trade offers one through "Bulk Order Info" (6152) when its timer
@@ -38,11 +40,11 @@ const gumpWith = (ctx: Ctx, cliloc: number) =>
     gumpCommands(gump.layout).some((c) => c[0]?.startsWith('xmfhtml') && Number(c[5]) === cliloc)
   );
 
-async function orders(ctx: Ctx): Promise<Order[]> {
+async function orders(ctx: Ctx, refresh = false): Promise<Order[]> {
   const deeds = ctx.carried().filter((item) => item.graphic === DEED);
   const found: Order[] = [];
   for (const deed of deeds) {
-    await ctx.session.inspectProperties(deed.serial).catch(() => {});
+    await ctx.session.inspectProperties(deed.serial, refresh).catch(() => {});
     const properties = ctx.session.world.entities.get(deed.serial)?.properties ?? [];
     const want = Number(properties.find((p) => p.cliloc === 1060656)?.arguments ?? 0);
     const [item, have] = (properties.find((p) => p.cliloc === 1060658)?.arguments ?? '').split('\t');
@@ -87,6 +89,12 @@ async function turnIn(ctx: Ctx, craft: CraftSkill, order: Order) {
   for (const gump of [...session.world.gumps.values()]) session.replyGump(gump.serial, gump.id, 0, []);
   if (session.world.entities.has(order.deed.serial)) return false;
   tally(session, 'bulkOrdersTurnedIn');
+  lifeEvent(session, 'bulk_order_turn_in', 'completed', {
+    deed: order.deed.serial,
+    quantity: order.want,
+    pointsConfirmationSent: !!points,
+    bankRewardVerified: false
+  });
   ctx.log(`Turned in a bulk order of ${order.want}; the reward went to the bank`);
   return true;
 }
@@ -98,14 +106,16 @@ async function combine(ctx: Ctx, order: Order, graphic: number) {
   ctx.phase('bulk-order-combine', `Combining ${pieces.length} pieces into the bulk order`);
   session.use(order.deed.serial);
   const gump = await session
-    .waitFor(() => !!gumpWith(ctx, 1045138) || [...session.world.gumps.values()].length > 0, 'bulk order gump', 3000)
-    .then(() => [...session.world.gumps.values()].at(-1))
+    .waitFor(() => !!gumpWith(ctx, 1045138), 'bulk order gump', 3000)
+    .then(() => gumpWith(ctx, 1045138))
     .catch(() => undefined);
   if (!gump) return;
   session.replyGump(gump.serial, gump.id, 2, []);
   for (const piece of pieces) {
     ctx.check();
-    await session.waitFor(() => session.world.target !== null, 'combine cursor', 3000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'combine cursor', 3000, { resource: 'target' })
+      .catch(() => {});
     if (!session.world.target) break;
     session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
     await session.waitFor(() => !session.world.entities.has(piece.serial), 'piece combined', 3000).catch(() => {});
@@ -159,11 +169,27 @@ async function takeOrder(ctx: Ctx, craft: CraftSkill, skill: number) {
   return doable;
 }
 
+function deferOrder(ctx: Ctx, reason: string, delay: number) {
+  ctx.checkpoint.bulkOrders = {
+    nextAt: 0,
+    ...ctx.checkpoint.bulkOrders,
+    stalledUntil: Date.now() + delay,
+    stalledReason: reason
+  };
+  ctx.log(`Bulk order blocked by ${reason}; retrying in ${delay / 60_000} minutes`);
+  ctx.persist();
+}
+
 // One step of bulk-order work, true when it did something: hand in a finished order, fill an
 // open one, or take a new one. Crafting for an order keeps its pieces from the shop.
 export async function bulkOrderTurn(ctx: Ctx, craft: CraftSkill, skill: number): Promise<boolean> {
   let open = await orders(ctx);
-  for (const order of open.filter((o) => o.have >= o.want)) await turnIn(ctx, craft, order);
+  const finished = open.find((order) => order.have >= order.want);
+  if (finished) {
+    if (await turnIn(ctx, craft, finished)) return true;
+    deferOrder(ctx, 'turn-in', 2 * 60_000);
+    return false;
+  }
   open = open.filter((o) => o.have < o.want);
   if (!open.length && !(await takeOrder(ctx, craft, skill))) return false;
   open = open.length ? open : await orders(ctx);
@@ -175,11 +201,29 @@ export async function bulkOrderTurn(ctx: Ctx, craft: CraftSkill, skill: number):
   const missing = order.want - order.have - ctx.carried().filter((item) => item.graphic === graphic).length;
   // An order it cannot make progress on (no material and no money for it) waits an hour while the
   // crafter earns, instead of retrying every turn.
-  if ((ctx.checkpoint.bulkOrders?.stalledUntil ?? 0) > Date.now()) return false;
+  const retry = ctx.checkpoint.bulkOrders;
+  const stocked =
+    ctx.carried().some((item) => item.graphic === craft.material && (item.amount ?? 1) >= recipe.amount) ||
+    (craft.skill === 'Blacksmith' && (ctx.checkpoint.stock?.ingots ?? 0) >= recipe.amount);
+  if (
+    missing > 0 &&
+    retry?.stalledReason &&
+    (retry.stalledUntil ?? 0) > Date.now() &&
+    !(retry.stalledReason === 'materials' && stocked)
+  )
+    return false;
+  let blocker: string | undefined;
   if (missing > 0) {
     ctx.phase('bulk-order-craft', `Making ${missing} ${recipe.name} for a bulk order`);
     await trainCraft(
-      { ...ctx, hold: new Set([graphic]) },
+      {
+        ...ctx,
+        hold: new Set([graphic]),
+        onBlocked: (reason) => {
+          blocker = reason;
+        },
+        done: () => ctx.carried().filter((item) => item.graphic === graphic).length >= order.want - order.have
+      },
       craft,
       ctx.backpack(),
       Math.min(ctx.deadline, Date.now() + 5 * 60_000),
@@ -188,13 +232,30 @@ export async function bulkOrderTurn(ctx: Ctx, craft: CraftSkill, skill: number):
   }
   const made = ctx.carried().filter((item) => item.graphic === graphic).length;
   if (missing > 0 && order.want - order.have - made >= missing) {
-    ctx.checkpoint.bulkOrders = { nextAt: 0, ...ctx.checkpoint.bulkOrders, stalledUntil: Date.now() + 60 * 60_000 };
-    ctx.persist();
-    ctx.log(`Could not make any ${recipe.name} for the bulk order; back to it in an hour`);
+    const delay = blocker === 'materials' ? 60 * 60_000 : 2 * 60_000;
+    deferOrder(ctx, blocker ?? 'no completed pieces', delay);
     return false;
   }
+  if (ctx.checkpoint.bulkOrders) {
+    delete ctx.checkpoint.bulkOrders.stalledUntil;
+    delete ctx.checkpoint.bulkOrders.stalledReason;
+  }
   await combine(ctx, order, graphic);
-  const [updated] = (await orders(ctx)).filter((o) => o.deed.serial === order.deed.serial);
-  if (updated && updated.have >= updated.want) await turnIn(ctx, craft, updated);
+  const [updated] = (await orders(ctx, true)).filter((o) => o.deed.serial === order.deed.serial);
+  if (updated)
+    lifeEvent(ctx.session, 'bulk_order_progress', 'observed', {
+      deed: order.deed.serial,
+      before: order.have,
+      after: updated.have,
+      required: updated.want
+    });
+  if (!updated || updated.have <= order.have) {
+    deferOrder(ctx, 'combining pieces did not advance the deed', 2 * 60_000);
+    return false;
+  }
+  if (updated.have >= updated.want && !(await turnIn(ctx, craft, updated))) {
+    deferOrder(ctx, 'turn-in', 2 * 60_000);
+    return false;
+  }
   return true;
 }

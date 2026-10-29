@@ -1,6 +1,9 @@
 import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { moongateDestination } from '@gemwright/network/gumps';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Position } from '@gemwright/network/world';
 
-import { areaHere, gateArea, strandedAt } from './areas';
+import { areaHere, areaOfPlace, gateArea, strandedAt } from './areas';
 import { Blocked } from './blocked';
 import { threatsNear } from './danger';
 import { dangerAhead } from './danger-response';
@@ -9,9 +12,6 @@ import { lasting } from './lasting';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { gatherPets } from './pets';
-import { moongateDestination } from './protocol/gumps';
-import type { PlayerSession } from './protocol/session';
-import type { Position } from './protocol/world';
 import { recallFor } from './recall';
 import { noteStranded, strandedOften, useStuckMenu } from './stuck';
 import { reachableFrom } from './unreachable';
@@ -31,9 +31,15 @@ export const moongates = {
 } as const;
 export type Gate = keyof typeof moongates;
 
-export const nearestGate = (point: { x: number; y: number }): Gate =>
-  (Object.keys(moongates) as Gate[]).sort((a, b) => distance(point, moongates[a]) - distance(point, moongates[b]))[0] ??
-  'britain';
+export const nearestGate = (point: { x: number; y: number }): Gate => {
+  const area = areaOfPlace(point) ?? areaHere(point);
+  const gates = Object.keys(moongates) as Gate[];
+  const own = area === undefined ? [] : gates.filter((gate) => gateArea(moongates[gate]) === area);
+  return (
+    [...(own.length ? own : gates)].sort((a, b) => distance(point, moongates[a]) - distance(point, moongates[b]))[0] ??
+    'britain'
+  );
+};
 
 // Walks to the nearest public moongate that can be reached on foot and steps through to `to`, as
 // any player travels. A gate across water (an island town seen from the shore) is skipped for the
@@ -68,8 +74,21 @@ export async function travelByMoongate(
     return area === undefined || gateArea(moongates[gate]) === area;
   });
   const near = own.filter((gate) => distance(here, moongates[gate]) <= 500);
-  for (const candidate of near.length ? near : own.slice(0, 3)) {
-    if (!reachableFrom(moongates[candidate], here) || dangerAhead(session, here, moongates[candidate])) continue;
+  // Standing in a pocket the area catalogue knows nothing of (areas.ts locates one by walking to a
+  // known place, and a pocket caches as -1) leaves no own gates at all: the nearest gates on the map
+  // are still worth walking to, or the resident could never leave the wilds it woke up in.
+  const candidates = near.length ? near : own.length ? own.slice(0, 3) : order.slice(0, 3);
+  let dangerVetoed = 0;
+  // Route memory is another resident's hint, not proof for this one: the nearest gate it can reach
+  // is always tried once, and only later candidates respect the shared "lately unreachable" list.
+  let fresh = true;
+  for (const candidate of candidates) {
+    if (!fresh && !reachableFrom(moongates[candidate], here)) continue;
+    if (dangerAhead(session, here, moongates[candidate])) {
+      dangerVetoed++;
+      continue;
+    }
+    fresh = false;
     phase('moongate-travel', `Walking to the ${candidate} moongate to travel to ${to}`);
     try {
       await navigate(moongates[candidate], 1);
@@ -82,6 +101,18 @@ export async function travelByMoongate(
   }
   // Stranded with a marked rune anywhere: recall to it, as a player would (recall.ts).
   if (!from && (await recallFor(session)?.(target, 10_000))) return;
+  // Every road vetoed as watched: one attempt at the nearest gate anyway. The walk watches threats
+  // as it goes and turns back on its own; staying put is what gets a walker killed.
+  const nearest = candidates[0];
+  if (!from && nearest && dangerVetoed > 0 && dangerVetoed >= candidates.length) {
+    phase('moongate-travel', `Every road to a moongate is watched; trying the ${nearest} gate anyway`);
+    try {
+      await navigate(moongates[nearest], 1);
+      from = nearest;
+    } catch (error) {
+      if (!(error instanceof Blocked && error.reason === 'unreachable')) throw error;
+    }
+  }
   if (!from) noteStranded(session);
   // In an area with no moongate it is stranded for sure: help at once, not after three tries.
   if (
@@ -90,6 +121,11 @@ export async function travelByMoongate(
     (await useStuckMenu({ session, phase, log: (m) => phase('stuck', m) }, to, 'no moongate within reach'))
   )
     return;
+  if (!from && dangerVetoed >= candidates.length)
+    throw new Blocked(
+      'dangerous',
+      `Monsters watch every road to a moongate from ${here.x},${here.y}; waiting for the roads to clear`
+    );
   if (!from) throw new Blocked('unreachable', `No public moongate can be reached on foot from ${here.x},${here.y}`);
   if (from === to) return;
   if (lasting('gate-ban', session.world.serial ?? -1).active(`${from}>${to}`))
@@ -97,7 +133,7 @@ export async function travelByMoongate(
   const item = [...session.world.entities.values()].find(
     (entity) => entity.graphic === 0x0f6c && entity.position && distance(position(), entity.position) <= 1
   );
-  if (!item?.position) throw new Error(`The ${from} public moongate is not observed nearby`);
+  if (!item?.position) throw new Blocked('unreachable', `The ${from} public moongate is not observed nearby`);
   const self = session.world.serial === null ? undefined : session.world.entities.get(session.world.serial);
   // Pets go along only with a living master standing next to them.
   if (!(self && ghosts.has(self.graphic))) await gatherPets(session, position, navigate, phase, moongates[from]);

@@ -1,3 +1,4 @@
+import { type CombatCapability, comparableCapability } from './combat-capability';
 import type { Checkpoint } from './store';
 
 interface Place {
@@ -12,6 +13,8 @@ interface BaseEvent extends Place {
 export type ExperienceEvent =
   | (BaseEvent & {
       kind: 'combat';
+      capability?: CombatCapability;
+      creatureName?: string;
       body: number;
       outcome: 'victory' | 'retreat' | 'death' | 'interrupted';
       largestLossRatio: number;
@@ -74,11 +77,19 @@ export function rememberExperience(checkpoint: Checkpoint, event: ExperienceEven
   reconcileExperience(checkpoint, now);
 }
 
-export function encounterAdvice(checkpoint: Checkpoint, place: Place, body: number, now = Date.now()) {
+export function encounterAdvice(
+  checkpoint: Checkpoint,
+  place: Place,
+  body: number,
+  now = Date.now(),
+  current?: CombatCapability,
+  creatureName?: string
+) {
   const events = (checkpoint.experience?.events ?? []).filter(
     (event): event is Extract<ExperienceEvent, { kind: 'combat' }> =>
       event.kind === 'combat' &&
       event.body === body &&
+      (!creatureName || !event.creatureName || creatureName.toLowerCase() === event.creatureName.toLowerCase()) &&
       nearby(event, place, 64) &&
       event.at <= now &&
       now - event.at < 24 * hour &&
@@ -87,20 +98,26 @@ export function encounterAdvice(checkpoint: Checkpoint, place: Place, body: numb
   let caution = 0,
     avoidUntil = 0,
     adverse = 0,
-    victories = 0;
+    victories = 0,
+    lastAdverse = 0;
   for (const event of events) {
     const age = now - event.at;
-    const weight = Math.max(0, 1 - age / (24 * hour));
+    const relevance = comparableCapability(event.capability, current);
+    const weight = Math.max(0, 1 - age / (24 * hour)) * relevance;
     const dangerous =
       event.outcome === 'death' ||
       event.largestLossRatio >= 0.35 ||
       (event.outcome === 'retreat' && event.damageRatio > 0) ||
       event.lowestHealthRatio < 0.35;
     if (dangerous) {
-      adverse++;
+      if (relevance >= 0.5) {
+        adverse++;
+        lastAdverse = Math.max(lastAdverse, event.at);
+      }
       caution += (event.outcome === 'death' ? 0.4 : 0.2) * weight;
     }
     if (event.outcome === 'victory') victories++;
+    if (relevance < 0.5) continue;
     if (event.outcome === 'death') avoidUntil = Math.max(avoidUntil, event.at + 10 * 60_000);
     else if (event.outcome === 'retreat' && event.largestLossRatio >= 0.35)
       avoidUntil = Math.max(avoidUntil, event.at + 5 * 60_000);
@@ -110,10 +127,10 @@ export function encounterAdvice(checkpoint: Checkpoint, place: Place, body: numb
   }
   // Repeatedly losing to the same kind of opponent here means it is beyond the character for now.
   if (adverse >= 2) {
-    const latest = Math.max(...events.map((event) => event.at));
-    avoidUntil = Math.max(avoidUntil, latest + 60 * 60_000);
+    avoidUntil = Math.max(avoidUntil, lastAdverse + 60 * 60_000);
   }
   return {
+    provenance: 'inferred-from-observed-encounters' as const,
     body,
     samples: events.length,
     adverse,

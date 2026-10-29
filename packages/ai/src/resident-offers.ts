@@ -1,9 +1,9 @@
 import { gold } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause } from './action-purpose';
 import { tally } from './activity';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 import { buyByTrade, buyPetByTrade, sellByTrade, sellPetByTrade } from './trade-deal';
 
 // Goods residents sell each other face to face at a discount, so both do better than with the
@@ -137,12 +137,15 @@ export async function serveClaims(session: PlayerSession, backpack: number) {
 // For the stable-bound: a resident's animal on offer nearby, bought in place of the stable's.
 export async function animalFromResident(
   ctx: Parameters<typeof buyOffer>[0] & { position: () => { x: number; y: number } },
-  kind: 'mount' | 'pack'
+  kind: 'mount' | 'pack',
+  beforePurchase?: () => Promise<void>
 ): Promise<boolean> {
   const coins = ctx.session.world
     .childrenOf(ctx.backpack())
     .filter((i) => i.graphic === gold && !i.hue)
     .reduce((n, i) => n + (i.amount ?? 1), 0);
   const offer = findOffer(kind, ctx.position(), 60, coins, ctx.serial);
-  return !!offer && (await buyOffer(ctx, offer).catch(() => false));
+  if (!offer) return false;
+  await beforePurchase?.();
+  return buyOffer(ctx, offer).catch(() => false);
 }

@@ -1,3 +1,6 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { JournalEntry } from '@gemwright/network/world';
+
 import { canPause } from './action-purpose';
 import { notePlayer, tally } from './activity';
 import { commitmentConversation } from './commitments';
@@ -6,21 +9,22 @@ import { activityLine, factSheet, needsReply, planLine } from './conversation-fa
 import type { Listener } from './conversation-types';
 import { baselineIntent, type Intent, intents, QUIET_MS, replyOptions, type Thread } from './dialogue';
 import { consider, endEngagement, moving, terse, typingMs } from './engagement';
-import { info } from './log';
+import { independentAction } from './execution-session';
+import { logger } from './log';
 import { orderConversation } from './order-conversation';
 import { updatePersonalGoals } from './personal-goals';
 import { personalVoice } from './personal-voice';
 import { phrase } from './phrasing';
 import { readTradeTalk } from './player-trade';
-import type { PlayerSession } from './protocol/session';
-import type { JournalEntry } from './protocol/world';
 import { rememberPartner, sharedMemoryLine } from './resident-memory';
 import { respond } from './respond';
 
 const log = (session: PlayerSession, text: string) =>
-  info(`[talk:${session.world.entities.get(session.world.serial ?? -1)?.name ?? 'resident'}] ${text}`);
+  logger('conversation-answer-flow').info(
+    `[talk:${session.world.entities.get(session.world.serial ?? -1)?.name ?? 'resident'}] ${text}`
+  );
 
-export async function answer(listener: Listener, thread: Thread, entry: JournalEntry, here: { x: number; y: number }) {
+async function answerBody(listener: Listener, thread: Thread, entry: JournalEntry, here: { x: number; y: number }) {
   const { session, checkpoint, template, decisions } = listener.options;
   if (!canPause(session)) return;
   const text = (entry.text ?? '').slice(0, 160);
@@ -236,3 +240,8 @@ export async function answer(listener: Listener, thread: Thread, entry: JournalE
     }
   ];
 }
+
+export const answer: typeof answerBody = (listener, thread, entry, here) =>
+  independentAction(listener.options.session, 'interaction', 'Respond to player', () =>
+    answerBody(listener, thread, entry, here)
+  );

@@ -83,6 +83,9 @@ export async function locate(terrain: Terrain, at: { x: number; y: number; z: nu
   }
   // Nothing known within 300 tiles at all: the wilds, not a pocket; left unknown.
   if (!near.length) return undefined;
-  cells.set(key, Math.floor((Date.now() + 2 * 3_600_000) / 1000) * 10_000 + found + 2);
+  // A pocket (no known place could be walked to from here) is retried sooner: one failed walk, a
+  // monster in the way or a river, must not strand this cell for two hours.
+  const ttl = found === -1 ? 20 * 60_000 : 2 * 3_600_000;
+  cells.set(key, Math.floor((Date.now() + ttl) / 1000) * 10_000 + found + 2);
   return found;
 }

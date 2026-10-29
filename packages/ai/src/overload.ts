@@ -1,8 +1,8 @@
 import { ore } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { packItems } from './inventory';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 
 // Over its maximum weight a character cannot walk (ServUO WeightOverloading). Like a player, it
 // puts down what is cheapest for its weight (ore and logs before finished goods, never gold, tools

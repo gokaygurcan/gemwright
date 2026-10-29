@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, Position } from '@gemwright/network/world';
+
 import { type ExperienceEvent, rememberExperience, serviceAdvice } from './experience';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, Position } from './protocol/world';
 import type { Checkpoint } from './store';
 
 type Outcome = Extract<ExperienceEvent, { kind: 'service' }>['outcome'];

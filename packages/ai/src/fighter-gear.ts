@@ -1,11 +1,11 @@
 import { isDeathRobe } from '@gemwright/common/items';
+import { Layer } from '@gemwright/network/layers';
+import type { Entity } from '@gemwright/network/world';
 
 import { chargedPurchase, fundsStale, spendableGold } from './bank-gold';
 import { travelNear } from './cemeteries';
 import { type FighterContext, weaponsFor } from './fighter-context';
 import { approachVendor } from './mobile-approach';
-import { Layer } from './protocol/layers';
-import type { Entity } from './protocol/world';
 
 // Hair, backpack, mount and bank layers are never dressed from the backpack.
 const reserved = new Set<number>([0, Layer.Hair, Layer.FacialHair, Layer.Backpack, Layer.Mount, Layer.Bank]);

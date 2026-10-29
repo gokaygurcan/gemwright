@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
 
+import { speech } from '@gemwright/network/packets';
+
 import { superviseBehavior } from '../src/behavior-supervisor';
 import { corpseRecoveryChoice, resurrectionButton } from '../src/fighter-recovery';
-import { speech } from '../src/protocol/packets';
 
 test('resurrection accepts the observed free healer Continue control and rejects a paid or missing control', () => {
   const layout =
@@ -106,7 +107,7 @@ test('legal behavior failure does not reconnect; retryable connection failures h
 });
 
 test('poison observations distinguish the current character and cannot confuse flying with poison', async () => {
-  const { WorldView } = await import('../src/protocol/world');
+  const { WorldView } = await import('@gemwright/network/world');
   const world = new WorldView();
   world.serial = 123;
   const packet = Buffer.alloc(12);
@@ -127,7 +128,7 @@ test('poison observations distinguish the current character and cannot confuse f
 });
 
 test('resurrection waypoint packets preserve the boundary of the following living-body update', async () => {
-  const { PacketFramer } = await import('../src/protocol/framing');
+  const { PacketFramer } = await import('@gemwright/network/framing');
   const remove = Buffer.from([0xe6, 0, 0, 0, 7]);
   const alive = Buffer.from([0x2c, 2]);
   expect(new PacketFramer().push(Buffer.concat([remove, alive]))).toEqual([remove, alive]);

@@ -1,4 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { canPause } from './action-purpose';
 import { guildOfMember } from './guild-store';
@@ -8,9 +11,6 @@ import type { LifeContext } from './life';
 import { serviceLocations } from './locations';
 import { distance } from './navigation';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { rememberPartner } from './resident-memory';
 import { sellByTrade } from './trade-deal';
 
@@ -80,7 +80,9 @@ export async function guildRepairTurn(ctx: LifeContext): Promise<boolean> {
       if (session.world.target) return false;
       ownsCursor = true;
       session.use(contract.serial);
-      await session.waitFor(() => session.world.target !== null, 'repair contract cursor', 3000);
+      await session.waitFor(() => session.world.target !== null, 'repair contract cursor', 3000, {
+        resource: 'target'
+      });
       ctx.check();
       session.target({ serial: damaged.serial, x: 0, y: 0, z: 0, graphic: damaged.graphic });
       await session
@@ -133,7 +135,9 @@ export async function guildRepairTurn(ctx: LifeContext): Promise<boolean> {
       const button = buttonFor(gump.layout, 1044260);
       if (button === undefined) return false;
       press(session, gump, button);
-      await session.waitFor(() => session.world.target !== null, 'repair creation cursor', 3000);
+      await session.waitFor(() => session.world.target !== null, 'repair creation cursor', 3000, {
+        resource: 'target'
+      });
       ctx.check();
       session.target({ serial: scroll.serial, x: 0, y: 0, z: 0, graphic: scroll.graphic });
       await session.waitFor(

@@ -8,6 +8,7 @@
   "dependencies": {
     "@gemwright/common": "workspace:*",
     "@anthropic-ai/sdk": "1.3.0",
-    "@typesafe-ai/sdk": "0.7.0"
+    "@typesafe-ai/sdk": "0.7.0",
+    "@gemwright/network": "workspace:*"
   }
 }

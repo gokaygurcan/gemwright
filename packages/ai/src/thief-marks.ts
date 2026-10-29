@@ -1,10 +1,10 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
+import { Layer } from '@gemwright/network/layers';
+import type { Entity, Position, WorldView } from '@gemwright/network/world';
 
 import { cemeteries, patrolPoints } from './cemeteries';
-import { monsters } from './dungeons';
+import { monsters } from './monster-reference';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
-import type { Entity, Position, WorldView } from './protocol/world';
 import type { Terrain } from './terrain';
 
 // Graveyard undead a thief dares stand next to: the pinned shard's common tier only, Zombie

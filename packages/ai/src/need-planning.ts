@@ -1,9 +1,9 @@
+import { Layer } from '@gemwright/network/layers';
+
 import { fundsStale, knownBankGold, refreshFunds, TOOLS } from './bank-gold';
 import type { LifeContext } from './life';
-import { forcedToWork } from './loop-watch';
 import { residentNeeds } from './needs';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
-import { Layer } from './protocol/layers';
 import { buyFrom, buyTool } from './vendor-trade';
 
 export function needPriority(ctx: Pick<LifeContext, 'session' | 'checkpoint' | 'template'>) {
@@ -19,7 +19,6 @@ export function needPriority(ctx: Pick<LifeContext, 'session' | 'checkpoint' | '
 // unless the shared needs assessment sees the shortage disappear.
 export async function meetNeeds(ctx: LifeContext): Promise<'work' | 'handled' | undefined> {
   const { session, checkpoint } = ctx;
-  if (forcedToWork(session)) return undefined;
   let priority = needPriority(ctx);
   const pack = session.world.childrenOf(session.world.serial ?? -1).find((item) => item.layer === Layer.Backpack);
   const status = session.world.status;
@@ -41,7 +40,7 @@ export async function meetNeeds(ctx: LifeContext): Promise<'work' | 'handled' | 
     const condition = suppliesCondition(session, checkpoint);
     if (objectiveBlocked(checkpoint, key, condition)) continue;
     const funds = status.gold + knownBankGold(checkpoint);
-    // A tool it cannot afford: no begging; it earns bare-handed (run-session.ts) until it can.
+    // Unaffordable tools yield to the shared income plan.
     if (need.kind === 'tool' && funds < purchase.maxPrice) continue;
     // Supplies are optional: bought only with money to spare, never a trip that keeps it from work.
     if (need.kind === 'supply' && funds < purchase.maxPrice * Math.min(purchase.amount, 5) + 50) continue;

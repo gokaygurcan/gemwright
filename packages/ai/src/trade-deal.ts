@@ -1,12 +1,13 @@
 import { gold } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { canPause } from './action-purpose';
 import { tally } from './activity';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
+import { actionScope, checkAction } from './execution-session';
 import { endTrade, expectTrade } from './trade-guard';
 
-// One agreed deal carried out in the secure trade window (protocol/trade.ts), from either side.
+// One agreed deal carried out in the secure trade window (@gemwright/network/trade), from either side.
 // The seller opens the window by handing the goods over and accepts only once the buyer's coins
 // cover the price; the buyer pays only once the goods are in the window. Either side re-checks
 // after every change (which clears both acceptances) and cancels when the offer no longer holds.
@@ -41,16 +42,24 @@ async function offer(session: PlayerSession, backpack: number, into: number, mat
   return left <= 0;
 }
 
+const validLot = (amount: number, price: number) =>
+  Number.isSafeInteger(amount) && amount > 0 && Number.isSafeInteger(price) && price >= 0;
+async function verify(session: PlayerSession, predicate: () => boolean, label: string) {
+  await session.waitFor(predicate, label, 5000).catch(() => {});
+  checkAction(session);
+  return predicate();
+}
+
 // Accepts while `holds` stays true, until the window closes; false when the offer stopped holding.
 async function settle(session: PlayerSession, holds: () => boolean) {
   const trade = session.world.trade;
   for (let round = 0; trade && !trade.closed && round < 4; round++) {
-    if (!holds()) return false;
+    if (session.world.trade !== trade || !holds()) return false;
     if (!trade.accepted.me) session.acceptTrade(true);
     await session
-      .waitFor(() => trade.closed || (round > 0 && !trade.accepted.me), 'trade completion', 30_000)
+      .waitFor(() => session.world.trade !== trade || trade.closed || !trade.accepted.me, 'trade completion', 30_000)
       .catch(() => {});
-    if (!trade.closed && trade.accepted.me) return false;
+    if (session.world.trade !== trade || (!trade.closed && trade.accepted.me)) return false;
   }
   return !!trade?.closed;
 }
@@ -77,7 +86,7 @@ async function withPartner(session: PlayerSession, partner: number, deal: () => 
   }, 250);
   try {
     if (!canPause(session)) return fail(session, 'Safety takes priority over trading');
-    return await deal();
+    return await actionScope(session, 'trade', 'Complete agreed exchange', deal);
   } finally {
     clearInterval(interrupt);
     endTrade(session);
@@ -110,6 +119,7 @@ async function sell(
   amount: number,
   price: number
 ): Promise<boolean> {
+  if (!validLot(amount, price)) return fail(session, 'invalid trade quantity or price');
   if (amountIn(session, backpack, match) < amount) return fail(session, 'goods not carried');
   const coins = amountIn(session, backpack, isGold);
   const goodsBefore = amountIn(session, backpack, match);
@@ -129,19 +139,22 @@ async function sell(
   if (!trade || !opened(session, buyer)) return fail(session, 'window did not open');
   const rest = amount - amountIn(session, trade.mine, match);
   if (rest > 0 && !(await offer(session, backpack, trade.mine, match, rest))) {
-    session.cancelTrade();
+    if (session.world.trade === trade) session.cancelTrade();
     return fail(session, 'goods refused by the window');
   }
   const paid = () => amountIn(session, trade.theirs, isGold) >= price;
   await session.waitFor(() => trade.closed || paid(), 'payment in the trade window', 60_000).catch(() => {});
   if (!(await settle(session, () => paid() && amountIn(session, trade.mine, match) >= amount))) {
-    session.cancelTrade();
+    if (session.world.trade === trade) session.cancelTrade();
     return fail(session, paid() ? 'partner did not accept' : 'not paid');
   }
-  await Bun.sleep(500);
-  const done =
-    (price === 0 || amountIn(session, backpack, isGold) - coins >= price) &&
-    amountIn(session, backpack, match) <= goodsBefore - amount;
+  const done = await verify(
+    session,
+    () =>
+      (price === 0 || amountIn(session, backpack, isGold) - coins >= price) &&
+      amountIn(session, backpack, match) <= goodsBefore - amount,
+    'trade payment and outgoing goods'
+  );
   if (!done) return fail(session, 'payment did not arrive');
   tally(session, 'trades');
   tally(session, 'tradeGoldIn', price);
@@ -156,6 +169,7 @@ async function buy(
   amount: number,
   price: number
 ): Promise<boolean> {
+  if (!validLot(amount, price)) return fail(session, 'invalid trade quantity or price');
   const before = amountIn(session, backpack, match);
   const coinsBefore = amountIn(session, backpack, isGold);
   if (amountIn(session, backpack, isGold) < price) return fail(session, 'coins not carried');
@@ -165,20 +179,24 @@ async function buy(
   const delivered = () => amountIn(session, trade.theirs, match) >= amount;
   await session.waitFor(() => trade.closed || delivered(), 'goods in the trade window', 30_000).catch(() => {});
   if (!delivered()) {
-    session.cancelTrade();
+    if (session.world.trade === trade) session.cancelTrade();
     return fail(session, 'goods not delivered');
   }
   if (!(await offer(session, backpack, trade.mine, isGold, price))) {
-    session.cancelTrade();
+    if (session.world.trade === trade) session.cancelTrade();
     return fail(session, 'coins refused by the window');
   }
   if (!(await settle(session, () => delivered() && amountIn(session, trade.mine, isGold) >= price))) {
-    session.cancelTrade();
+    if (session.world.trade === trade) session.cancelTrade();
     return fail(session, 'partner did not accept');
   }
-  await Bun.sleep(500);
-  const done =
-    amountIn(session, backpack, match) - before >= amount && coinsBefore - amountIn(session, backpack, isGold) >= price;
+  const done = await verify(
+    session,
+    () =>
+      amountIn(session, backpack, match) - before >= amount &&
+      coinsBefore - amountIn(session, backpack, isGold) >= price,
+    'trade goods and payment debit'
+  );
   if (!done) return fail(session, 'window closed without the swap');
   tally(session, 'trades');
   tally(session, 'tradeGoldOut', price);
@@ -190,11 +208,16 @@ async function buy(
 const TRANSFER = 3006113;
 export const sellPetByTrade = (session: PlayerSession, backpack: number, buyer: number, pet: number, price: number) =>
   withPartner(session, buyer, async () => {
+    if (!validLot(1, price)) return fail(session, 'invalid pet price');
+    const followers = session.world.status?.followers;
+    if (followers === undefined || followers < 1) return fail(session, 'Owned follower count is not observed');
     const coins = amountIn(session, backpack, isGold);
     const entry = (await session.context(pet).catch(() => [])).find((e) => e.cliloc === TRANSFER && !(e.flags & 1));
     if (!entry) return fail(session, 'pet cannot be transferred');
     session.selectContext(pet, entry.index);
-    await session.waitFor(() => session.world.target !== null, 'transfer cursor', 4000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'transfer cursor', 4000, { resource: 'target' })
+      .catch(() => {});
     if (!session.world.target) return fail(session, 'no transfer cursor');
     session.target({ serial: buyer, x: 0, y: 0, z: 0, graphic: session.world.entities.get(buyer)?.graphic ?? 0 });
     await session.waitFor(() => opened(session, buyer), 'trade window', 8000).catch(() => {});
@@ -203,11 +226,20 @@ export const sellPetByTrade = (session: PlayerSession, backpack: number, buyer: 
     const paid = () => amountIn(session, trade.theirs, isGold) >= price;
     await session.waitFor(() => trade.closed || paid(), 'payment in the trade window', 60_000).catch(() => {});
     if (!(await settle(session, paid))) {
-      session.cancelTrade();
+      if (session.world.trade === trade) session.cancelTrade();
       return fail(session, paid() ? 'partner did not accept' : 'not paid');
     }
-    await Bun.sleep(500);
-    if (amountIn(session, backpack, isGold) - coins < price) return fail(session, 'payment did not arrive');
+    await session.refreshStatus().catch(() => {});
+    if (
+      !(await verify(
+        session,
+        () =>
+          amountIn(session, backpack, isGold) - coins >= price &&
+          (session.world.status?.followers ?? followers) < followers,
+        'pet transfer and incoming payment'
+      ))
+    )
+      return fail(session, 'pet transfer and payment were not both observed');
     tally(session, 'trades');
     tally(session, 'tradeGoldIn', price);
     return true;
@@ -216,7 +248,9 @@ export const sellPetByTrade = (session: PlayerSession, backpack: number, buyer: 
 export const buyPetByTrade = (session: PlayerSession, backpack: number, seller: number, price: number) =>
   withPartner(session, seller, async () => {
     const coins = amountIn(session, backpack, isGold);
-    const followers = session.world.status?.followers ?? 0;
+    if (!validLot(1, price)) return fail(session, 'invalid pet price');
+    const followers = session.world.status?.followers;
+    if (followers === undefined) return fail(session, 'Follower ownership count is not observed');
     if (coins < price) return fail(session, 'coins not carried');
     await session.waitFor(() => opened(session, seller), 'trade window', 60_000).catch(() => {});
     const trade = session.world.trade;
@@ -224,17 +258,23 @@ export const buyPetByTrade = (session: PlayerSession, backpack: number, seller: 
     const token = () => session.world.childrenOf(trade.theirs).some((item) => !isGold(item));
     await session.waitFor(() => trade.closed || token(), 'transfer token', 15_000).catch(() => {});
     if (!token() || !(await offer(session, backpack, trade.mine, isGold, price))) {
-      session.cancelTrade();
+      if (session.world.trade === trade) session.cancelTrade();
       return fail(session, 'no pet offered');
     }
     if (!(await settle(session, () => token() && amountIn(session, trade.mine, isGold) >= price))) {
-      session.cancelTrade();
+      if (session.world.trade === trade) session.cancelTrade();
       return fail(session, 'partner did not accept');
     }
-    await Bun.sleep(1000);
     await session.refreshStatus().catch(() => {});
-    if ((session.world.status?.followers ?? 0) <= followers && coins - amountIn(session, backpack, isGold) < price)
-      return fail(session, 'pet did not change hands');
+    if (
+      !(await verify(
+        session,
+        () =>
+          (session.world.status?.followers ?? 0) > followers && coins - amountIn(session, backpack, isGold) >= price,
+        'pet ownership and payment debit'
+      ))
+    )
+      return fail(session, 'pet transfer and payment were not both observed');
     tally(session, 'trades');
     tally(session, 'tradeGoldOut', price);
     return true;

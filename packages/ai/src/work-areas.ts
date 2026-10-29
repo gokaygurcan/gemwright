@@ -5,7 +5,7 @@ import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import { recallFor } from './recall';
 
-interface WorkArea {
+export interface WorkArea {
   city: string;
   x: number;
   y: number;
@@ -23,14 +23,22 @@ const catalog = (
 if (catalog.schemaVersion !== 1 || catalog.facet !== 1) throw new Error('Unsupported work-area catalog');
 
 // A stable, weighted per-resident pick, so the population spreads the way the lore suggests.
-export function workArea(kind: 'mining' | 'woods', key: string, home?: string): WorkArea {
+// `usable` lets the caller demand the district's town support the work (a miner's bank and forge):
+// residents are then assigned among those districts only, never to a dead end.
+export function workArea(
+  kind: 'mining' | 'woods',
+  key: string,
+  home?: string,
+  usable?: (area: WorkArea) => boolean
+): WorkArea {
   // An area kept for its own town (weight 0: New Haven's mountains and woods) is worked only by
   // residents of that town; everyone else keeps the weighted pick below.
   const own = home && catalog[kind].find((a) => a.weight === 0 && a.city.toLowerCase() === home.toLowerCase());
-  if (own) return own;
+  if (own && (!usable || usable(own))) return own;
+  const qualified = usable ? catalog[kind].filter((area) => usable(area)) : catalog[kind];
   let hash = 0;
   for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  const areas = catalog[kind];
+  const areas = qualified.length ? qualified : catalog[kind];
   const total = areas.reduce((sum, a) => sum + (a.weight ?? 1), 0);
   let roll = hash % total;
   const area = areas.find((a) => {

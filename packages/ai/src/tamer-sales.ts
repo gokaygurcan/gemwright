@@ -1,5 +1,6 @@
+import type { Entity } from '@gemwright/network/world';
+
 import type { ProfessionContext } from './profession';
-import type { Entity } from './protocol/world';
 import { offered, postOffer, shopShare, withdrawOffer } from './resident-offers';
 
 // A tamer's spare animals sold to residents (resident-offers.ts) instead of released: a mount

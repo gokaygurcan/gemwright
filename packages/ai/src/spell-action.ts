@@ -1,7 +1,8 @@
+import type { Entity } from '@gemwright/network/world';
+
 import type { FighterContext } from './fighter-context';
 import { groupMember } from './group-awareness';
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 
 export type SpellOutcome = 'confirmed' | 'failed' | 'unknown';
 export interface SpellDefinition {

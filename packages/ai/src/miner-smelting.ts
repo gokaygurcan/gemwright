@@ -1,14 +1,16 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
 
 import { Blocked } from './blocked';
+import { forgeSites } from './locations';
 import type { MinerServicesContext } from './miner-types';
 import { distance } from './navigation';
 
 export const forges = new Set([0x0fb1, ...Array.from({ length: 48 }, (_, index) => 6522 + index)]);
 const ingot = 0x1bf2;
 
-// Smelting: the nearest free, reachable forge (remembered ones first), an approach from a free
-// side, then each ore pile used on it until none is left that this skill can smelt.
+// Smelting: the nearest free, reachable forge (remembered ones first); a town without one (Cove)
+// crosses to another town's smithy by gate. Then an approach from a free side, then each ore pile
+// used on it until none is left that this skill can smelt.
 export function createSmelter(ctx: MinerServicesContext) {
   const {
     session,
@@ -52,7 +54,6 @@ export function createSmelter(ctx: MinerServicesContext) {
         phase('forge-missing', 'Previously observed forge is no longer visible here; looking for another');
       }
     }
-    const dynamic = observedForges();
     // A forge with someone already working at it costs waiting; a free one a little farther is better.
     const busy = (point: { x: number; y: number }) =>
       [...session.world.entities.values()].some(
@@ -64,23 +65,26 @@ export function createSmelter(ctx: MinerServicesContext) {
           distance(mobile.position, point) <= 2
       );
     const cost = (point: { x: number; y: number }) => distance(position(), point) + (busy(point) ? 30 : 0);
-    const candidates = [
-      ...dynamic,
-      ...terrain.findStatics(forges, position(), 400).map((item) => ({ ...item, serial: 0 }))
-    ].sort((a, b) => cost(a) - cost(b));
-    let forge: (typeof candidates)[number] | undefined;
-    for (const candidate of candidates) {
-      check();
-      // The bounded local search cannot vouch for a distant forge; navigation (route corridors)
-      // gets there, and a blocked route reports Blocked on the way.
-      const far = distance(position(), candidate) > 30;
-      const path = far ? null : await terrain.pathAsync(position(), candidate, 2, blocked, undefined, session.signal);
-      if (far || (path && Math.abs((path.at(-1) ?? position()).z - candidate.z) <= 8)) {
-        forge = candidate;
-        break;
+    const localForge = async () => {
+      const candidates = [
+        ...observedForges(),
+        ...terrain.findStatics(forges, position(), 400).map((item) => ({ ...item, serial: 0 })),
+        // Known public forges from the world data: an island town without one (Cove, Yew) crosses
+        // to the nearest by gate, and the walk there reports a blocked route as it happens.
+        ...forgeSites.map((site) => ({ x: site.x, y: site.y, z: site.z, id: site.graphic, serial: 0 }))
+      ].sort((a, b) => cost(a) - cost(b));
+      for (const candidate of candidates) {
+        check();
+        // The bounded local search cannot vouch for a distant forge; navigation (route corridors)
+        // gets there, and a blocked route reports Blocked on the way.
+        const far = distance(position(), candidate) > 30;
+        const path = far ? null : await terrain.pathAsync(position(), candidate, 2, blocked, undefined, session.signal);
+        if (far || (path && Math.abs((path.at(-1) ?? position()).z - candidate.z) <= 8)) return candidate;
+        await Bun.sleep(0);
       }
-      await Bun.sleep(0);
-    }
+      return undefined;
+    };
+    const forge = await localForge();
     if (!forge) throw new Error('No reachable forge found in observed items or public terrain');
     const rememberedForges = checkpoint.landmarks?.forges ?? [];
     checkpoint.landmarks = {
@@ -136,7 +140,7 @@ export function createSmelter(ctx: MinerServicesContext) {
       if (!pile) break;
       const before = { amount: pile.amount ?? 1, graphic: pile.graphic, ingots: countIngots() };
       session.use(pile.serial);
-      await session.waitFor(() => session.world.target !== null, 'ore smelting cursor', 4000);
+      await session.waitFor(() => session.world.target !== null, 'ore smelting cursor', 4000, { resource: 'target' });
       const last = session.world.journal.at(-1);
       const tile = terrain.tile(forge.id, true);
       session.target({

@@ -13,8 +13,8 @@ export async function travelMinerHome(
   const { session, position, navigate, phase, checkpoint, city, home, newTrip } = ctx;
 
   if (distance(position(), home) < 350) {
-    if (city === 'minoc' && distance(position(), home) > 150) {
-      phase('home-arrival', 'In the Minoc region; heading into town before choosing a mine');
+    if (distance(position(), home) > 150) {
+      phase('home-arrival', `In the ${city} region; heading into town before choosing a mine`);
       await navigate(home, 5);
     }
     return;
@@ -25,5 +25,5 @@ export async function travelMinerHome(
   phase('home-arrival', `Arrived through the ${gate} public moongate; heading into town`);
   await navigate(home, 5);
   checkpoint.mining = newTrip();
-  phase('home-ready', 'Minoc is the current mining base');
+  phase('home-ready', `${city} is the current mining base`);
 }

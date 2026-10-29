@@ -1,12 +1,12 @@
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
-import { monsters } from './dungeons';
 import { bandage, type FighterContext, healPotion } from './fighter-context';
 import { fightCost, recognised } from './fighter-prey';
 import { alliesNear } from './hunting-party';
 import { lasting } from './lasting';
+import { monsters } from './monster-reference';
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 import { selfNow } from './self';
 
 // How sure a fighter is that it walks away from a fight, judged the way a player sizes one up: the
@@ -70,20 +70,14 @@ export function fightConfidence(ctx: FighterContext, target: Entity): { ok: bool
   if (status.hits < status.maxHits * 0.6)
     return { ok: false, reason: `only ${Math.round((status.hits / Math.max(1, status.maxHits)) * 100)}% health` };
   const recentDeath = Math.min(0.3, lasting('deaths', ctx.serial).count() * 0.1);
-  // What it knows of itself (self.ts): good gear and skill make it bolder; what it would lose
-  // (gear worn, gold and goods carried, against all it owns) makes it careful. Both grow with it.
+  // What it knows of itself (self.ts): what it would lose (gear worn, gold and goods carried,
+  // against all it owns) makes it careful.
   const self = ctx.checkpoint ? selfNow(ctx.session, ctx.checkpoint, ctx.template) : undefined;
   const stakes = self
     ? Math.min(0.2, (self.atRisk / Math.max(1500, self.wealth)) * 0.2)
     : Math.min(0.15, ((status.gold ?? 0) + (ctx.trip?.loot.length ?? 0) * 50) / 10_000);
-  const confidence = self ? (self.power - 0.5) * 0.3 : 0;
   const line =
-    0.35 +
-    (0.5 - ctx.template.behavior.riskTolerance) * 0.4 +
-    recentDeath +
-    stakes -
-    confidence +
-    (Math.random() - 0.5) * 0.15;
+    0.35 + (0.5 - ctx.template.behavior.riskTolerance) * 0.4 + recentDeath + stakes + (Math.random() - 0.5) * 0.15;
   const crowd = joining.length ? `, ${joining.length} more nearby${casters ? ` (${casters} casting)` : ''}` : '';
   const reason = `expects to lose ${Math.round(loss * 100)}% of its health${crowd}; margin ${margin.toFixed(2)} against ${line.toFixed(2)}`;
   return { ok: margin >= line, reason };

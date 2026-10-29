@@ -45,7 +45,9 @@ async function cutCloth(ctx: ProfessionContext) {
     ctx.check();
     const before = ctx.count(cloth);
     session.use(blade.serial);
-    await session.waitFor(() => session.world.target !== null, 'scissors cursor', 3000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'scissors cursor', 3000, { resource: 'target' })
+      .catch(() => {});
     if (!session.world.target) break;
     session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
     await session.waitFor(() => ctx.count(cloth) > before, 'cut cloth', 3000).catch(() => {});
@@ -98,83 +100,95 @@ function postGarments(ctx: ProfessionContext) {
 // A tailor works in town: buys cloth from the tailor (or cuts it from uncut cloth and bolts), sews
 // the garment `chooseRecipe` picks (training up to its skill goal, then only what pays) and sells it
 // back, five minutes at a time.
+async function tailorOrder(ctx: ProfessionContext) {
+  const sewing = ctx.session.world.skills.get(skillId('Tailoring'))?.base ?? 0;
+  return bulkOrderTurn({ ...ctx, refill: (_pack, least) => refill(ctx, least) }, tailoring, sewing);
+}
+
 export const runTailor = (options: ProfessionOptions) =>
-  runProfession('tailor', options, async (ctx) => {
-    const bandagesNeeded = orderDemand(ctx.session, 'bandages') - ctx.count(0x0e21);
-    if (bandagesNeeded > 0) {
-      if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-        await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
-      await refill(ctx, bandagesNeeded + orderDemand(ctx.session, 'cloth'));
-      const blade = ctx.carried().find((item) => scissors.has(item.graphic));
-      const piece = ctx.carried().find((item) => item.graphic === cloth);
-      if (blade && piece && !reservedFor(ctx.session, piece)) {
-        const before = ctx.count(0x0e21);
-        ctx.phase('gathering-bandages', 'Cutting cloth for an agreed bandage order');
-        ctx.session.use(blade.serial);
-        await ctx.session.waitFor(() => ctx.session.world.target !== null, 'scissors cursor', 3000).catch(() => {});
-        ctx.check();
-        if (ctx.session.world.target) {
-          ctx.session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
-          await ctx.session.waitFor(() => ctx.count(0x0e21) > before, 'bandages cut', 3000).catch(() => {});
+  runProfession(
+    'tailor',
+    options,
+    async (ctx) => {
+      const bandagesNeeded = orderDemand(ctx.session, 'bandages') - ctx.count(0x0e21);
+      if (bandagesNeeded > 0) {
+        if (!ctx.carried().some((item) => scissors.has(item.graphic)))
+          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
+        await refill(ctx, bandagesNeeded + orderDemand(ctx.session, 'cloth'));
+        const blade = ctx.carried().find((item) => scissors.has(item.graphic));
+        const piece = ctx.carried().find((item) => item.graphic === cloth);
+        if (blade && piece && !reservedFor(ctx.session, piece)) {
+          const before = ctx.count(0x0e21);
+          ctx.phase('gathering-bandages', 'Cutting cloth for an agreed bandage order');
+          ctx.session.use(blade.serial);
+          await ctx.session
+            .waitFor(() => ctx.session.world.target !== null, 'scissors cursor', 3000, { resource: 'target' })
+            .catch(() => {});
+          ctx.check();
+          if (ctx.session.world.target) {
+            ctx.session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
+            await ctx.session.waitFor(() => ctx.count(0x0e21) > before, 'bandages cut', 3000).catch(() => {});
+            ctx.persist();
+          }
+        }
+        return;
+      }
+      if (orderDemand(ctx.session, 'cloth') > ctx.count(cloth)) {
+        if (!ctx.carried().some((item) => scissors.has(item.graphic)))
+          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
+        await woolToBolt(ctx);
+        await cutCloth(ctx);
+        return;
+      }
+      // New offers are optional work; accepted deeds are dispatched by the shared controller.
+      if (!ctx.carried().some((item) => item.graphic === 0x2258) && (await tailorOrder(ctx))) return;
+      // Robes and shirts are kept back and offered to residents at a discount (resident-offers.ts).
+      postGarments(ctx);
+      // No garment sells for more than the cloth it takes from the shop (2 gold a yard; 0 of 27
+      // DefTailoring recipes pay), so a tailor short of savings sews only free cloth: wool from the
+      // sheep, spun and woven. Without any, it earns at a side trade instead of sewing at a loss.
+      const poor = ctx.count(gold) + (ctx.checkpoint.funds?.bank ?? 0) < POOR;
+      if (poor && ctx.count(cloth) < 10) {
+        if ((await woolToBolt(ctx)) && (await cutCloth(ctx))) ctx.log('Sewing with cloth from wool, not bought');
+        else if (await sideTradeTurn(ctx, 'tailor', true)) return;
+      }
+      const until = Math.min(ctx.deadline, Date.now() + 5 * 60_000);
+      const made = await trainCraft(
+        {
+          ...ctx,
+          refill: (_pack, least) => (poor ? Promise.resolve(false) : refill(ctx, least)),
+          hold: new Set(garments.keys())
+        },
+        tailoring,
+        ctx.backpack(),
+        until,
+        { mode: 'profit', skill: ctx.template.behavior.trainingGoals.Tailoring }
+      );
+      ctx.progress.garments = (ctx.progress.garments ?? 0) + made;
+      if (!made) {
+        const key = 'income:cloth';
+        if (!objectiveBlocked(ctx.checkpoint, key, suppliesCondition(ctx.session, ctx.checkpoint))) {
+          ctx.phase('gathering-income', 'Gathering and selling cloth while garments do not pay');
+          const gathered = await woolToBolt(ctx);
+          if (gathered) await cutCloth(ctx);
+          const earned = await sellTo(ctx, 'tailor', (item) => [cloth, uncutCloth, boltOfCloth].includes(item.graphic));
+          if (earned > 0) {
+            completeObjective(ctx.checkpoint, key);
+            ctx.persist();
+            return;
+          }
+          failObjective(
+            ctx.checkpoint,
+            key,
+            suppliesCondition(ctx.session, ctx.checkpoint),
+            'No cloth gathered or buyer available'
+          );
           ctx.persist();
         }
+        ctx.phase('tailor-wait', 'Nothing worth sewing right now (no cloth, kit or profitable garment)');
+        await ctx.practise(3);
       }
-      return;
-    }
-    if (orderDemand(ctx.session, 'cloth') > ctx.count(cloth)) {
-      if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-        await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
-      await woolToBolt(ctx);
-      await cutCloth(ctx);
-      return;
-    }
-    // Bulk orders first: a tailor's steady income (bulk-orders.ts).
-    const sewing = ctx.session.world.skills.get(skillId('Tailoring'))?.base ?? 0;
-    if (await bulkOrderTurn({ ...ctx, refill: (_pack, least) => refill(ctx, least) }, tailoring, sewing)) return;
-    // Robes and shirts are kept back and offered to residents at a discount (resident-offers.ts).
-    postGarments(ctx);
-    // No garment sells for more than the cloth it takes from the shop (2 gold a yard; 0 of 27
-    // DefTailoring recipes pay), so a tailor short of savings sews only free cloth: wool from the
-    // sheep, spun and woven. Without any, it earns at a side trade instead of sewing at a loss.
-    const poor = ctx.count(gold) + (ctx.checkpoint.funds?.bank ?? 0) < POOR;
-    if (poor && ctx.count(cloth) < 10) {
-      if ((await woolToBolt(ctx)) && (await cutCloth(ctx))) ctx.log('Sewing with cloth from wool, not bought');
-      else if (await sideTradeTurn(ctx, 'tailor', true)) return;
-    }
-    const until = Math.min(ctx.deadline, Date.now() + 5 * 60_000);
-    const made = await trainCraft(
-      {
-        ...ctx,
-        refill: (_pack, least) => (poor ? Promise.resolve(false) : refill(ctx, least)),
-        hold: new Set(garments.keys())
-      },
-      tailoring,
-      ctx.backpack(),
-      until,
-      { mode: 'profit', skill: ctx.template.behavior.trainingGoals.Tailoring }
-    );
-    ctx.progress.garments = (ctx.progress.garments ?? 0) + made;
-    if (!made) {
-      const key = 'income:cloth';
-      if (!objectiveBlocked(ctx.checkpoint, key, suppliesCondition(ctx.session, ctx.checkpoint))) {
-        ctx.phase('gathering-income', 'Gathering and selling cloth while garments do not pay');
-        const gathered = await woolToBolt(ctx);
-        if (gathered) await cutCloth(ctx);
-        const earned = await sellTo(ctx, 'tailor', (item) => [cloth, uncutCloth, boltOfCloth].includes(item.graphic));
-        if (earned > 0) {
-          completeObjective(ctx.checkpoint, key);
-          ctx.persist();
-          return;
-        }
-        failObjective(
-          ctx.checkpoint,
-          key,
-          suppliesCondition(ctx.session, ctx.checkpoint),
-          'No cloth gathered or buyer available'
-        );
-        ctx.persist();
-      }
-      ctx.phase('tailor-wait', 'Nothing worth sewing right now (no cloth, kit or profitable garment)');
-      await ctx.practise(3);
-    }
-  });
+    },
+    undefined,
+    { order: tailorOrder }
+  );

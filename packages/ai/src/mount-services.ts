@@ -1,12 +1,13 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/bodies';
+import type { Entity } from '@gemwright/network/world';
 
 import { fundsStale, queryBankBalance, spendableGold } from './bank-gold';
 import { allServiceLocations, serviceLocations } from './locations';
 import { approachVendor } from './mobile-approach';
 import { canAffordMount, horseBodies, type MountContext, type MountMemory } from './mount-types';
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 import { createServiceExperience } from './service-experience';
+import { flushSession } from './session-durability';
 import { reachRegion } from './work-areas';
 
 // `animal` picks what the trainer sells: riding horses by default, pack animals for gatherers
@@ -74,8 +75,7 @@ export function createMountServices(
       if (companion) return undefined;
       const horse = mount?.horse !== undefined || mount?.state === 'riding' ? 1 : 0;
       const pack = packAnimal?.horse !== undefined ? 1 : 0;
-      // A pack animal given up as lost (pack-animal.ts) still counts as a follower somewhere.
-      return animal.bodies === horseBodies ? pack : horse + (packAnimal?.abandoned ?? 0);
+      return animal.bodies === horseBodies ? pack : horse;
     })();
     await session.refreshStatus();
     const followers = ctx.status().followers;
@@ -193,6 +193,8 @@ export function createMountServices(
               entry.serial === vendor.serial &&
               [500190, 500187, 500191, 500192].includes(entry.cliloc ?? 0)
           );
+        await flushSession(session);
+        check();
         await session.purchaseAnimal(vendor.serial, offer.serial, spendable() - reserve);
         // The charge may come from the bank; require a fresh balance before the next spend.
         delete ctx.checkpoint.funds;

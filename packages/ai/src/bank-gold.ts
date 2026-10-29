@@ -1,12 +1,19 @@
 import { gems, gold } from '@gemwright/common/items';
+import { CommandRejected } from '@gemwright/network/errors';
+import { Layer } from '@gemwright/network/layers';
 
 import { tally } from './activity';
+import { Blocked } from './blocked';
+import { packItems } from './inventory';
 import { lasting } from './lasting';
+import { lifeEvent } from './life-events';
 import { serviceLocations } from './locations';
+import { recordIncome } from './loot-economy';
 import { approachMobile } from './mobile-approach';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
+import { plannedSpendAllowed, reservePlannedSpend } from './resident-goal';
+import { flushSession } from './session-durability';
 import type { Checkpoint } from './store';
 
 export function reportedBankGold(cliloc: number, argumentsText: string): number | undefined {
@@ -21,12 +28,12 @@ export function reportedBankGold(cliloc: number, argumentsText: string): number 
 
 // The verified ServUO classic profile charges vendor purchases to carried gold first, then the
 // bank balance (BaseVendor.OnBuyItems). Spending power is therefore carried plus banked gold.
-export const VENDORS_DRAW_FROM_BANK = true;
+const VENDORS_DRAW_FROM_BANK = true;
 const FUNDS_TTL = 15 * 60_000;
 
 export const carriedGold = (session: MountContext['session'], backpack: number) =>
-  [...session.world.entities.values()]
-    .filter((item) => item.parent === backpack && item.graphic === gold)
+  packItems(session, backpack)
+    .filter((item) => item.graphic === gold)
     .reduce((sum, item) => sum + (item.amount ?? 1), 0);
 
 export const knownBankGold = (checkpoint: Checkpoint) =>
@@ -73,10 +80,33 @@ export function recordTrainingSpend(checkpoint: Checkpoint, cost: number) {
 export async function chargedPurchase(
   ctx: Pick<MountContext, 'session' | 'checkpoint' | 'backpack'>,
   cost: number,
-  purchase: () => Promise<void>
+  purchase: () => Promise<void>,
+  essential = false
 ) {
+  // A tool the work cannot happen without (a hatchet, a pole, a pickaxe) is bought with whatever the
+  // resident has: no tool means no work and no income at all, so it is not left to the plan's
+  // discretionary spending budget.
+  const allowed = essential
+    ? canSpendOnTraining(ctx.session, ctx.backpack(), ctx.checkpoint, cost, TOOLS)
+    : plannedSpendAllowed(ctx.session, cost);
+  if (!allowed)
+    throw new Blocked(
+      'insufficient-funds',
+      essential ? 'Not enough gold for the tool this work needs' : 'Purchase exceeds the current intent spending budget'
+    );
   const before = carriedGold(ctx.session, ctx.backpack());
-  await purchase();
+  const settle = reservePlannedSpend(ctx.session, cost);
+  try {
+    await flushSession(ctx.session);
+    await purchase();
+    settle('confirmed');
+    if (essential) recordTrainingSpend(ctx.checkpoint, cost);
+  } catch (error) {
+    settle(error instanceof CommandRejected ? 'refused' : 'unknown');
+    if (error instanceof CommandRejected && error.code === 'vendor-insufficient-funds')
+      throw new Blocked('insufficient-funds', error.message);
+    throw error;
+  }
   tally(ctx.session, 'goldToShops', cost);
   const fromBank = Math.max(0, cost - Math.max(0, before - carriedGold(ctx.session, ctx.backpack())));
   const funds = ctx.checkpoint.funds;
@@ -152,6 +182,7 @@ export async function queryBankBalance(
     );
   await session.waitFor(() => !!reply(), 'banker balance reply', 3000);
   const bank = reportedBankGold(reply()?.cliloc ?? 0, reply()?.arguments ?? '') ?? 0;
+  lifeEvent(session, 'bank_balance', 'observed', { before: ctx.checkpoint.funds?.bank ?? null, after: bank });
   ctx.checkpoint.funds = { bank, at: Date.now() };
   return bank;
 }
@@ -180,9 +211,68 @@ export async function withdrawAccountGold(
   ctx.checkpoint.funds = { bank: available - amount, at: Date.now() };
 }
 
-// Carried gold and gems are lost with an unrecovered corpse: once the purse passes `limit`, or any
-// gem is carried, gems and the gold over `keep` go into the bank box at the nearest bank of `city`.
-// True when it deposited.
+type BankingContext = BankerContext & { checkpoint: Checkpoint; backpack: () => number; phase: MountContext['phase'] };
+const banking = new WeakMap<MountContext['session'], BankingContext>();
+const walkingDeposit = new WeakSet<MountContext['session']>();
+export const registerBanking = (ctx: BankingContext) => banking.set(ctx.session, ctx);
+export async function bankWhileWalking(session: MountContext['session']) {
+  const ctx = banking.get(session);
+  if (!ctx || walkingDeposit.has(session) || !carriedGold(session, ctx.backpack())) return;
+  if (
+    ![...session.world.entities.values()].some(
+      (m) =>
+        m.kind === 'mobile' &&
+        m.notoriety === 7 &&
+        m.position &&
+        distance(ctx.position(), m.position) <= BANKER_SPEECH_RANGE
+    )
+  )
+    return;
+  walkingDeposit.add(session);
+  try {
+    await bankNearbyGold(ctx);
+  } finally {
+    walkingDeposit.delete(session);
+  }
+}
+
+async function depositGold(ctx: BankingContext, box: number) {
+  for (const coins of packItems(ctx.session, ctx.backpack()).filter(
+    (item) => item.graphic === gold && (item.amount ?? 1) > 0
+  )) {
+    ctx.check();
+    const amount = coins.amount ?? 1;
+    await ctx.session.moveItem(coins.serial, box, amount);
+    recordIncome(ctx.checkpoint, 'bankedGold', amount);
+  }
+}
+
+export async function bankNearbyGold(ctx: BankingContext): Promise<boolean> {
+  if (!carriedGold(ctx.session, ctx.backpack())) return false;
+  const retry = lasting('nearby-bank', ctx.serial);
+  for (const mobile of ctx.session.world.entities.values()) {
+    if (
+      mobile.kind !== 'mobile' ||
+      !mobile.position ||
+      distance(ctx.position(), mobile.position) > BANKER_SPEECH_RANGE ||
+      retry.active(mobile.serial)
+    )
+      continue;
+    if (!(await offersBank(ctx.session, mobile.serial))) continue;
+    retry.set(mobile.serial, Date.now() + 30_000);
+    try {
+      const box = await openBankBox(ctx, mobile.serial);
+      ctx.phase('banking', 'Depositing all carried gold; vendors can charge the bank directly');
+      await depositGold(ctx, box);
+      await queryBankBalance(ctx, mobile.serial);
+      retry.set(mobile.serial, 0);
+      return true;
+    } catch {
+      ctx.check();
+    }
+  }
+  return false;
+}
 
 // One of the town's banks, the nearer ones more often, and a different spot on its floor each time:
 // people do not all queue at one tile.
@@ -194,23 +284,17 @@ export function bankSpot(city: string, from: { x: number; y: number }) {
   const jitter = () => Math.round((Math.random() - 0.5) * 6);
   return { x: landmark.x + jitter(), y: landmark.y + jitter() };
 }
-export async function bankSurplus(
-  ctx: BankerContext & { checkpoint: Checkpoint; backpack: () => number; phase: MountContext['phase'] },
-  city: string,
-  limit = 500,
-  keep = 100
-): Promise<boolean> {
+export async function bankSurplus(ctx: BankingContext, city: string): Promise<boolean> {
   const { session } = ctx;
   const jewels = () => session.world.childrenOf(ctx.backpack()).filter((item) => gems.has(item.graphic));
-  if (carriedGold(session, ctx.backpack()) < limit && !jewels().length) return false;
-  // A trip that found no banker is not repeated every turn.
-  // Kept across restarts: a trip that found no banker waits two hours (ROADMAP.md step 2).
+  if (carriedGold(session, ctx.backpack()) <= 0 && !jewels().length) return false;
+  // Failed banking yields briefly; carrying any positive amount still needs another attempt.
   const retry = lasting('bank-ban', session.world.serial ?? -1);
   if (retry.active('surplus')) return false;
-  retry.set('surplus', Date.now() + 2 * 3_600_000);
+  retry.set('surplus', Date.now() + 30_000);
   const bank = bankSpot(city, ctx.position());
   if (!bank) return false;
-  ctx.phase('banking', 'Taking surplus gold and gems to the bank');
+  ctx.phase('banking', 'Taking all carried gold and gems to the bank; carried reserve is zero');
   await ctx.navigate(bank, 4).catch(() => {});
   for (const mobile of [...session.world.entities.values()]) {
     if (mobile.kind !== 'mobile' || !mobile.position || distance(ctx.position(), mobile.position) > BANKER_SPEECH_RANGE)
@@ -219,12 +303,7 @@ export async function bankSurplus(
     const box = await openBankBox(ctx, mobile.serial).catch(() => undefined);
     if (box === undefined) continue;
     for (const gem of jewels()) await session.moveItem(gem.serial, box).catch(() => {});
-    let pocket = keep;
-    for (const coins of session.world.childrenOf(ctx.backpack()).filter((item) => item.graphic === gold)) {
-      const kept = Math.min(pocket, coins.amount ?? 1);
-      pocket -= kept;
-      if ((coins.amount ?? 1) - kept > 0) await session.moveItem(coins.serial, box, (coins.amount ?? 1) - kept);
-    }
+    await depositGold(ctx, box);
     await queryBankBalance(ctx, mobile.serial).catch(() => 0);
     retry.set('surplus', 0);
     return true;

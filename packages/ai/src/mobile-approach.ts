@@ -2,8 +2,9 @@ import type { FighterContext } from './fighter-context';
 
 type MobileApproachContext = Pick<FighterContext, 'session' | 'terrain' | 'position' | 'navigate' | 'check' | 'serial'>;
 
+import type { Entity, Position } from '@gemwright/network/world';
+
 import { distance } from './navigation';
-import type { Entity, Position } from './protocol/world';
 import type { Point, Terrain } from './terrain';
 
 export function connectedInteractionTile(terrain: Terrain, standing: Point, target: Point): boolean {

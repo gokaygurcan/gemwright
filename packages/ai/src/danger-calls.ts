@@ -1,9 +1,10 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, JournalEntry } from '@gemwright/network/world-types';
+
 import { recordEvent } from './gossip';
 import { lasting } from './lasting';
 import { serviceLocations, townAt } from './locations';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, JournalEntry } from './protocol/world-types';
 
 // Calling out a red player, as players did: a resident who sees a murderer (notoriety 6) in human
 // shape shouts where it is, and in town calls the guards ("guards" is a ServUO speech keyword).

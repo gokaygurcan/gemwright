@@ -1,7 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
 
 import type { DungeonContext, DungeonRun, RunRecord } from './dungeon-context';
-import { type Dungeon, dungeons, exitStair, floorAt, nearestEntry, type Stair, stairRoute } from './dungeons';
+import { type Dungeon, dungeonAt, exitStair, floorAt, nearestEntry, type Stair, stairRoute } from './dungeons';
 import { observedThreat } from './fighter-context';
 import { recognised } from './fighter-prey';
 import { moongates, travelByMoongate } from './moongate';
@@ -16,8 +16,7 @@ const WALKING_LIMIT = 300;
 
 export class Engaged extends Error {}
 
-export const inAnyDungeon = (at: { x: number; y: number; z: number }) =>
-  dungeons.find((dungeon) => floorAt(dungeon, at));
+export const inAnyDungeon = dungeonAt;
 
 export const weakestPrimary = (ctx: Pick<DungeonContext, 'session' | 'template'>) =>
   Math.min(
@@ -87,6 +86,7 @@ export function dungeonWalker(
     phase,
     log: ctx.log,
     wary: () => false,
+    localOnly: true,
     onStep: () => {
       if (stopForThreats() && threatClose()) throw new Engaged('Monster closing in');
     }
@@ -114,9 +114,11 @@ export function dungeonWalker(
     for (let floors = 0; floors < 12; floors++) {
       const floor = floorAt(dungeon, position());
       const stair = floor && exitStair(dungeon, floor, position());
-      if (!stair) return;
+      if (!floor) return;
+      if (!stair) throw new Error(`No known exit from ${dungeon.name} floor ${floor.id}`);
       await takeStair(stair, label);
     }
+    if (floorAt(dungeon, position())) throw new Error(`Did not reach the surface from ${dungeon.name}`);
   };
   // Any point, surface or dungeon: into the dungeon and down its stairways to the right floor.
   const travelTo = async (site: { x: number; y: number; z: number }, range: number) => {

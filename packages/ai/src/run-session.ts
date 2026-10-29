@@ -1,42 +1,44 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { markResidents } from './activity';
+import type { ConnectionConfig } from '@gemwright/network/connection';
+import { Layer } from '@gemwright/network/layers';
+import { PlayerSession } from '@gemwright/network/session';
+
 import { runBard } from './bard';
 import { superviseBehavior } from './behavior-supervisor';
 import { registerChaos } from './chaos';
 import type { PopulationConfig } from './config';
-import type { ConnectionConfig } from './connection';
 import { connectionAdmission } from './connection-admission';
 import { runAlchemist, runBowyer } from './crafter';
 import { creationRequest } from './creation-request';
 import { residentCredentials } from './credentials';
 import { type DecisionConfig, inModelShare } from './decision-provider';
 import { DecisionCoordinator } from './decisions';
-import { earnBareHanded } from './earn-bare-handed';
 import { runFighter } from './fighter';
 import { runFisher } from './fisher';
 import { watchForGuards } from './guards';
 import { registerHaven } from './haven';
-import { loadLasting, saveLasting } from './lasting';
-import { info } from './log';
+import { logger } from './log';
 import { runLumberjack } from './lumberjack';
 import { runMiner } from './miner';
-import { RuntimeOwnership } from './ownership';
-import { PathPool } from './path-pool';
-import { Layer } from './protocol/layers';
-import { PlayerSession } from './protocol/session';
+import type { RuntimeOwnership } from './ownership';
 import { enableSessionHabits } from './resident-context';
+import { withRuntime } from './runtime';
+import { registerDurability } from './session-durability';
 import { SessionBreak } from './session-habits';
 import { recordSkills } from './skill-snapshots';
 import { maintainLocks } from './stat-locks';
-import { type Resident, ResidentStore } from './store';
+import type { Resident, ResidentStore } from './store';
+import { emitEvent, inSession, makeEvent } from './telemetry';
+
+export { withRuntime } from './runtime';
+
 import { runTailor } from './tailor';
 import { runTamer } from './tamer';
 import { personalTemplate } from './temperament';
 import { runThief } from './thief';
 import { guardTrades } from './trade-guard';
-import { reportTrouble } from './trouble';
 
 async function exercise(session: PlayerSession) {
   const before = { ...session.world.position };
@@ -74,7 +76,9 @@ async function exercise(session: PlayerSession) {
   );
   if (!tool) throw new Error('This exercise needs a normal starting pickaxe or shovel (use a miner template)');
   session.use(tool.serial);
-  await session.waitFor(() => session.world.target !== null, 'tool targeting cursor');
+  await session.waitFor(() => session.world.target !== null, 'tool targeting cursor', undefined, {
+    resource: 'target'
+  });
   const cursor = session.world.target?.id;
   const feedbackBefore = session.world.journal.length;
   const position = session.world.position;
@@ -163,30 +167,37 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       : undefined;
     const connect = () =>
       connectionAdmission.run(async () => {
+        await store.flush();
         ownership.assert();
         runtime.session?.close();
         const session = new PlayerSession(options.connection, () => ownership.assert());
+        registerDurability(session, store.flush);
         runtime.session = session;
         shared.track(residentId, session);
-        await session.connect(credentials, creationRequest(store, resident, options.create));
-        guardTrades(session);
-        if (options.naturalSessions) enableSessionHabits(session);
-        const policy = store.template(resident.templateId, resident.policyVersion);
-        if (policy) registerChaos(session, policy);
-        const serial = session.world.serial;
-        if (serial === null) throw new Error('Server did not identify the character');
-        if (resident.binding && resident.binding.characterSerial !== String(serial))
-          throw new Error('Bound character changed; refusing to control a replacement');
-        resident = store.saveProgress(resident.id, resident.revision, resident.checkpoint, {
-          accountRef: credentialRef,
-          characterSerial: String(serial)
+        return inSession(session, async () => {
+          await session.connect(credentials, creationRequest(store, resident, options.create));
+          guardTrades(session);
+          if (options.naturalSessions) enableSessionHabits(session);
+          const policy = store.template(resident.templateId, resident.policyVersion);
+          if (policy) registerChaos(session, policy);
+          const serial = session.world.serial;
+          if (serial === null) throw new Error('Server did not identify the character');
+          if (resident.binding && resident.binding.characterSerial !== String(serial))
+            throw new Error('Bound character changed; refusing to control a replacement');
+          resident = store.saveProgress(resident.id, resident.revision, resident.checkpoint, {
+            accountRef: credentialRef,
+            characterSerial: String(serial)
+          });
+          await store.flush();
+          recordSkills(store, resident.id, session);
+          // Bolder residents are the ones who shout for the guards (guards.ts).
+          const boldness =
+            0.3 + 0.6 * (store.template(resident.templateId, resident.policyVersion)?.behavior.riskTolerance ?? 0.5);
+          watchForGuards(session, boldness, (line) =>
+            logger('run-session').info(`[guards:${resident.proposedName}] ${line}`)
+          );
+          return session;
         });
-        recordSkills(store, resident.id, session);
-        // Bolder residents are the ones who shout for the guards (guards.ts).
-        const boldness =
-          0.3 + 0.6 * (store.template(resident.templateId, resident.policyVersion)?.behavior.riskTolerance ?? 0.5);
-        watchForGuards(session, boldness, (line) => info(`[guards:${resident.proposedName}] ${line}`));
-        return session;
       }, shared.signal);
     let active: PlayerSession | undefined;
     for (let attempt = 0; !active; attempt++) {
@@ -195,7 +206,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       } catch (error) {
         if (stopping() || attempt >= options.reconnectAttempts || !runtime.session?.reconnectable) throw error;
         runtime.session.close();
-        info(
+        logger('run-session').info(
           `[session:${resident.proposedName}] Initial connection retry ${attempt + 1}: ${runtime.session.failureReason}`
         );
         await Bun.sleep(Math.min(500 * 2 ** attempt, 5000));
@@ -235,12 +246,6 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
             resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
           }
         };
-        // No tool and no money for one: bare-handed earning first.
-        const workAssets = options.minerAssets ?? options.lumberjackAssets ?? options.profession?.assets;
-        if (workAssets && !options.fighterAssets)
-          common.seconds = await earnBareHanded(session, template, resident.checkpoint, seconds, stopping, (spell) =>
-            runFighter({ ...common, seconds: spell, assets: workAssets, recordRun: () => {} })
-          );
         if (options.minerAssets) {
           const result = await runMiner({ ...common, assets: options.minerAssets });
           for (const [key, value] of Object.entries(result))
@@ -305,20 +310,33 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         assertOwnership: () => ownership.assert(),
         connect,
         latestSession: () => runtime.session,
-        run: async (session, seconds) => {
-          // Every character steers its stat and skill locks toward its build for the whole run.
-          const releaseLocks = template.archetype
-            ? maintainLocks(session, template.archetype, Object.keys(template.behavior.trainingGoals))
-            : () => {};
-          try {
-            return await behave(session, seconds);
-          } catch (error) {
-            if (error instanceof SessionBreak) return 'Taking a session break';
-            throw error;
-          } finally {
-            releaseLocks();
-          }
-        }
+        onRecovery: (session, attempt, reason) =>
+          inSession(session, () =>
+            emitEvent(
+              makeEvent('session', 'behavior_recovery', 'started', {
+                attempt,
+                reason,
+                phase: session.phase,
+                maxReconnects: options.reconnectAttempts
+              }),
+              { stdout: true }
+            )
+          ),
+        run: async (session, seconds) =>
+          inSession(session, async () => {
+            // Every character steers its stat and skill locks toward its build for the whole run.
+            const releaseLocks = template.archetype
+              ? maintainLocks(session, template.archetype, Object.keys(template.behavior.trainingGoals))
+              : () => {};
+            try {
+              return await behave(session, seconds);
+            } catch (error) {
+              if (error instanceof SessionBreak) return 'Taking a session break';
+              throw error;
+            } finally {
+              releaseLocks();
+            }
+          })
       });
       active = supervised.session;
       behaviorRecoveryAttempts = supervised.recoveryAttempts;
@@ -395,74 +413,6 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
   } finally {
     runtime.session?.close();
     shared.track(residentId, null);
-  }
-}
-
-// Opens the store, takes the single shard lease, and closes every tracked session on SIGINT,
-// SIGTERM, or a lost lease. One runtime process may drive one or many residents.
-export async function withRuntime<T>(
-  options: Pick<ResidentOptions, 'population' | 'connection' | 'dbPath'>,
-  body: (shared: RuntimeShared) => Promise<T>
-): Promise<T | { stoppedBySignal: true }> {
-  if (options.population.shardId !== options.connection.shardId)
-    throw new Error('Connection and population belong to different shards');
-  const store = new ResidentStore(options.dbPath, options.population.shardId);
-  const sessions = new Map<string, PlayerSession>();
-  const activity = store.activityRecorder();
-  // Reports are never worth a resident: a failed save is logged and skipped.
-  loadLasting(store.metadata('lasting'));
-  const recordActivity = () => {
-    try {
-      activity.save(sessions);
-      store.setMetadata('lasting', saveLasting());
-      reportTrouble();
-    } catch (error) {
-      console.error(`[activity] save failed: ${error instanceof Error ? error.message : error}`);
-    }
-  };
-  const saveActivity = setInterval(recordActivity, 5 * 60_000);
-  let ownership: RuntimeOwnership | null = null;
-  let stopping = false;
-  const controller = new AbortController();
-  const closeAll = () => {
-    for (const session of sessions.values()) session.close();
-  };
-  const stop = () => {
-    stopping = true;
-    controller.abort();
-    closeAll();
-  };
-  process.once('SIGINT', stop);
-  process.once('SIGTERM', stop);
-  try {
-    ownership = new RuntimeOwnership(store, stop);
-    store.reconcile(options.population);
-    markResidents(store.list().flatMap((r) => (r.binding ? [Number(r.binding.characterSerial)] : [])));
-    return await body({
-      store,
-      signal: controller.signal,
-      ownership,
-      stopping: () => stopping,
-      track: (id, session) => {
-        if (session?.world.serial != null) markResidents([session.world.serial]);
-        const previous = sessions.get(id);
-        if (previous && previous !== session) activity.collect(id, previous);
-        if (session) sessions.set(id, session);
-        else sessions.delete(id);
-      }
-    });
-  } catch (error) {
-    if (stopping) return { stoppedBySignal: true };
-    throw error;
-  } finally {
-    clearInterval(saveActivity);
-    recordActivity();
-    closeAll();
-    PathPool.closeAll();
-    ownership?.close();
-    store.close();
-    process.off('SIGINT', stop);
-    process.off('SIGTERM', stop);
   }
 }
 

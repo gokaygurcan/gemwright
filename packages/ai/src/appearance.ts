@@ -1,20 +1,13 @@
+import type { Appearance } from '@gemwright/network/appearance';
+
+export type { Appearance } from '@gemwright/network/appearance';
+
 // What a new character looks like: sex, race, skin, hair, beard and the colours of its starting
 // shirt and pants, chosen at the creation screen like any player would. Values derive from the
 // resident id (as temperament does), so they are stable, and stay within ServUO's race rules
 // (Scripts/Misc/RaceDefinitions.cs): about half are women, races come from gemwright.json
 // (`ai.races`), shirt and pants take dyeable hues (CharacterCreation ClipDyedHue, 2-1001).
 export type Race = 'human' | 'elf' | 'gargoyle';
-export interface Appearance {
-  // Creation packet byte: 2/3 human male/female, 4/5 elf, 6/7 gargoyle (classic 7.0+ clients).
-  genderRace: number;
-  skinHue: number;
-  hair: number;
-  hairHue: number;
-  beard: number;
-  beardHue: number;
-  shirtHue: number;
-  pantsHue: number;
-}
 
 function unit(seed: string, salt: string): number {
   let hash = 2166136261;

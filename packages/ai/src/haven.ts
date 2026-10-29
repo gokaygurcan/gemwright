@@ -1,14 +1,15 @@
 import { readFileSync } from 'node:fs';
 
+import type { PlayerSession } from '@gemwright/network/session';
+
 import type { CharacterArchetype } from './archetypes';
 import type { CharacterTemplate } from './config';
 import { outgrewYoung } from './progression';
-import type { PlayerSession } from './protocol/session';
 
 // New Haven (locations/new-haven.json, built from a world save and Regions.xml): the island town
 // where new players begin. Residents of the New Haven cohort start there, and while Young they
 // never leave Haven Island: every walk, moongate trip, visit, dungeon run and escort stays on it.
-// Out of Young status (a primary skill at 60, progression.ts) they go where they like; it stays
+// Out of Young status (at least three skills at 100.0 base, progression.ts) they go where they like; it stays
 // their home.
 interface Box {
   x0: number;
@@ -44,5 +45,4 @@ export function registerHaven(session: PlayerSession, template: CharacterTemplat
 }
 export const havenResident = (session: PlayerSession) => members.has(session);
 // Still Young, so bound to the island.
-export const confinedToHaven = (session: PlayerSession) =>
-  members.has(session) && !outgrewYoung(session, members.get(session));
+export const confinedToHaven = (session: PlayerSession) => members.has(session) && !outgrewYoung(session);

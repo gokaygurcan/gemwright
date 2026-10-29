@@ -2,38 +2,21 @@ import { fishingPoles } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 
 import { tally } from './activity';
+import { withinReach } from './areas';
 import { TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
 import { type CraftSkill, trainCraft } from './craft-training';
+import { fish, sellFishingCatch } from './fishing-catch';
 import { leavesEarly, packFull } from './inventory';
 import { allServiceLocations, pickLocation } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
-import { Layer } from './protocol/layers';
 import { sellingTurn } from './selling';
-import { buyFrom, buyTool, sellTo } from './vendor-trade';
+import { buyFrom, buyTool } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
 const poles = fishingPoles;
-const fish = new Set([
-  0x09cc, // fish
-  0x09cd, // fish
-  0x09ce, // fish
-  0x09cf, // fish
-  0x097a, // raw fish steak
-  // High Seas fish (Fish.cs BaseHighseasFish): no shop buys them whole, but each carves into
-  // four raw steaks like a plain fish.
-  0x4302, // fish
-  0x4303, // fish
-  0x4304, // fish
-  0x4305, // fish
-  0x4306, // fish
-  0x4307, // fish
-  0x44c3, // fish
-  0x44c4, // fish
-  0x44c5, // fish
-  0x44c6 // fish
-]);
+
 // ServUO Fishing.m_WaterTiles: land 0xA8-0xAB and 0x136-0x137; water statics 0x1797-0x179C
 // (listed there with the 0x4000 static offset). The pole reaches four tiles (MaxRange 4).
 const waterLand = new Set([0xa8, 0xa9, 0xaa, 0xab, 0x136, 0x137]);
@@ -102,7 +85,9 @@ async function carve(ctx: ProfessionContext) {
   for (const pile of ctx.carried().filter((i) => fish.has(i.graphic) && i.graphic !== rawSteak)) {
     ctx.check();
     session.use(blade.serial);
-    await session.waitFor(() => session.world.target !== null, 'carving cursor', 3000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'carving cursor', 3000, { resource: 'target' })
+      .catch(() => {});
     if (!session.world.target) break;
     session.target({ serial: pile.serial, x: 0, y: 0, z: 0, graphic: pile.graphic });
     await Bun.sleep(900);
@@ -134,7 +119,14 @@ export const fishingTurn =
   (avoid: Set<string>) =>
   async (ctx: ProfessionContext): Promise<void> => {
     const { session, phase, log } = ctx;
-    const home = pickLocation(ctx.city, 'fisherman') ?? pickLocation(ctx.city, 'banker');
+    // A town with no fishmonger sells nothing: the fisher takes its boat to the nearest town that
+    // has one (by gate when far, reachRegion), rather than fishing where the catch cannot be sold.
+    const home =
+      pickLocation(ctx.city, 'fisherman') ??
+      allServiceLocations('fisherman')
+        .filter((shop) => withinReach(ctx.position(), shop))
+        .sort((a, b) => distance(ctx.position(), a) - distance(ctx.position(), b))[0] ??
+      pickLocation(ctx.city, 'banker');
     if (home) await reachRegion(ctx, home);
     let pole =
       ctx.carried().find((i) => poles.has(i.graphic)) ??
@@ -145,13 +137,14 @@ export const fishingTurn =
       pole = ctx.carried().find((i) => poles.has(i.graphic));
       if (!pole) throw new Blocked('missing-tool', 'No fisherman sold a fishing pole');
     }
-    if (pole.parent !== ctx.serial) await session.equipItem(pole.serial, Layer.TwoHanded);
+    // The pole is used from the pack: equipping it is optional on the shard and is refused while
+    // mounted (two hands), which used to surface as an equipment setback.
     const spot = findSpot(ctx, home ? { ...home, z: ctx.position().z } : ctx.position(), avoid);
     if (!spot) throw new Blocked('unreachable', 'No reachable shore near home');
     // A pack already full of other things: sold first, or the cast would never come (inventory.ts).
     const holdsFish = () => ctx.carried().some((i) => fish.has(i.graphic));
     if (packFull(session, ctx.backpack(), 0.85) && !holdsFish()) {
-      await sellingTurn(ctx).catch(() => false);
+      await sellingTurn(ctx, true).catch(() => false);
       if (packFull(session, ctx.backpack(), 0.85))
         throw new Blocked('overweight', 'The pack is full of things no shop here takes; not fishing into it');
     }
@@ -174,7 +167,7 @@ export const fishingTurn =
       if (packFull(session, ctx.backpack(), 0.85)) break;
       const seen = new Set(session.world.journal);
       session.use(pole.serial);
-      await session.waitFor(() => session.world.target !== null, 'fishing cursor', 4000);
+      await session.waitFor(() => session.world.target !== null, 'fishing cursor', 4000, { resource: 'target' });
       session.target({ serial: 0, ...spot.water });
       // The harvest takes a few seconds (cast, wait, reel in) before its reply.
       await Bun.sleep(8000 + Math.random() * 1500);
@@ -182,7 +175,7 @@ export const fishingTurn =
       if (replies.includes(NOT_BITING)) {
         avoid.add(`${spot.stand.x >> 3},${spot.stand.y >> 3}`);
         log('The fish are not biting here; finding another spot');
-        return;
+        break;
       }
       if (!replies.includes(FAILED)) {
         ctx.progress.catches = (ctx.progress.catches ?? 0) + 1;
@@ -194,14 +187,6 @@ export const fishingTurn =
     const cooking = session.world.skills.get(skillId('Cooking'));
     if ((cooking?.base ?? 0) < (cooking?.cap ?? 100) && Math.random() < 0.3) await cook(ctx);
     await carve(ctx);
-    if (ctx.carried().some((i) => fish.has(i.graphic))) {
-      phase('selling', 'Selling the catch to a fisherman');
-      const earned = await sellTo(ctx, 'fisherman', (item) => fish.has(item.graphic));
-      ctx.progress.earned = (ctx.progress.earned ?? 0) + earned;
-      // Nobody here bought it: a setback (setback.ts) waits longer each time, instead of fishing
-      // the same load again within seconds.
-      if (!earned && ctx.carried().some((i) => fish.has(i.graphic)))
-        throw new Blocked('no-vendor', 'No fisherman here bought the catch');
-      if (home && distance(ctx.position(), home) > 300) await reachRegion(ctx, home);
-    }
+    await sellFishingCatch(ctx);
+    if (home && distance(ctx.position(), home) > 300) await reachRegion(ctx, home);
   };

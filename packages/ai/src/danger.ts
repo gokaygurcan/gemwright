@@ -1,60 +1,29 @@
-import { readFileSync } from 'node:fs';
-
-import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { callOutReds, hearCalls } from './danger-calls';
 import { lasting } from './lasting';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
+import { perceptionFor } from './perception-session';
 
-// What a resident who does not fight avoids: creatures that attack on sight (their ServUO FightMode,
-// catalogs/aggressive-bodies.json from build-aggression.ts; a body shared with passive creatures is
-// judged by the creature's name), criminals and murderers in human form,
-// and anything already attacking it. Vendors, passive animals and pets are company, not danger.
-// Young characters are spared attacks, but a resident works as if it were not young. Threats seen
-// are remembered by 16-tile area for 20 minutes, since monsters wander out of view and back.
-const catalog = JSON.parse(readFileSync(new URL('../catalogs/aggressive-bodies.json', import.meta.url), 'utf8')) as {
-  bodies: number[];
-  shared: Record<string, { names: string[]; hostile: boolean }>;
-};
-const aggressive = new Set(catalog.bodies);
-// A body passive creatures share (a cat, a hell cat) is judged by name; unnamed, by its default.
-// An unnamed one is asked about once, as a player hovering over it would.
-const asked = new WeakMap<PlayerSession, Set<number>>();
-const sharedThreat = (session: PlayerSession, mobile: Entity) => {
-  const shared = catalog.shared[mobile.graphic];
-  if (!shared) return false;
-  const name = mobile.name?.toLowerCase();
-  if (name) return shared.names.includes(name);
-  const done = asked.get(session) ?? new Set<number>();
-  asked.set(session, done);
-  if (!done.has(mobile.serial) && done.size < 2000) {
-    done.add(mobile.serial);
-    void session.inspect(mobile.serial).catch(() => {});
-  }
-  return shared.hostile;
-};
-const humans = HUMAN_BODIES;
-const hostile = (session: PlayerSession, mobile: Entity) =>
-  mobile.kind === 'mobile' &&
-  mobile.serial !== session.world.serial &&
-  (mobile.serial === session.world.combatant ||
-    (humans.has(mobile.graphic)
-      ? [4, 5, 6].includes(mobile.notoriety ?? 0)
-      : (aggressive.has(mobile.graphic) || sharedThreat(session, mobile)) &&
-        [3, 4, 5, 6].includes(mobile.notoriety ?? 0)));
 const REMEMBER_MS = 20 * 60_000;
 const cell = (point: { x: number; y: number }) => `${point.x >> 4},${point.y >> 4}`;
 
 export function threatsNear(session: PlayerSession, point: { x: number; y: number }, radius: number) {
   const seen = lasting('danger', session.world.serial ?? 0);
-  const threats = [...session.world.entities.values()].filter(
-    (mobile) => hostile(session, mobile) && !!mobile.position && !session.world.deaths.has(mobile.serial)
-  );
+  const model = perceptionFor(session);
+  const perceived = model.visibleEntities('mobile');
+  const threats = perceived
+    .filter(
+      (e) =>
+        e.serial !== session.world.serial &&
+        e.facts.value.kind === 'mobile' &&
+        e.risk.value !== 'unknown' &&
+        !session.world.deaths.has(e.serial)
+    )
+    .map((e) => e.facts.value);
   for (const threat of threats) if (threat.position) seen.set(cell(threat.position), Date.now() + REMEMBER_MS);
   // Red players are called out, and others' calls heard (danger-calls.ts).
-  callOutReds(session, threats, (mobile) => humans.has(mobile.graphic));
+  callOutReds(session, threats, (mobile) => model.entity(mobile.serial)?.reference.value.humanLike ?? false);
   hearCalls(session, seen, cell);
   return threats.filter((threat) => threat.position && distance(point, threat.position) <= radius);
 }
@@ -66,4 +35,28 @@ export function unsafeCheck(session: PlayerSession) {
   const seen = lasting('danger', session.world.serial ?? 0);
   return (point: { x: number; y: number }) =>
     seen.active(cell(point)) || threats.some((threat) => threat.position && distance(point, threat.position) <= 10);
+}
+
+export function rememberAttack(session: PlayerSession, point: { x: number; y: number; z?: number }) {
+  const serial = session.world.serial ?? -1;
+  lasting('danger', serial).set(cell(point), Date.now() + 30 * 60_000);
+  lasting('attacked-sites', serial).set(
+    `${session.world.map}:${point.x},${point.y},${point.z ?? session.world.position?.z ?? 0}`,
+    Date.now() + 30 * 60_000
+  );
+}
+
+export function rememberedDangerTiles(session: PlayerSession, from: { x: number; y: number; z: number }) {
+  const blocked = new Set<string>();
+  const prefix = `${session.world.serial ?? -1}|${session.world.map}:`;
+  for (const [key, until] of lasting('attacked-sites').entries()) {
+    if (!key.startsWith(prefix) || until <= Date.now()) continue;
+    const [x = 0, y = 0, z = 0] = key.slice(prefix.length).split(',').map(Number);
+    if (Math.abs(from.z - z) > 16) continue;
+    const now = Math.hypot(from.x - x, from.y - y);
+    for (let dx = -8; dx <= 8; dx++)
+      for (let dy = -8; dy <= 8; dy++)
+        if (Math.hypot(dx, dy) <= 8 && Math.hypot(dx, dy) < now) blocked.add(`${x + dx},${y + dy}`);
+  }
+  return blocked;
 }

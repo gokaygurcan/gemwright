@@ -1,13 +1,15 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { tally } from './activity';
 import { fundsStale, refreshFunds } from './bank-gold';
 import { chaosOf } from './chaos';
+import { independentAction } from './execution-session';
 import { foundGuild, guildNamed, guildOfMember, guilds, joinGuild, memberCount, type Side } from './guild-store';
 import { diplomacyTurn } from './guild-wars';
 import { awaitGump, awaitMessage, dismiss, findGump, mark, press } from './gump-flow';
 import { craftContext, ownerOf, ownsHouse } from './housing';
 import { type LifeContext, skillProgress } from './life';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 
 // Guilds in ServUO's newer guild system (EJ): founded from the paperdoll's Guild button with a
 // name, an abbreviation and the 25,000 gold fee from the bank (CreateGuildGump), members invited
@@ -162,7 +164,7 @@ async function recruit(ctx: LifeContext, guild: string, side: Side) {
   const info = await openGuildMenu(session, MENU.info);
   press(session, info, 2);
   press(session, await awaitGump(session, MENU.roster, 'guild roster'), 8);
-  await session.waitFor(() => session.world.target !== null, 'invitation cursor', 4000);
+  await session.waitFor(() => session.world.target !== null, 'invitation cursor', 4000, { resource: 'target' });
   pending.set(candidate.serial, { guild, side, at: Date.now() });
   const from = mark(session);
   session.target({ serial: candidate.serial, x: 0, y: 0, z: 0, graphic: candidate.graphic });
@@ -180,26 +182,26 @@ function answerInvitations(session: PlayerSession, me: () => Known | undefined) 
   listening.add(session);
   const timer = setInterval(() => {
     if (session.phase === 'offline' || session.phase === 'failed') return clearInterval(timer);
-    const gump = session.phase === 'ready' ? findGump(session, MENU.invitation) : undefined;
-    const self = me();
-    if (!gump || !self || session.world.serial === null) return;
-    const offer = pending.get(session.world.serial);
-    const yes = !!offer && offer.side === self.side && !guildOfMember(self.name);
-    try {
-      press(session, gump, yes ? 1 : 0);
-    } catch {
-      session.world.gumps.delete(`${gump.serial}:${gump.id}`);
-      return;
-    }
-    if (!yes || !offer) return;
-    const from = mark(session);
-    void awaitMessage(session, from, [JOINED], 'joined guild', 8000).then((heard) => {
+    void independentAction(session, 'interaction', 'Respond to guild invitation', async () => {
+      const gump = session.phase === 'ready' ? findGump(session, MENU.invitation) : undefined;
+      const self = me();
+      if (!gump || !self || session.world.serial === null) return;
+      const offer = pending.get(session.world.serial);
+      const yes = !!offer && offer.side === self.side && !guildOfMember(self.name);
+      try {
+        press(session, gump, yes ? 1 : 0);
+      } catch {
+        session.world.gumps.delete(`${gump.serial}:${gump.id}`);
+        return;
+      }
+      if (!yes || !offer) return;
+      const from = mark(session);
+      const heard = await awaitMessage(session, from, [JOINED], 'joined guild', 8000);
       if (heard !== JOINED) return;
       joinGuild(self.name, offer.guild);
-      setTimeout(() => {
-        if (session.phase === 'ready') session.guildSay('hail all, glad to be here');
-      }, 3000);
-    });
+      await Bun.sleep(3000);
+      if (session.phase === 'ready') session.guildSay('hail all, glad to be here');
+    }).catch(() => {});
   }, 1500);
 }
 

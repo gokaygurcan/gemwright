@@ -1,9 +1,9 @@
 import { gold } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { valuable } from './fighter-context';
 import { magicProperty } from './item-quality';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { personalMemory } from './resident-memory';
 import type { Checkpoint } from './store';
 
@@ -14,16 +14,6 @@ export function lootPriority(item: Entity): number {
   if (item.properties?.some((p) => magicProperty(p.cliloc))) return 500;
   if (valuable(item.graphic)) return 200;
   return 0;
-}
-export function pocketReserve(checkpoint: Checkpoint): number {
-  const debt = checkpoint.personal?.commitment?.lootDue ?? 0;
-  const order = Math.max(
-    0,
-    ...(checkpoint.personal?.orders ?? [])
-      .filter((o) => o.side === 'buy' && ['accepted', 'ready'].includes(o.state) && o.until > Date.now())
-      .map((o) => o.price)
-  );
-  return debt + Math.min(1000, Math.max(200, order));
 }
 export function observedAmount(session: PlayerSession, container: number, item: Pick<Entity, 'graphic' | 'hue'>) {
   return session.world

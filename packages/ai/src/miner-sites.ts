@@ -1,9 +1,9 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { unsafeCheck } from './danger';
 import { miningCatalog } from './mining-catalog';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 import { residentContext } from './resident-context';
 import { learnedPlaceCost } from './strategy-learning';
 import type { Point, Terrain } from './terrain';

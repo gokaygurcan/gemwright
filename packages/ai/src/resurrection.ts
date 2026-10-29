@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 
 import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { Blocked } from './blocked';
 import { recoverOwnCorpse } from './corpse-recovery';
@@ -14,8 +16,6 @@ import { mendAfterDeath } from './mend';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
 import { dyingOverAndOver, noteDeath, useStuckMenu } from './stuck';
 
 const ghosts = GHOST_BODIES;

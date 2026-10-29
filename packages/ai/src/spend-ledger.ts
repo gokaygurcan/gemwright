@@ -4,7 +4,10 @@ import type { Database } from 'bun:sqlite';
 // restart or redeploy never resets the day's spend. Each resident's coordinator checks it against
 // the population cap before a request and records the reservation, then the settled usage.
 export class SpendLedger {
-  constructor(private readonly db: Database) {
+  constructor(
+    private readonly db: Database,
+    private readonly durable?: () => Promise<void>
+  ) {
     db.exec('CREATE TABLE IF NOT EXISTS decision_spend (day TEXT PRIMARY KEY, input_tokens INTEGER NOT NULL)');
   }
   tokens(day: string): number {
@@ -21,5 +24,6 @@ export class SpendLedger {
          ON CONFLICT (day) DO UPDATE SET input_tokens = input_tokens + excluded.input_tokens`
       )
       .run(day, tokens);
+    return this.durable?.();
   }
 }

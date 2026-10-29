@@ -1,5 +1,7 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { checkedDelay } from './action-purpose';
 import type { CharacterArchetype } from './archetypes';
@@ -9,8 +11,6 @@ import { pickLocation } from './locations';
 import { trainMagery } from './magery';
 import { buyAtMarket, goods } from './market';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { practiseInscription, practiseNecromancy } from './spell-practice';
 import { buyFrom } from './vendor-trade';
 
@@ -84,6 +84,10 @@ export async function practiseSkill(ctx: PracticeContext, practice: Practice) {
   const id = skillId(practice.skill);
   const refused = new Set<number>();
   let uses = 0;
+  if (typeof practice.target === 'function' && !practice.target(ctx).length) {
+    log(`Cannot practise ${practice.skill}: no suitable observed target`);
+    return 0;
+  }
   phase('training', `Practising ${practice.skill}`);
   while (Date.now() < ctx.until && !ctx.interrupt?.()) {
     check();
@@ -110,7 +114,8 @@ export async function practiseSkill(ctx: PracticeContext, practice: Practice) {
         await session.waitFor(
           () => session.world.target !== null || feedback()?.cliloc === TOO_SOON,
           'skill cursor',
-          3000
+          3000,
+          { resource: 'target' }
         );
         const here = session.world.position;
         if (session.world.target && target) {

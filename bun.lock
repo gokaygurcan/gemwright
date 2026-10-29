@@ -19,6 +19,7 @@
       "dependencies": {
         "@anthropic-ai/sdk": "1.3.0",
         "@gemwright/common": "workspace:*",
+        "@gemwright/network": "workspace:*",
         "@typesafe-ai/sdk": "0.7.0",
       },
     },
@@ -27,7 +28,7 @@
       "dependencies": {
         "@gemwright/common": "workspace:*",
         "gemwright": "workspace:*",
-        "preact": "11.0.1",
+        "preact": "11.1.0",
       },
     },
     "packages/client": {
@@ -51,6 +52,12 @@
       },
       "devDependencies": {
         "@gemwright/client": "workspace:*",
+        "@gemwright/common": "workspace:*",
+      },
+    },
+    "packages/network": {
+      "name": "@gemwright/network",
+      "dependencies": {
         "@gemwright/common": "workspace:*",
       },
     },
@@ -127,6 +134,8 @@
     "@gemwright/client": ["@gemwright/client@workspace:packages/client"],
 
     "@gemwright/common": ["@gemwright/common@workspace:packages/common"],
+
+    "@gemwright/network": ["@gemwright/network@workspace:packages/network"],
 
     "@manypkg/find-root": ["@manypkg/find-root@3.1.0", "", { "dependencies": { "@manypkg/tools": "^2.1.0" } }, "sha512-BcSqCyKhBVZ5YkSzOiheMCV41kqAFptW6xGqYSTjkVTl9XQpr+pqHhwgGCOHQtjDCv7Is6EFyA14Sm5GVbVABA=="],
 
@@ -248,7 +257,7 @@
 
     "picomatch": ["picomatch@4.0.7", "", {}, "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA=="],
 
-    "preact": ["preact@11.0.1", "", { "peerDependencies": { "preact-render-to-string": ">=6.7.0" }, "optionalPeers": ["preact-render-to-string"] }, "sha512-TNNwEq++jYNHy747LziCjPRVgEwnLSOIOAw/oYcjI3Tdnubx2EXtt76I0an8PATvUWtx/DX1kFIg1eFN+O/fkw=="],
+    "preact": ["preact@11.1.0", "", { "peerDependencies": { "preact-render-to-string": ">=6.7.0" }, "optionalPeers": ["preact-render-to-string"] }, "sha512-hz1VsjWx5pSYPDVEzb9w+XyOmQpP1qW/ZEaMiYm+C8ykJr8KP+TKGZIbCW0QmZ/Yr/jg3XkZoziEWn9iWHZ9Mw=="],
 
     "semver": ["semver@7.8.5", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA=="],
 

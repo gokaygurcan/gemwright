@@ -1,5 +1,6 @@
+import type { Entity } from '@gemwright/network/world';
+
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 
 export interface SwingObservation {
   target: number;

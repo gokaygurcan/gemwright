@@ -1,42 +1,16 @@
-import type { PlayerSession } from './protocol/session';
+import type { PlayerSession } from '@gemwright/network/session';
+
+import { actionKind, actionScope, urgentActive } from './execution-session';
+import { perceptionFor } from './perception-session';
 
 export type ActionPurpose = 'combat' | 'escape';
-const purposes = new WeakMap<PlayerSession, Set<symbol>>();
-
-export function takingUrgentAction(session: PlayerSession): boolean {
-  return !!purposes.get(session)?.size;
-}
-
-export function recentlyHurt(session: PlayerSession, now = Date.now()): boolean {
-  return session.world.healthChanges.some(
-    (change) => change.damage > 0 && now - change.at >= 0 && now - change.at < 8000
-  );
-}
-
-export const canPause = (session: PlayerSession) => !takingUrgentAction(session) && !recentlyHurt(session);
-
-export async function urgentAction<T>(
-  session: PlayerSession,
-  _purpose: ActionPurpose,
-  act: () => Promise<T>
-): Promise<T> {
-  const active = purposes.get(session) ?? new Set<symbol>();
-  const token = Symbol();
-  active.add(token);
-  purposes.set(session, active);
-  try {
-    return await act();
-  } finally {
-    active.delete(token);
-    if (!active.size) purposes.delete(session);
-  }
-}
-
-export class DangerInterrupt extends Error {
-  constructor() {
-    super('Taking damage; leaving work to get to safety');
-  }
-}
+export const takingUrgentAction = (session: PlayerSession) => ['combat', 'escape'].includes(actionKind(session) ?? '');
+export const escapingDanger = (session: PlayerSession) => actionKind(session) === 'escape';
+export const recentlyHurt = (session: PlayerSession, now = Date.now()) => perceptionFor(session).damagedRecently(now);
+export const canPause = (session: PlayerSession) => !urgentActive(session) && !recentlyHurt(session);
+export const urgentAction = <T>(session: PlayerSession, purpose: ActionPurpose, act: () => Promise<T>) =>
+  actionScope(session, purpose, `${purpose} response`, act);
+export { DangerInterrupt } from './action-errors';
 
 export async function checkedDelay(ms: number, check: () => void) {
   const until = Date.now() + ms;

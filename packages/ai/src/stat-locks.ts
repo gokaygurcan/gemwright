@@ -1,9 +1,10 @@
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import type { CharacterArchetype } from './archetypes';
 import { supportingOf } from './archetypes';
+import { logger } from './log';
 import { outgrewYoung, readyForDungeons, renounceYoung } from './progression';
-import type { PlayerSession } from './protocol/session';
 
 // ServUO StatLockType: Up 0, Down 1, Locked 2 (Mobile.cs); gains only raise Up stats and take
 // from Down ones once the stat cap is reached.
@@ -40,12 +41,15 @@ export function maintainLocks(session: PlayerSession, archetype: CharacterArchet
     if (!announced && readyForDungeons(session, archetype)) {
       announced = true;
       const name = session.world.serial === null ? '' : session.world.entities.get(session.world.serial)?.name;
-      console.log(`[progression] ${name ?? 'resident'} has 80.0 primaries; ready for dungeons once designed`);
+      logger('progression').info(
+        `[progression] ${name ?? 'resident'} has 80.0 primaries; ready for dungeons once designed`
+      );
     }
     // Once per session: a character that is no longer Young is offered no gump.
-    if (!renounced && outgrewYoung(session, archetype)) {
+    if (!renounced && outgrewYoung(session)) {
       renounced = true;
-      if (await renounceYoung(session)) console.log('[progression] renounced Young status at 60.0 primary skill');
+      if (await renounceYoung(session))
+        logger('progression').info('[progression] renounced Young status with at least three skills at 100.0');
     }
     for (const [id, skill] of session.world.skills) {
       const lock = build.has(id) ? (skill.base >= skill.cap ? 2 : 0) : 1;

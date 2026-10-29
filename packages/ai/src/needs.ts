@@ -9,12 +9,12 @@ import {
   reagents,
   sewingKit
 } from '@gemwright/common/items';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { knownBankGold } from './bank-gold';
 import type { CharacterTemplate } from './config';
 import type { ServiceType } from './locations';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
 import { equippedRanged, rangedWeapon } from './ranged-weapons';
 import type { Checkpoint } from './store';
 import { professionOf } from './world';

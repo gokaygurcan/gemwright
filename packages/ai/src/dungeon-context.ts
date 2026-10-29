@@ -1,7 +1,8 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Position } from '@gemwright/network/world';
+
 import type { CharacterTemplate } from './config';
 import type { createNavigator } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Position } from './protocol/world';
 import type { Checkpoint, DungeonRunRecord } from './store';
 import type { Terrain } from './terrain';
 

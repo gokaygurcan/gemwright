@@ -1,9 +1,10 @@
+import { gumpCommands } from '@gemwright/network/gumps';
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { BANKER_SPEECH_RANGE, offersBank, openBankBox } from './bank-gold';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
-import { gumpCommands } from './protocol/gumps';
-import type { PlayerSession } from './protocol/session';
 import { residentContext } from './resident-context';
 import { sellTo } from './vendor-trade';
 
@@ -98,7 +99,9 @@ export async function ticketTurn(ctx: ProfessionContext): Promise<boolean> {
       return true;
     }
     session.use(ticket.serial);
-    await session.waitFor(() => session.world.target !== null, 'ticket cursor', 4000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'ticket cursor', 4000, { resource: 'target' })
+      .catch(() => {});
     if (!session.world.target) return true;
     session.target({ serial: lying.serial, x: 0, y: 0, z: 0, graphic: lying.graphic });
     offers.delete(owner);

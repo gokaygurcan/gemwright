@@ -56,7 +56,9 @@ export async function earnBoards(ctx: ProfessionContext): Promise<boolean> {
         const axe = tool();
         if (log && axe) {
           session.use(axe.serial);
-          await session.waitFor(() => session.world.target !== null, 'cutting wood cursor', 3000);
+          await session.waitFor(() => session.world.target !== null, 'cutting wood cursor', 3000, {
+            resource: 'target'
+          });
           session.target({ serial: log.serial, x: 0, y: 0, z: 0, graphic: log.graphic });
           await session
             .waitFor(() => !session.world.entities.has(log.serial) || ctx.count(0x1bd7) > 0, 'boards observed', 4000)

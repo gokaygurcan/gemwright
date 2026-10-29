@@ -1,7 +1,7 @@
 FROM oven/bun:1.4.3
 WORKDIR /app
 # The repository's workspace layout: the root manifest and lockfile, every workspace manifest
-# (the lockfile names them all), then only the AI and the shared package it imports installed.
+# (the lockfile names them all), then the AI and its network/shared dependencies installed.
 COPY package.json bun.lock ./
 COPY packages/ ./packages/
 RUN bun install --production --frozen-lockfile --filter @gemwright/ai

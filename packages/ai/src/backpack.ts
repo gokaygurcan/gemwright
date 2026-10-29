@@ -1,5 +1,5 @@
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
 
 // Opens the character's own backpack so its contents are observed, and returns its serial. A
 // double-click can be refused while another action is under way, so it is tried up to three

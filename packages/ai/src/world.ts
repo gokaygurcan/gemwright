@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import type { CharacterTemplate, PopulationConfig } from './config';
-import { info } from './log';
+import { logger } from './log';
 
 // World configuration (world/world.json): facets and cities in play, professions with their
 // archetype, behavior, creation skills, weighted homes and hunting grounds, and the population mix.
@@ -164,7 +164,7 @@ export function applyWorld(
 ): PopulationConfig {
   const max = world.population?.max;
   if (max !== undefined && requested > max)
-    info(`[world] ${requested} residents requested; world.json caps the population at ${max}`);
+    logger('world').info(`[world] ${requested} residents requested; world.json caps the population at ${max}`);
   const wanted = max === undefined ? requested : Math.min(requested, max);
   // Cohorts first, at their fixed size; the main population takes the rest.
   const cohorts = cohortTemplates(shardCohorts);

@@ -1,6 +1,7 @@
+import type { Entity } from '@gemwright/network/world';
+
 import { quality } from './item-quality';
 import type { ServiceType } from './locations';
-import type { Entity } from './protocol/world';
 
 // What residents trade with each other (market.ts), and for each good the NPC shop's buying and
 // selling prices that bound every deal, the town that trades it and the smallest lot worth a trip.

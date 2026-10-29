@@ -1,4 +1,5 @@
 import { GARGOYLE_BODIES } from '@gemwright/common/bodies';
+import type { Entity } from '@gemwright/network/world';
 
 import { approachMobile } from './mobile-approach';
 import { MOUNT_TOO_ILL, recoverMissingMount } from './mount-care';
@@ -6,7 +7,6 @@ import { createMountServices } from './mount-services';
 import { horseBodies, type MountContext, mountEquipment } from './mount-types';
 import { distance } from './navigation';
 import { petSource } from './pets';
-import type { Entity } from './protocol/world';
 import { animalFromResident } from './resident-offers';
 
 export function createMountController(ctx: MountContext, city: string, reserve = 250) {
@@ -229,7 +229,9 @@ export function createMountController(ctx: MountContext, city: string, reserve =
         );
         if (follow) {
           session.selectContext(horse.serial, follow.index);
-          await session.waitFor(() => session.world.target !== null, 'horse follow target', 2500);
+          await session.waitFor(() => session.world.target !== null, 'horse follow target', 2500, {
+            resource: 'target'
+          });
           session.target({
             serial: ctx.serial,
             ...position(),

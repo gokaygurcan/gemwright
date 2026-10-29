@@ -9,6 +9,7 @@ export type ServiceType =
   | 'healer'
   | 'alchemist'
   | 'tailor'
+  | 'cobbler'
   | 'blacksmith'
   | 'jeweler'
   | 'mining-tools'
@@ -54,15 +55,18 @@ const load = (file: string) =>
 // Hand-curated services first, then shops generated from ServUO's Data/Guide/*.graph vertices.
 const bindings = load('services.json');
 const guide = load('services-guide.json');
-for (const catalogFile of [bindings, guide])
+// ServUO Data/Guide shop ID 2 (Definitions.cfg) identifies cobbler shops.
+const cobblers = load('cobblers.json');
+for (const catalogFile of [bindings, guide, cobblers])
   if (catalogFile.schemaVersion !== 1 || catalogFile.facet !== 1)
     throw new Error('Unsupported navigation catalog version or facet');
-for (const [city, services] of Object.entries(guide.cities)) {
-  const merged = bindings.cities[city] ?? {};
-  bindings.cities[city] = merged;
-  for (const [service, entries] of Object.entries(services) as [ServiceType, Reference[]][])
-    merged[service] = [...(merged[service] ?? []), ...entries];
-}
+for (const catalogFile of [guide, cobblers])
+  for (const [city, services] of Object.entries(catalogFile.cities)) {
+    const merged = bindings.cities[city] ?? {};
+    bindings.cities[city] = merged;
+    for (const [service, entries] of Object.entries(services) as [ServiceType, Reference[]][])
+      merged[service] = [...(merged[service] ?? []), ...entries];
+  }
 // New Haven's shops, from the vendor spawners in the ServUO source (locations/new-haven.json).
 const havenServices = (
   JSON.parse(readFileSync(new URL('../locations/new-haven.json', import.meta.url), 'utf8')) as {
@@ -102,6 +106,35 @@ for (const [city, services] of Object.entries(bindings.cities)) {
 
 export function serviceLocations(city: string, service: ServiceType): readonly Landmark[] {
   return catalog.get(`${city.toLowerCase()}:${service}`) ?? [];
+}
+
+// Public forge placements from the shard's decoration data (locations/forges.json): a town without
+// a forge of its own, like Cove or Yew, smelts at the nearest one, crossing by gate.
+const forgeCatalog = JSON.parse(readFileSync(new URL('../locations/forges.json', import.meta.url), 'utf8')) as {
+  schemaVersion: number;
+  facet: number;
+  cities: Record<string, [number, number, number, number][]>;
+};
+if (forgeCatalog.schemaVersion !== 1 || forgeCatalog.facet !== 1)
+  throw new Error('Unsupported forge catalog version or facet');
+export const forgeSites: readonly { city: string; x: number; y: number; z: number; graphic: number }[] = Object.freeze(
+  Object.entries(forgeCatalog.cities).flatMap(([city, points]) =>
+    points.map(([x, y, z, graphic]) => Object.freeze({ city, x, y, z, graphic }))
+  )
+);
+
+// Where each kind of vendor actually appears in a town (ServUO spawner data, locations/vendors.json):
+// the shop landmark is the door, the vendor may stand some tiles inside or beside it.
+const vendorCatalog = JSON.parse(readFileSync(new URL('../locations/vendors.json', import.meta.url), 'utf8')) as {
+  schemaVersion: number;
+  facet: number;
+  cities: Record<string, Partial<Record<ServiceType, [number, number, number][]>>>;
+};
+if (vendorCatalog.schemaVersion !== 1 || vendorCatalog.facet !== 1)
+  throw new Error('Unsupported vendor catalog version or facet');
+export function vendorLocations(city: string, service: ServiceType): readonly { x: number; y: number; z: number }[] {
+  const points = vendorCatalog.cities[city]?.[service] ?? [];
+  return points.map(([x, y, z]) => Object.freeze({ x, y, z }));
 }
 
 // Every configured landmark of one service type, across all cities.

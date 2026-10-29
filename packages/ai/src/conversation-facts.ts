@@ -1,9 +1,9 @@
 import { skillLabel } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import type { CharacterTemplate } from './config';
 import { needsLine, residentNeeds } from './needs';
 import { voiceStyle } from './personal-voice';
-import type { PlayerSession } from './protocol/session';
 import type { FactSheet } from './respond';
 import type { Checkpoint } from './store';
 import { professionOf } from './world';

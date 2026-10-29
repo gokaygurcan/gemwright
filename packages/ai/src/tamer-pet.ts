@@ -1,4 +1,5 @@
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
 import { recentlyHurt, takingUrgentAction, urgentAction } from './action-purpose';
 import { TOOLS } from './bank-gold';
@@ -9,7 +10,6 @@ import { distance } from './navigation';
 import { petFightReadiness } from './pet-risk';
 import { petSource } from './pets';
 import type { ProfessionContext } from './profession';
-import type { Entity } from './protocol/world';
 import { rangedGraphics, rangedWeapon } from './ranged-weapons';
 import { buyFrom } from './vendor-trade';
 
@@ -40,7 +40,9 @@ export async function veterinary(ctx: ProfessionContext, pet: Entity) {
   const seen = new Set(session.world.journal);
   const before = now.hits;
   session.use(roll.serial);
-  await session.waitFor(() => session.world.target !== null, 'bandage cursor', 3000).catch(() => {});
+  await session
+    .waitFor(() => session.world.target !== null, 'bandage cursor', 3000, { resource: 'target' })
+    .catch(() => {});
   ctx.check();
   if (!session.world.target) return;
   session.target({ serial: pet.serial, x: 0, y: 0, z: 0, graphic: pet.graphic });
@@ -158,7 +160,9 @@ async function petEncounter(ctx: ProfessionContext, animal: (mobile: Entity) => 
   );
   if (!order) return false;
   session.selectContext(pet.serial, order.index);
-  await session.waitFor(() => session.world.target !== null, 'pet order cursor', 3000).catch(() => {});
+  await session
+    .waitFor(() => session.world.target !== null, 'pet order cursor', 3000, { resource: 'target' })
+    .catch(() => {});
   ctx.check();
   if (!session.world.target) return false;
   let retreat = false;
@@ -218,11 +222,12 @@ async function petEncounter(ctx: ProfessionContext, animal: (mobile: Entity) => 
     }
     if (session.world.deaths.has(hostile.serial)) ctx.progress.petKills = (ctx.progress.petKills ?? 0) + 1;
   } finally {
-    if (session.phase === 'ready') {
-      if (session.world.target) session.target(null);
-      if (archer) session.setWarMode(false);
-      session.say('all follow me');
-    }
+    if (session.phase === 'ready')
+      await urgentAction(session, 'escape', async () => {
+        if (session.world.target) session.target(null);
+        if (archer) session.setWarMode(false);
+        session.say('all follow me');
+      });
   }
   if (retreat) {
     const bank = pickLocation(ctx.city, 'banker');

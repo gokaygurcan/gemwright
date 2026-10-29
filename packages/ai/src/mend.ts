@@ -1,6 +1,8 @@
 import { GHOST_BODIES, HUMAN_BODIES } from '@gemwright/common/bodies';
 import { bandage } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { urgentAction } from './action-purpose';
 import { threatsNear } from './danger';
@@ -8,8 +10,6 @@ import { packItems } from './inventory';
 import { lasting } from './lasting';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 
 // Mending, as players do it. A resident just back from the dead has a handful of hit points and
 // dies to the first blow, so it heals before going back to work: bandages with Healing, Heal or
@@ -51,7 +51,9 @@ async function healOnce(ctx: Ctx, who: number): Promise<boolean> {
   if (cloth) session.use(cloth.serial);
   else if (spell) session.useSkill(spell.id, true);
   else return false;
-  await session.waitFor(() => session.world.target !== null, 'heal cursor', 3000).catch(() => {});
+  await session
+    .waitFor(() => session.world.target !== null, 'heal cursor', 3000, { resource: 'target' })
+    .catch(() => {});
   if (!session.world.target) return false;
   const mobile = session.world.entities.get(who);
   session.target({ serial: who, x: 0, y: 0, z: 0, graphic: mobile?.graphic ?? 0 });

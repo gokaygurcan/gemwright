@@ -2,7 +2,7 @@
 
 [Documentation index](README.md)
 
-Each resident is an ordinary game client without a window (`protocol/`): a small TypeScript TCP client checked against ServUO pub57 revision `d76bf4443cf76d081ddaf8f57c87ff33749256af`. No server plugin, privileged API or emulator AI hook is involved.
+Each resident is an ordinary game client without a window (`packages/network`): a small TypeScript TCP client checked against ServUO pub57 revision `d76bf4443cf76d081ddaf8f57c87ff33749256af`. No server plugin, privileged API or emulator AI hook is involved.
 
 ## Login
 
@@ -24,24 +24,7 @@ Without `--shard`, ServUO pub57's defaults are assumed: expansion EJ, auto-creat
 
 ## Capabilities
 
-| Capability | Implementation |
-| --- | --- |
-| Identity | Bound to the server's character serial, verified on every connection. |
-| Movement | One outstanding step; turns and steps told apart; acknowledgement, rejection and correction applied. Terrain routing with road and clearance preferences, running with stamina rests, replanning after rejection, a resync (0x22) on timeout. |
-| Position | From the server; acknowledged steps advance X/Y and predict Z from terrain; corrections win. |
-| Speech | Unicode speech, with keyword IDs for bank, balance, withdraw, claim and pet orders. |
-| Entities | Mobile and item updates, equipment, removal, status, object properties; current observations only, bounded. |
-| Containers | Backpack and bank by ordinary double-click; contents as the server sends them. |
-| Items | Use, lift, drop, equip, partial stacks, each confirmed by the server. |
-| Targeting | Cursor ID and flags; entity, ground and cancel replies; one cursor owner at a time. |
-| Skills and spells | Skill use, spell casting from a book, skill and stat locks, skill reports. |
-| Vendors | Context menus, buy and sell lists, purchases and sales confirmed by the server. |
-| Parties | Invite, accept, decline, leave. |
-| Journal | ASCII, Unicode and localized messages with arguments, bounded. |
-| Gumps | Plain and packed layouts, close notices, replies with observed buttons; moongate destinations, resurrection, release confirmation. |
-| Reconnect | New session, rebuilt observations, same credentials and character ([reconnect](reconnect.md)). |
-
-Unknown packet IDs fail the session rather than guess at stream boundaries. Queues, entities, journal and open UI metadata are bounded.
+The client supports acknowledged movement, observed entities and properties, speech, containers, confirmed item transfers, targeting, skills/spells, vendors, parties, journal and gumps. One movement and target interaction owns its protocol state at a time. Server corrections win; bank contents require ordinary banker interaction. Unknown packet IDs fail rather than guessing stream boundaries. Queues, entities, journal and open UI metadata are bounded.
 
 ## Running one resident
 
@@ -57,3 +40,9 @@ bun run packages/ai/src/index.ts session --config <population.json> --connection
 ```
 
 The database defaults to `packages/ai/data/<shardId>/residents.sqlite`; `--resident <UUID>` picks a resident (default: the first desired-active one). `--exercise` takes a few steps, says a greeting, opens the backpack and answers a tool's target cursor. Behaviors take `--miner-assets`, `--fighter-assets` or `--lumberjack-assets` with a `--duration`. Each run prints its result and writes `proofs/<resident UUID>-latest.json` beside the database, without passwords or tokens.
+
+## Reconnect and interrupted work
+
+Retryable transport failures and uncertain protocol outcomes close the old session, back off between 500 ms and five seconds, verify the bound character and rebuild observations. The original deadline and total `--reconnect-attempts` budget remain in force. Authentication failures, unsupported packets and changed identity are reported rather than retried. Shutdown and lost ownership stop the runtime.
+
+An uncertain operation is never replayed. Recovery refreshes status and inventory, handles danger/death, then resumes or replaces the persisted intent. An unfinished fighter encounter leads to reconciliation and a safe return, without claiming an unobserved kill or retrying an old corpse transfer. A remembered location is a search hint, not evidence of a corpse. Session results accumulate behavior runs and reconnect attempts across segments.

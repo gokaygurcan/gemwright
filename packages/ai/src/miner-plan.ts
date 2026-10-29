@@ -1,7 +1,8 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import type { CharacterTemplate } from './config';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
 import { forges } from './miner-services';
-import type { PlayerSession } from './protocol/session';
 import type { Checkpoint } from './store';
 import type { Point } from './terrain';
 

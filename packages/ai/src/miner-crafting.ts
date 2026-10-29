@@ -1,4 +1,6 @@
 import { skillId } from '@gemwright/common/skills';
+import { gumpCommands } from '@gemwright/network/gumps';
+import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
 import { chargedPurchase, knownBankGold } from './bank-gold';
@@ -9,16 +11,13 @@ import { serviceLocations } from './locations';
 import type { createMinerServices } from './miner-services';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
-import { gumpCommands } from './protocol/gumps';
-import type { Entity } from './protocol/world';
+import { atSmithingStation, rejectSmithingStation } from './smithing-stations';
 
 const ingot = 0x1bf2;
 // Iron ingots are a vendor "economy" item on the pinned shard: 75% of the 5-gold sale price.
 export const RAW_INGOT_VALUE = 3;
 const tongs = new Set([0x0fbb, 0x0fbc]);
 const smithTools = new Set([0x0fbb, 0x0fbc, 0x13e3, 0x13e4]);
-const anvils = new Set([0x0faf, 0x0fb0, 0x2dd5, 0x2dd6]);
-const forgeIds = new Set([0x0fb1, 0x2dd8, ...Array.from({ length: 48 }, (_, index) => 6522 + index)]);
 const SHIELDS = 1011080;
 
 // Every iron recipe the blacksmith buys back (catalogs/crafts/blacksmith.json from DefBlacksmithy
@@ -70,7 +69,7 @@ export const STOP = [1044038, 1044267, 1044037, 1044153];
 export { buttonFor } from './gump-flow';
 
 export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
-  const { session, terrain, city, navigate, position, check, phase, log, carried, checkpoint } = ctx;
+  const { session, city, navigate, position, check, phase, log, carried, checkpoint } = ctx;
   const iron = (backpack: number) =>
     carried(backpack)
       .filter((item) => item.graphic === ingot && !item.hue)
@@ -109,29 +108,6 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
     return false;
   };
 
-  // A standing spot within two tiles of both an anvil and a forge (DefBlacksmithy range 2).
-  const findSmithy = async () => {
-    const statics = (ids: Set<number>) => terrain.findStatics(ids, position(), 200);
-    const placed = (ids: Set<number>) =>
-      [...session.world.entities.values()].flatMap((item) =>
-        item.kind === 'item' && item.position && ids.has(item.graphic) ? [item.position] : []
-      );
-    const anvilSpots = [...placed(anvils), ...statics(anvils)];
-    const forgeSpots = [...placed(forgeIds), ...statics(forgeIds)];
-    const pairs = anvilSpots
-      .flatMap((anvil) => forgeSpots.filter((forge) => distance(anvil, forge) <= 4).map((forge) => ({ anvil, forge })))
-      .sort((a, b) => distance(position(), a.anvil) - distance(position(), b.anvil));
-    for (const { anvil, forge } of pairs.slice(0, 6)) {
-      for (let dx = -2; dx <= 2; dx++)
-        for (let dy = -2; dy <= 2; dy++) {
-          const spot = terrain.stand(anvil.x + dx, anvil.y + dy, anvil.z);
-          if (!spot || distance(spot, anvil) > 2 || distance(spot, forge) > 2) continue;
-          if (await terrain.pathAsync(position(), spot, 0, ctx.blocked, spot.z, session.signal)) return spot;
-        }
-    }
-    return undefined;
-  };
-
   // CraftGump's "Smelt Item" (GetButtonID(6, 1)) and Resmelt.cs's replies: melted (1044270, or
   // 500418 for a bought piece) or refused (1044272, 1044269 for no forge near).
   const SMELT_BUTTON = 14;
@@ -144,7 +120,9 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
     if (!gump) return false;
     const seen = new Set(session.world.journal);
     session.replyGump(gump.serial, gump.id, SMELT_BUTTON, []);
-    await session.waitFor(() => session.world.target !== null, 'smelt cursor', 4000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'smelt cursor', 4000, { resource: 'target' })
+      .catch(() => {});
     if (!session.world.target) return false;
     session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
     const reply = () =>
@@ -164,8 +142,7 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
       log('No smithing tool available; selling raw ingots instead');
       return [];
     }
-    const spot = await findSmithy();
-    if (!spot) {
+    if (!(await atSmithingStation(ctx))) {
       log('No reachable anvil and forge pair; selling raw ingots instead');
       return [];
     }
@@ -173,7 +150,6 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
       'smithing',
       `Crafting ${recipe.name}s (${recipe.perIngot.toFixed(2)} gold per ingot vs ${RAW_INGOT_VALUE} raw)`
     );
-    await navigate(spot, 0);
     const before = new Set(carried(backpack).map((item) => item.serial));
     let made = 0;
     let melted = 0;
@@ -236,6 +212,7 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
       await session.waitFor(() => reply() !== undefined, 'crafting result', 8000);
       const result = reply() ?? 0;
       if (STOP.includes(result)) {
+        if (result === 1044267) rejectSmithingStation(ctx);
         log(`Smithing stopped by server reply ${result}`);
         break;
       }

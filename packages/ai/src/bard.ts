@@ -1,6 +1,8 @@
 import { instruments } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
+import { checkedDelay } from './action-purpose';
 import { TOOLS } from './bank-gold';
 import { lootProvoked } from './bard-loot';
 import { Blocked } from './blocked';
@@ -11,7 +13,6 @@ import { allServiceLocations } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import type { DungeonRole } from './profession-dungeon';
-import type { Entity } from './protocol/world';
 import { begForTool } from './subsistence';
 import { buyTool } from './vendor-trade';
 import { reachRegion } from './work-areas';
@@ -30,7 +31,8 @@ async function play(ctx: ProfessionContext, skill: keyof typeof DELAY, targets: 
   const started = Date.now();
   const seen = new Set(session.world.journal);
   session.useSkill(skillId(skill));
-  const cursor = () => session.waitFor(() => session.world.target !== null, `${skill} cursor`, 3000);
+  const cursor = () =>
+    session.waitFor(() => session.world.target !== null, `${skill} cursor`, 3000, { resource: 'target' });
   try {
     await cursor();
     if (session.world.journal.some((e) => !seen.has(e) && e.cliloc === PICK_INSTRUMENT)) {
@@ -46,8 +48,19 @@ async function play(ctx: ProfessionContext, skill: keyof typeof DELAY, targets: 
     if (session.world.target) session.target(null);
     return false;
   }
-  await Bun.sleep(Math.max(0, DELAY[skill] + 300 - (Date.now() - started)));
+  await checkedDelay(Math.max(0, DELAY[skill] + 300 - (Date.now() - started)), ctx.check);
   return true;
+}
+
+export function bardTarget(ctx: Pick<ProfessionContext, 'session' | 'serial'>, mobile: Entity): boolean {
+  return (
+    mobile.kind === 'mobile' &&
+    mobile.serial !== ctx.serial &&
+    !ctx.session.world.partyMembers.has(mobile.serial) &&
+    [3, 4, 5, 6].includes(mobile.notoriety ?? 0) &&
+    !ctx.session.world.deaths.has(mobile.serial) &&
+    prey.has(mobile.graphic)
+  );
 }
 
 // A bard works the graveyards with music rather than steel: calm whatever attacks (Peacemaking on
@@ -88,7 +101,7 @@ export const runBard = (options: ProfessionOptions) =>
       }
       const near = () =>
         [...session.world.entities.values()].filter(
-          (m) => m.kind === 'mobile' && prey.has(m.graphic) && m.position && distance(ctx.position(), m.position) <= 10
+          (m) => bardTarget(ctx, m) && m.position && distance(ctx.position(), m.position) <= 10
         );
       const undead = near();
       if (session.world.combatant !== null && session.world.combatant !== undefined) {
@@ -126,7 +139,7 @@ const bardDungeon: DungeonRole = {
     const near = [...session.world.entities.values()]
       .filter(
         (m) =>
-          m.kind === 'mobile' &&
+          bardTarget(ctx, m) &&
           recognised(m.graphic) &&
           [3, 4, 5, 6].includes(m.notoriety ?? 0) &&
           !!m.position &&

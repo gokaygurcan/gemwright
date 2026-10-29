@@ -1,10 +1,7 @@
-export interface HealthChange {
-  at: number;
-  hits: number;
-  maxHits: number;
-  damage: number;
-  healed: number;
-}
+import type { HealthChange } from '@gemwright/network/world-types';
+
+export type { HealthChange } from '@gemwright/network/world-types';
+
 export interface CombatAssessment {
   healthRatio: number;
   largestHit: number;

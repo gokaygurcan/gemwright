@@ -22,6 +22,8 @@ const minutes = Number(values.minutes ?? 60);
 
 type Label = 'productive' | 'looping' | 'idle' | 'wandering' | 'stranded' | 'died';
 interface Row {
+  id: string;
+  comparable: { gold: boolean; skills: boolean; work: boolean };
   name: string;
   trade: string;
   serial: number;
@@ -50,9 +52,10 @@ const shape = (text: string) => text.replace(/\d+/g, '#').replace(/\s+/g, ' ').s
 const open = (file: string) => new Database(file, { readonly: true });
 const now = open(values.db);
 const end = now.query<{ at: number }, []>('SELECT MAX(at) AS at FROM activity_samples').get()?.at ?? Date.now();
-const start = end - minutes * 60_000;
-
 const before = values.before ? open(values.before) : undefined;
+const start =
+  before?.query<{ at: number }, []>('SELECT MAX(at) AS at FROM activity_samples').get()?.at ?? end - minutes * 60_000;
+const windowMinutes = Math.max(0, (end - start) / 60_000);
 // Deaths in the window, by character serial, with where and what was near (death-log, resurrection.ts).
 const deathLog =
   (
@@ -78,8 +81,8 @@ const skillTotal = (db: Database | undefined, id: string) => {
     ?.query<{ s: string }, [string]>('SELECT skills_json AS s FROM skill_snapshots WHERE resident_id = ?')
     .get(id);
   if (!row) return undefined;
-  const skills = JSON.parse(row.s) as Record<string, number | { value: number }>;
-  return Object.values(skills).reduce<number>((n, v) => n + (typeof v === 'number' ? v : v.value), 0);
+  const skills = JSON.parse(row.s) as Record<string, number | { value: number; base?: number }>;
+  return Object.values(skills).reduce<number>((n, v) => n + (typeof v === 'number' ? v : (v.base ?? v.value)), 0);
 };
 const workDone = (db: Database | undefined, id: string) => {
   const row = db?.query<{ t: string }, [string]>('SELECT totals_json AS t FROM activity WHERE resident_id = ?').get(id);
@@ -106,11 +109,37 @@ function repeated(steps: string[]) {
   return best;
 }
 
-const residents = now
+const activeNow = now
   .query<{ id: string; name: string; template: string; binding: string | null; checkpoint: string }, []>(
     'SELECT id, proposed_name AS name, template_id AS template, binding_json AS binding, checkpoint_json AS checkpoint FROM residents WHERE desired_active = 1'
   )
   .all();
+const priorActive = before
+  ?.query<{ id: string; name: string }, []>('SELECT id, proposed_name AS name FROM residents WHERE desired_active = 1')
+  .all();
+const priorIds = new Set(priorActive?.map((resident) => resident.id));
+const currentIds = new Set(activeNow.map((resident) => resident.id));
+const allIds = new Set(
+  now
+    .query<{ id: string }, []>('SELECT id FROM residents')
+    .all()
+    .map((resident) => resident.id)
+);
+const residents = priorActive ? activeNow.filter((resident) => priorIds.has(resident.id)) : activeNow;
+const cohort = {
+  matched: residents.map((resident) => resident.id),
+  introduced: priorActive
+    ? activeNow.filter((resident) => !priorIds.has(resident.id)).map(({ id, name }) => ({ id, name }))
+    : [],
+  retired: (priorActive ?? []).filter((resident) => !currentIds.has(resident.id) && allIds.has(resident.id)),
+  missing: (priorActive ?? []).filter((resident) => !allIds.has(resident.id))
+};
+const latestWorth = (database: Database, id: string) =>
+  database
+    .query<{ gold: number | null; bank: number | null }, [string]>(
+      'SELECT gold, bank FROM activity_samples WHERE resident_id = ? ORDER BY at DESC LIMIT 1'
+    )
+    .get(id);
 const rows: Row[] = residents.map((r) => {
   const samples = now
     .query<{ at: number; x: number; y: number; phase: string; gold: number; bank: number }, [string, number]>(
@@ -120,7 +149,18 @@ const rows: Row[] = residents.map((r) => {
   const first = samples[0];
   const last = samples.at(-1);
   const opening = worthAt(r.id) ?? (first ? first.gold + first.bank : 0);
-  const gold = last ? last.gold + last.bank - opening : 0;
+  const oldWorth = before ? latestWorth(before, r.id) : undefined;
+  const currentWorth = latestWorth(now, r.id);
+  const goldComparable = before
+    ? oldWorth?.gold != null && oldWorth.bank != null && currentWorth?.gold != null && currentWorth.bank != null
+    : !!last;
+  const gold = before
+    ? goldComparable && oldWorth && currentWorth
+      ? (currentWorth.gold ?? 0) + (currentWorth.bank ?? 0) - (oldWorth.gold ?? 0) - (oldWorth.bank ?? 0)
+      : 0
+    : last
+      ? last.gold + last.bank - opening
+      : 0;
   // Idle stretches: samples about a minute apart, still within 3 tiles, worth unchanged, not on a break.
   let idleMinutes = 0;
   let stillSince: (typeof samples)[number] | undefined;
@@ -146,6 +186,12 @@ const rows: Row[] = residents.map((r) => {
   const serial = Number((JSON.parse(r.binding ?? '{}') as { characterSerial?: string }).characterSerial ?? 0);
   const died = deaths.get(serial) ?? [];
   const base = {
+    id: r.id,
+    comparable: {
+      gold: goldComparable,
+      skills: !!before && skillTotal(before, r.id) !== undefined && skillTotal(now, r.id) !== undefined,
+      work: !!before && workDone(before, r.id) !== undefined && workDone(now, r.id) !== undefined
+    },
     name: r.name,
     trade: r.template,
     serial,
@@ -186,8 +232,12 @@ const rows: Row[] = residents.map((r) => {
 const order: Label[] = ['died', 'stranded', 'looping', 'idle', 'wandering', 'productive'];
 const count = (label: Label, list = rows) => list.filter((r) => r.label === label).length;
 console.log(
-  `Last ${minutes} minutes to ${new Date(end).toISOString().slice(0, 16).replace('T', ' ')} UTC, ${rows.length} residents${before ? ', skills and work compared with --before' : ''}`
+  `Last ${windowMinutes.toFixed(1)} minutes to ${new Date(end).toISOString().slice(0, 16).replace('T', ' ')} UTC, ${rows.length} residents${before ? ', skills and work compared with --before' : ''}`
 );
+if (before)
+  console.log(
+    `Cohort: matched ${cohort.matched.length}, introduced ${cohort.introduced.length}, retired ${cohort.retired.length}, missing ${cohort.missing.length}`
+  );
 console.log(order.map((l) => `${l} ${count(l)}`).join(' · '));
 // The life goal in three numbers: better skills, more gold, fewer deaths.
 const sum = (f: (r: Row) => number) => rows.reduce((n, r) => n + f(r), 0);
@@ -212,4 +262,5 @@ for (const label of order.slice(0, 5)) {
   console.log(`\n${label} (${list.length}):`);
   for (const r of list) console.log(`  ${r.name.padEnd(18)} ${r.trade.padEnd(24)} ${r.reason.slice(0, 160)}`);
 }
-if (values.out) writeFileSync(values.out, `${JSON.stringify({ end, minutes, rows }, null, 1)}\n`);
+if (values.out)
+  writeFileSync(values.out, `${JSON.stringify({ start, end, minutes: windowMinutes, cohort, rows }, null, 1)}\n`);

@@ -1,4 +1,6 @@
 import { gold } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { JournalEntry, Position } from '@gemwright/network/world';
 
 import { noteTrade } from './activity';
 import type { CharacterTemplate } from './config';
@@ -11,8 +13,6 @@ import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { playerUnitPrice } from './player-insight';
-import type { PlayerSession } from './protocol/session';
-import type { JournalEntry, Position } from './protocol/world';
 import type { Checkpoint } from './store';
 import { buyByTrade, lastFailure, sellByTrade } from './trade-deal';
 import { endTrade, expectTrade } from './trade-guard';

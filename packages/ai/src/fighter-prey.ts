@@ -1,12 +1,12 @@
 import { skillId } from '@gemwright/common/skills';
+import { Layer } from '@gemwright/network/layers';
+import type { Entity } from '@gemwright/network/world';
 
-import { type Monster, monsters } from './dungeons';
 import { fightConfidence } from './fight-confidence';
 import { bandage, type FighterContext, familyOf, healPotion, meleeWeapons, weaponSkill } from './fighter-context';
 import { alliesNear } from './hunting-party';
+import { type Monster, monsters } from './monster-reference';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
-import type { Entity } from './protocol/world';
 import { equippedRanged } from './ranged-weapons';
 
 // Graveyard undead on the pinned ServUO shard (Scripts/Mobiles/Normal). Names come from the
@@ -107,9 +107,7 @@ export function fightCost(ctx: FighterContext, type: string, group = 1): number 
   // A weapon lands about 8 a swing (more with Tactics); fists about 2 (ServUO's 1-4 unarmed).
   const perSwing = held || caster || ranged(ctx) ? 8 + skill('Tactics') / 10 : 2 + skill('Tactics') / 40;
   const swings = hits / perSwing / hitChance(own, theirs);
-  // Armour takes part of each blow (the status armour rating, at most 60%).
-  const armour = 1 - Math.min(0.6, (ctx.status().armor ?? 0) / 100);
-  const taken = (swings * hitChance(theirs, own) * damage * armour) / Math.max(1, group);
+  const taken = (swings * hitChance(theirs, own) * damage) / Math.max(1, group);
   return taken / Math.max(1, ctx.status().maxHits);
 }
 

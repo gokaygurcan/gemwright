@@ -1,10 +1,10 @@
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, JournalEntry } from '@gemwright/network/world';
 
 import { isResident } from './activity';
 import { threatsNear } from './danger';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, JournalEntry } from './protocol/world';
 import { residentContext } from './resident-context';
 import { rememberPartner } from './resident-memory';
 import type { Terrain } from './terrain';

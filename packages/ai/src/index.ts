@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { validateConnection } from '@gemwright/network/connection';
+
 import { archetypes } from './archetypes';
 import { allocatePopulation, validateConfig } from './config';
-import { validateConnection } from './connection';
 import { validateDecisionConfig } from './decision-provider';
 import { decisionReport, mergeDecisionMemory } from './decisions';
 import { dungeonReport } from './dungeon-report';

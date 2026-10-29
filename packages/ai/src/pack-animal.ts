@@ -1,13 +1,15 @@
+import { Layer } from '@gemwright/network/layers';
+import type { Entity } from '@gemwright/network/world';
+
 import { knownBankGold } from './bank-gold';
-import { saving } from './housing';
+import { lifeEvent } from './life-events';
 import { pickLocation } from './locations';
 import { createMountServices } from './mount-services';
 import type { MountContext, MountMemory } from './mount-types';
 import { distance } from './navigation';
 import { petSource } from './pets';
-import { Layer } from './protocol/layers';
-import type { Entity } from './protocol/world';
 import { animalFromResident } from './resident-offers';
+import { flushSession } from './session-durability';
 
 // A gatherer's pack horse or llama, bought from the animal trainer like the riding horse (ServUO
 // SBAnimalTrainer: pack horse 631, pack llama 565 gold). Its StrongBackpack holds 1600 stones and
@@ -56,6 +58,11 @@ export function createPackAnimal(ctx: MountContext, city: string) {
       if (!mobile.position || distance(position(), mobile.position) > 18 || !(await owns(mobile))) continue;
       memory.horse = mobile.serial;
       memory.state = 'owned';
+      lifeEvent(session, 'pack_animal_ownership', 'observed', {
+        serial: mobile.serial,
+        graphic: mobile.graphic,
+        name: mobile.name ?? null
+      });
       memory.load = 0;
       delete memory.pending;
       delete memory.note;
@@ -66,9 +73,24 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     return undefined;
   };
 
+  const reconcileDeath = () => {
+    if (memory.horse === undefined || !session.world.deaths.has(memory.horse)) return false;
+    log(`Confirmed death of pack animal ${memory.horse}; it no longer blocks a replacement`);
+    lifeEvent(session, 'pack_animal_death', 'observed', { serial: memory.horse });
+    delete memory.horse;
+    delete memory.pending;
+    delete memory.lastSeen;
+    delete memory.retryAfter;
+    memory.state = 'seeking';
+    persist();
+    return true;
+  };
+
   // Buys one when there is none, the follower slot is free and the gold allows; never a duplicate.
-  const acquire = async () => {
-    if (memory.horse !== undefined || (memory.retryAfter ?? 0) > Date.now()) return;
+  const acquireOnce = async () => {
+    reconcileDeath();
+    if ((memory.horse !== undefined && memory.state !== 'missing') || (memory.retryAfter ?? 0) > Date.now()) return;
+    if (await discover()) return;
     if (!memory.pending && memory.state !== 'missing') {
       const savings = (session.world.status?.gold ?? 0) + knownBankGold(checkpoint);
       if ((memory.fullLoads ?? 0) < LOADS_BEFORE_BUYING || savings < PRICE + SAVINGS_BEYOND_PRICE) return;
@@ -83,14 +105,13 @@ export function createPackAnimal(ctx: MountContext, city: string) {
       // A bought animal comes to its buyer once and then stands: look for it where it was bought.
       const { map, x, y, z } = memory.pending;
       memory.lastSeen = { map, x, y, z };
-      delete memory.pending;
     }
     // One left behind is fetched from where it was last seen; the purchase below refuses to buy
     // another while it still counts as a follower.
     // Never seen at all (a delivery that went unconfirmed): it stands at the stables it came from.
     const trainer = pickLocation(city, 'animal-trainer');
     const where = memory.lastSeen ?? (trainer && { map: 1, x: trainer.x, y: trainer.y });
-    if (memory.state === 'missing' && where && where.map === session.world.map) {
+    if (['missing', 'lost', 'purchase-pending'].includes(memory.state) && where && where.map === session.world.map) {
       phase('pack-animal', 'Going back for my pack animal where I last saw it');
       await navigate(where, 2).catch(() => {});
       follow();
@@ -116,22 +137,34 @@ export function createPackAnimal(ctx: MountContext, city: string) {
           if (await discover()) return;
         }
       }
-      // Three searches without a sign of it: given up as lost, as a player would. It still counts
-      // as a follower, so the purchase allows for it (mount-services.ts) and one more can be bought.
-      memory.searches = (memory.searches ?? 0) + 1;
-      if (memory.searches >= 3) {
-        log('Gave up on my lost pack animal; buying another when I can');
-        memory.abandoned = (memory.abandoned ?? 0) + 1;
-        memory.searches = 0;
-        memory.state = 'lost';
-        delete memory.lastSeen;
-      }
+      memory.searches = Math.min(3, (memory.searches ?? 0) + 1);
+      memory.retryAfter = Date.now() + 10 * 60_000;
+      log('Pack animal not found; working without it, not buying a replacement');
       persist();
+      return;
     }
-    // A second pack animal after losing one waits while the resident saves for a house.
-    if (memory.abandoned && saving(ctx)) return;
-    // A tamer's spare pack animal nearby comes cheaper than the stable's (resident-offers.ts).
-    if ((await animalFromResident(ctx, 'pack')) && (await discover())) return;
+    if (memory.horse !== undefined || memory.pending || memory.state !== 'seeking' || memory.abandoned) return;
+    await session.refreshStatus();
+    const riding = checkpoint.mount?.horse !== undefined || checkpoint.mount?.state === 'riding' ? 1 : 0;
+    if (ctx.status().followers === undefined || (ctx.status().followers ?? 0) > riding) {
+      memory.state = 'missing';
+      memory.note = 'An existing follower may be my pack animal; purchase blocked';
+      persist();
+      return;
+    }
+    let attempted = false;
+    await animalFromResident(ctx, 'pack', async () => {
+      attempted = true;
+      memory.state = 'purchase-pending';
+      memory.lastSeen = { map: session.world.map ?? 1, ...position() };
+      memory.note = 'Pack animal transfer pending; no second purchase until ownership is resolved';
+      persist();
+      await flushSession(session);
+    });
+    if (attempted) {
+      await discover();
+      return;
+    }
     try {
       await services.purchase(memory, discover);
     } catch (error) {
@@ -142,10 +175,22 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     }
   };
 
+  let acquiring = false;
+  const acquire = async () => {
+    if (acquiring) return;
+    acquiring = true;
+    try {
+      await acquireOnce();
+    } finally {
+      acquiring = false;
+    }
+  };
+
   // Waits for the animal to come close, calling it and walking back to it if it stays behind.
   // An animal not found where it was last seen is marked missing and searched for again later.
   const keepUp = async () => {
-    if (memory.horse === undefined) return;
+    if (reconcileDeath()) return;
+    if (memory.horse === undefined || (memory.state === 'missing' && (memory.retryAfter ?? 0) > Date.now())) return;
     if (near(4)) {
       const at = animal()?.position;
       if (at) memory.lastSeen = { map: session.world.map ?? 1, ...at };
@@ -165,7 +210,6 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     }
     log('Lost track of the pack animal; working without it and looking again later');
     memory.state = 'missing';
-    delete memory.horse;
     delete memory.load;
     memory.retryAfter = Date.now() + 10 * 60_000;
     persist();

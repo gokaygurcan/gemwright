@@ -1,11 +1,11 @@
 import { bandage, gargishWeapons, gold, healPotion, weapons } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, Position, WorldView } from '@gemwright/network/world';
 
 import { withinReach } from './areas';
 import type { CharacterTemplate } from './config';
 import { type Landmark, pickLocation, type ServiceType, serviceLocation, serviceLocations } from './locations';
 import type { createNavigator } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, Position, WorldView } from './protocol/world';
 import { rangedGraphics, rangedWeapon } from './ranged-weapons';
 import type { Checkpoint } from './store';
 import type { Terrain } from './terrain';

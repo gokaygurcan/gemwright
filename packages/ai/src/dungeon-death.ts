@@ -1,4 +1,5 @@
 import { skillId } from '@gemwright/common/skills';
+import { Layer } from '@gemwright/network/layers';
 
 import type { DungeonContext, DungeonRun } from './dungeon-context';
 import { musterOf, partyChat, partySay } from './dungeon-party';
@@ -7,7 +8,6 @@ import { type Dungeon, dungeonNamed } from './dungeons';
 import { ghosts } from './fighter-context';
 import { resurrectionButton } from './fighter-recovery';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
 
 // Deaths in a dungeon. A ghost in a party manifests (war mode, so the living can see it), asks for
 // a resurrection in party chat and waits by its corpse; a member with Healing and Anatomy at 80.0
@@ -185,7 +185,9 @@ export async function rescueStep(ctx: DungeonContext, run: DungeonRun): Promise<
       const bandage = bandages(ctx)[0];
       if (!bandage) return true;
       ctx.session.use(bandage.serial);
-      await ctx.session.waitFor(() => ctx.session.world.target !== null, 'bandage cursor', 3000);
+      await ctx.session.waitFor(() => ctx.session.world.target !== null, 'bandage cursor', 3000, {
+        resource: 'target'
+      });
     } else {
       const seen = new Set(ctx.session.world.journal);
       ctx.session.useSkill(RESURRECTION, true);
@@ -196,7 +198,8 @@ export async function rescueStep(ctx: DungeonContext, run: DungeonRun): Promise<
             ctx.session.world.target !== null ||
             ctx.session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL),
           'resurrection cursor',
-          6000
+          6000,
+          { resource: 'target' }
         )
         .catch(() => {});
       if (ctx.session.world.journal.some((e) => !seen.has(e) && e.cliloc === NO_SPELL)) {

@@ -1,5 +1,6 @@
+import type { JournalEntry } from '@gemwright/network/world-types';
+
 import type { ProfessionContext } from './profession';
-import type { JournalEntry } from './protocol/world-types';
 import { rememberPartner } from './resident-memory';
 
 // Who helped: a resident someone bandaged ("~1_NAME~ : Attempting to heal you", ServUO Bandage

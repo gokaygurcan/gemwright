@@ -1,46 +1,12 @@
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { chaosOf } from './chaos';
-import { allServiceLocations, type Landmark, type ServiceType } from './locations';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 
-// Chaos on the road (chaos.ts), always with a purpose: a longer walk sometimes goes by way of a
-// real place near the line (a shop, the bank, a healer) where the resident looks around a moment,
-// and a walker sometimes stops to greet someone it passes. The destination never changes here;
-// changing plans is the town routine's business (life.ts).
-const stops: ServiceType[] = [
-  'banker',
-  'healer',
-  'alchemist',
-  'tailor',
-  'blacksmith',
-  'jeweler',
-  'carpenter',
-  'tinker',
-  'mage',
-  'bowyer',
-  'weaponsmith',
-  'fisherman',
-  'bard',
-  'cook',
-  'animal-trainer'
-];
-let places: Landmark[] | undefined;
-
-// A place worth a detour between `from` and `goal`: off the direct line by at most 40% of the
-// trip (and 60 tiles), and not right at either end. Chance: half the resident's chaos.
-export function detourFor(session: PlayerSession, from: { x: number; y: number }, goal: { x: number; y: number }) {
-  const direct = distance(from, goal);
-  if (direct < 60 || Math.random() >= chaosOf(session) / 2) return undefined;
-  places ??= stops.flatMap((service) => allServiceLocations(service));
-  const extra = Math.min(60, direct * 0.4);
-  const options = places.filter(
-    (p) => distance(from, p) >= 12 && distance(p, goal) >= 12 && distance(from, p) + distance(p, goal) - direct <= extra
-  );
-  return options[Math.floor(Math.random() * options.length)];
-}
-
+// Chaos on the road (chaos.ts), always with a purpose: a walker sometimes stops to greet someone
+// it passes. The destination never changes here; changing plans is the town routine's business
+// (life.ts).
 const humans = HUMAN_BODIES;
 const greetings = ['hail', 'hi', 'o/', 'hey', 'well met'];
 const greeted = new WeakMap<PlayerSession, Set<number>>();

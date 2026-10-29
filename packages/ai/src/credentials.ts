@@ -2,8 +2,9 @@ import { randomBytes } from 'node:crypto';
 import { lstat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { ascii } from './protocol/packets';
-import type { Credentials } from './protocol/session';
+import { ascii } from '@gemwright/network/packets';
+import type { Credentials } from '@gemwright/network/session';
+
 import type { ResidentStore } from './store';
 
 // A resident's game account lives in the resident database (credentials table), so a population's

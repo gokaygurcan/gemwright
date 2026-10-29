@@ -1,9 +1,9 @@
 import { GHOST_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { guildmates } from './guilds';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { residentContext } from './resident-context';
 
 export function groupMember(session: PlayerSession, serial: number): boolean {

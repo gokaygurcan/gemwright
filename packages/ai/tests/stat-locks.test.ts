@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { statLock } from '../src/protocol/packets';
-import { WorldView } from '../src/protocol/world';
+import type { PlayerSession } from '@gemwright/network/session';
+import { WorldView } from '@gemwright/network/world';
+
+import { outgrewYoung } from '../src/progression';
 import { desiredLock } from '../src/stat-locks';
 
 test('stats rise below the archetype target, hold at it and fall above it', () => {
@@ -10,15 +12,18 @@ test('stats rise below the archetype target, hold at it and fall above it', () =
   expect(desiredLock(40, 25)).toBe(1);
 });
 
-test('stat lock change matches ServUO StatLockChange (0xBF 0x1A)', () => {
-  expect([...statLock(1, 2)]).toEqual([0xbf, 0, 7, 0x00, 0x1a, 1, 2]);
-  expect(() => statLock(3, 0)).toThrow('Invalid stat lock');
-});
-
-test('StatLockInfo (0xBF 0x19) reports two bits per stat for the player', () => {
+test('Young status requires at least three skills at 100.0 base', () => {
   const world = new WorldView();
-  world.serial = 123;
-  const packet = Buffer.from([0xbf, 0, 12, 0x00, 0x19, 2, 0, 0, 0, 123, 0, (1 << 4) | (2 << 2) | 0]);
-  world.apply(packet);
-  expect(world.statLocks).toEqual([1, 2, 0]);
+  const session = { world } as PlayerSession;
+  expect(outgrewYoung(session)).toBe(false);
+  for (let id = 0; id < 7; id++) world.skills.set(id, { base: 60, value: 60, cap: 100, lock: 0 });
+  expect(outgrewYoung(session)).toBe(false);
+  for (const id of [0, 1]) world.skills.set(id, { base: 100, value: 100, cap: 120, lock: 0 });
+  expect(outgrewYoung(session)).toBe(false);
+  world.skills.set(2, { base: 99.9, value: 110, cap: 120, lock: 0 });
+  expect(outgrewYoung(session)).toBe(false);
+  world.skills.set(2, { base: 100, value: 100, cap: 120, lock: 0 });
+  expect(outgrewYoung(session)).toBe(true);
+  world.skills.set(3, { base: 120, value: 120, cap: 120, lock: 0 });
+  expect(outgrewYoung(session)).toBe(true);
 });

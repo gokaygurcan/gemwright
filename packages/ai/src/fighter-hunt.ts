@@ -1,7 +1,9 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
 import { gold } from '@gemwright/common/items';
+import type { Entity } from '@gemwright/network/world';
 
 import { groundOf } from './cemeteries';
+import { combatCapability } from './combat-capability';
 import { type DecisionCoordinator, type DecisionPick, decisionGuard, decisionState } from './decisions';
 import { encounterAdvice } from './experience';
 import { bandage, type FighterContext, healPotion, huntable } from './fighter-context';
@@ -10,7 +12,6 @@ import { warOpponent } from './guild-wars';
 import { organizeParty, partyOf, partyTarget, setPartyTarget } from './hunting-party';
 import { distance } from './navigation';
 import { followPlan, leadPlan } from './party-talk';
-import type { Entity } from './protocol/world';
 
 export type HuntChoice =
   | { kind: 'fight'; opponent: Entity; pick: DecisionPick | null }
@@ -65,7 +66,14 @@ export async function chooseOpponent(
   const avoided: number[] = [];
   for (const item of candidates) {
     check();
-    const learned = encounterAdvice(checkpoint, place(item), item.graphic);
+    const learned = encounterAdvice(
+      checkpoint,
+      place(item),
+      item.graphic,
+      Date.now(),
+      combatCapability(session),
+      item.name
+    );
     if (learned.avoidUntil > Date.now()) {
       avoided.push(learned.avoidUntil);
       continue;
@@ -87,7 +95,8 @@ export async function chooseOpponent(
   }
   const score = (item: Entity) =>
     distance(position(), item.position ?? position()) +
-    encounterAdvice(checkpoint, place(item), item.graphic).caution * 20;
+    encounterAdvice(checkpoint, place(item), item.graphic, Date.now(), combatCapability(session), item.name).caution *
+      20;
   eligible.sort((a, b) => score(a) - score(b));
   if (!eligible.length && avoided.length) return { kind: 'avoid', until: Math.min(...avoided) };
   const baseline = eligible[0];
@@ -108,7 +117,14 @@ export async function chooseOpponent(
       return (
         !!current?.position &&
         prey.has(current.graphic) &&
-        encounterAdvice(checkpoint, place(current), current.graphic).avoidUntil <= Date.now() &&
+        encounterAdvice(
+          checkpoint,
+          place(current),
+          current.graphic,
+          Date.now(),
+          combatCapability(session),
+          current.name
+        ).avoidUntil <= Date.now() &&
         engageable(ctx, current).ok &&
         [3, 4, 5, 6].includes(current.notoriety ?? 0) &&
         distance(position(), current.position) <= 16 &&

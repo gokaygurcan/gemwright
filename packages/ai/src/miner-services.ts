@@ -1,5 +1,7 @@
 import { gold, miningTools, ore } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { chargedPurchase, openBankBox, queryBankBalance } from './bank-gold';
 import { clearBankRoom } from './bank-space';
@@ -13,8 +15,6 @@ import { createSmelter } from './miner-smelting';
 import type { MinerServicesContext } from './miner-types';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { craftedGoods } from './selling';
 import { createServiceExperience } from './service-experience';
 import { buyFrom, sellTo } from './vendor-trade';

@@ -1,4 +1,4 @@
-import { info } from './log';
+import { logger } from './log';
 import { haikuClient, names, numbers, promise, usage } from './phrasing';
 
 // A player's line understood and answered by Claude Haiku from the resident's real situation (its
@@ -119,7 +119,7 @@ export async function respond(options: {
     const reason = replyRejection(reply, options.facts, options.heard);
     if (reason) {
       usage.rejected++;
-      info(`[respond] "${options.heard}" -> "${reply}" ${reason}`);
+      logger('respond').info(`[respond] "${options.heard}" -> "${reply}" ${reason}`);
       return { reading };
     }
     return { reading, reply };

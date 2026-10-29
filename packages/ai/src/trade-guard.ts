@@ -1,11 +1,15 @@
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
+
 import { canPause } from './action-purpose';
 import { notePlayer, noteTrade } from './activity';
 import { engagedWith, quoteTo } from './engagement';
+import { independentAction } from './execution-session';
+import { packFull } from './inventory';
 import { usefulGift } from './inventory-use';
+import { logger } from './log';
 import { type Good, goodMatch } from './market';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { residentContext } from './resident-context';
 import { rememberPartner } from './resident-memory';
 import { serveClaims } from './resident-offers';
@@ -44,7 +48,7 @@ const signature = (session: PlayerSession, mine: number, theirs: number) =>
     )
   );
 
-export async function guardTradeTick(session: PlayerSession, now = Date.now()) {
+async function tradeTick(session: PlayerSession, now = Date.now()) {
   if (running.has(session) || session.phase !== 'ready') return;
   running.add(session);
   try {
@@ -83,7 +87,7 @@ export async function guardTradeTick(session: PlayerSession, now = Date.now()) {
     }
     if (!trade || trade.closed || expected.get(session) === trade.partner) return;
     if (!canPause(session)) {
-      if (trade.accepted.me) session.acceptTrade(false);
+      session.cancelTrade();
       return;
     }
     const sig = signature(session, trade.mine, trade.theirs);
@@ -164,7 +168,8 @@ export async function guardTradeTick(session: PlayerSession, now = Date.now()) {
     if (pack && session.world.childrenOf(trade.mine).length === 0 && offered.length) {
       const usable = await Promise.all(offered.map((item) => usefulGift(session, item)));
       if (
-        usable.some(Boolean) &&
+        (usable.some(Boolean) || trade.accepted.them) &&
+        !packFull(session, pack.serial) &&
         canPause(session) &&
         session.world.trade === trade &&
         signature(session, trade.mine, trade.theirs) === sig
@@ -201,7 +206,10 @@ export function guardTrades(session: PlayerSession) {
     }
     void guardTradeTick(session).catch((error) => {
       endTrade(session);
-      if (session.phase === 'ready') console.error(`[trade] ${error instanceof Error ? error.message : error}`);
+      if (session.phase === 'ready') logger('trade').error(`[trade] ${error instanceof Error ? error.message : error}`);
     });
   }, 1000);
 }
+
+export const guardTradeTick = (session: PlayerSession, now = Date.now()) =>
+  independentAction(session, 'trade', 'Inspect and complete player trade', () => tradeTick(session, now));

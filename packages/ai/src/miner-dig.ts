@@ -1,11 +1,11 @@
 import { ore } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { urgentAction } from './action-purpose';
 import { tally } from './activity';
 import { threatsNear } from './danger';
 import type { MinerServicesContext } from './miner-types';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import type { Point, Terrain } from './terrain';
 
 export { ore };
@@ -52,7 +52,7 @@ export async function digSite(
     const last = session.world.journal.at(-1);
     const oreBefore = oreIn(dig.carried(dig.backpack));
     session.use(dig.tool);
-    await session.waitFor(() => session.world.target !== null, 'mining tool cursor', 4000);
+    await session.waitFor(() => session.world.target !== null, 'mining tool cursor', 4000, { resource: 'target' });
     const tile = dig.site.graphic ? terrain.tile(dig.site.graphic, true) : null;
     session.target({
       serial: 0,

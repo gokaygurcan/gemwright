@@ -5,20 +5,28 @@ export class RuntimeOwnership {
   private readonly heartbeat: ReturnType<typeof setInterval>;
   private expiresAt = Date.now() + 30000;
   private lost = false;
+  private renewing = false;
 
   constructor(
     private readonly store: ResidentStore,
-    onLost: () => void
+    onLost: () => void,
+    private readonly durable: () => Promise<void> = () => Promise.resolve()
   ) {
     this.token = store.acquireLease();
-    this.heartbeat = setInterval(() => {
+    this.heartbeat = setInterval(async () => {
+      if (this.renewing || this.lost) return;
+      this.renewing = true;
+      const expiresAt = Date.now() + 30000;
       try {
         store.renewLease(this.token);
-        this.expiresAt = Date.now() + 30000;
+        await this.durable();
+        if (!this.lost) this.expiresAt = expiresAt;
       } catch {
         this.lost = true;
         clearInterval(this.heartbeat);
         onLost();
+      } finally {
+        this.renewing = false;
       }
     }, 10000);
   }

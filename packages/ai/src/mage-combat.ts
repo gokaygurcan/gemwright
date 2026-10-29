@@ -3,11 +3,11 @@ import { readFileSync } from 'node:fs';
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
 import { necroReagentByName, reagentByName } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
 import type { FighterContext } from './fighter-context';
 import { allyUnderPressure } from './group-awareness';
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 import { rememberPartner } from './resident-memory';
 import { requestSpell } from './spell-action';
 
@@ -203,7 +203,9 @@ async function summonTurn(
       if (!order) continue;
       memory.summoned.serial = mobile.serial;
       session.selectContext(mobile.serial, order.index);
-      await session.waitFor(() => session.world.target !== null, 'summon attack cursor', 2000).catch(() => {});
+      await session
+        .waitFor(() => session.world.target !== null, 'summon attack cursor', 2000, { resource: 'target' })
+        .catch(() => {});
       ctx.check();
       if (session.world.target)
         session.target({ serial: opponent.serial, x: 0, y: 0, z: 0, graphic: opponent.graphic });

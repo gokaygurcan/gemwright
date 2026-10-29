@@ -1,11 +1,11 @@
 import { gold, instruments } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
+import { gumpCommands } from '@gemwright/network/gumps';
+import { Layer } from '@gemwright/network/layers';
+import type { Entity } from '@gemwright/network/world';
 
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
-import { gumpCommands } from './protocol/gumps';
-import { Layer } from './protocol/layers';
-import type { Entity } from './protocol/world';
 
 // Player vendors (ServUO PlayerVendor): shops other players keep. A resident who sees one learns
 // where it stands; one with money to spare, passing within walking reach, looks at the goods as a

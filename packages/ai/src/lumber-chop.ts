@@ -1,7 +1,8 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
+
 import { checkedDelay } from './action-purpose';
 import { tally } from './activity';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 
 // Lumberjacking.cs replies: AOS resource messages 1072540-1072546 or the classic 500498 on
 // success, 500495 on a failed chop, 500493 depleted tree, 500446 too far, 500497 pack full,
@@ -11,6 +12,8 @@ const FAILED = 500495;
 const DEPLETED = [500493, 500446, 500494];
 const PACK_FULL = 500497;
 const BROKE = 500499;
+// HarvestSystem.CheckTool: a spent tool answers this instead of asking for a target (1044038).
+const WORN_OUT = 1044038;
 
 interface ChopContext {
   session: PlayerSession;
@@ -36,7 +39,19 @@ export async function chopTree(ctx: ChopContext, tree: { x: number; y: number; z
     if (!axe) break;
     const seen = new Set(session.world.journal);
     session.use(axe.serial);
-    await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000);
+    try {
+      await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000, { resource: 'target' });
+    } catch (error) {
+      if (session.phase !== 'ready') throw error;
+      // No target asked for: a spent axe says so (1044038) and never asks. It is dropped here and
+      // the next turn buys a replacement (lumberjack.ts) instead of swinging a dead tool forever.
+      const answers = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);
+      if (!answers.some((entry) => entry.cliloc === WORN_OUT)) throw error;
+      ctx.say('The hatchet is worn out; it goes and a new one is bought');
+      await session.dropAtFeet(axe.serial).catch(() => {});
+      result.answered = true;
+      break;
+    }
     session.target({ serial: 0, x: tree.x, y: tree.y, z: tree.z, graphic: tree.id });
     await checkedDelay(2500, ctx.check);
     const replies = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);

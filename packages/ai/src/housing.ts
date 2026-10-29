@@ -1,3 +1,5 @@
+import { Layer } from '@gemwright/network/layers';
+
 import { tally } from './activity';
 import { chargedPurchase, fundsStale, refreshFunds } from './bank-gold';
 import { atVendor, type CraftContext } from './craft-training';
@@ -7,7 +9,6 @@ import type { LifeContext } from './life';
 import { pickLocation } from './locations';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
 import { world } from './world';
 
 // Buying a house, as a player does: a House Placement Tool from an architect (627 gold), the
@@ -148,7 +149,7 @@ export async function buyHouse(ctx: LifeContext): Promise<Purchase> {
   session.use(placer.serial);
   press(session, await awaitGump(session, 1060390, 'house placement menu'), 1);
   press(session, await awaitGump(session, 1060235, 'classic house list'), house.button);
-  await session.waitFor(() => session.world.target?.multi !== undefined, 'house outline', 8000);
+  await session.waitFor(() => session.world.target?.multi !== undefined, 'house outline', 8000, { resource: 'target' });
   const from = mark(session);
   session.target({ serial: 0, ...front, graphic: 0 });
   const checked = await awaitMessage(session, from, [VALID, ...BLOCKED], 'placement check');

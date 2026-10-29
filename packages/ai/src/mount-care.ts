@@ -1,6 +1,7 @@
+import type { Entity } from '@gemwright/network/world';
+
 import { serviceLocations } from './locations';
 import type { MountContext, MountMemory } from './mount-types';
-import type { Entity } from './protocol/world';
 
 // ServUO AnimalTrainer.Claim replies: claimed, nothing stabled, too many followers.
 const CLAIMED = 1042559;

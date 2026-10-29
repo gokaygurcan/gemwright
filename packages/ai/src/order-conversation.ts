@@ -1,5 +1,6 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { type Good, goods } from './market';
-import type { PlayerSession } from './protocol/session';
 import { residentContext } from './resident-context';
 import { personalMemory } from './resident-memory';
 import { acceptWorkOrder, canSupply, parseWorkOrder } from './work-orders';

@@ -1,81 +1,51 @@
-import { lasting } from './lasting';
-import { info } from './log';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
+import type { PlayerSession } from '@gemwright/network/session';
 
-// The loop guard (the life-goal plan, ROADMAP.md step 4). A resident is going in circles when,
-// with nothing gained (no skill, gold or goods):
-//   - the same run of steps comes round a third time, or
-//   - five minutes pass without a step of its job (working, or walking toward its work).
-// Then `Stuck` is raised from its runner's next check(), its current plan is dropped, and for the
-// next twenty minutes it does its job only (forcedToWork): no errands, side trades, life phases or
-// town trips. Each case is logged as `[loop]` and kept (lasting 'loops') for the analyzer's Loops
-// page. Every runner reports its phases here (watchStep) and calls checkLoop in its check().
+import { canPause, takingUrgentAction } from './action-purpose';
+import { lasting } from './lasting';
+import { lifeEvent } from './life-events';
+import { logger } from './log';
+import { failResidentGoal, goalGuard, interruptGoal } from './resident-goal';
+import { positiveProgress, type WorkEvidence, workEvidence } from './work-evidence';
+
 const IDLE_MS = 5 * 60_000;
 const FORCE_MS = 20 * 60_000;
 const REPEATS = 3;
 
 export class Stuck extends Error {}
 
-// Phases that are not the job itself: errands, trades on the side, breaks and setbacks. Anything
-// else a runner reports (mining, hunting, fishing, crafting, taming, travelling to its work,
-// resting between fights) is its job.
-const ERRANDS =
-  /^(restocking|selling|banking|banking-failed|replacing-equipment|replacement-purchased|supplies|earning|side-trade|escort-search|escort|begging|life|leisure|visit|teleporter|moongate-travel|moongate-arrival|moongate-retreat|training-travel|buying|buying-from-resident|waiting|stuck|blocked|setback|loop|reconcile|tidying|guiding|shopping|mount-search|mounting|selling-to-resident|work)$/;
-// A break the resident earned (life.ts): not counted against it while it lasts.
-const BREAKS = /^(leisure|visit)$/;
-
 interface Watch {
   steps: string[];
   phase: string;
-  progress: string;
+  progress: WorkEvidence;
   progressAt: number;
-  jobAt: number;
   at: { x: number; y: number };
   checkedAt: number;
+  trail: { x: number; y: number; at: number }[];
 }
 const watches = new WeakMap<PlayerSession, Watch>();
 const pending = new WeakMap<PlayerSession, string>();
 const forced = new WeakMap<PlayerSession, number>();
 const names = new WeakMap<PlayerSession, string>();
-// Money in the bank, reported by runners that know it (shared-turn.ts).
-const banked = new WeakMap<PlayerSession, number>();
-export const noteBanked = (session: PlayerSession, gold: number) => banked.set(session, gold);
 const kept = lasting('loops');
 
 // Twenty minutes of nothing but its job after a loop.
 export const forcedToWork = (session: PlayerSession) => (forced.get(session) ?? 0) > Date.now();
 
-// Skills, money (carried and banked), everything carried and health: what changes when it gets
-// anywhere.
-function progress(session: PlayerSession): string {
-  const skills = [...session.world.skills.values()].reduce((sum, skill) => sum + (skill.base ?? 0), 0);
-  const pack = session.world.childrenOf(session.world.serial ?? -1).find((item) => item.layer === Layer.Backpack);
-  let goods = 0;
-  const visit = (parent: number) => {
-    for (const item of session.world.childrenOf(parent)) {
-      goods += item.amount ?? 1;
-      visit(item.serial);
-    }
-  };
-  if (pack) visit(pack.serial);
-  const gold = (session.world.status?.gold ?? 0) + (banked.get(session) ?? 0);
-  // Health coming back counts: resting to fight again is part of the job.
-  return `${Math.round(skills * 10)}:${gold}:${goods}:${session.world.status?.hits ?? 0}`;
-}
-
 // Numbers and coordinates do not make a step different.
 const kindOf = (phase: string, note: string) => `${phase}: ${note.replace(/-?\d+/g, '#')}`.slice(0, 120);
+// Bounded recovery: paced by the goal's own deadline (goalGuard) and its planning gates, so its
+// phases are not the repeated-step pattern the guard exists to break.
+const recovering = (phase: string) => /^(recovering|recovering-health|recovery-wait|securing-assets)$/.test(phase);
 
 function trigger(session: PlayerSession, watch: Watch, reason: string) {
   const now = Date.now();
   watch.steps = [];
   watch.progressAt = now;
-  watch.jobAt = now;
   forced.set(session, now + FORCE_MS);
   pending.set(session, reason);
+  interruptGoal(session, reason);
   const name = names.get(session) ?? 'resident';
-  info(`[loop] ${name}: ${reason}`);
+  logger('loop-watch').info(`[loop] ${name}: ${reason}`);
   kept.set(`${session.world.serial ?? 0}|${name}|${now}|${reason.slice(0, 160)}`, now + 24 * 3_600_000);
 }
 
@@ -102,63 +72,105 @@ function watchOf(session: PlayerSession) {
   const watch: Watch = {
     steps: [],
     phase: '',
-    progress: progress(session),
+    progress: workEvidence(session),
     progressAt: now,
-    jobAt: now,
     at: session.world.position ?? { x: 0, y: 0 },
-    checkedAt: now
+    checkedAt: now,
+    trail: []
   };
   watches.set(session, watch);
   return watch;
 }
 
 export function watchStep(session: PlayerSession, name: string, phase: string, note: string) {
-  if (phase === 'setback' || phase === 'loop') return;
+  lifeEvent(session, 'activity', 'observed', { phase, note });
+  if (/^(setback|loop|blocked|retreating|death)$/.test(phase)) {
+    if (phase === 'setback' || phase === 'loop') interruptGoal(session, note);
+    else failResidentGoal(session, note);
+  }
   names.set(session, name);
   const watch = watchOf(session);
   watch.phase = phase;
-  if (!ERRANDS.test(phase)) watch.jobAt = Date.now();
-  const current = progress(session);
-  if (current !== watch.progress) {
-    watch.progress = current;
+  const current = workEvidence(session);
+  if (positiveProgress(watch.progress, current)) {
     watch.progressAt = Date.now();
     watch.steps = [];
     return;
   }
+  if (interactionActive(session) || takingUrgentAction(session)) return;
+  if (recovering(phase)) return;
   watch.steps = [...watch.steps.slice(-40), kindOf(phase, note)];
   const run = repeated(watch.steps);
+  if (
+    !run &&
+    watch.steps.length >= 12 &&
+    new Set(watch.steps.slice(-12)).size === 1 &&
+    Date.now() - watch.progressAt > 60_000 &&
+    !interactionActive(session)
+  )
+    trigger(session, watch, `Repeated ${phase} without a verified gain; abandoning this plan`);
   if (run) trigger(session, watch, `the same steps three times with nothing gained: ${run.join(' → ')}`);
 }
 
-// Raised from the runner's own check(), inside its ordinary error handling. Every few seconds it
-// also looks at time: progress, and steps of its job (a job phase while it moves).
-export function checkLoop(session: PlayerSession) {
+function interactionActive(session: PlayerSession) {
+  return !!session.world.trade && !session.world.trade.closed;
+}
+
+export function noteNavigationStep(session: PlayerSession) {
+  const watch = watchOf(session);
+  const here = session.world.position;
   const now = Date.now();
+  if (!here || now - (watch.trail.at(-1)?.at ?? 0) < 1000) return;
+  watch.trail = [...watch.trail.filter((p) => now - p.at < 90_000), { x: here.x, y: here.y, at: now }];
+  if (
+    watch.trail.length < 20 ||
+    now - watch.progressAt < 90_000 ||
+    takingUrgentAction(session) ||
+    interactionActive(session)
+  )
+    return;
+  const width = Math.max(...watch.trail.map((p) => p.x)) - Math.min(...watch.trail.map((p) => p.x));
+  const height = Math.max(...watch.trail.map((p) => p.y)) - Math.min(...watch.trail.map((p) => p.y));
+  if (width <= 12 && height <= 12) {
+    watch.trail = [];
+    trigger(session, watch, 'Repeated small-area movement without a verified gain; abandoning this plan');
+  }
+}
+
+// Raised inside the runner's ordinary setback handling; urgent survival actions finish first.
+export function checkLoop(session: PlayerSession) {
+  if (interactionActive(session) && canPause(session)) return;
+  const now = Date.now();
+  const blocked = takingUrgentAction(session) ? undefined : goalGuard(session, now);
+  if (blocked) {
+    interruptGoal(session, blocked);
+    const watch = watchOf(session);
+    watch.progressAt = now;
+    watch.checkedAt = now;
+    watch.steps = [];
+    pending.delete(session);
+    throw new Stuck(blocked);
+  }
   const watch = watchOf(session);
   if (now - watch.checkedAt >= 5000) {
     watch.checkedAt = now;
-    const current = progress(session);
-    if (current !== watch.progress) {
-      watch.progress = current;
+    const current = workEvidence(session);
+    if (positiveProgress(watch.progress, current)) {
       watch.progressAt = now;
       watch.steps = [];
     }
-    const at = session.world.position;
-    if (at && Math.max(Math.abs(at.x - watch.at.x), Math.abs(at.y - watch.at.y)) >= 3) {
-      watch.at = { x: at.x, y: at.y };
-      if (!ERRANDS.test(watch.phase)) watch.jobAt = now;
-    }
-    if (BREAKS.test(watch.phase)) watch.jobAt = now;
-    if (now - Math.max(watch.progressAt, watch.jobAt) > IDLE_MS)
-      trigger(session, watch, `five minutes with nothing gained and no step of its job (${watch.phase || 'no phase'})`);
+    // A running recovery action holds the idle clock: its bound is the goal deadline, not the guard.
+    if (recovering(watch.phase)) watch.progressAt = now;
+    if (now - watch.progressAt > IDLE_MS && !takingUrgentAction(session) && !interactionActive(session))
+      trigger(session, watch, `five minutes without a verified gain (${watch.phase || 'no phase'})`);
   }
   const loop = pending.get(session);
-  if (!loop) return;
+  if (!loop || takingUrgentAction(session)) return;
   pending.delete(session);
   throw new Stuck(`Going in circles (${loop})`);
 }
 
-// Time since this resident's skills, money or goods last changed (drives.ts).
+// Time since a verified gain (drives.ts).
 export function sinceProgress(session: PlayerSession) {
   const watch = watches.get(session);
   return watch ? Date.now() - watch.progressAt : 0;

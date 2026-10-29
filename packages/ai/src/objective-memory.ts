@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+
 import type { Checkpoint } from './store';
 
 const BAN_MS = 2 * 3_600_000;

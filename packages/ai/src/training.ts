@@ -1,5 +1,6 @@
 import { gold } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
 import { supportingOf } from './archetypes';
 import { fundsStale, offersBank, spendableGold, withdrawAccountGold } from './bank-gold';
@@ -7,7 +8,6 @@ import type { FighterContext } from './fighter-context';
 import { type ServiceType, serviceLocations } from './locations';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 
 // NPC teaching on the pinned ServUO shard (BaseCreature.CheckTeachSkills / TeachEntry):
 // - the context entry is TeachEntry 6000 + skill id (cliloc 3006000 + id on the wire), enabled while

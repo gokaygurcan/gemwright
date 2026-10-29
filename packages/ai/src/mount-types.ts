@@ -1,7 +1,8 @@
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Position, WorldView } from '@gemwright/network/world';
+
 import type { createNavigator } from './navigation';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Position, WorldView } from './protocol/world';
 import type { Checkpoint } from './store';
 import type { Terrain } from './terrain';
 

@@ -3,8 +3,9 @@ import { dirname, join } from 'node:path';
 
 import { loopLag } from './activity';
 import { decisionReport } from './decisions';
-import { info } from './log';
+import { logger } from './log';
 import { type ResidentOptions, runResident, withRuntime } from './run-session';
+import { inTrace } from './telemetry';
 import { temperamentOf } from './temperament';
 
 // Runs every desired-active resident in this one process under the single shard lease. Logins are
@@ -37,7 +38,7 @@ export async function runPopulation(
       if (late > 1500) {
         lag.stalls++;
         loopLag.stalls++;
-        console.error(`[population] event loop stalled for ${late} ms`);
+        logger('population').error(`[population] event loop stalled for ${late} ms`);
       }
     }, 1000);
     const runs = residents.map(async (resident, index) => {
@@ -59,11 +60,17 @@ export async function runPopulation(
           : activities.includes('lumberjack') || activities.includes('chop')
             ? 'lumberjack'
             : 'fighter');
-      const log = (text: string) => info(`[population] ${resident.proposedName}: ${text}`);
+      const log = (text: string) =>
+        inTrace(
+          { actor: () => ({ residentId: resident.id, name: resident.proposedName, sessionId: null, position: null }) },
+          () => logger('population').info(text, { role })
+        );
       log(`arriving as ${role}`);
       let failures = 0;
       while (true) {
-        const offlineUntil = shared.store.get(resident.id)?.checkpoint.personal?.habits?.offlineUntil ?? 0;
+        const offlineUntil = options.continuous
+          ? 0
+          : (shared.store.get(resident.id)?.checkpoint.personal?.habits?.offlineUntil ?? 0);
         while (Date.now() < offlineUntil && !shared.stopping()) await Bun.sleep(1000);
         if (shared.stopping()) return { residentId: resident.id, outcome: 'finished' as const };
         try {
@@ -73,7 +80,7 @@ export async function runPopulation(
               ...options,
               exercise: false,
               reconnect: false,
-              naturalSessions: !!options.continuous,
+              naturalSessions: false,
               ...(profession
                 ? { profession: { behavior: profession, assets: options.assets } }
                 : { [`${role}Assets`]: options.assets })

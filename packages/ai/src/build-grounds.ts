@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { monsters } from './dungeons';
+import { monsters } from './monster-reference';
 
 // Offline build of catalogs/hunting-grounds.json: the overland places on Trammel where creatures
 // that attack on sight spawn (Spawns/trammel.xml spawners, catalogs/monsters.json stats), outside

@@ -3,11 +3,12 @@ import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } f
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { validateConnection } from '@gemwright/network/connection';
+import type { PlayerSession } from '@gemwright/network/session';
+import { Latency } from '@gemwright/network/session-observation';
+
 import { validateConfig } from './config';
-import { validateConnection } from './connection';
 import { PathPool } from './path-pool';
-import type { PlayerSession } from './protocol/session';
-import { Latency } from './protocol/session-observation';
 import { runResident, withRuntime } from './run-session';
 import { drainSlices } from './stall-probe';
 import { ResidentStore } from './store';

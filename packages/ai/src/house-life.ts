@@ -112,7 +112,9 @@ async function furnish(ctx: LifeContext, house: HouseRecord, carriedBox?: number
   if (!storage && carriedBox) {
     await session.dropAtFeet(carriedBox).catch(() => {});
     session.say('i wish to secure this');
-    await session.waitFor(() => session.world.target !== null, 'secure cursor', 4000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'secure cursor', 4000, { resource: 'target' })
+      .catch(() => {});
     if (session.world.target) {
       session.target({ serial: carriedBox, ...ctx.position(), graphic: BOX });
       await Bun.sleep(1500);

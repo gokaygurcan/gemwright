@@ -1,7 +1,7 @@
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause } from './action-purpose';
-import type { PlayerSession } from './protocol/session';
 
 // Human timing on the road (navigation.ts): people walk, not run, through a crowd or when leading
 // someone; they stop now and then for a few seconds; they react a moment late to danger; and once

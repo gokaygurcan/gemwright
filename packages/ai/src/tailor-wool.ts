@@ -1,9 +1,10 @@
+import type { Entity } from '@gemwright/network/world';
+
 import { TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
-import type { Entity } from './protocol/world';
 import { buyFrom } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
@@ -48,7 +49,9 @@ const near = (ctx: ProfessionContext, graphics: Set<number>, point: { x: number;
 async function useOn(ctx: ProfessionContext, item: Entity, target: Entity, done: () => boolean, label: string) {
   const { session } = ctx;
   session.use(item.serial);
-  await session.waitFor(() => session.world.target !== null, `${label} cursor`, 3000).catch(() => {});
+  await session
+    .waitFor(() => session.world.target !== null, `${label} cursor`, 3000, { resource: 'target' })
+    .catch(() => {});
   if (!session.world.target) return false;
   session.target({ serial: target.serial, x: 0, y: 0, z: 0, graphic: target.graphic });
   await session.waitFor(done, label, 6000).catch(() => {});

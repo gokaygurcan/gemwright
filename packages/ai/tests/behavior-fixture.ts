@@ -1,7 +1,8 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import { WorldView } from '@gemwright/network/world';
+
 import type { CharacterTemplate } from '../src/config';
 import type { LifeContext } from '../src/life';
-import type { PlayerSession } from '../src/protocol/session';
-import { WorldView } from '../src/protocol/world';
 import type { Checkpoint } from '../src/store';
 import type { Terrain } from '../src/terrain';
 
@@ -30,11 +31,18 @@ export function behaviorFixture(profession = 'tailor') {
   world.entities.set(1, { serial: 1, kind: 'mobile', graphic: 400, position: world.position });
   world.entities.set(10, { serial: 10, kind: 'item', graphic: 0xe75, parent: 1, layer: 21 });
   world.entities.set(11, { serial: 11, kind: 'item', graphic: 0xeed, parent: 10, amount: 1000 });
+  for (const field of ['health', 'mana', 'stamina', 'weight', 'gold', 'position', 'map', 'poison'] as const)
+    world.observations.fieldAt.set(field, Date.now());
   const session = {
     world,
     phase: 'ready',
     target: () => {
       world.target = null;
+    },
+    // The shard shows a container's contents when it is opened; anything else has no reply.
+    use: (serial: number) => {
+      if (world.entities.get(serial)?.parent !== undefined)
+        world.received.set(0x3c, (world.received.get(0x3c) ?? 0) + 1);
     }
   } as unknown as PlayerSession;
   const checkpoint: Checkpoint = { goal: null, memories: [], relationships: {} };

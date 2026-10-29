@@ -1,5 +1,5 @@
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 // What an item is worth beyond its kind, read from its ordinary property list (0xD6), the tooltip a
 // player sees on hover. Clilocs from the pinned ServUO Item, BaseWeapon and BaseArmor lists.

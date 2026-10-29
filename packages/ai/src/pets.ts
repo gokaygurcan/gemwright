@@ -1,6 +1,7 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Position } from '@gemwright/network/world';
+
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Position } from './protocol/world';
 
 // The animals a character owns and expects to travel with, by source (a pack animal, an unridden
 // horse, a tamer's companion). Each owner registers a function reading its own memory, so the list

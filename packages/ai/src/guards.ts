@@ -1,8 +1,8 @@
 import { GHOST_BODIES, HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { allServiceLocations } from './locations';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 
 // Residents call the guards on criminals and murderers in guarded towns, as players do: saying
 // "guards" (speech keyword 0x0007) inside a guarded region makes ServUO's GuardedRegion.CallGuards

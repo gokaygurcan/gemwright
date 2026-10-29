@@ -1,3 +1,6 @@
+import { Layer } from '@gemwright/network/layers';
+import type { Entity } from '@gemwright/network/world';
+
 import { chargedPurchase, fundsStale, queryBankBalance, spendableGold } from './bank-gold';
 import { Blocked } from './blocked';
 import { travelNear } from './cemeteries';
@@ -16,8 +19,6 @@ import { forcedToWork } from './loop-watch';
 import { prepareSpellbook } from './magery';
 import { approachVendor } from './mobile-approach';
 import { errand } from './objective-memory';
-import { Layer } from './protocol/layers';
-import type { Entity } from './protocol/world';
 import { createServiceExperience } from './service-experience';
 import { trainingVisit } from './training';
 

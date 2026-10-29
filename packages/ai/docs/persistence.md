@@ -2,64 +2,49 @@
 
 [Documentation index](README.md)
 
-## Checkpoint versions
+## Authority and recovery
 
-`checkpoint-migrations.ts` upgrades every checkpoint as it is loaded. Version 2 stamps `schemaVersion`, bounds memories, normalizes relationship entries (affinity clamped to −1..1), resets malformed goals, ensures forge and loot arrays, and drops expired depletion entries. A checkpoint from a newer runtime is refused. Component memories (experience, decisions, mount) keep their own versions.
+The shard owns skills, inventory, bank, position, health and death. The resident store owns identity, preferences, memories and intentions. Session observations are rebuilt after reconnect. Remembered state never restores possessions or replays purchases, trades, casts or transfers blindly.
 
-Relationships record encounters with fellow residents (`relationships.ts`): name, encounter count (one per five minutes apart), last place, and `peer: true`, bounded to 50 entries and scanned at most every 30 seconds. Conversation and observed shared events update affinity. Direct player interactions also retain serial-based personal memories, separate from incidental peer encounters.
+Reconnect verifies the bound character, observes its current state, handles danger/death, then resumes or replaces the intention. Resurrection requires ordinary ghost travel and valid interactions.
 
-## Persistence and recovery
+## Database
 
-### Authority boundaries
+The runtime uses a memory mirror and a dedicated SQLite writer. Repeated checkpoints coalesce in bounded five-second batches; disk commits never run on the gameplay thread. Credentials, character bindings, animal purchase intentions and model-spend reservations require durable acknowledgement before the external action. Shutdown drains pending writes. An abrupt crash can lose an unacknowledged checkpoint batch; reconnect re-observes the shard.
 
-| State | Authority |
+`residents.sqlite` retains foreign keys, WAL, `synchronous=FULL`, optimistic revisions and atomic transactions. Schema version 5 includes:
+
+| Tables | Purpose |
 | --- | --- |
-| Templates and desired population | Versioned operator configuration. |
-| Resident identity, preferences, memories, relationships, goals | External resident store. |
-| Skills, inventory, equipment, bank, position, health, death, resources | Shard server. |
-| Connection state and outstanding protocol interactions | Live session; reconstructed after reconnect. |
+| `metadata`, `templates` | Shard ownership and immutable template revisions. |
+| `residents` | UUID, activation, character binding, checkpoint and optimistic revision. |
+| `runtime_lease` | One expiring runtime owner per shard. |
+| `credentials` | Unique game account and password per resident. |
+| `skill_snapshots`, `dungeon_runs` | Hourly skills and dungeon history. |
+| `activity`, `activity_samples` | Work totals and sampled activity. |
 
-The resident store must not restore an inventory, health value, or balance over the server's state. A remembered corpse location or previous activity is context, not current truth.
+Supported migrations run transactionally. Newer unsupported schemas and shard-ID mismatches fail. Keep shard IDs stable. `saveProgress` rejects stale revisions; callers reload after conflicts.
 
-### Current database
+The database contains credentials: mode 0600, parent directory 0700. Credentials never enter proofs, model state or CLI output. Missing credentials for an already bound resident require recovery, not replacement.
 
-The foundation uses Bun's built-in SQLite driver with foreign keys, WAL, `synchronous=FULL`, a busy timeout, and synchronous immediate transactions. It adds no dependencies. Database schema version is recorded with `PRAGMA user_version`; current version 2 adds the runtime lease. Existing version-1 databases migrate transactionally without resetting residents. Unsupported versions fail rather than being guessed at or overwritten.
+## Checkpoints
 
-Each database belongs to one `shardId`. Reusing it with another shard is rejected. Keep shard IDs stable; changing one is not a supported migration.
+`checkpoint-migrations.ts` upgrades checkpoints on load; current schema version is 2. It bounds and normalizes memories and relationships, cleans expired entries and refuses newer schemas. Component memories may have their own versions.
 
-Tables:
+`workGoal` stores one active objective, a temporarily suspended objective during recovery, bounded failure cooldowns and the last outcome. Live observations revalidate it; session-only production counters are rebased after reconnect. Inventory changes and movement alone do not prove success.
 
-- `metadata`: shard ownership.
-- `templates`: immutable revision snapshots.
-- `residents`: UUID, template references, ordinal, proposed name, desired activation, optional binding, checkpoint, and optimistic revision counter.
-- `runtime_lease`: one expiring owner token for the shard database.
-- `credentials`: each resident's game account (schema version 3).
-- `skill_snapshots`: each resident's skills, saved at most once an hour (schema version 3).
+`landmarks.smithies` remembers observed anvil/forge pairs and standing tiles, rechecked on return. `landmarks.forges` holds smelting destinations. `bulkOrders` stores offer/retry timing and blocker reasons; deed properties remain authoritative for quantities. New iron can reopen a material-blocked order.
 
-Bindings contain an account reference (`resident:<resident UUID>`) and the server's actual character serial, not a password. The resident database (schema version 3) stores each resident's unique ordinary account name and random password in its `credentials` table; the database file is owner-only (mode 0600, directory 0700), so a population is self-contained in its own container and volume. The same file keeps an hourly skill snapshot per resident (`skill_snapshots`, `src/skill-snapshots.ts`), reported by the `skills` command. Credentials are never included in proofs, model state, or CLI output. Missing credentials for an already bound resident require recovery; they are not silently replaced.
+Service and life events use schema v2 in `life-events/YYYY-MM-DD.jsonl.gz`, an append-only compressed journal written by a worker. Batches are fsynced before acknowledgement; graceful shutdown drains the queue, while a crash can lose the unacknowledged tail. Life-event history is retained. Diagnostic-only records use `YYYY-MM-DD.trace.NNNNNNNN.jsonl.gz` segments within a 512 MiB rolling budget; evictions are recorded in history. Errors and warnings remain in history. A 128 MiB disk reserve protects database writes; life history still needs archival as it grows. Legacy records and missing sequences prevent complete replay.
 
-Checkpoints hold a resident's goal, memories, relationships, decisions, plans, its last look at itself (`self`) and its failed errands (`objectives`, each banned for two hours). They are an internal, versioned format (see above), and deliberately hold no authoritative game state.
+```sh
+bun packages/ai/src/replay.ts <journal.jsonl.gz>... --resident <UUID>
+```
 
-`saveProgress` checks the expected resident revision so a stale writer cannot silently overwrite a newer update. Reconciliation also increments revisions when activation or policy changes. A caller must reload after a revision conflict.
+Optional filters: `--session`, `--trace`, `--after`, `--before`, `--limit`. Replay reads recorded observations and causality without sending commands. Thirty-second health records expose lag, latency, queues, acknowledgements, memory and disk.
 
-### Crash behavior
+## Backups
 
-A committed transaction survives normal process restarts. An interrupted transaction rolls back. Tests cover a child process killed with an open write transaction and verify that earlier committed resident progress remains unchanged. This test does not simulate storage-device failure or prove all filesystem durability properties.
+Use persistent storage for the [data directory](population.md#data-directory). `gemwright pull` snapshots the deployed database with world saves; restore matching database and world state together. For manual local copies, stop every database writer first: copying only the main SQLite file during WAL activity is unsafe.
 
-Local database durability does not make network actions exactly-once. A server may accept a purchase just before the runtime crashes, while the runtime has not yet recorded its outcome. Recovery must observe inventory, funds, and interaction state before deciding whether another attempt is appropriate. Never replay purchases, trades, casts, or item transfers blindly from a checkpoint.
-
-After reconnecting, the runtime:
-
-1. Re-establishes the ordinary session and identifies the bound character.
-2. Rebuilds permitted current observations.
-3. Checks whether the character is alive, dead, in danger, or mid-interaction.
-4. Compares the remembered intention with current conditions.
-5. Resumes, replaces, or abandons the goal through normal player actions.
-
-Death recovery must use actual ghost travel and valid resurrection interactions. Failure to find a route means waiting, seeking help, or another legal behavior; it never authorizes a teleport or automatic resurrection.
-
-### Backups and operations
-
-The database (with credentials and skill snapshots) lives in the shard's data directory ([population](population.md#data-directory)), which must be on persistent storage. On a deployed shard, `gemwright pull` takes a consistent snapshot of it alongside the world saves, and `gemwright restore` puts one back. Locally, stop every process using the database before copying it: copying only the main SQLite file while WAL writes are active is not a backup. Restore the database together with the matching world save; residents re-observe the server's state after any restore.
-
-Related: [reconnect](reconnect.md) · [decisions](decisions.md).
+Committed transactions survive normal restarts; interrupted transactions roll back. Tests kill a writer during an open transaction. This does not prove storage-device durability or exactly-once network actions.

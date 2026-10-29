@@ -1,9 +1,10 @@
+import type { Entity } from '@gemwright/network/world';
+
 import { tally } from './activity';
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
 import { atVendor, type CraftContext } from './craft-training';
 import { learnQuality, quality, shopSafe } from './item-quality';
 import type { ServiceType } from './locations';
-import type { Entity } from './protocol/world';
 import { reservedFor } from './work-orders';
 
 type TradeContext = CraftContext & { backpack: () => number };

@@ -1,8 +1,11 @@
 import { gold } from '@gemwright/common/items';
+import { Layer } from '@gemwright/network/layers';
+import type { Entity } from '@gemwright/network/world';
 
 import { chargedPurchase, fundsStale, knownBankGold, offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import { nearAnyGround, travelNear } from './cemeteries';
 import { replaceDeathRobe } from './death-robe';
+import { actionScope } from './execution-session';
 import {
   ammoFor,
   bandage,
@@ -18,14 +21,12 @@ import { packItems } from './inventory';
 import { learnQuality, shopSafe } from './item-quality';
 import { allServiceLocations } from './locations';
 import { forcedToWork } from './loop-watch';
-import { pocketReserve, recordIncome } from './loot-economy';
+import { recordIncome } from './loot-economy';
 import { combatReagents } from './mage-combat';
 import { buyAtMarket, goodMatch, goods } from './market';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
 import { errand } from './objective-memory';
-import { Layer } from './protocol/layers';
-import type { Entity } from './protocol/world';
 import { travelScrolls } from './scribe';
 import { createServiceExperience } from './service-experience';
 
@@ -49,6 +50,16 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     checkpoint
   } = ctx;
   const learning = createServiceExperience(ctx);
+  const supplyName = (graphic: number) =>
+    new Map([
+      [bandage, 'bandages'],
+      [healPotion, 'greater heal potions'],
+      [curePotion, 'cure potions'],
+      [poisonPotion, 'poison potions'],
+      [0x0f3f, 'arrows'],
+      [0x1bfb, 'crossbow bolts']
+    ]).get(graphic) ??
+    (terrain.tile(graphic, true).name || `item 0x${graphic.toString(16)}`);
   // Bankers answer the "bank" keyword from across the bank floor; no walk to the counter.
   const openBank = async (mobile: Entity, retry = false) => {
     if ((!retry && learning.blocked(mobile, 3006105)) || !(await offersBank(session, mobile.serial))) return;
@@ -84,14 +95,16 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
         cliloc,
         error instanceof Error && /route|approach|blocked/i.test(error.message) ? 'unreachable' : 'unavailable'
       );
-      log(`Vendor unavailable: ${error instanceof Error ? error.message : error}`);
+      log(
+        `Vendor unavailable${needs.length ? ` for ${needs.map(supplyName).join(', ')}` : ''}: ${error instanceof Error ? error.message : error}`
+      );
       return false;
     }
   };
   const casts = () =>
     !!ctx.template.archetype &&
     [...ctx.template.archetype.primarySkills, ...ctx.template.archetype.supportingSkills].includes('Magery');
-  // graphic: [restock target, enough to skip a trip, highest unit price]. Archers also stock ammo.
+  // Graphic: [target quantity, minimum on hand, maximum unit price].
   const supplies = () => {
     const table = new Map([
       [bandage, [30, 20, 8]],
@@ -148,11 +161,15 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     }
     // Now and then an archer looks for an exceptional bow at the bow market (market.ts).
     if (weaponSkill(ctx.template) === 'Archery' && Math.random() < 0.25) await upgradeBow();
-    // Melee fighters now and then look for a resident smith's armour.
     else if (weaponSkill(ctx.template) !== 'Archery' && Math.random() < 0.15) await upgradeArmour();
     // Nothing to buy with: no shopping walk at all.
     if (status().gold + knownBankGold(checkpoint) < 50 && !fundsStale(checkpoint)) return;
-    phase('restocking', 'Looking for supplies sold by ordinary vendors');
+    const requested = () =>
+      [...table]
+        .filter(([graphic, [want = 0]]) => count(graphic) < want)
+        .map(([graphic, [want = 0]]) => `${want - count(graphic)} ${supplyName(graphic)}`)
+        .join(', ');
+    phase('restocking', `Looking for ${requested()}`);
     const stops = [
       ...(weaponSkill(ctx.template) === 'Archery' ? ctx.home.all('bowyer') : []),
       ...(casts() ? ctx.home.all('mage') : []),
@@ -171,8 +188,7 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
         checkpoint.farShopAfter = Date.now() + 2 * 3_600_000;
         ctx.persist();
       }
-      // A stop that buys nothing is not walked to again for two hours (objective-memory.ts).
-      await errand(ctx, `restock:${shop.x},${shop.y}`, `restocking at ${shop.x},${shop.y}`, async () => {
+      await errand(ctx, `restock:${shop.x},${shop.y}`, `restocking ${requested()} at ${shop.x},${shop.y}`, async () => {
         await travelNear(ctx, shop, 5);
         const needs = [...table]
           .filter(([graphic, [want]]) => count(graphic) < (want ?? 0))
@@ -219,7 +235,7 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
               session.purchaseItem(mobile.serial, item.serial, ctx.backpack(), amount, Math.min(cap, funds))
             );
             learning.record(mobile, 3006103, 'success', needs);
-            log(`Bought ${amount} supplies (graphic ${item.graphic.toString(16)})`);
+            log(`Bought ${amount} ${supplyName(item.graphic)}`);
             await Bun.sleep(700);
           }
         }
@@ -252,7 +268,6 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     for (const shop of saleStops) {
       if (!contents().some((item) => trip.loot.includes(item.serial) && item.graphic !== gold)) break;
       // The shop may be across water (Britain's for an island town): travelNear takes the moongate.
-      // A stop that buys nothing is not walked to again for two hours (objective-memory.ts).
       await errand(ctx, `sell:${shop.x},${shop.y}`, `selling at ${shop.x},${shop.y}`, async () => {
         await travelNear(ctx, shop, 5);
         for (const mobile of learning.order(nearby(), 3006104)) {
@@ -341,14 +356,10 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
           if (opened === undefined) continue;
           const box = { serial: opened };
           await Bun.sleep(500);
-          // Keep a small purse for player trades and any unsettled companion share.
-          let pocket = pocketReserve(checkpoint);
           for (const item of contents()) {
             check();
             if (item.graphic === gold) {
-              const kept = Math.min(pocket, item.amount ?? 1);
-              pocket -= kept;
-              const deposit = (item.amount ?? 1) - kept;
+              const deposit = item.amount ?? 1;
               if (deposit <= 0) continue;
               await session.moveItem(item.serial, box.serial, deposit);
               stats.bankedGold += deposit;
@@ -379,20 +390,25 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
       throw new Error('No observed banker offered access');
     });
   };
-  const rest = async () => {
-    if (status().hits < status().maxHits * 0.9 && nearAnyGround(position())) await navigate(ctx.home.town, 4);
-    phase('recovering-health', 'Recovering in town before another fight');
-    // Town is safe: keep resting (natural regeneration plus bandages) for up to twenty minutes
-    // rather than abandoning the run after a fixed short wait.
-    const until = Math.min(deadline, Date.now() + 20 * 60_000);
-    while ((status().hits < status().maxHits * 0.9 || (session.world.poisonLevel ?? 0) > 0) && Date.now() < until) {
-      check();
-      await heal();
-      await Bun.sleep(2500);
-      await session.refreshStatus();
-    }
-    if (status().hits < status().maxHits * 0.8 || (session.world.poisonLevel ?? 0) > 0)
-      throw new Error('Insufficient recovery to hunt safely');
-  };
+  // One bounded recovery action: at most a minute and a half of healing per invocation, then the
+  // goal layer paces the retry (goal-turn.ts) and its deadline bounds the whole recovery.
+  const rest = () =>
+    actionScope(
+      session,
+      'recovery',
+      'Recover to working health',
+      async () => {
+        if (status().hits < status().maxHits * 0.9 && nearAnyGround(position())) await navigate(ctx.home.town, 4);
+        phase('recovering-health', 'Recovering in town before another fight');
+        const until = Math.min(deadline, Date.now() + 90_000);
+        while ((status().hits < status().maxHits * 0.9 || (session.world.poisonLevel ?? 0) > 0) && Date.now() < until) {
+          check();
+          await heal();
+          await Bun.sleep(2500);
+          await session.refreshStatus();
+        }
+      },
+      135_000
+    );
   return { contextAction, openBank, restock, sellLoot, bank, rest };
 }

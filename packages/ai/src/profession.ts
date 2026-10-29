@@ -1,25 +1,27 @@
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, Position, WorldView } from '@gemwright/network/world';
+
 import { DangerInterrupt, urgentAction } from './action-purpose';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
 import { threatsNear } from './danger';
-import { escapeDanger, interruptForDanger } from './danger-response';
+import { escapeDanger } from './danger-response';
 import type { DecisionCoordinator } from './decisions';
 import type { RunRecord } from './dungeon-context';
+import { actionScope, checkAction, yieldForInteraction } from './execution-session';
+import { residentTurn } from './goal-turn';
 import { workGear } from './inventory';
 import { type LifeContext, lifeTurn } from './life';
 import { pickLocation, townAt } from './locations';
-import { info } from './log';
-import { checkLoop, watchStep } from './loop-watch';
+import { logger } from './log';
+import { watchStep } from './loop-watch';
 import { createNavigator, distance } from './navigation';
 import { type DungeonRole, professionDungeonTurn } from './profession-dungeon';
 import { readyForDungeons } from './progression';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, Position, WorldView } from './protocol/world';
 import { noticePeers } from './relationships';
-import { scavenge } from './scavenge';
+import { runnerCheck } from './runner-check';
 import { isSetback, passSetback } from './setback';
-import { sideTurn, upkeepTurn } from './shared-turn';
 import { trainSupportingSkill } from './skill-training';
 import type { Checkpoint } from './store';
 import { learnWork } from './strategy-learning';
@@ -69,7 +71,8 @@ export async function runProfession(
   options: ProfessionOptions,
   turn: (ctx: ProfessionContext) => Promise<void>,
   // The profession's part in dungeon runs (profession-dungeon.ts), when it has one.
-  dungeon?: DungeonRole
+  dungeon?: DungeonRole,
+  plans?: { order: (ctx: ProfessionContext) => Promise<boolean> }
 ): Promise<{ stopped: string; progress: Record<string, number> }> {
   const { session, template } = options;
   const serial = session.world.serial;
@@ -80,9 +83,13 @@ export async function runProfession(
   const city = template.creation.city.toLowerCase();
   const progress: Record<string, number> = {};
   const tag = options.label ? `${name}:${options.label}` : name;
-  const log = (message: string) => info(`[${tag}] ${message}`);
-  const persist = () => options.save(checkpoint);
+  const log = (message: string) => logger('profession').info(`[${tag}] ${message}`);
+  const persist = () => {
+    checkAction(session);
+    options.save(checkpoint);
+  };
   const phase = (value: string, note: string) => {
+    checkAction(session);
     watchStep(session, tag, value, note);
     checkpoint.goal = { kind: name, phase: value, note: note };
     learnWork(session, checkpoint, template);
@@ -100,12 +107,14 @@ export async function runProfession(
     if (!session.world.status) throw new Error('Status is unknown');
     return session.world.status;
   };
-  const check = () => {
-    checkLoop(session);
-    if (options.stopping?.() || Date.now() >= deadline) throw new Error(`${name} run duration reached`);
-    if (session.phase !== 'ready') throw new Error(`${name} disconnected; reconnect before continuing`);
-    interruptForDanger(session, !['tamer', 'bard', 'thief'].includes(name));
-  };
+  const check = runnerCheck({
+    session,
+    label: name,
+    deadline,
+    stopping: options.stopping,
+    sighted: !['tamer', 'bard', 'thief'].includes(name)
+  });
+  session.setActivityCheck?.(check);
   const backpack = () => {
     const pack = session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
     if (!pack) throw new Error('No observed backpack');
@@ -162,32 +171,39 @@ export async function runProfession(
     phase('reconcile', 'Reading current inventory and status; previous transactions are never replayed');
     await session.refreshStatus();
     await session.refreshSkills();
+    let nextTurnAt = 0;
     while (Date.now() < deadline) {
+      // Shared plans and maintenance must yield too, including early-return and blocked turns.
+      await Bun.sleep(Math.max(0, nextTurnAt - Date.now()));
+      nextTurnAt = Date.now() + 1000;
       try {
-        check();
-        // Upkeep first, the same for every trade (shared-turn.ts).
-        if (await upkeepTurn(ctx, shared)) continue;
-        if (dungeon && (await professionDungeonTurn(ctx, dungeon, options.recordRun, false))) continue;
-        if (await scavenge(ctx)) continue;
-        if (await lifeTurn(life)) continue;
-        // Those who do not fight leave monsters to others: back to the town bank (danger.ts).
-        const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
-        // Already at the bank, it stays put: a town is as safe as it gets, so the work goes on.
-        const near = bank ? threatsNear(session, ctx.position(), 8) : [];
-        if (!['tamer', 'bard', 'thief'].includes(name) && bank && near.length && distance(ctx.position(), bank) > 6) {
-          const seen = near.map((m) => `${m.name ?? 'something'} (0x${m.graphic.toString(16)})`).join(', ');
-          phase('avoiding', `Monsters about (${seen}); heading back to town`);
-          await urgentAction(session, 'escape', () => ctx.navigate(bank, 3)).catch(() => {});
-          await Bun.sleep(2000);
-          continue;
-        }
-        if (await sideTurn(ctx, shared)) continue;
-        const started = Date.now();
-        await turn(ctx);
-        // Every resident shares one event loop: a turn that found nothing to do (no spot, no target)
-        // must not spin, so a turn lasts at least a second and always yields.
-        await Bun.sleep(Math.max(0, 1000 - (Date.now() - started)));
+        await actionScope(session, 'work', 'profession turn', async () => {
+          check();
+          // Upkeep first, the same for every trade (shared-turn.ts).
+          if (
+            await residentTurn(ctx, {
+              ...shared,
+              order: plans && (() => plans.order(ctx)),
+              optional: () => lifeTurn(life)
+            })
+          )
+            return;
+          if (dungeon && (await professionDungeonTurn(ctx, dungeon, options.recordRun, false))) return;
+          // Those who do not fight leave monsters to others: back to the town bank (danger.ts).
+          const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
+          // Already at the bank, it stays put: a town is as safe as it gets, so the work goes on.
+          const near = bank ? threatsNear(session, ctx.position(), 8) : [];
+          if (!['tamer', 'bard', 'thief'].includes(name) && bank && near.length && distance(ctx.position(), bank) > 6) {
+            const seen = near.map((m) => `${m.name ?? 'something'} (0x${m.graphic.toString(16)})`).join(', ');
+            phase('avoiding', `Monsters about (${seen}); heading back to town`);
+            await urgentAction(session, 'escape', () => ctx.navigate(bank, 3)).catch(() => {});
+            await Bun.sleep(2000);
+            return;
+          }
+          await turn(ctx);
+        });
       } catch (error) {
+        if (await yieldForInteraction(session, error)) continue;
         if (error instanceof DangerInterrupt) {
           const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
           await escapeDanger(ctx, bank);

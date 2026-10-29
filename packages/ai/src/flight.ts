@@ -1,7 +1,7 @@
 import { GARGOYLE_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause } from './action-purpose';
-import type { PlayerSession } from './protocol/session';
 
 // Gargoyle flight (ServUO FlySpell, SA): a gargoyle cannot ride, but takes wing for a long walk,
 // a two-second take-off without mana that a blow disturbs, and lands when it gets there. On this

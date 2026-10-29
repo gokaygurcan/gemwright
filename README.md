@@ -132,26 +132,6 @@ The shard and AI services need a deployment made with this version, whose start 
   - Sphere-X: `.add i_world_decorator` and `.add i_world_spawner`, then double-click each item.
   - Sphere: world generation depends on your chosen script pack.
 
-## Development
-
-- [x] `init` to initialize shard with a few answers
-- [x] `deploy` to deploy an initialized shard
-  - [x] to Railway
-  - [x] to VPS (Digital Ocean, Hetzner, etc.)
-- [x] Multiple server emulators
-  - [x] ServUO [pub57]
-  - [x] Sphere (with Script pack) [master]
-  - [x] RunUO [master]
-  - [x] Sphere-X (with Script-X pack) [master]
-  - [x] ModernUO [main]
-- [x] Web client
-- [ ] AI
-  - [x] Profession templates
-  - [x] Interactions and conversations
-  - [x] Dungeon runs
-  - [x] Economy
-  - [ ] Housing, boat, guild and storage
-
 ## License
 
 Gemwright is licensed under the [MIT License](LICENSE). Server emulators, script packs, web clients, dependencies, and game assets retain their respective licenses and terms.

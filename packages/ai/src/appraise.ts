@@ -1,5 +1,6 @@
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
+
 import { itemName, type SelfImage, wornBy } from './self';
 import type { Checkpoint } from './store';
 

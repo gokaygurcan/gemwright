@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-import { info } from './log';
+import { logger } from './log';
 
 // Optional phrasing of authored replies by Claude Haiku 5.5. Jev (or the local rule) has already
 // chosen what to say; the model only says it in the resident's own voice. A rephrasing is spoken
@@ -137,7 +137,7 @@ export async function phrase(options: {
     const reason = rejection(options.authored, text);
     if (reason) {
       usage.rejected++;
-      info(`[phrasing] kept "${options.authored}"; "${text}" ${reason}`);
+      logger('phrasing').info(`[phrasing] kept "${options.authored}"; "${text}" ${reason}`);
       return fallback;
     }
     if (!known.includes(text)) variants.set(options.authored, [...known, text]);

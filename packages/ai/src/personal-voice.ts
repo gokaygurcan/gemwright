@@ -1,4 +1,5 @@
-import type { PlayerSession } from './protocol/session';
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { residentContext } from './resident-context';
 
 export function voiceStyle(session: PlayerSession) {

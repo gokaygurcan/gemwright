@@ -1,4 +1,5 @@
 import { gold } from '@gemwright/common/items';
+import type { Entity } from '@gemwright/network/world';
 
 import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import { Blocked } from './blocked';
@@ -7,7 +8,6 @@ import { pickLocation, type ServiceType } from './locations';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
-import type { Entity } from './protocol/world';
 import {
   dungeonMark,
   groundFor,

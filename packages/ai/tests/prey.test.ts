@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
 import type { FighterContext } from '../src/fighter-context';
 import { chooseOpponent } from '../src/fighter-hunt';
 import { engageable } from '../src/fighter-prey';
-import type { Entity } from '../src/protocol/world';
 
 const mobile = (serial: number, graphic: number, name: string, x = 10): Entity => ({
   serial,
@@ -81,7 +81,7 @@ test('an opponent disappearing during inspection does not stop the hunter', asyn
     check: () => {},
     session: {
       phase: 'ready',
-      world: { map: 1, entities: new Map() },
+      world: { ...ctx.session.world, map: 1, entities: new Map() },
       inspect: async () => {
         throw new Error('Timed out waiting for observed character name');
       }

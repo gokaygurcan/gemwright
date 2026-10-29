@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
 import { Blocked } from './blocked';
@@ -10,8 +11,7 @@ import { mountEquipment } from './mount-types';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import type { DungeonRole } from './profession-dungeon';
-import type { Entity } from './protocol/world';
-import { foundAtGround, tamingSpot } from './tamer-grounds';
+import { foundAtGround, tamingSpot, unreachableGround } from './tamer-grounds';
 import { companion, fightWithPet, readyBow, shoots, veterinary } from './tamer-pet';
 import { keepOffers, offerPet } from './tamer-sales';
 
@@ -97,19 +97,21 @@ export const runTamer = (options: ProfessionOptions) => {
         if (!searchFrom.has(session) || distance(ctx.position(), searchFrom.get(session) ?? ctx.position()) > 300)
           searchFrom.set(session, ctx.position());
         const from = searchFrom.get(session) ?? ctx.position();
+        // A remote site's elevation is not the resident's current elevation. Let navigation
+        // find the intervening slopes rather than rejecting it with one local stand test.
         const spot = ground
-          ? ctx.terrain.stand(ground.x, ground.y, ctx.position().z)
-          : ctx.terrain.stand(
-              from.x + Math.round((Math.random() - 0.5) * 240),
-              from.y + Math.round((Math.random() - 0.5) * 240),
-              ctx.position().z
-            );
+          ? { x: ground.x, y: ground.y }
+          : {
+              x: from.x + Math.round((Math.random() - 0.5) * 240),
+              y: from.y + Math.round((Math.random() - 0.5) * 240)
+            };
         if (ground?.far) phase('tamer-travel', `Heading for animals of my level near ${ground.x},${ground.y}`);
         else phase('tamer-search', 'Looking for animals to tame');
-        if (spot)
-          await ctx.navigate(spot, 2).catch((error) => {
-            if (!(error instanceof Blocked)) throw error;
-          });
+        await ctx.navigate(spot, 2).catch((error) => {
+          if (!(error instanceof Blocked)) throw error;
+          if (ground) unreachableGround(ctx.serial);
+          log(`Taming ground unavailable: ${error.message}`);
+        });
         return;
       }
       const { mobile, profile: kind } = target;
@@ -119,7 +121,7 @@ export const runTamer = (options: ProfessionOptions) => {
       if (mobile.position && distance(ctx.position(), mobile.position) > 3) await ctx.navigate(mobile.position, 2);
       const seen = new Set(session.world.journal);
       session.useSkill(skillId('AnimalTaming'));
-      await session.waitFor(() => session.world.target !== null, 'taming cursor', 3000);
+      await session.waitFor(() => session.world.target !== null, 'taming cursor', 3000, { resource: 'target' });
       session.target({ serial: mobile.serial, x: 0, y: 0, z: 0, graphic: mobile.graphic });
       const reply = () =>
         session.world.journal.find((e) => !seen.has(e) && [TAMED, FAILED, ...CANNOT].includes(e.cliloc ?? 0))?.cliloc;

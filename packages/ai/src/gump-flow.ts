@@ -1,5 +1,5 @@
-import { gumpCommands } from './protocol/gumps';
-import type { PlayerSession } from './protocol/session';
+import { gumpCommands } from '@gemwright/network/gumps';
+import type { PlayerSession } from '@gemwright/network/session';
 
 // Menus driven as a player clicks through them (house placement, the guild menus): a gump is
 // recognised by a cliloc in its layout, the newest one first, and answered with one of its own

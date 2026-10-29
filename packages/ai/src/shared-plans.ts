@@ -1,9 +1,10 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { JournalEntry } from '@gemwright/network/world';
+
 import { canPause, checkedDelay } from './action-purpose';
 import { cemeteries } from './cemeteries';
 import type { LifeContext } from './life';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { JournalEntry } from './protocol/world';
 import { residentCombat, residentContext } from './resident-context';
 import { rememberPartner } from './resident-memory';
 import type { Commitment } from './resident-memory-types';

@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
 
 import { bestRecipe, buttonFor, RAW_INGOT_VALUE } from '../src/miner-crafting';
-import { choosePastime } from '../src/miner-pastimes';
-import { useSkill } from '../src/protocol/packets';
 
 test('best value at blacksmithy 50 beats raw ingots', () => {
   const best = bestRecipe(50);
@@ -23,19 +21,6 @@ test('craft gump buttons are found beside their localized labels', () => {
   expect(buttonFor(layout, 1011080)).toBe(1);
   expect(buttonFor(layout, 1027032)).toBe(37);
   expect(buttonFor(layout, 1027035)).toBeUndefined();
-});
-
-test('miners pick a weighted pastime instead of quitting', () => {
-  expect(choosePastime(['smith', 'train', 'wander'], () => 0)).toBe('smith');
-  expect(choosePastime(['smith', 'train', 'wander'], () => 0.5)).toBe('train');
-  expect(choosePastime(['smith', 'train', 'wander'], () => 0.99)).toBe('wander');
-  expect(choosePastime(['wander'], () => 0.3)).toBe('wander');
-  expect(choosePastime([])).toBeUndefined();
-});
-
-test('skill use is encoded as the client skill button request', () => {
-  expect([...useSkill(4)]).toEqual([0x12, 0, 8, 0x24, 0x34, 0x20, 0x30, 0]);
-  expect(() => useSkill(58)).toThrow('Invalid skill id');
 });
 
 test('profit crafting can still attempt a viable recipe at skill 100', async () => {

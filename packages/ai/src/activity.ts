@@ -1,27 +1,22 @@
 import type { Database } from 'bun:sqlite';
 
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { attachGuilds } from './guild-store';
 import { attachHousing } from './house-lots';
 import { attachInsight } from './player-insight';
-import type { PlayerSession } from './protocol/session';
 import type { Checkpoint } from './store';
+import { workCounts } from './work-evidence';
 
 // Running activity totals for population reports. Behaviors bump a counter on the session where
 // the activity happens; the recorder saves the growth since its last look into per-resident totals
 // every five minutes, with one position and wealth sample, in a single transaction. Nothing here
 // talks to the shard.
-const tallies = new WeakMap<PlayerSession, Record<string, number>>();
-
-export function tally(session: PlayerSession, name: string, amount = 1) {
-  const counts = tallies.get(session) ?? {};
-  counts[name] = (counts[name] ?? 0) + amount;
-  tallies.set(session, counts);
-}
+export { tally } from './work-evidence';
 
 export function observedWorkCount(session: PlayerSession): number {
-  const counts = tallies.get(session) ?? {};
+  const counts = workCounts(session);
   return ['mined', 'chopped', 'fished', 'crafted', 'kills'].reduce((sum, key) => sum + (counts[key] ?? 0), 0);
 }
 
@@ -85,7 +80,7 @@ export function notePlayer(session: PlayerSession, key: string, signal: Omit<Pla
 // Everything a session has counted, steps included (from its movement acknowledgements).
 function counted(session: PlayerSession): Record<string, number> {
   const moves = session.movementCounts;
-  return { ...tallies.get(session), steps: moves.walking + moves.running };
+  return { ...workCounts(session), steps: moves.walking + moves.running };
 }
 
 const retentionMs = 30 * 24 * 3600_000;

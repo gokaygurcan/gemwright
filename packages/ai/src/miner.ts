@@ -1,22 +1,24 @@
 import { GHOST_BODIES } from '@gemwright/common/bodies';
-import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
 import { DangerInterrupt } from './action-purpose';
 import { openOwnBackpack } from './backpack';
 import { Blocked, blockedReason } from './blocked';
-import { bulkOrderTurn } from './bulk-orders';
-import { escapeDanger, interruptForDanger } from './danger-response';
+import { escapeDanger } from './danger-response';
 import { shedDeathRobe, wearsDeathRobe } from './death-robe';
 import type { DecisionPick } from './decisions';
+import { actionScope, checkAction, yieldForInteraction } from './execution-session';
 import { reconcileExperience } from './experience';
+import { residentTurn } from './goal-turn';
 import { leavesEarly, packFull, packItems, tidyPack, workGear } from './inventory';
 import { lifeTurn } from './life';
-import { pickLocation, serviceLocations } from './locations';
-import { info } from './log';
-import { checkLoop, watchStep } from './loop-watch';
+import { forgeSites, pickLocation, serviceLocations } from './locations';
+import { logger } from './log';
+import { watchStep } from './loop-watch';
 import { sellCarried } from './market';
-import { blacksmithing } from './miner-crafting';
+import { minerBulkOrder } from './miner-bulk-orders';
 import { digSite, ore, oreIn } from './miner-dig';
+import { minerInventory } from './miner-inventory';
 import { createMinerPastimes } from './miner-pastimes';
 import { chooseMiningActivity, minerPlan, rememberForges } from './miner-plan';
 import { createMinerServices, ingot, tools } from './miner-services';
@@ -26,12 +28,12 @@ import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator } from './navigation';
 import { lighten } from './overload';
 import { createPackAnimal } from './pack-animal';
-import type { Entity } from './protocol/world';
 import { observeResident } from './resident-observation';
 import type { ResidentOptions } from './resident-options';
 import { resurrectGhost } from './resurrection';
+import { runnerCheck } from './runner-check';
 import { isSetback } from './setback';
-import { asProfession, sideTurn, upkeepTurn } from './shared-turn';
+import { asProfession } from './shared-turn';
 import { type Point, Terrain } from './terrain';
 import { reachRegion, workArea } from './work-areas';
 
@@ -39,8 +41,12 @@ const distance = (a: Point, b: { x: number; y: number }) => Math.max(Math.abs(a.
 
 export async function runMiner(options: ResidentOptions) {
   const { session, template } = options;
-  // Each miner works its own district (work-areas.json), with that city's bank as home.
-  const area = workArea('mining', options.label ?? template.id, template.creation.city);
+  // Each miner works one of the districts whose town can support it — a bank and a public forge
+  // (work-areas.ts) — and that town's bank is home. Cove has no forge, so no miner is based there.
+  const usableMiningArea = (candidate: { city: string }) =>
+    serviceLocations(candidate.city, 'banker').length > 0 &&
+    forgeSites.some((forge) => forge.city.toLowerCase() === candidate.city.toLowerCase());
+  const area = workArea('mining', options.label ?? template.id, template.creation.city, usableMiningArea);
   const city = area.city.toLowerCase();
   if (session.world.map !== 1) throw new Error('The miner supports Trammel');
   const home = pickLocation(city, 'banker') ?? { x: area.x, y: area.y };
@@ -64,18 +70,23 @@ export async function runMiner(options: ResidentOptions) {
   const deadline = Date.now() + options.seconds * 1000;
   const blocked = new Set<string>();
   const checkpoint = structuredClone(options.checkpoint);
+  const persist = () => {
+    checkAction(session);
+    options.save(checkpoint);
+  };
   reconcileExperience(checkpoint);
   options.decisions?.reconcile(checkpoint);
   let activeDecision: DecisionPick | null = null;
   let decisionAttemptsBefore = 0;
-  const { exhausted, newTrip, plan } = minerPlan(checkpoint, template, () => options.save(checkpoint));
+  const { exhausted, newTrip, plan } = minerPlan(checkpoint, template, persist);
   const unsmeltable = new Set<number>();
   let attempts = 0;
   let blockedSites = 0;
   const progress = { deposits: 0, trips: 0, purchases: 0, sold: 0, smelts: 0, ingotsProduced: 0, packRejected: false };
   const tag = options.label ? `miner:${options.label}` : 'miner';
-  const log = (message: string) => info(`[${tag}] ${message}`);
+  const log = (message: string) => logger('miner').info(`[${tag}] ${message}`);
   const phase = (value: string, note: string) => {
+    checkAction(session);
     watchStep(session, tag, value, note);
     checkpoint.goal = { kind: 'mining', phase: value, note: note };
     observeResident({
@@ -85,14 +96,13 @@ export async function runMiner(options: ResidentOptions) {
       city: city,
       peers: options.peers,
       decisions: options.decisions,
-      persist: () => options.save(checkpoint)
+      persist
     });
     checkpoint.memories = [...checkpoint.memories.slice(-49), { at: new Date().toISOString(), text: note }];
-    options.save(checkpoint);
+    persist();
     log(`${value}: ${note}`);
   };
   const ghost = () => GHOST_BODIES.has(session.world.entities.get(serial)?.graphic ?? 0);
-  // A ghost walking to a healer passes the liveness check that stops every other action.
   let reviving = false;
   const revive = async () => {
     reviving = true;
@@ -100,14 +110,15 @@ export async function runMiner(options: ResidentOptions) {
       reviving = false;
     });
   };
-  const check = () => {
-    checkLoop(session);
-    if (Date.now() >= deadline) throw new Error('Miner run duration reached');
-    if (session.phase !== 'ready')
-      throw new Error('Miner disconnected; reconnect and reconcile inventory before continuing');
-    if (!reviving && ghost()) throw new Error('Miner is dead; resurrection behavior is pending');
-    if (!reviving) interruptForDanger(session);
-  };
+  const check = runnerCheck({
+    session,
+    label: 'Miner',
+    deadline,
+    stopping: options.stopping,
+    dead: ghost,
+    reviving: () => reviving
+  });
+  session.setActivityCheck?.(check);
   const rememberObservedForges = () => rememberForges(session, checkpoint, position());
 
   let mounts: ReturnType<typeof createMountController> | undefined;
@@ -123,16 +134,7 @@ export async function runMiner(options: ResidentOptions) {
   });
   const navigate = mountedNavigator(groundNavigate, () => mounts, undefined, position);
   const openBackpack = () => openOwnBackpack(session);
-  const carried = (backpack: number) => [...session.world.entities.values()].filter((item) => item.parent === backpack);
-  const smeltable = (backpack: number) =>
-    carried(backpack).filter(
-      (item) =>
-        ore.has(item.graphic) && !unsmeltable.has(item.serial) && !(item.graphic === 0x19b7 && (item.amount ?? 1) < 2)
-    );
-  const retainedOre = (backpack: number) => {
-    const usable = new Set(smeltable(backpack).map((item) => item.serial));
-    return carried(backpack).filter((item) => ore.has(item.graphic) && !usable.has(item.serial));
-  };
+  const { carried, smeltable, retainedOre } = minerInventory(session, unsmeltable);
   const servicesCtx = {
     session,
     serial,
@@ -155,7 +157,7 @@ export async function runMiner(options: ResidentOptions) {
     plan,
     newTrip,
     progress,
-    persist: () => options.save(checkpoint)
+    persist
   };
   const { smelt: smeltCarried, bank, resupply, smithFromBank, withdrawIngots } = createMinerServices(servicesCtx);
   // Smelts what is carried, then what the pack animal carries, a load at a time.
@@ -179,7 +181,7 @@ export async function runMiner(options: ResidentOptions) {
     check,
     phase,
     log,
-    persist: () => options.save(checkpoint),
+    persist,
     backpack: () => backpackSerial
   });
   const { pastime, setback, resupplyOrPass, life, pickUp } = createMinerPastimes(servicesCtx, {
@@ -214,7 +216,7 @@ export async function runMiner(options: ResidentOptions) {
       phase,
       log,
       navigate: groundNavigate,
-      persist: () => options.save(checkpoint),
+      persist,
       backpack: () => backpack
     };
     // A riding horse waits for savings: a newcomer's first gold goes on its work (mounts.ts).
@@ -249,182 +251,208 @@ export async function runMiner(options: ResidentOptions) {
     );
     // Empty turns must yield to the other residents.
     let turnAt = 0;
+    const activePacks = packs;
+    const activeMounts = mounts;
     while (Date.now() < deadline) {
       await Bun.sleep(Math.max(0, turnAt + 250 - Date.now()));
       turnAt = Date.now();
       try {
-        // Upkeep, selling, banking, rest, escorts, players' shops and a side trade after a loop,
-        // as for every trade (shared-turn.ts).
-        const shared = {
-          trade: 'miner',
-          keep: (item: Entity) => workGear.has(item.graphic),
-          life: life(bank, options.decisions),
-          needed: (checkpoint.sideTrade?.until ?? 0) > Date.now()
-        };
-        if ((await upkeepTurn(professional, shared)) || (await sideTurn(professional, shared))) continue;
-        check();
-        await session.refreshStatus();
-        const miningLimit = () =>
-          Math.min(status().maxWeight * Math.max(0.78, plan().smeltAtWeightRatio), status().maxWeight - 30);
-        const hasTool = () => carried(backpack).some((item) => tools.has(item.graphic));
-        const needsSpace = () => progress.packRejected || packItems(session, backpack).length >= 110;
-        await packs.keepUp();
-        // A full pack goes onto the pack animal while it has room; mining goes on.
-        if (status().weight >= miningLimit() && (await packs.stow(ore))) continue;
-        let smelted = false;
-        if (
-          smeltable(backpack).length &&
-          (status().weight >= miningLimit() || needsSpace() || !hasTool() || plan().pending === 'smelt')
-        ) {
-          // Far from any forge (visiting another town): smelting waits for the way home.
-          await smelt(backpack).catch(async (error) => {
-            if (!(error instanceof Error) || !error.message.startsWith('No reachable forge')) throw error;
-            phase('mine-travel', 'No forge near here; heading back to the mines');
-            await reachRegion({ session, position, navigate, phase }, home);
+        await actionScope(session, 'work', 'miner turn', async () => {
+          const consumed = await residentTurn(professional, {
+            trade: 'miner',
+            keep: (item: Entity) => workGear.has(item.graphic),
+            life: life(bank, options.decisions),
+            settle: async () => {
+              await smelt(backpack);
+              await bank(backpack);
+            },
+            order: () => minerBulkOrder(professional, withdrawIngots),
+            prepare: () => resupplyOrPass(backpack),
+            recover: async () => {
+              if (ghost()) await revive();
+              else await setback('Recovering health before mining');
+            },
+            optional: () => lifeTurn(life(bank, options.decisions))
           });
-          smelted = true;
-        }
-        const hasIngots = carried(backpack).some((item) => item.graphic === ingot);
-        const stranded = !smeltable(backpack).length && retainedOre(backpack).length > 0;
-        // Smelt to lighten the load before banking.
-        if (
-          (hasIngots || (stranded && (status().weight >= miningLimit() || needsSpace()))) &&
-          (plan().pending === 'bank' ||
-            needsSpace() ||
-            packFull(session, backpack, 0.85) ||
-            !hasTool() ||
-            (stranded && status().weight >= miningLimit()) ||
-            (smelted && leavesEarly(session)))
-        ) {
-          if (needsSpace() || packFull(session, backpack, 0.85)) packs.fullLoad();
-          await bank(backpack);
-          // A healthy banked iron stock: sometimes smith a batch for profit.
-          if ((checkpoint.stock?.ingots ?? 0) >= 200 && Math.random() < 0.4) await smithFromBank(backpack);
-          // Spare iron goes to fellow residents at the Minoc market (market.ts); unsold iron is banked again.
-          else if (
-            (checkpoint.stock?.ingots ?? 0) >= 150 &&
-            Math.random() < 0.3 &&
-            (await withdrawIngots(backpack, 50, 100))
-          ) {
-            const market = { session, template, checkpoint, city, position, navigate, phase, backpack: () => backpack };
-            await sellCarried({ ...market, decisions: options.decisions }, 'iron ingots', 5);
-          }
-          // Now and then a smith takes a bulk order at the smithy, iron from the bank (bulk-orders.ts).
-          const smith = session.world.skills.get(skillId('Blacksmith'))?.base ?? 0;
-          if (smith >= 50 && Math.random() < 0.3)
-            await bulkOrderTurn(
-              { ...professional, refill: (pack, least) => withdrawIngots(pack, least, least * 2) },
-              blacksmithing,
-              smith
-            ).catch(() => false);
-          await resupplyOrPass(backpack);
-          await mounts.acquire().then(() => packs?.acquire());
-          if (await lifeTurn(life(bank, options.decisions))) continue;
-        }
-        if (status().weight >= miningLimit() || needsSpace()) {
-          // Never quit on a full pack: bank, else pass the time.
-          log('Backpack capacity leaves no safe room to mine; banking and reassessing');
-          await bank(backpack);
-          if (status().weight >= miningLimit() || needsSpace())
-            log(`Pack still full; chose ${(await pastime(backpack, ['learn', 'train', 'wander'])) ?? 'a short rest'}`);
-          continue;
-        }
-        const tool = [...session.world.entities.values()].find(
-          (item) => item.parent === backpack && tools.has(item.graphic)
-        );
-        if (!tool) {
-          await resupplyOrPass(backpack);
-          continue;
-        }
-        if (options.decisions) {
-          const pick = await chooseMiningActivity(options.decisions, session, template, checkpoint, {
-            city,
-            plan: plan(),
-            ceiling: miningLimit(),
-            ore: smeltable(backpack).length,
-            canMine: hasTool() && !needsSpace() && status().weight < miningLimit(),
-            canBank: !smeltable(backpack).length && carried(backpack).some((item) => item.graphic === ingot),
-            stopping: options.stopping
-          });
+          // The turn guard runs even when the plan consumed the turn (bounded recovery and goal
+          // deadlines depend on it).
           check();
-          if (!pick) continue;
-          activeDecision = pick;
-          decisionAttemptsBefore = attempts;
-          if (pick.id === 'smelt') {
-            const before = progress.ingotsProduced;
-            await smelt(backpack);
-            options.decisions.finish(
-              checkpoint,
-              pick,
-              'completed',
-              `Confirmed ${progress.ingotsProduced - before} ingots produced by this smelting visit.`
-            );
-            activeDecision = null;
-            continue;
+          if (consumed) return;
+          await session.refreshStatus();
+          const miningLimit = () =>
+            Math.min(status().maxWeight * Math.max(0.78, plan().smeltAtWeightRatio), status().maxWeight - 30);
+          const hasTool = () => carried(backpack).some((item) => tools.has(item.graphic));
+          const needsSpace = () => progress.packRejected || packItems(session, backpack).length >= 110;
+          await activePacks.keepUp();
+          // A full pack goes onto the pack animal while it has room; mining goes on.
+          if (status().weight >= miningLimit() && (await activePacks.stow(ore))) return;
+          let smelted = false;
+          if (
+            smeltable(backpack).length &&
+            (status().weight >= miningLimit() || needsSpace() || !hasTool() || plan().pending === 'smelt')
+          ) {
+            // Far from any forge (visiting another town): smelting waits for the way home.
+            await smelt(backpack).catch(async (error) => {
+              if (!(error instanceof Error) || !error.message.startsWith('No reachable forge')) throw error;
+              phase('mine-travel', 'No forge near here; heading back to the mines');
+              await reachRegion({ session, position, navigate, phase }, home);
+            });
+            smelted = true;
           }
-          if (pick.id === 'bank') {
-            const before = progress.deposits;
+          const hasIngots = carried(backpack).some((item) => item.graphic === ingot);
+          const stranded = !smeltable(backpack).length && retainedOre(backpack).length > 0;
+          // Smelt to lighten the load before banking.
+          if (
+            (hasIngots || (stranded && (status().weight >= miningLimit() || needsSpace()))) &&
+            (plan().pending === 'bank' ||
+              needsSpace() ||
+              packFull(session, backpack, 0.85) ||
+              !hasTool() ||
+              (stranded && status().weight >= miningLimit()) ||
+              (smelted && leavesEarly(session)))
+          ) {
+            if (needsSpace() || packFull(session, backpack, 0.85)) activePacks.fullLoad();
             await bank(backpack);
-            options.decisions.finish(
-              checkpoint,
-              pick,
-              'completed',
-              `Confirmed ${progress.deposits - before} ingots deposited.`
-            );
-            activeDecision = null;
+            if (!(await minerBulkOrder(professional, withdrawIngots, true))) {
+              // A healthy banked iron stock: sometimes smith a batch for profit.
+              if ((checkpoint.stock?.ingots ?? 0) >= 200 && Math.random() < 0.4) await smithFromBank(backpack);
+              // Spare iron goes to fellow residents at the Minoc market (market.ts); unsold iron is banked again.
+              else if (
+                (checkpoint.stock?.ingots ?? 0) >= 150 &&
+                Math.random() < 0.3 &&
+                (await withdrawIngots(backpack, 50, 100))
+              ) {
+                const market = {
+                  session,
+                  template,
+                  checkpoint,
+                  city,
+                  position,
+                  navigate,
+                  phase,
+                  backpack: () => backpack
+                };
+                await sellCarried({ ...market, decisions: options.decisions }, 'iron ingots', 5);
+              }
+            }
             await resupplyOrPass(backpack);
-            continue;
+            await activeMounts.acquire().then(() => packs?.acquire());
+            if (await lifeTurn(life(bank, options.decisions))) return;
           }
-        }
-        if (await pickUp(backpack)) continue;
-        if (miningArea && distance(position(), miningArea) > 90) {
-          phase('mine-travel', `Returning to the ${area.city} mining district`);
-          // The district centre can sit inside the mountain; arriving anywhere nearby is enough.
-          await navigate(miningArea, 25);
-        }
-        const found = await findMiningSite({
-          session,
-          terrain,
-          serial,
-          position,
-          check,
-          exhausted,
-          blocked,
-          miningArea,
-          anchor
+          if (status().weight >= miningLimit() || needsSpace()) {
+            // Never quit on a full pack: bank, else pass the time.
+            log('Backpack capacity leaves no safe room to mine; banking and reassessing');
+            await bank(backpack);
+            if (status().weight >= miningLimit() || needsSpace())
+              log(
+                `Pack still full; chose ${(await pastime(backpack, ['learn', 'train', 'wander'])) ?? 'a short rest'}`
+              );
+            return;
+          }
+          const tool = [...session.world.entities.values()].find(
+            (item) => item.parent === backpack && tools.has(item.graphic)
+          );
+          if (!tool) {
+            await resupplyOrPass(backpack);
+            return;
+          }
+          if (options.decisions) {
+            const pick = await chooseMiningActivity(options.decisions, session, template, checkpoint, {
+              city,
+              plan: plan(),
+              ceiling: miningLimit(),
+              ore: smeltable(backpack).length,
+              canMine: hasTool() && !needsSpace() && status().weight < miningLimit(),
+              canBank: !smeltable(backpack).length && carried(backpack).some((item) => item.graphic === ingot),
+              stopping: options.stopping
+            });
+            check();
+            if (!pick) return;
+            activeDecision = pick;
+            decisionAttemptsBefore = attempts;
+            if (pick.id === 'smelt') {
+              const before = progress.ingotsProduced;
+              await smelt(backpack);
+              options.decisions.finish(
+                checkpoint,
+                pick,
+                'completed',
+                `Confirmed ${progress.ingotsProduced - before} ingots produced by this smelting visit.`
+              );
+              activeDecision = null;
+              return;
+            }
+            if (pick.id === 'bank') {
+              const before = progress.deposits;
+              await bank(backpack);
+              options.decisions.finish(
+                checkpoint,
+                pick,
+                'completed',
+                `Confirmed ${progress.deposits - before} ingots deposited.`
+              );
+              activeDecision = null;
+              await resupplyOrPass(backpack);
+              return;
+            }
+          }
+          if (await pickUp(backpack)) return;
+          if (miningArea && distance(position(), miningArea) > 90) {
+            phase('mine-travel', `Returning to the ${area.city} mining district`);
+            // The district centre can sit inside the mountain; arriving anywhere nearby is enough.
+            await navigate(miningArea, 25);
+          }
+          const found = await findMiningSite({
+            session,
+            terrain,
+            serial,
+            position,
+            check,
+            exhausted,
+            blocked,
+            miningArea,
+            anchor
+          });
+          if (!found) {
+            // Shared veins respawn in 10-20 minutes (ServUO Mining); pass the time.
+            log(`Nearby veins are worked out; chose ${(await pastime(backpack)) ?? 'a short rest'}`);
+            return;
+          }
+          const { site, approachRange } = found;
+          phase('mine-travel', `Travelling to ${site.floor ? 'cave floor' : 'rock'} at ${site.x},${site.y}`);
+          try {
+            await navigate(site.floor ? site : { x: site.x, y: site.y }, approachRange);
+          } catch (error) {
+            if (!(error instanceof Blocked) || ++blockedSites > 8) throw error;
+            exhausted.add(`tile:${site.x},${site.y}`);
+            log(`Skipping unreachable site ${site.x},${site.y}: ${error.message}`);
+            return;
+          }
+          blockedSites = 0;
+          await activeMounts.dismountForGathering();
+          phase('mining', `Using the observed tool on ${site.floor ? 'cave floor' : 'rock'} at ${site.x},${site.y}`);
+          attempts += await digSite(
+            { session, terrain, check, status, position, phase, log, navigate, home, exhausted, progress },
+            {
+              backpack,
+              carried,
+              tool: tool.serial,
+              site,
+              full: () => status().weight >= miningLimit() || needsSpace()
+            },
+            attempts
+          );
+          options.decisions?.finish(
+            checkpoint,
+            activeDecision,
+            'completed',
+            `Mining batch made ${attempts - decisionAttemptsBefore} tool attempts; ${oreIn(carried(backpack))} ore units are now observed in the backpack.`
+          );
+          activeDecision = null;
+          if (!carried(backpack).some((item) => ore.has(item.graphic))) exhausted.add(`tile:${site.x},${site.y}`);
         });
-        if (!found) {
-          // Shared veins respawn in 10-20 minutes (ServUO Mining); pass the time.
-          log(`Nearby veins are worked out; chose ${(await pastime(backpack)) ?? 'a short rest'}`);
-          continue;
-        }
-        const { site, approachRange } = found;
-        phase('mine-travel', `Travelling to ${site.floor ? 'cave floor' : 'rock'} at ${site.x},${site.y}`);
-        try {
-          await navigate(site.floor ? site : { x: site.x, y: site.y }, approachRange);
-        } catch (error) {
-          if (!(error instanceof Blocked) || ++blockedSites > 8) throw error;
-          exhausted.add(`tile:${site.x},${site.y}`);
-          log(`Skipping unreachable site ${site.x},${site.y}: ${error.message}`);
-          continue;
-        }
-        blockedSites = 0;
-        await mounts.dismountForGathering();
-        phase('mining', `Using the observed tool on ${site.floor ? 'cave floor' : 'rock'} at ${site.x},${site.y}`);
-        attempts += await digSite(
-          { session, terrain, check, status, position, phase, log, navigate, home, exhausted, progress },
-          { backpack, carried, tool: tool.serial, site, full: () => status().weight >= miningLimit() || needsSpace() },
-          attempts
-        );
-        options.decisions?.finish(
-          checkpoint,
-          activeDecision,
-          'completed',
-          `Mining batch made ${attempts - decisionAttemptsBefore} tool attempts; ${oreIn(carried(backpack))} ore units are now observed in the backpack.`
-        );
-        activeDecision = null;
-        if (!carried(backpack).some((item) => ore.has(item.graphic))) exhausted.add(`tile:${site.x},${site.y}`);
       } catch (error) {
+        if (await yieldForInteraction(session, error)) continue;
         if (error instanceof DangerInterrupt) {
           try {
             await escapeDanger({ session, check, phase, navigate }, home);

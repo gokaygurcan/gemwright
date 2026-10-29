@@ -1,3 +1,5 @@
+import { gumpCommands } from '@gemwright/network/gumps';
+
 import { nearAnyGround, returnHome, travelNear } from './cemeteries';
 import { type DecisionCoordinator, type DecisionPick, decisionGuard, decisionState } from './decisions';
 import { dungeonWalker, inAnyDungeon } from './dungeon-tools';
@@ -5,7 +7,6 @@ import { rememberExperience } from './experience';
 import { rememberDeath } from './fight-confidence';
 import { Died, type FighterContext, observedThreat } from './fighter-context';
 import { distance } from './navigation';
-import { gumpCommands } from './protocol/gumps';
 import { resurrectGhost } from './resurrection';
 
 export function resurrectionButton(layout: string): number | undefined {
@@ -132,6 +133,8 @@ export function createFighterRecovery(
         map: session.world.map ?? 1,
         ...(lastSeen ?? position()),
         body: encounter.body,
+        capability: encounter.capability,
+        creatureName: encounter.creatureName,
         outcome: 'death',
         lowestHealthRatio: 0,
         largestLossRatio: Math.max(0, ...changes.map((change) => change.damage / Math.max(1, change.maxHits))),

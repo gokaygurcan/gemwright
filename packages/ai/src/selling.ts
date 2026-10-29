@@ -1,14 +1,15 @@
 import { readdirSync } from 'node:fs';
 
 import { arrow, bandage, bolt, gems, gold, healPotion, isDeathRobe, reagents } from '@gemwright/common/items';
+import type { Entity } from '@gemwright/network/world';
 
 import { Blocked } from './blocked';
 import { type CraftContext, craftRecipes } from './craft-training';
-import { workGear } from './inventory';
-import { learnQuality, quality } from './item-quality';
+import { fishingFootwear } from './fishing-catch';
+import { packFull, workGear } from './inventory';
+import { learnQuality, quality, shopSafe } from './item-quality';
 import { type ServiceType, townAt } from './locations';
-import { lighten, recoverPile } from './overload';
-import type { Entity } from './protocol/world';
+import { lighten, putDown, recoverPile } from './overload';
 import { sellTo } from './vendor-trade';
 import { reservedFor } from './work-orders';
 
@@ -66,6 +67,7 @@ const kept = (item: Entity) =>
   isDeathRobe(item);
 
 function shopsFor(ctx: Ctx, item: Entity): ServiceType[] {
+  if (fishingFootwear.has(item.graphic)) return ['cobbler'];
   const crafted = buyers.get(item.graphic);
   if (crafted?.length) return crafted;
   if (fish.has(item.graphic)) return ['fisherman'];
@@ -80,11 +82,11 @@ const MIN_PIECES = 6;
 const REST_MS = 20 * 60_000;
 
 // True when it went selling.
-export async function sellingTurn(ctx: Ctx): Promise<boolean> {
+export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   const { session } = ctx;
   // What it put down to be able to walk comes back with it, to be sold too (overload.ts).
   if (await recoverPile(session, ctx.backpack(), ctx.navigate, ctx.log)) return true;
-  if (Date.now() - (lastTrip.get(session) ?? 0) < REST_MS) return false;
+  if (!force && Date.now() - (lastTrip.get(session) ?? 0) < REST_MS) return false;
   const carried = ctx.carried(ctx.backpack());
   await learnQuality(
     session,
@@ -93,8 +95,12 @@ export async function sellingTurn(ctx: Ctx): Promise<boolean> {
   // Pieces made for a bulk order stay with the deed.
   const ordering = carried.some((item) => item.graphic === BULK_ORDER_DEED);
   const exceptionalKept = new Set<number>();
+  // Equipment it picked up but cannot use is sold at once, without waiting for a full load
+  // (inventory-use.ts marked it).
+  const listed = new Set(ctx.checkpoint.forSale ?? []);
   const goods = carried.filter((item) => {
     if (kept(item) || reservedFor(session, item) || !shopsFor(ctx, item).length) return false;
+    if (listed.has(item.serial)) return true;
     if (ordering && buyers.has(item.graphic)) return false;
     // One exceptional piece of each kind is kept (it goes to the bank).
     const fresh = session.world.entities.get(item.serial) ?? item;
@@ -106,7 +112,8 @@ export async function sellingTurn(ctx: Ctx): Promise<boolean> {
   });
   const status = ctx.status();
   const heavy = status.weight >= status.maxWeight * 0.9;
-  if (goods.length < MIN_PIECES && !(heavy && goods.length >= 2)) return false;
+  const urgent = goods.some((item) => listed.has(item.serial));
+  if (!goods.length || (!force && !urgent && goods.length < MIN_PIECES && !(heavy && goods.length >= 2))) return false;
   lastTrip.set(session, Date.now());
   const shops = [...new Set(goods.flatMap((item) => shopsFor(ctx, item)))];
   ctx.phase('selling-goods', `Taking ${goods.length} pieces to sell (${shops.join(', ')})`);
@@ -127,6 +134,36 @@ export async function sellingTurn(ctx: Ctx): Promise<boolean> {
       await lighten(session, ctx.backpack(), kept, ctx.log);
       return sell().catch(() => 0);
     });
+  }
+  // Pieces marked unfit that no shop will take (magic, blessed, exceptional) are left where another
+  // resident may find them rather than carried forever; sold or gone pieces leave the list.
+  let left = 0;
+  for (const serial of listed) {
+    const item = session.world.entities.get(serial);
+    if (!item || item.parent !== ctx.backpack() || shopSafe(item)) continue;
+    if (await putDown(session, serial).catch(() => false)) left++;
+  }
+  const remaining = (ctx.checkpoint.forSale ?? []).filter(
+    (serial) => session.world.entities.get(serial)?.parent === ctx.backpack()
+  );
+  if (remaining.length !== (ctx.checkpoint.forSale ?? []).length) {
+    ctx.checkpoint.forSale = remaining;
+    ctx.persist?.();
+  }
+  if (left) ctx.log(`Left ${left} piece(s) no shop would take where another resident may find them`);
+  // A pack near full of things no shop type buys is the dead weight of the road: a bag, a tool of
+  // another trade, an oddity of a player. A few pieces go per town visit where another may find
+  // them, rather than being carried into the water until the pack can hold nothing else.
+  const full = packFull(session, ctx.backpack(), 0.85) || status.weight >= status.maxWeight * 0.85;
+  if (full) {
+    let dumped = 0;
+    for (const item of ctx.carried(ctx.backpack())) {
+      if (dumped >= 5) break;
+      if (item.graphic === gold || kept(item) || reservedFor(session, item) || shopsFor(ctx, item).length) continue;
+      if (session.world.childrenOf(item.serial).length) continue; // a bag with things inside
+      if (await putDown(session, item.serial).catch(() => false)) dumped++;
+    }
+    if (dumped) ctx.log(`Left ${dumped} piece(s) no shop buys where another resident may find them`);
   }
   ctx.log(
     `Sold goods for ${earned} gold; ${ctx.carried(ctx.backpack()).filter((i) => forSale.has(i.serial)).length} pieces unsold`

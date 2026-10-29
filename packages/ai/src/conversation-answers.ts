@@ -1,4 +1,6 @@
 import { gold } from '@gemwright/common/items';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { cemeteries } from './cemeteries';
 import type { CharacterTemplate } from './config';
@@ -14,8 +16,6 @@ import { carriedOf, ceiling, floor, type Good, goods, priceAt } from './market';
 import { moongates, nearestGate } from './moongate';
 import { distance } from './navigation';
 import { readTradeTalk } from './player-trade';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
 import type { Checkpoint } from './store';
 import { orderDemand } from './work-orders';
 import { professionOf } from './world';

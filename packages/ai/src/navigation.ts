@@ -1,17 +1,22 @@
 import { GHOST_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
 
-import { canPause, checkedDelay, urgentAction } from './action-purpose';
+import { canPause, checkedDelay, takingUrgentAction, urgentAction } from './action-purpose';
+import { bankWhileWalking } from './bank-gold';
 import { Blocked } from './blocked';
-import { threatsNear } from './danger';
+import { rememberedDangerTiles, threatsNear } from './danger';
 import { directRoute } from './direct-route';
+import { createDoorOpener, isDoor, openNearbyDoors } from './doors';
 import { holdWhileEngaged, noteStep } from './engagement';
 import { land, takeOff } from './flight';
 import { confinedToHaven, onHaven } from './haven';
 import { pauseFor, slip, walkingPace } from './human-pace';
+import { recordLifeAction } from './life-events';
 import { type Link, linkToward } from './links';
+import { noteNavigationStep } from './loop-watch';
 import { mountEquipment } from './mount-types';
-import type { PlayerSession } from './protocol/session';
 import { registerTerrain } from './resident-context';
+import { rejectedSteps, rememberRejectedStep } from './route-memory';
 import { pickUpInReach } from './scavenge';
 import { directionTo, type Terrain } from './terrain';
 import { noteTrouble } from './trouble';
@@ -33,6 +38,8 @@ export function createNavigator(options: {
   runClose?: boolean;
   avoidRest?: boolean;
   purpose?: 'combat' | 'escape';
+  // Gate approaches and dungeon stair steps are individual walking legs.
+  localOnly?: boolean;
   // Steer around hostile creatures in sight (default on; off for a fighter at its hunting ground).
   wary?: () => boolean;
   // Never run (a hidden thief sneaking up on a mark).
@@ -51,6 +58,7 @@ export function createNavigator(options: {
     if (!session.world.status) throw new Error('Status is unknown');
     return session.world.status;
   };
+  const openDoors = createDoorOpener(session, terrain, check, log);
   const failuresByRoute = new Map<string, { until: number; count: number; error: Blocked }>();
   // Walking goes straight to the goal: no detours by way of places it has no business at.
   // Gargoyles take wing for a long walk and land at its end (flight.ts).
@@ -79,25 +87,24 @@ export function createNavigator(options: {
     // Where this walk began: a teleporter back to it is no way forward (Jhelom's pair of links).
     const start = session.world.position ? { ...session.world.position } : undefined;
     const origins = new Map<string, number>();
-    const triedDoors = new Set<number>();
-    const lockedDoors = new Set<number>();
+    let lockedDoor = false;
     // Steps the server rejected on this route only: mobiles (a following horse, an NPC) move on,
     // so these must not outlive the route like a locked door does.
     const rejected = new Map<string, number>();
-    const rejections = new Map<string, number>();
     while (distance(position(), goal) > range || (goal.z !== undefined && Math.abs(position().z - goal.z) > 8)) {
       check();
       const originKey = `${position().x},${position().y},${position().z}`;
       const visits = (origins.get(originKey) ?? 0) + 1;
       origins.set(originKey, visits);
       if (visits > 8) throw new Blocked('unreachable', `Route cycles at ${originKey} toward ${goal.x},${goal.y}`);
+      for (const [key, until] of rejectedSteps(session, terrain, position())) rejected.set(key, until);
       for (const [key, until] of rejected) if (until <= Date.now()) rejected.delete(key);
       const hard = new Set([...blocked, ...rejected.keys()]);
       const occupied = new Set(hard);
       for (const entity of session.world.entities.values()) {
         if (!entity.position || entity.serial === serial || distance(position(), entity.position) > 18) continue;
         const flags = entity.kind === 'item' ? terrain.tile(entity.graphic, true).flags : 0;
-        if (entity.kind === 'mobile' || (flags & 0x40 && !(flags & 0x20000000))) {
+        if (entity.kind === 'mobile' || (flags & 0x40 && !isDoor(entity.graphic, terrain))) {
           if (Math.abs(entity.position.z - position().z) < 16) {
             occupied.add(`${entity.position.x},${entity.position.y}`);
             if (entity.kind === 'item') hard.add(`${entity.position.x},${entity.position.y}`);
@@ -110,6 +117,8 @@ export function createNavigator(options: {
       // around, the walk stops here instead of running through them.
       const avoid = new Set<string>();
       const careful = options.purpose !== 'combat' && (options.wary?.() ?? true);
+      if (careful && !takingUrgentAction(session))
+        for (const key of rememberedDangerTiles(session, position())) avoid.add(key);
       const wary = (careful ? threatsNear(session, position(), 18) : []).filter(
         (m) => m.position && distance(m.position, goal) > range + 3
       );
@@ -134,12 +143,12 @@ export function createNavigator(options: {
         if (!path && occupied.size > hard.size)
           path = await terrain.pathAsync(position(), goal, range, hard, goal.z, session.signal, true);
       }
-      if (!path?.length && [...rejected.values()].some(Number.isFinite)) {
+      if (!path?.length && [...rejected.values()].some((until) => until > Date.now() && until <= Date.now() + 2000)) {
         await Bun.sleep(1000);
         check();
         continue;
       }
-      if (!path?.length && avoid.size && waits < 2) {
+      if (!path?.length && wary.length && waits < 2) {
         // Every way passes them: back off from them and wait for the road to clear (creatures
         // wander), as a player waits at a distance; twice at most, then it gives up this way.
         waits++;
@@ -166,6 +175,12 @@ export function createNavigator(options: {
         origins.clear();
         continue;
       }
+      if (!path?.length && (await openNearbyDoors(session, terrain, position(), openDoors))) {
+        rejected.clear();
+        detouring = false;
+        origins.delete(originKey);
+        continue;
+      }
       if (!path?.length && avoid.size) {
         // Ten minutes for monsters to move on; meanwhile shops, banks and gates elsewhere come first.
         markUnreachable(goal, position(), 10 * 60_000);
@@ -176,7 +191,7 @@ export function createNavigator(options: {
         );
       }
       if (!path?.length) {
-        if (lockedDoors.size) throw new Blocked('locked-door', `Locked door blocks every route to ${goal.x},${goal.y}`);
+        if (lockedDoor) throw new Blocked('locked-door', `Locked door blocks every route to ${goal.x},${goal.y}`);
         // No way on foot: a teleporter whose far end is nearer the goal (links.ts), walked onto.
         const link = linkToward(position(), goal, linksTried, start);
         if (link) {
@@ -190,7 +205,9 @@ export function createNavigator(options: {
         noteTrouble(goal, 'unreachable');
         throw new Blocked('unreachable', `No walkable route to ${goal.x},${goal.y}`);
       }
-      for (const point of path) {
+      for (let index = 0; index < path.length; index++) {
+        const point = path[index];
+        if (!point) break;
         check();
         // A new hostile creature in sight: plan again around it.
         if (
@@ -241,7 +258,7 @@ export function createNavigator(options: {
           }
           if (canPause(session) && status().stamina <= 3) throw new Error('Stamina did not recover enough to continue');
         }
-        const urgent = options.purpose === 'escape' || options.purpose === 'combat';
+        const urgent = !!options.purpose || takingUrgentAction(session);
         const running =
           !options.walkOnly?.() &&
           // Through a crowd or leading someone, people walk (human-pace.ts).
@@ -249,17 +266,31 @@ export function createNavigator(options: {
           (options.runClose || distance(position(), goal) > 3) &&
           (ghost || (status().stamina >= status().maxStamina * 0.35 && status().weight < status().maxWeight * 0.95));
         // Standing to talk with a player pauses every walk (engagement.ts).
-        await holdWhileEngaged(session);
+        await holdWhileEngaged(session, check);
         check();
+        // A door can be used from two tiles away: open the doorway after this step while it is
+        // still ahead, so the step through it is not refused while it swings. A refusal surfaces
+        // again when the step itself reaches the door.
+        const ahead = path[index + 1];
+        if (ahead) await openDoors(point, ahead).catch(() => ({ blocked: false, locked: false }));
+        const doors = await openDoors(before, point);
+        if (doors.blocked) {
+          rejected.set(`${point.x},${point.y}`, rememberRejectedStep(session, terrain, point, true));
+          lockedDoor ||= doors.locked;
+          detouring = true;
+          break;
+        }
         const sentAt = performance.now();
         const accepted = await session.walk(slip(direction, urgent), point.z, running);
         noteStep(session);
+        if (accepted) noteNavigationStep(session);
         const mounted = !!mountEquipment(session.world);
         const interval = mounted
           ? (running ? 115 : 220) + Math.random() * 15
           : (running ? 210 : 390) + Math.random() * (running ? 20 : 40);
         await Bun.sleep(Math.max(0, interval - (performance.now() - sentAt)));
         await options.onStep?.();
+        if (accepted && canPause(session) && travelled % 4 === 0) await bankWhileWalking(session);
         // Now and then a stop on the way, as a person looks around (human-pace.ts).
         const pause = pauseFor(session, urgent);
         if (pause) await checkedDelay(pause, check);
@@ -275,46 +306,20 @@ export function createNavigator(options: {
             `${mounted ? 'mounted ' : ''}${running ? 'running' : 'walking'} at ${position().x},${position().y}; stamina ${status().stamina}/${status().maxStamina}`
           );
         if (!accepted || distance(position(), point) !== 0) {
-          const door = [...session.world.entities.values()]
-            .filter(
-              (entity) =>
-                entity.kind === 'item' &&
-                entity.position &&
-                distance(before, entity.position) <= 1 &&
-                distance(point, entity.position) <= 1 &&
-                !triedDoors.has(entity.serial) &&
-                terrain.tile(entity.graphic, true).flags & 0x20000000
-            )
-            .sort((a, b) => distance(point, a.position ?? before) - distance(point, b.position ?? before))[0];
-          if (door) {
-            triedDoors.add(door.serial);
-            const before = new Set(session.world.journal);
-            session.use(door.serial);
-            await Bun.sleep(600);
-            // 502503: "That is locked." Ordinary players cannot pass; route around it.
-            if (session.world.journal.some((entry) => !before.has(entry) && entry.cliloc === 502503)) {
-              lockedDoors.add(door.serial);
-              blocked.add(`${point.x},${point.y}`);
-              log(`door ${door.serial} is locked; avoiding ${point.x},${point.y}`);
-            }
-          } else {
-            // A tile refused twice with nobody seen on it is terrain the server disagrees with; keep it
-            // for this route. A mobile standing there (a crowded bank) only blocks it briefly.
-            const key = `${point.x},${point.y}`;
-            const mobileThere = [...session.world.entities.values()].some(
-              (e) => e.kind === 'mobile' && e.serial !== serial && e.position?.x === point.x && e.position.y === point.y
-            );
-            const count = mobileThere ? 0 : (rejections.get(key) ?? 0) + 1;
-            rejections.set(key, count);
-            rejected.set(key, count > 1 ? Number.POSITIVE_INFINITY : Date.now() + 2000);
-          }
+          // A tile refused twice with nobody seen on it is terrain the server disagrees with; keep it
+          // for this route. A mobile standing there (a crowded bank) only blocks it briefly.
+          const key = `${point.x},${point.y}`;
+          const mobileThere = [...session.world.entities.values()].some(
+            (e) => e.kind === 'mobile' && e.serial !== serial && e.position?.x === point.x && e.position.y === point.y
+          );
+          rejected.set(key, mobileThere ? Date.now() + 2000 : rememberRejectedStep(session, terrain, point));
           detouring = true;
           log(
             `Movement rejected from ${before.x},${before.y},${before.z} toward ${point.x},${point.y},${point.z}; server position ${position().x},${position().y},${position().z}`
           );
           await Bun.sleep(150);
           if (++failures > 12)
-            throw lockedDoors.size
+            throw lockedDoor
               ? new Blocked('locked-door', 'Route repeatedly blocked by locked doors')
               : new Blocked('unreachable', 'Route repeatedly blocked by server movement feedback');
           break;
@@ -322,35 +327,45 @@ export function createNavigator(options: {
       }
     }
   };
-  return async (goal: { x: number; y: number; z?: number }, range: number) => {
+  return async (goal: { x: number; y: number; z?: number }, range: number): Promise<void> => {
     const from = position();
-    const doors = [...session.world.entities.values()]
-      .filter(
-        (entity) =>
-          entity.kind === 'item' &&
-          entity.position &&
-          distance(from, entity.position) <= 18 &&
-          terrain.tile(entity.graphic, true).flags & 0x20000000
-      )
-      .map((entity) => `${entity.serial}:${entity.graphic}:${entity.position?.x},${entity.position?.y}`)
-      .sort()
-      .join('|');
-    const key = `${session.world.map}:${from.x >> 7},${from.y >> 7},${from.z}:${goal.x},${goal.y},${goal.z ?? '*'}:${range}:${doors}`;
-    const previous = failuresByRoute.get(key);
-    if (previous && previous.until > Date.now()) throw previous.error;
-    try {
-      const result = options.purpose
-        ? await urgentAction(session, options.purpose, () => walk(goal, range))
-        : await walk(goal, range);
-      failuresByRoute.delete(key);
-      return result;
-    } catch (error) {
-      if (error instanceof Blocked) {
-        const count = Math.min(6, (previous?.count ?? 0) + 1);
-        failuresByRoute.set(key, { error, count, until: Date.now() + Math.min(10 * 60_000, 15_000 * 2 ** count) });
-        if (failuresByRoute.size > 64) failuresByRoute.delete(failuresByRoute.keys().next().value as string);
+    return recordLifeAction(session, 'travel', { from: { ...from }, to: { ...goal }, range }, async () => {
+      const doors = [...session.world.entities.values()]
+        .filter(
+          (entity) =>
+            entity.kind === 'item' &&
+            entity.position &&
+            distance(from, entity.position) <= 18 &&
+            isDoor(entity.graphic, terrain)
+        )
+        .map(
+          (entity) =>
+            `${entity.serial}:${entity.graphic}:${entity.position?.x},${entity.position?.y},${entity.position?.z}`
+        )
+        .sort()
+        .join('|');
+      const refusals = [...rejectedSteps(session, terrain, from).keys()].sort().join(';');
+      const key = `${refusals}:${session.world.map}:${from.x >> 7},${from.y >> 7},${from.z}:${goal.x},${goal.y},${goal.z ?? '*'}:${range}:${doors}`;
+      const previous = failuresByRoute.get(key);
+      if (previous && previous.until > Date.now() && !(await openNearbyDoors(session, terrain, from, openDoors))) {
+        throw previous.error;
       }
-      throw error;
-    }
+      try {
+        if (options.purpose) await urgentAction(session, options.purpose, () => walk(goal, range));
+        else if (options.localOnly) await walk(goal, range);
+        else {
+          const { travelJourney } = await import('./journey');
+          await travelJourney({ session, terrain, position, check, phase, log }, goal, range, walk);
+        }
+        failuresByRoute.delete(key);
+      } catch (error) {
+        if (error instanceof Blocked) {
+          const count = Math.min(6, (previous?.count ?? 0) + 1);
+          failuresByRoute.set(key, { error, count, until: Date.now() + Math.min(10 * 60_000, 15_000 * 2 ** count) });
+          if (failuresByRoute.size > 64) failuresByRoute.delete(failuresByRoute.keys().next().value as string);
+        }
+        throw error;
+      }
+    });
   };
 }

@@ -1,7 +1,8 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, Position } from '@gemwright/network/world';
+
 import { groupPositionCost } from './group-awareness';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, Position } from './protocol/world';
 import type { Terrain } from './terrain';
 
 export function positionScore(

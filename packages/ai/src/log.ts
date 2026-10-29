@@ -1,11 +1,31 @@
-// Progress lines: what residents do and say. The long-running service writes them to stdout, so
-// hosts that treat stderr as errors (Railway) show only real failures as errors; one-shot CLI
-// commands keep them on stderr, so their JSON on stdout stays clean. Failures always use
-// console.error.
-let toStdout = false;
+import { configureTelemetry, operational } from './telemetry';
 
-export const logToStdout = () => {
-  toStdout = true;
+let structured = false;
+const original = {
+  log: console.log.bind(console),
+  error: console.error.bind(console),
+  warn: console.warn.bind(console)
 };
 
-export const info = (line: string) => (toStdout ? console.log(line) : console.error(line));
+// Service stdout and its durable journal share an envelope. CLI report output stays unchanged.
+export function logToStdout() {
+  if (structured) return;
+  structured = true;
+  configureTelemetry({ output: (line, level) => (level === 'error' ? original.error(line) : original.log(line)) });
+  for (const [method, level] of [
+    ['log', 'info'],
+    ['warn', 'warn'],
+    ['error', 'error']
+  ] as const)
+    console[method] = (...values: unknown[]) => {
+      operational('runtime', level, values.length === 1 ? values[0] : values);
+    };
+}
+export const info = (line: string, component = 'resident', details: Record<string, unknown> = {}) =>
+  structured ? operational(component, 'info', line, details) : original.error(line);
+export const error = (component: string, message: unknown) =>
+  structured ? operational(component, 'error', message) : original.error(message);
+export const logger = (component: string) => ({
+  info: (message: string, details: Record<string, unknown> = {}) => info(message, component, details),
+  error: (message: unknown) => error(component, message)
+});

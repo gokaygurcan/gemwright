@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
+import { Layer } from '@gemwright/network/layers';
+import type { Entity } from '@gemwright/network/world';
+
 import { urgentAction } from './action-purpose';
 import { Blocked } from './blocked';
 import { nearAnyGround } from './cemeteries';
+import { combatCapability } from './combat-capability';
 import { combatPosition } from './combat-position';
 import { type DecisionCoordinator, type DecisionPick, decisionState } from './decisions';
 import { encounterTarget } from './encounter-target';
@@ -22,8 +26,6 @@ import { engageable } from './fighter-prey';
 import { visibleAllies } from './group-awareness';
 import { castTurn } from './mage-combat';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
-import type { Entity } from './protocol/world';
 import { equippedRanged, rangedGraphics, rangedWeapon, shootingWindow } from './ranged-weapons';
 import { planStopsFight } from './shared-plans';
 import { learnWork } from './strategy-learning';
@@ -56,6 +58,7 @@ async function fightEncounter(
   let startedAt = Date.now();
   let memoryId = randomUUID();
   let encounterPlace = { map: session.world.map ?? 1, ...position() };
+  let capability = combatCapability(session);
   let initialHealth = status().hits / Math.max(1, status().maxHits);
   const recordOutcome = (outcome: 'victory' | 'retreat' | 'death' | 'interrupted') => {
     const changes = session.world.healthChanges.filter((change) => change.at >= startedAt);
@@ -65,6 +68,8 @@ async function fightEncounter(
       at: Date.now(),
       ...encounterPlace,
       body: opponent.graphic,
+      capability,
+      creatureName: opponent.name,
       outcome,
       largestLossRatio: Math.max(0, ...changes.map((change) => change.damage / Math.max(1, change.maxHits))),
       lowestHealthRatio: Math.min(initialHealth, ...changes.map((change) => change.hits / Math.max(1, change.maxHits))),
@@ -78,7 +83,9 @@ async function fightEncounter(
       startedAt: new Date(startedAt).toISOString(),
       position: { ...position() },
       body: opponent.graphic,
-      memoryId
+      memoryId,
+      capability,
+      creatureName: opponent.name
     };
     phase('fighting', `Engaging ${opponent.name ?? 'undead'} (${opponent.serial})`);
     state.inCombat = true;
@@ -189,13 +196,16 @@ async function fightEncounter(
           startedAt = Date.now();
           memoryId = randomUUID();
           encounterPlace = { map: session.world.map ?? 1, ...position() };
+          capability = combatCapability(session);
           initialHealth = status().hits / Math.max(1, status().maxHits);
           trip.encounter = {
             opponent: opponent.serial,
             startedAt: new Date(startedAt).toISOString(),
             position: { ...position() },
             body: opponent.graphic,
-            memoryId
+            memoryId,
+            capability,
+            creatureName: opponent.name
           };
           phase('changing-target', review.reason ?? 'Responding to a new attacker');
           await engage();

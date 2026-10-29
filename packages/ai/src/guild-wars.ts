@@ -1,4 +1,6 @@
 import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
 import { chaosOf } from './chaos';
@@ -21,8 +23,6 @@ import { closeGuildMenus, MENU, openGuildMenu } from './guilds';
 import { awaitGump, awaitMessage, mark, press } from './gump-flow';
 import type { LifeContext } from './life';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 
 // Order against Chaos as two guild alliances at war (ServUO's EJ guild system has no Order or
 // Chaos guild types). Each side's oldest guild leads its alliance ("The Order", "The Chaos"):

@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test';
 
+import { requestAnimalPurchase } from '@gemwright/network/commerce';
+import type { PlayerSession } from '@gemwright/network/session';
+import { playerStatus } from '@gemwright/network/status';
+import { WorldView } from '@gemwright/network/world';
+
 import { canAffordMount, type MountContext } from '../src/mount-types';
 import { createMountController } from '../src/mounts';
-import { requestAnimalPurchase } from '../src/protocol/commerce';
-import type { PlayerSession } from '../src/protocol/session';
-import { playerStatus } from '../src/protocol/status';
-import { WorldView } from '../src/protocol/world';
 
 function fixture(owner = true) {
   const world = new WorldView();

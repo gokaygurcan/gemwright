@@ -6,6 +6,7 @@ import type { ResidentMemory } from './resident-memory-types';
 
 export interface Checkpoint {
   schemaVersion?: number;
+  workGoal?: import('./resident-goal').GoalMemory;
   personal?: ResidentMemory;
   objectives?: Record<string, ObjectiveFailure>;
   decisions?: DecisionMemory;
@@ -40,6 +41,9 @@ export interface Checkpoint {
   prices?: Record<string, { service: string; price: number }>;
   // Exceptional crafted pieces kept from sale and banked (miner-crafting.ts, craft-training.ts).
   keep?: number[];
+  // Equipment it picked up but cannot use (wrong trade, needs, race or gender): sold at once, or
+  // dropped for another resident when no shop takes it (inventory-use.ts, selling.ts).
+  forSale?: number[];
   // The tamer's kept fighting pet (tamer-pet.ts).
   companion?: { serial: number; name: string; minTame: number };
   // Last NPC training attempt per skill name.
@@ -68,7 +72,7 @@ export interface Checkpoint {
   // Recall runes this resident marked (recall.ts): where each one leads.
   runes?: { serial: number; label: string; x: number; y: number; book?: number; page?: number }[];
   // When to ask a shopkeeper for the next bulk order (bulk-orders.ts).
-  bulkOrders?: { nextAt: number; stalledUntil?: number };
+  bulkOrders?: { nextAt: number; stalledUntil?: number; stalledReason?: string };
   // What the resident is doing: its activity, the phase within it, and the phase's own words
   // ("Heading to the orc spawn near 634,1462"), which conversation answers from.
   goal: { kind: string; phase: string; note?: string } | null;
@@ -87,7 +91,13 @@ export interface Checkpoint {
     }
   >;
   // depleted: mining spots and vein blocks with the time their ore may have respawned.
-  landmarks?: { forges: { x: number; y: number; z: number }[]; depleted?: { key: string; until: number }[] };
+  landmarks?: {
+    forges: { x: number; y: number; z: number }[];
+    smithies?: import('./smithing-stations').SmithingStation[];
+    depleted?: { key: string; until: number }[];
+    // Vendor spots that answered a menu, per map, town and service (craft-training.ts).
+    vendors?: Record<string, { x: number; y: number; z: number; at: number }>;
+  };
   hunting?: {
     loot: number[];
     killsSinceBank: number;
@@ -101,6 +111,8 @@ export interface Checkpoint {
       position?: { x: number; y: number; z: number };
       body?: number;
       memoryId?: string;
+      capability?: import('./combat-capability').CombatCapability;
+      creatureName?: string;
     };
     recovery?: {
       stage: 'healer' | 'corpse' | 'equipment' | 'ready';

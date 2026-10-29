@@ -1,5 +1,5 @@
 import { lasting } from './lasting';
-import { info } from './log';
+import { logger } from './log';
 import { tuning } from './tuning';
 
 // Places where walks keep going wrong, shared by every resident and kept across restarts
@@ -53,7 +53,7 @@ export function reportTrouble() {
     const [cx = 0, cy = 0] = cell.split(',').map(Number);
     return `${(cx << CELL) + 4},${(cy << CELL) + 4}`;
   };
-  info(
+  logger('trouble').info(
     `[trouble] ${worst.map(([cell, e]) => `${place(cell)} ×${e.total} (${[...e.kinds].map(([k, n]) => `${k} ${n}`).join(', ')})`).join('; ')}`
   );
 }

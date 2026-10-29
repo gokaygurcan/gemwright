@@ -1,4 +1,7 @@
 import { gold } from '@gemwright/common/items';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { BUSINESS } from './bank-gold';
 import type { LifeContext } from './life';
@@ -6,9 +9,6 @@ import { carriedOf, type Good, goodMatch, goods } from './market';
 import { distance } from './navigation';
 import { residentNeeds } from './needs';
 import { failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { residentContext } from './resident-context';
 import { personalMemory, rememberPartner } from './resident-memory';
 import type { WorkOrder } from './resident-memory-types';

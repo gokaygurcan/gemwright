@@ -1,7 +1,8 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import type { CharacterTemplate } from './config';
 import type { DecisionCoordinator } from './decisions';
 import type { RunRecord } from './dungeon-context';
-import type { PlayerSession } from './protocol/session';
 import type { Checkpoint } from './store';
 
 export interface ResidentOptions {

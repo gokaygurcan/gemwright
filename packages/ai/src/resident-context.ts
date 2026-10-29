@@ -1,6 +1,7 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
+
 import type { CharacterTemplate } from './config';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import type { Checkpoint } from './store';
 import type { Terrain } from './terrain';
 

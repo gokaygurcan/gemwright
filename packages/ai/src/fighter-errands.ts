@@ -1,3 +1,5 @@
+import { Layer } from '@gemwright/network/layers';
+
 import { knownBankGold } from './bank-gold';
 import { nearAnyGround, returnHome } from './cemeteries';
 import { replaceDeathRobe } from './death-robe';
@@ -9,8 +11,8 @@ import { forcedToWork } from './loop-watch';
 import { healOthers } from './mend';
 import { playerVendorTurn } from './player-vendors';
 import type { ProfessionContext } from './profession';
-import { Layer } from './protocol/layers';
 import { markHere, recallNear, registerRecall } from './recall';
+import { goalAllows, goalControlled } from './resident-goal';
 import { scribeTurn, useScrolls } from './scribe';
 import { sellingTurn } from './selling';
 import { ticketTurn } from './young-ticket';
@@ -40,11 +42,13 @@ export function createFighterErrands(
     await tidyPack(session, ctx.backpack(), log, ctx.terrain);
     // In town at the bank: a rune marked there for the way back from the next hunt (recall.ts).
     registerRecall(asProfession());
-    await ticketTurn(asProfession()).catch(() => false);
-    await insuranceTurn(asProfession()).catch(() => false);
-    await useScrolls(asProfession()).catch(() => {});
-    await scribeTurn(asProfession()).catch(() => false);
-    await markHere(asProfession(), `${home.city} bank`).catch(() => false);
+    if (!goalControlled(session) || goalAllows(session, 'optional')) {
+      await ticketTurn(asProfession()).catch(() => false);
+      await insuranceTurn(asProfession()).catch(() => false);
+      await useScrolls(asProfession()).catch(() => {});
+      await scribeTurn(asProfession()).catch(() => false);
+      await markHere(asProfession(), `${home.city} bank`).catch(() => false);
+    }
     await healOthers(ctx, log);
     await sellingTurn(asProfession()).catch(() => false);
     await town.prepareEquipment();
@@ -65,7 +69,8 @@ export function createFighterErrands(
     await town.sellLoot();
     await town.bank();
     // In town with the loot banked: an escort to another town pays well (escort.ts).
-    await escortOpportunity(ctx, status().gold + knownBankGold(checkpoint)).catch(() => false);
+    if (!goalControlled(session) || goalAllows(session, 'income'))
+      await escortOpportunity(ctx, status().gold + knownBankGold(checkpoint)).catch(() => false);
   };
   const afterReturn = async () => {
     await tidyAndSell();

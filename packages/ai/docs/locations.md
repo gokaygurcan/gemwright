@@ -2,26 +2,24 @@
 
 [Documentation index](README.md)
 
-`packages/ai/locations/locations.json` is the place catalog: named places by city and region. A name and coordinates alone do not identify a vendor, its stock or a safe route.
+Navigation supports Trammel. `locations/locations.json` names places; `services-guide.json`, `services.json` and `cobblers.json` identify service destinations. New Haven has `new-haven.json`. `locations.ts` validates references and resolves service fallbacks. Catalog coordinates guide discovery; actual observed NPCs, offered menus and stock determine available interactions.
 
-Navigation covers Trammel (facet 1). Shops come from `services-guide.json`, generated from ServUO's town-guide data; `services.json` maps a city and service type to catalog names where the guide lacks or misplaces one. New Haven has its own catalog, `new-haven.json`, built from ServUO's regions and spawners (`src/build-new-haven.ts`).
+## Islands and dungeons
 
-The loader in `packages/ai/src/locations.ts` resolves exact names, validates coordinates, and returns immutable landmarks. Missing or ambiguous references fail explicitly. A town without a service (Yew has no bank or blacksmith) falls back to Britain's, or to the nearest town that has one.
+`areas.json` groups places by walkable connectivity. `journey.ts` chooses walking legs, reachable public moongates or valid marked Recall destinations. A destination gate must serve the destination's land area, not merely be nearby across water. Approaching a gate remains a walking leg.
 
-Where residents can actually walk is `areas.json`, built from the client map by `build-areas.ts`: known places grouped into areas that walks and teleporters join. A place is chosen only in the resident's own area, or in another one when both have a moongate ([population](population.md#how-residents-decide)).
+Jhelom's teleporters connect its islands; mainland trips require a moongate or Recall. Failed taming-ground trips temporarily exclude that destination.
 
-## Using a landmark
+Dungeon interiors use catalogued entrances and stair links. `dungeonAt` identifies the nearest matching section. `dungeon-tools.ts` follows the graph to enter, change floors and return to the surface, including equal-depth links. Missing routes fail explicitly.
 
-A landmark guides travel to an area. It does not supply NPC serials, hidden positions, inventories, prices, or authority to interact through an obstruction. On arrival the character still discovers the relevant mobile through received entities and offered context actions. A catalog name such as an alchemist's shop is a search hint; only current offered stock determines whether potions can be bought there.
+## Remembered smithing stations
 
-Every behavior uses these landmarks for its town business: healers, supplies, sales, banking, tools and mounts. A landmark is verified against the NPC actually observed there.
+`smithing-stations.ts` discovers received world fixtures and client statics. Crafting needs a reachable standing tile within two tiles of both an anvil and forge at compatible heights. Known smelting forges and blacksmith shops provide search destinations.
 
-`mobile-approach.ts` chooses a reachable cardinal tile beside an observed mobile on the same floor. It checks static walls/windows and observed solid items, refuses diagonal corner interactions, and navigates to the exact tile with the shared door-aware navigator. If the NPC moves, the approach is recomputed. Purchases and sales check the approach again before execution. An unreachable service is a bounded failure; a menu that can be queried from afar is not permission to trade through a wall.
+Up to sixteen pairs are remembered in `checkpoint.landmarks.smithies`, revalidated on return and excluded for ten minutes after server rejection. Material refills precede the station check. Minoc's mine-entrance pair at (2560,501) and (2561,501), and shop fixtures, are server objects; statics alone are insufficient.
 
-## Stairs and doors
+## Approaches and movement
 
-Terrain follows ServUO's `Movement.cs`: a stair or bridge has a base, a standing height and a full top height. Stepping onto one checks its base against the step allowance, and its top height permits the move onto the floor beyond. At Britain's Ethereal Goods, for example, the street is Z=20, the stairs at (1508, 1658) have base 22 and height 5, and the shop floor is Z=27. Solid objects that are not stairs or bridges get no such allowance.
+`mobile-approach.ts` finds a reachable cardinal tile beside an observed NPC on the same floor, checks walls and solid objects, and rechecks when it moves. Purchases and sales require a valid approach.
 
-Closed observed doors remain normal item interactions: the navigator follows the reachable terrain route, opens a nearby relevant door when it blocks movement, and requires server movement acknowledgement before continuing. It does not teleport, ignore server corrections, or treat walls as doors. Full multi/custom-house navigation remains outside the current supported geometry.
-
-Related: [sessions](sessions.md).
+Terrain follows ServUO stair/bridge heights. The navigator opens observed doors and requires movement acknowledgement; server corrections win. Full multi/custom-house geometry is unsupported.

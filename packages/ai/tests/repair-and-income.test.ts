@@ -5,8 +5,6 @@ import { createCorpseLooter } from '../src/fighter-loot';
 import { durability, guildRepairTurn } from '../src/guild-repairs';
 import { usefulGift } from '../src/inventory-use';
 import { serviceLocations } from '../src/locations';
-import { pocketReserve } from '../src/loot-economy';
-import { personalMemory } from '../src/resident-memory';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 
@@ -97,40 +95,6 @@ test('loot collects gold before heavy equipment and only accounts for actual rec
   expect(stats.looted).toBe(2);
   expect(trip.loot).toEqual([33]);
   expect(f.checkpoint.personal?.economy?.lootedGold).toBe(120);
-});
-
-test('banking preserves money for player trade and an unsettled companion share', () => {
-  const f = socialFixture();
-  const memory = personalMemory(f.checkpoint);
-  expect(pocketReserve(f.checkpoint)).toBe(200);
-  memory.commitment = {
-    id: 'test',
-    kind: 'hunt',
-    partner: 2,
-    name: 'Ada',
-    map: 1,
-    acceptedAt: Date.now(),
-    until: Date.now() + 1000,
-    lastSeen: Date.now(),
-    state: 'completed',
-    kills: 1,
-    lootDue: 75
-  };
-  expect(pocketReserve(f.checkpoint)).toBe(275);
-  memory.orders.push({
-    id: 'order',
-    side: 'buy',
-    partner: 2,
-    name: 'Ada',
-    good: 'bandages',
-    amount: 100,
-    price: 500,
-    map: 1,
-    meeting: { x: 100, y: 100 },
-    until: Date.now() + 1000,
-    state: 'accepted'
-  });
-  expect(pocketReserve(f.checkpoint)).toBe(575);
 });
 
 test('a skilled guild smith creates a real contract from a blank scroll and hands it over securely', async () => {

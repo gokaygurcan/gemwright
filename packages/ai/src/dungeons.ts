@@ -36,34 +36,13 @@ export interface Dungeon {
   entries: { from: Point; to: Point; floor: number; gate: Gate }[];
   floors: Floor[];
 }
-export interface Monster {
-  type: string;
-  name: string | null;
-  bodies: number[];
-  hits: number[] | null;
-  damage: number[] | null;
-  magery: number;
-  resist: number;
-  fame: number;
-  // Attacks on sight (its ServUO FightMode); combat skills, armor and the gold its loot packs carry.
-  aggressive?: boolean;
-  // ServUO AIType without the AI_ prefix (Melee, Mage, Archer, Berserk, Healer...) and FightMode.
-  ai?: string | null;
-  fightMode?: string;
-  tactics?: number;
-  wrestling?: number;
-  armor?: number;
-  gold?: number;
-}
+export { type Monster, monsters } from './monster-reference';
 
 const directory = new URL('../catalogs/dungeons/', import.meta.url);
 // Khaldun is entered through a quest; nothing an ordinary visitor can do opens it.
 export const dungeons: Dungeon[] = readdirSync(directory)
   .map((name) => JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Dungeon)
   .filter((dungeon) => dungeon.name !== 'Khaldun' && dungeon.entries.length);
-export const monsters: Monster[] = (
-  JSON.parse(readFileSync(new URL('../catalogs/monsters.json', import.meta.url), 'utf8')) as { monsters: Monster[] }
-).monsters;
 
 export const dungeonNamed = (name: string | undefined) => dungeons.find((dungeon) => dungeon.name === name);
 
@@ -112,32 +91,57 @@ const inBounds = (dungeon: Dungeon, at: { x: number; y: number }) => {
 };
 
 // The floor whose rooms or stairs are nearest at a similar height; floors overlap in x and y.
-export function floorAt(dungeon: Dungeon, at: Point): Floor | undefined {
+function nearestFloor(dungeon: Dungeon, at: Point): { floor: Floor; score: number } | undefined {
   let best: { floor: Floor; score: number } | undefined;
   for (const floor of dungeon.floors)
     for (const point of [...floor.rooms.map((r) => r.at), ...floor.stairs.map((s) => s.at)]) {
       const score = distance(at, point) + Math.max(0, Math.abs(at.z - point.z) - 10) * 4;
       if (!best || score < best.score) best = { floor, score };
     }
-  return best && best.score < 80 ? best.floor : undefined;
+  return best && best.score < 80 ? best : undefined;
+}
+
+export const floorAt = (dungeon: Dungeon, at: Point): Floor | undefined => nearestFloor(dungeon, at)?.floor;
+
+// Dungeon map sections can be close together: choose the best matching room or stair, not
+// the first dungeon whose broad proximity test passes.
+export function dungeonAt(at: Point): Dungeon | undefined {
+  return dungeons
+    .flatMap((dungeon) => {
+      const found = nearestFloor(dungeon, at);
+      return found ? [{ dungeon, score: found.score }] : [];
+    })
+    .sort((a, b) => a.score - b.score)[0]?.dungeon;
 }
 
 export const inside = (dungeon: Dungeon, at: Point) => floorAt(dungeon, at) !== undefined;
 
-// Descending stairs lead to a deeper floor; the way out is the stair to the shallowest floor, or
-// to the surface from the top floor.
+// Descending stairs lead deeper. The way out follows actual stair links to the surface;
+// connected floors can share a depth, so depth alone cannot identify an exit.
 export const deeperStairs = (dungeon: Dungeon, floor: Floor) =>
   floor.stairs.filter((stair) => {
     const target = dungeon.floors.find((f) => f.id === stair.toFloor);
     return target !== undefined && target.depth > floor.depth;
   });
 export function exitStair(dungeon: Dungeon, floor: Floor, from: { x: number; y: number }): Stair | undefined {
-  const up = floor.stairs.filter((stair) => {
-    if (stair.toFloor === null) return true;
-    const target = dungeon.floors.find((f) => f.id === stair.toFloor);
-    return target !== undefined && target.depth < floor.depth;
-  });
-  return up.sort((a, b) => distance(from, a.at) - distance(from, b.at))[0];
+  const queue = [{ floor: floor.id, route: [] as Stair[] }];
+  const seen = new Set([floor.id]);
+  for (let i = 0; i < queue.length; i++) {
+    const step = queue[i];
+    if (!step) continue;
+    const stairs = [...(dungeon.floors.find((f) => f.id === step.floor)?.stairs ?? [])].sort(
+      (a, b) => distance(from, a.at) - distance(from, b.at)
+    );
+    for (const stair of stairs) {
+      const route = [...step.route, stair];
+      if (stair.toFloor === null) return route[0];
+      if (!seen.has(stair.toFloor)) {
+        seen.add(stair.toFloor);
+        queue.push({ floor: stair.toFloor, route });
+      }
+    }
+  }
+  return undefined;
 }
 
 // Rolls the crawler's next goal on its floor, after UO Offline: every unvisited room weighs 1,

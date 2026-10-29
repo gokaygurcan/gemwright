@@ -1,7 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
+import { Layer } from '@gemwright/network/layers';
 
 import { type FighterContext, weaponsFor } from './fighter-context';
-import { Layer } from './protocol/layers';
 
 export const poisonPotion = 0x0f0a;
 const APPLIED = 1010517; // You apply the poison
@@ -29,9 +29,11 @@ export async function poisonWeapon(ctx: FighterContext) {
     session.world.journal.find((e) => !seen.has(e) && [APPLIED, ...FAILED, ...REFUSED].includes(e.cliloc ?? 0))?.cliloc;
   try {
     session.useSkill(skillId('Poisoning'));
-    await session.waitFor(() => session.world.target !== null, 'poison cursor', 3000);
+    await session.waitFor(() => session.world.target !== null, 'poison cursor', 3000, { resource: 'target' });
     session.target({ serial: potion.serial, x: 0, y: 0, z: 0, graphic: potion.graphic });
-    await session.waitFor(() => session.world.target !== null || reply() !== undefined, 'blade cursor', 3000);
+    await session.waitFor(() => session.world.target !== null || reply() !== undefined, 'blade cursor', 3000, {
+      resource: 'target'
+    });
     if (!session.world.target) return;
     session.target({ serial: weapon.serial, x: 0, y: 0, z: 0, graphic: weapon.graphic });
     await session.waitFor(() => reply() !== undefined, 'poisoning result', 5000);

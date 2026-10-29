@@ -39,6 +39,7 @@ export function tamingSpot(me: number, at: { x: number; y: number }, skill: numb
     (stay.searches >= EMPTY_SEARCHES || !worth(stay.ground, skill) || !reachableFrom(stay.ground.center, at))
   ) {
     given.set(key(stay.ground), Date.now() + tuning.taming.givenUpHours * 3_600_000);
+    current.delete(me);
     stay = undefined;
   }
   if (!stay) {
@@ -74,3 +75,13 @@ export const foundAtGround = (me: number) => {
   const stay = current.get(me);
   if (stay) stay.searches = 0;
 };
+
+export function unreachableGround(me: number) {
+  const stay = current.get(me);
+  if (!stay) return;
+  lasting('taming-ground', me).set(
+    `${stay.ground.center.x},${stay.ground.center.y}`,
+    Date.now() + tuning.taming.givenUpHours * 3_600_000
+  );
+  current.delete(me);
+}

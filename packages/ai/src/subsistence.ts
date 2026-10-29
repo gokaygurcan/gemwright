@@ -48,7 +48,9 @@ export async function begForTool(ctx: SubsistenceContext, want: number) {
     ctx.phase('begging', 'Begging for a few coins');
     await ctx.navigate(npc.position, 1).catch(() => {});
     session.useSkill(skillId('Begging'));
-    await session.waitFor(() => session.world.target !== null, 'begging cursor', 3000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'begging cursor', 3000, { resource: 'target' })
+      .catch(() => {});
     ctx.check();
     if (!session.world.target) continue;
     session.target({ serial: npc.serial, x: 0, y: 0, z: 0, graphic: npc.graphic });

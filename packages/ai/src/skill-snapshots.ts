@@ -1,6 +1,6 @@
 import { skillNames } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
 
-import type { PlayerSession } from './protocol/session';
 import type { ResidentStore, SkillReading } from './store';
 
 // Each resident's skills as the server reports them, written to the resident database at most once

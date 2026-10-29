@@ -135,6 +135,7 @@ test('a successful command without an observed death does not invent a shared ki
 test('relationship events deduplicate, survive checkpoint serialization, and do not punish an interruption as betrayal', () => {
   const f = socialFixture();
   const event = {
+    at: Date.now(),
     partner: 2,
     name: 'Ada',
     kind: 'gift' as const,

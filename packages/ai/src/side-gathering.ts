@@ -1,5 +1,7 @@
-import { gold, miningTools, ore } from '@gemwright/common/items';
+import { miningTools, ore } from '@gemwright/common/items';
+import { Layer } from '@gemwright/network/layers';
 
+import { spendableGold } from './bank-gold';
 import { unsafeCheck } from './danger';
 import { lasting } from './lasting';
 import { pickLocation } from './locations';
@@ -13,7 +15,6 @@ import { findMiningSite } from './miner-sites';
 import { createSmelter } from './miner-smelting';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
-import { Layer } from './protocol/layers';
 import { buyTool, sellTo } from './vendor-trade';
 import { workAreas } from './work-areas';
 
@@ -35,7 +36,8 @@ export const oreNear = (ctx: ProfessionContext) =>
 // One load of wood: true when the turn went to it.
 export async function woodTurn(ctx: ProfessionContext): Promise<boolean> {
   const { session } = ctx;
-  if (!tool(ctx, hatchets) && ctx.count(gold) >= 30) await buyHatchetFrom({ ...ctx, city: ctx.city }).catch(() => {});
+  if (!tool(ctx, hatchets) && spendableGold(session, ctx.backpack(), ctx.checkpoint) >= 30)
+    await buyHatchetFrom({ ...ctx, city: ctx.city }).catch(() => {});
   if (!tool(ctx, hatchets)) return false;
   const depleted = lasting('tree', ctx.serial);
   const risky = unsafeCheck(session);
@@ -55,7 +57,9 @@ export async function woodTurn(ctx: ProfessionContext): Promise<boolean> {
     const blade = tool(ctx, hatchets);
     if (!pile || !blade) return;
     session.use(blade.serial);
-    await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000).catch(() => {});
+    await session
+      .waitFor(() => session.world.target !== null, 'hatchet cursor', 4000, { resource: 'target' })
+      .catch(() => {});
     if (session.world.target) session.target({ serial: pile.serial, x: 0, y: 0, z: 0, graphic: pile.graphic });
     await Bun.sleep(1500);
   };
@@ -87,7 +91,7 @@ export async function woodTurn(ctx: ProfessionContext): Promise<boolean> {
 // One stay at a rock, then smelting and selling once the pack is heavy: true when the turn went to it.
 export async function oreTurn(ctx: ProfessionContext): Promise<boolean> {
   const { session } = ctx;
-  if (!tool(ctx, miningTools) && ctx.count(gold) >= 40)
+  if (!tool(ctx, miningTools) && spendableGold(session, ctx.backpack(), ctx.checkpoint) >= 40)
     await buyTool(ctx, 'mining-tools', [...miningTools], 40).catch(() => false);
   const pick = tool(ctx, miningTools);
   if (!pick) return false;

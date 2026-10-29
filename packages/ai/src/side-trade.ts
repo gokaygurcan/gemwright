@@ -7,6 +7,7 @@ import { forcedToWork } from './loop-watch';
 import { distance } from './navigation';
 import { errand, objectiveBlocked, suppliesCondition } from './objective-memory';
 import type { ProfessionContext } from './profession';
+import { goalAllows, goalControlled } from './resident-goal';
 import { oreNear, oreTurn, woodNear, woodTurn } from './side-gathering';
 import { trainFromNpc } from './training';
 import { tuning } from './tuning';
@@ -30,8 +31,9 @@ const skill = (ctx: ProfessionContext, name: string) => ctx.session.world.skills
 
 // True when it spent the turn on its side trade.
 export async function sideTradeTurn(ctx: ProfessionContext, profession: string, needed = false): Promise<boolean> {
-  if (forcedToWork(ctx.session)) return false;
-  if (profession === 'fisher') return false;
+  if (goalControlled(ctx.session) && !goalAllows(ctx.session, 'income')) return false;
+  if (forcedToWork(ctx.session) && !goalAllows(ctx.session, 'income')) return false;
+  if (profession === 'fisher' && !goalAllows(ctx.session, 'income')) return false;
   const total = [...ctx.session.world.skills.values()].reduce((n, s) => n + (s.base ?? 0), 0);
   if (total >= ROOM && skill(ctx, 'Fishing') < 1 && !needed) return false;
   const now = Date.now();
@@ -65,10 +67,14 @@ export async function sideTradeTurn(ctx: ProfessionContext, profession: string, 
   const paid = ctx.checkpoint.paid;
   const rate = (kind: string) => (paid[kind] ? paid[kind].gold / Math.max(1, paid[kind].minutes) : undefined);
   const known = choices.filter((c) => rate(c) !== undefined).sort((a, b) => (rate(b) ?? 0) - (rate(a) ?? 0));
+  const remembered = ctx.checkpoint.workGoal?.active?.incomeTrade;
   const pick =
-    known.length && Math.random() >= 0.2
-      ? (known[0] ?? choices[0])
-      : (choices[Math.floor(Math.random() * choices.length)] ?? choices[ctx.serial % choices.length]);
+    remembered && choices.includes(remembered)
+      ? remembered
+      : known.length && Math.random() >= 0.2
+        ? (known[0] ?? choices[0])
+        : (choices[Math.floor(Math.random() * choices.length)] ?? choices[ctx.serial % choices.length]);
+  if (ctx.checkpoint.workGoal?.active) ctx.checkpoint.workGoal.active.incomeTrade = pick;
   const startGold = funds(ctx);
   const started = Date.now();
   const record = () => {
@@ -118,20 +124,4 @@ export async function sideTradeTurn(ctx: ProfessionContext, profession: string, 
   await errand(ctx, 'side:fish', 'fishing on the side', () => fishingTurn(avoid)(local));
   record();
   return true;
-}
-
-// For runners without a ProfessionContext (miner, lumberjack): the side trade after a loop, while
-// the setback's two hours last (setback.ts). True when it spent the turn on it.
-export async function loopSideTrade(
-  parts: Omit<ProfessionContext, 'carried' | 'count' | 'progress' | 'practise' | 'persist' | 'template'> & {
-    persist: () => void;
-    template: ProfessionContext['template'];
-  },
-  profession: string
-): Promise<boolean> {
-  if ((parts.checkpoint.sideTrade?.until ?? 0) <= Date.now()) return false;
-  const carried = (pack?: number) => parts.session.world.childrenOf(pack ?? parts.backpack());
-  const count = (graphic: number) =>
-    carried().reduce((n, item) => n + (item.graphic === graphic ? (item.amount ?? 1) : 0), 0);
-  return sideTradeTurn({ ...parts, carried, count, progress: {}, practise: async () => 0 }, profession, true);
 }

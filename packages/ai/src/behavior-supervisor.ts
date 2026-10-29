@@ -1,4 +1,4 @@
-import { info } from './log';
+import { logger } from './log';
 
 interface RecoverableSession {
   phase: string;
@@ -16,6 +16,7 @@ export async function superviseBehavior<S extends RecoverableSession, R>(options
   connect: () => Promise<S>;
   latestSession: () => S | null;
   run: (session: S, seconds: number) => Promise<R>;
+  onRecovery?: (session: S, attempt: number, reason: string) => void;
   onResult?: (result: R) => void;
   now?: () => number;
   sleep?: (ms: number) => Promise<unknown>;
@@ -41,6 +42,7 @@ export async function superviseBehavior<S extends RecoverableSession, R>(options
       throw new Error(
         `Behavior session failed with a non-retryable error: ${session.failureReason ?? 'unknown protocol or character error'}`
       );
+    const failureReason = session.failureReason ?? 'unspecified interruption';
     session.close();
     while (!options.stopping() && now() < options.deadline) {
       options.assertOwnership();
@@ -49,8 +51,9 @@ export async function superviseBehavior<S extends RecoverableSession, R>(options
       await sleep(Math.min(500 * 2 ** recoveryAttempts, 5000, Math.max(0, options.deadline - now())));
       if (options.stopping() || now() >= options.deadline) break;
       recoveryAttempts++;
-      info(
-        `[session] Reconnecting interrupted behavior (${recoveryAttempts}/${options.maxReconnects}); rebuilding player observations`
+      options.onRecovery?.(session, recoveryAttempts, failureReason);
+      logger('behavior-supervisor').info(
+        `[session] Reconnecting interrupted behavior (${recoveryAttempts}/${options.maxReconnects}); rebuilding player observations: ${failureReason}`
       );
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {

@@ -1,31 +1,26 @@
 import { readFileSync } from 'node:fs';
 
 import { skillId } from '@gemwright/common/skills';
+import { gumpCommands } from '@gemwright/network/gumps';
+import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
 import { withinReach } from './areas';
-import {
-  canSpendOnTraining,
-  chargedPurchase,
-  offersBank,
-  openBankBox,
-  recordTrainingSpend,
-  refreshFunds,
-  TOOLS
-} from './bank-gold';
+import { canSpendOnTraining, chargedPurchase, recordTrainingSpend, refreshFunds, TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
+import { bankKept } from './craft-banking';
+import { sellCrafted as sell } from './craft-sales';
 import { learnQuality, quality } from './item-quality';
-import { allServiceLocations, pickLocation, type ServiceType, serviceLocations, townAt } from './locations';
+import { allServiceLocations, type ServiceType, serviceLocations, townAt, vendorLocations } from './locations';
 import { buttonFor, CREATED, EXCEPTIONAL, FAILED, STOP } from './miner-crafting';
 import { approachVendor } from './mobile-approach';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
-import { gumpCommands } from './protocol/gumps';
-import type { Entity } from './protocol/world';
+import { failResidentGoal } from './resident-goal';
+import { atSmithingStation, rejectSmithingStation } from './smithing-stations';
 import { reachableFrom } from './unreachable';
-import { reservedFor } from './work-orders';
 
 // One crafting skill: tools bought from and goods sold to `vendor`, recipes from the Def* craft
 // system (group cliloc, item label, minimum skill, material count).
@@ -137,6 +132,9 @@ export type CraftContext = Pick<
   holdExceptional?: boolean;
   // Spending limits for tools and materials (bank-gold.ts); crafting for profit uses BUSINESS.
   limits?: { reserve: number; perHour: number };
+  persist?: () => void;
+  done?: () => boolean;
+  onBlocked?: (reason: 'materials' | 'tool' | 'station' | 'menu') => void;
 };
 
 // One vendor interaction (3006103 buy, 3006104 sell) at the first stop where it succeeds.
@@ -148,8 +146,9 @@ export async function atVendor(
   objective = 'service'
 ) {
   const { session, navigate, position } = ctx;
+  const town = townAt(position(), ctx.city);
   // A town without this kind of shop (Yew has no tinker) sends the crafter to the nearest ones.
-  const own = serviceLocations(townAt(position(), ctx.city), vendorType);
+  const own = serviceLocations(town, vendorType);
   const alternatives = allServiceLocations(vendorType)
     .filter((shop) => !own.some((point) => point.x === shop.x && point.y === shop.y))
     .sort((a, b) => distance(position(), a) - distance(position(), b));
@@ -157,15 +156,54 @@ export async function atVendor(
   // for what it goes for, and only the nearest such town. Nobody crosses the land on a hunch.
   const funds = (ctx.status().gold ?? 0) + (ctx.checkpoint.funds?.bank ?? 0);
   const walkable = alternatives.filter((shop) => distance(position(), shop) <= 300);
-  const far = own.length || walkable.length || funds < 100 ? [] : alternatives.slice(0, 1);
-  const stops = [
-    ...own.filter((shop) => distance(position(), shop) <= 300 || funds >= 100),
-    ...walkable.slice(0, 2),
-    ...far
+  const stops = [...own.filter((shop) => distance(position(), shop) <= 300 || funds >= 100), ...walkable.slice(0, 2)];
+  // When none of this town's shops serves the need, the nearest other towns' shops are still worth
+  // one trip: a fisher whose town's fishmonger cannot trade has nothing left to stay for. Selling
+  // always travels (it is how the resident earns); buying only when it can pay for more than the
+  // trip itself.
+  const elsewhere =
+    cliloc === 3006104 || funds >= 100
+      ? alternatives.filter((shop) => !stops.some((stop) => stop.x === shop.x && stop.y === shop.y)).slice(0, 3)
+      : [];
+  // The shop landmark is the door; the vendor stands somewhere inside or beside it. The spawner data
+  // (locations/vendors.json) lists where each kind of vendor actually appears in this town. A town
+  // whose shops all failed this objective lately teaches nothing new: its spawn points wait too.
+  const objectiveKey = (x: number, y: number) =>
+    `shop:${session.world.map}:${vendorType}:${cliloc}:${x},${y}:${objective}`;
+  const townBlocked =
+    own.length > 0 &&
+    own.every((shop) =>
+      objectiveBlocked(ctx.checkpoint, objectiveKey(shop.x, shop.y), suppliesCondition(session, ctx.checkpoint))
+    );
+  const spawns = townBlocked
+    ? []
+    : vendorLocations(town, vendorType)
+        .filter((point) => !stops.some((stop) => distance(stop, point) <= 3))
+        .sort((a, b) => distance(position(), a) - distance(position(), b));
+  // A vendor that answered before is the surest place to look again (kept for a day).
+  const vendorKey = `${session.world.map ?? -1}:${town.toLowerCase()}:${vendorType}`;
+  const remembered = ctx.checkpoint.landmarks?.vendors?.[vendorKey];
+  const learn = (at: { x: number; y: number; z: number }) => {
+    ctx.checkpoint.landmarks ??= { forges: [] };
+    ctx.checkpoint.landmarks.vendors ??= {};
+    ctx.checkpoint.landmarks.vendors[vendorKey] = { x: at.x, y: at.y, z: at.z, at: Date.now() };
+    ctx.persist?.();
+  };
+  const visits = [
+    ...(remembered && !townBlocked && Date.now() - remembered.at < 86_400_000
+      ? [{ point: remembered, inTown: true }]
+      : []),
+    ...stops.map((point) => ({ point, inTown: own.some((shop) => shop.x === point.x && shop.y === point.y) })),
+    ...spawns.map((point) => ({ point, inTown: true })),
+    ...elsewhere.map((point) => ({ point, inTown: false }))
   ];
-  for (const shop of stops) {
+  // Once this town's vendor answers with nothing for this objective, its other spawn points teach
+  // nothing more on this visit; other towns are still tried.
+  let townSettled = false;
+  for (const { point: shop, inTown } of visits) {
+    if (inTown && townSettled) continue;
     ctx.check();
-    const key = `shop:${session.world.map}:${vendorType}:${cliloc}:${shop.x},${shop.y}:${objective}`;
+    const key = objectiveKey(shop.x, shop.y);
     const condition = suppliesCondition(session, ctx.checkpoint);
     if (
       objectiveBlocked(ctx.checkpoint, key, condition) &&
@@ -181,19 +219,34 @@ export async function atVendor(
       if (distance(position(), shop) > 300 && distance(position(), moongates[gate]) > 2)
         await travelByMoongate(ctx, gate);
       await navigate(shop, 4);
+      let heard = false;
       for (const mobile of [...session.world.entities.values()]) {
         if (mobile.kind !== 'mobile' || mobile.notoriety !== 7 || !mobile.position) continue;
         if (distance(position(), mobile.position) > 18) continue;
-        const entry = (await session.context(mobile.serial).catch(() => [])).find(
-          (e) => e.cliloc === cliloc && !(e.flags & 1)
-        );
-        if (!entry) continue;
+        const menu = async () =>
+          (await session.context(mobile.serial)).find((entry) => entry.cliloc === cliloc && !(entry.flags & 1));
+        // The shard answers a menu only within its update range and vendors wander: a request that
+        // goes unanswered is retried from close range before another vendor is tried.
+        let entry = await menu().catch(() => undefined);
+        if (entry === undefined) {
+          await approachVendor(ctx, mobile.serial).catch(() => {});
+          entry = await menu().catch(() => undefined);
+        }
+        if (entry === undefined) continue;
+        heard = true;
         await approachVendor(ctx, mobile.serial);
         if (await act(mobile.serial)) {
           completeObjective(ctx.checkpoint, key);
+          learn(mobile.position);
           return true;
         }
       }
+      if (!heard) {
+        // No menu came back at all: nothing was learned about stock, so no shop ban is recorded.
+        ctx.log(`No ${vendorType} answered near ${shop.x},${shop.y}`);
+        continue;
+      }
+      townSettled ||= inTown;
       failObjective(
         ctx.checkpoint,
         key,
@@ -228,7 +281,10 @@ export async function trainCraft(
       .reduce((sum, item) => sum + (item.amount ?? 1), 0);
   const tool = () => carried(backpack).find((item) => craft.tools.has(item.graphic));
   const recipe = () => chooseRecipe(craft, skill(), goal?.mode ?? 'training', goal?.skill, goal?.prefer);
-  if (!recipe()) return 0;
+  if (!recipe()) {
+    failResidentGoal(session, `No viable ${craft.skill} recipe for this objective`);
+    return 0;
+  }
   // Tools and materials are charged to the bank: a stale balance would count carried coins only.
   await refreshFunds(ctx, ctx.city);
   if (!tool()) {
@@ -264,6 +320,8 @@ export async function trainCraft(
       `tool:${[...craft.tools].join(',')}`
     );
     if (!bought) {
+      ctx.onBlocked?.('tool');
+      if (!ctx.onBlocked) failResidentGoal(session, 'Required crafting tool unavailable');
       log(`No ${craft.skill} tool bought: ${why ?? 'no vendor answered'}`);
       return 0;
     }
@@ -292,7 +350,7 @@ export async function trainCraft(
   const groups = new Set(craft.recipes.map((r) => String(r.group)));
   const craftGump = () =>
     [...session.world.gumps.values()].find((g) => [...groups].some((group) => g.layout.includes(group)));
-  while (Date.now() < until && (goal?.mode === 'profit' || skill() < 100)) {
+  while (Date.now() < until && !ctx.done?.() && (goal?.mode === 'profit' || skill() < 100)) {
     check();
     const current = recipe();
     const kit = tool();
@@ -305,7 +363,15 @@ export async function trainCraft(
       short ||= stock(need.graphic) < need.amount;
     }
     if (short) {
+      ctx.onBlocked?.('materials');
+      if (!ctx.onBlocked) failResidentGoal(session, 'Required crafting materials unavailable');
       log(`No ${craft.skill} material for ${current.name} (none bought within the training budget)`);
+      break;
+    }
+    if (craft.skill === 'Blacksmith' && !(await atSmithingStation(ctx))) {
+      ctx.onBlocked?.('station');
+      if (!ctx.onBlocked) failResidentGoal(session, 'No reachable crafting station');
+      log('No reachable anvil and forge for Blacksmith crafting');
       break;
     }
     if (!craftGump()) {
@@ -313,10 +379,16 @@ export async function trainCraft(
       await session.waitFor(() => !!craftGump(), `${craft.skill} menu`, 4000);
     }
     let gump = craftGump();
-    if (!gump) break;
+    if (!gump) {
+      ctx.onBlocked?.('menu');
+      break;
+    }
     if (buttonFor(gump.layout, current.label) === undefined) {
       const group = buttonFor(gump.layout, current.group);
-      if (group === undefined) break;
+      if (group === undefined) {
+        ctx.onBlocked?.('menu');
+        break;
+      }
       const shown = session.world.received.get(gump.packed ? 0xdd : 0xb0) ?? 0;
       session.replyGump(gump.serial, gump.id, group, []);
       await session.waitFor(
@@ -327,7 +399,10 @@ export async function trainCraft(
       gump = craftGump();
     }
     const button = gump && buttonFor(gump.layout, current.label);
-    if (!gump || button === undefined) break;
+    if (!gump || button === undefined) {
+      ctx.onBlocked?.('menu');
+      break;
+    }
     const before = new Set(carried(backpack).map((item) => item.serial));
     const seen = new Set(session.world.journal);
     const known = [...CREATED, ...FAILED, ...STOP];
@@ -345,7 +420,15 @@ export async function trainCraft(
     session.replyGump(gump.serial, gump.id, button, []);
     await session.waitFor(() => reply() !== undefined, 'craft result', 8000);
     attempts++;
-    if (STOP.includes(reply() ?? 0)) break;
+    if (STOP.includes(reply() ?? 0)) {
+      const code = reply();
+      const reason = code === 1044267 ? 'station' : code === 1044038 ? 'tool' : 'materials';
+      if (code === 1044267) rejectSmithingStation(ctx);
+      ctx.onBlocked?.(reason);
+      if (!ctx.onBlocked) failResidentGoal(session, `${craft.skill}: ${reason} (server reply ${code})`);
+      log(`${craft.skill} stopped: ${reason} (server reply ${code})`);
+      break;
+    }
     for (const item of carried(backpack))
       if (
         !before.has(item.serial) &&
@@ -356,7 +439,7 @@ export async function trainCraft(
       ) {
         tally(session, 'crafted');
         // Exceptional pieces are never sold to a shop: banked, or kept for residents.
-        if (EXCEPTIONAL.includes(reply() ?? 0)) {
+        if (EXCEPTIONAL.includes(reply() ?? 0) && !ctx.hold?.has(item.graphic)) {
           // A few are held for residents; more than five of a kind go to the bank.
           const held = carried(backpack).filter(
             (i) => i.graphic === item.graphic && !ctx.checkpoint.keep?.includes(i.serial)
@@ -367,7 +450,8 @@ export async function trainCraft(
             ctx.checkpoint.keep = [...new Set([...(ctx.checkpoint.keep ?? []), item.serial])];
             log(`Exceptional ${craft.skill} piece; keeping it for the bank`);
           }
-        } else if (!ctx.checkpoint.keep?.includes(item.serial)) made.add(item.serial);
+        } else if (!ctx.checkpoint.keep?.includes(item.serial) && !(ctx.done && ctx.hold?.has(item.graphic)))
+          made.add(item.serial);
       }
     await Bun.sleep(600);
     if (made.size >= 8 || ctx.status().weight > ctx.status().maxWeight * 0.9) await sell(ctx, craft, made, backpack);
@@ -376,68 +460,4 @@ export async function trainCraft(
   await bankKept(ctx, backpack);
   log(`Practised ${craft.skill} ${attempts} times`);
   return attempts;
-}
-
-// Deposits kept exceptional pieces with the town's banker.
-async function bankKept(ctx: CraftContext, backpack: number) {
-  const { session } = ctx;
-  const kept = ctx.carried(backpack).filter((item) => ctx.checkpoint.keep?.includes(item.serial));
-  if (!kept.length) return;
-  const bank = pickLocation(ctx.city, 'banker');
-  if (!bank) return;
-  ctx.phase('bank-keep', `Banking ${kept.length} exceptional piece${kept.length > 1 ? 's' : ''}`);
-  await ctx.navigate(bank, 4);
-  for (const mobile of session.world.entities.values()) {
-    if (!mobile.position || distance(ctx.position(), mobile.position) > 12) continue;
-    if (!(await offersBank(session, mobile.serial))) continue;
-    const box = await openBankBox(ctx, mobile.serial);
-    for (const item of kept) {
-      ctx.check();
-      await session.moveItem(item.serial, box);
-      ctx.checkpoint.keep = ctx.checkpoint.keep?.filter((serial) => serial !== item.serial);
-      await Bun.sleep(700);
-    }
-    return;
-  }
-}
-
-async function sell(ctx: CraftContext, craft: CraftSkill, made: Set<number>, backpack: number) {
-  const { session } = ctx;
-  await atVendor(ctx, craft.vendor, 3006104, async (vendor) => {
-    const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006104);
-    if (!entry) return false;
-    session.world.sellOffers.delete(vendor);
-    session.selectContext(vendor, entry.index);
-    await session.waitFor(() => session.world.sellOffers.has(vendor), 'craft buying list', 2500).catch(() => {});
-    // Up to 20 of each held graphic stay in the pack (already held ones count); the rest are sold.
-    const kept = new Map<number, number>();
-    const held = (serial: number) => {
-      const graphic = session.world.entities.get(serial)?.graphic ?? 0;
-      if (!ctx.hold?.has(graphic)) return false;
-      if (!kept.has(graphic))
-        kept.set(graphic, ctx.carried(backpack).filter((i) => i.graphic === graphic && !made.has(i.serial)).length);
-      if ((kept.get(graphic) ?? 0) >= 20) return false;
-      kept.set(graphic, (kept.get(graphic) ?? 0) + 1);
-      // Held goods leave the sale list, so they never send the crafter back to the shop.
-      made.delete(serial);
-      return true;
-    };
-    const sale = (session.world.sellOffers.get(vendor) ?? []).filter(
-      (offer) =>
-        made.has(offer.serial) &&
-        offer.price > 0 &&
-        !held(offer.serial) &&
-        reservedFor(
-          session,
-          session.world.entities.get(offer.serial) ?? { serial: offer.serial, kind: 'item', graphic: 0 }
-        ) === 0
-    );
-    if (!sale.length) return false;
-    await session.sell(
-      vendor,
-      sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
-    );
-    for (const offer of sale) made.delete(offer.serial);
-    return true;
-  });
 }

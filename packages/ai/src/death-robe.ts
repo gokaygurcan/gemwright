@@ -1,10 +1,10 @@
 import { gold, isDeathRobe } from '@gemwright/common/items';
 import { LAYERS } from '@gemwright/common/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import type { CraftContext } from './craft-training';
 import { isGargoyle } from './flight';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { buyOffer, findOffer } from './resident-offers';
 import type { Terrain } from './terrain';
 import { buyFrom } from './vendor-trade';
@@ -40,7 +40,15 @@ export async function shedDeathRobe(session: PlayerSession, terrain: Terrain, ca
     )[0];
   if (!own) return false;
   await session.dropAtFeet(robe.serial);
-  await session.equipItem(own.item.serial, own.layer);
+  try {
+    await session.equipItem(own.item.serial, own.layer);
+  } catch (error) {
+    // A piece the shard will not wear (race, gender or another requirement): put the robe back on
+    // rather than stand naked; the piece itself is dealt with as loot.
+    if (session.phase !== 'ready') throw error;
+    await session.equipItem(robe.serial, robe.layer ?? LAYERS.outerTorso).catch(() => {});
+    return false;
+  }
   return true;
 }
 

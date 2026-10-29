@@ -114,7 +114,7 @@ test('city corridors can be joined from a different start without crossing an ob
 
 test('vendor interactions use the offered eight-tile range and require navigation outside it', async () => {
   const { approachVendor } = await import('../src/mobile-approach');
-  const { WorldView } = await import('../src/protocol/world');
+  const { WorldView } = await import('@gemwright/network/world');
   const world = new WorldView();
   world.serial = 1;
   world.position = { x: 10, y: 10, z: 0, direction: 2 };

@@ -1,8 +1,8 @@
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { observedWorkCount } from './activity';
 import type { CharacterTemplate } from './config';
-import type { PlayerSession } from './protocol/session';
 import { personalMemory } from './resident-memory';
 import type { Checkpoint } from './store';
 

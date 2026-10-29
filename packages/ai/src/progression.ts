@@ -1,7 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import type { CharacterArchetype } from './archetypes';
-import type { PlayerSession } from './protocol/session';
 
 // Craft and gathering characters (craftsman, fisherman, tailor, alchemist, bowyer) never leave town
 // work for dungeons; everyone else graduates at
@@ -9,7 +9,7 @@ import type { PlayerSession } from './protocol/session';
 const crafters = new Set(['craftsman', 'fisherman', 'tailor', 'alchemist', 'bowyer']);
 const dungeonSkill = 80;
 const soloSkill = 100;
-const renounceSkill = 60;
+const renounceSkill = 100;
 
 // Groundwork for dungeon play (not yet designed): true once a non-craft archetype has every primary
 // skill at 80.0 base, as reported by the server's skill list.
@@ -26,13 +26,11 @@ function primariesAt(session: PlayerSession, archetype: CharacterArchetype | und
   return archetype.primarySkills.every((name) => (session.world.skills.get(skillId(name))?.base ?? 0) >= skill);
 }
 
-// Any resident with a primary skill at 60.0 base gives up its Young status as a player would: by
+// A resident with at least three skills at 100.0 base gives up its Young status by
 // saying the keyword phrase (speech ID 0x0035, Keywords.cs) and pressing OKAY (button 1) on the
 // RenounceYoungGump. A character that is no longer Young gets no gump, so nothing is pressed.
-export function outgrewYoung(session: PlayerSession, archetype: CharacterArchetype | undefined): boolean {
-  return !!archetype?.primarySkills.some(
-    (name) => (session.world.skills.get(skillId(name))?.base ?? 0) >= renounceSkill
-  );
+export function outgrewYoung(session: PlayerSession): boolean {
+  return [...session.world.skills.values()].filter((skill) => skill.base >= renounceSkill).length >= 3;
 }
 
 export async function renounceYoung(session: PlayerSession) {

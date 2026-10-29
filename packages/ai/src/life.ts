@@ -1,4 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Position } from '@gemwright/network/world';
 
 import { checkedDelay } from './action-purpose';
 import { Blocked } from './blocked';
@@ -17,9 +20,7 @@ import { meetNeeds } from './need-planning';
 import { goalPhaseBias } from './personal-goals';
 import { personalTurn } from './personal-turn';
 import { playerPull } from './player-insight';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Position } from './protocol/world';
+import { goalAllows, goalControlled } from './resident-goal';
 import { scavenge } from './scavenge';
 import { selfNow } from './self';
 import { shardProfile } from './shard-profile';
@@ -296,6 +297,7 @@ function destination(ctx: LifeContext): string | undefined {
 // work waits; false means work now. Every resident shares one event loop, so a turn spent on a
 // phase lasts at least a second and always yields, even when the phase found nothing to do.
 export async function lifeTurn(ctx: LifeContext): Promise<boolean> {
+  if (goalControlled(ctx.session) && !goalAllows(ctx.session, 'optional')) return false;
   // The loop guard put it back to its job (loop-watch.ts).
   if (forcedToWork(ctx.session)) return false;
   const started = Date.now();

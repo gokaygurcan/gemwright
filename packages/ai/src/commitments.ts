@@ -1,4 +1,6 @@
 import { gold } from '@gemwright/common/items';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause, checkedDelay } from './action-purpose';
 import { unsafeCheck } from './danger';
@@ -7,8 +9,6 @@ import { groupMember } from './group-awareness';
 import type { LifeContext } from './life';
 import { serviceLocations } from './locations';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
 import { residentCombat, residentContext } from './resident-context';
 import { personalMemory, rememberPartner } from './resident-memory';
 import type { Commitment } from './resident-memory-types';

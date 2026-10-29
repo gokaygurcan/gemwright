@@ -1,9 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import { skillId, skillNames } from '@gemwright/common/skills';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import { peopleSeen } from './appraise';
 import type { CharacterTemplate } from './config';
+import { recordDecisions } from './decision-events';
 import {
   type ChoiceRequest,
   costUsd,
@@ -14,10 +17,8 @@ import {
 } from './decision-provider';
 import { experienceSummary } from './experience';
 import { lasting } from './lasting';
-import { info } from './log';
+import { logger } from './log';
 import { mountEquipment } from './mount-types';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
 import { LIFE_GOAL, selfNow } from './self';
 import type { SpendLedger } from './spend-ledger';
 import type { Checkpoint } from './store';
@@ -76,60 +77,7 @@ export function underperforms(tally: DecisionTally | undefined): boolean {
   return divergent < agreeing - 0.1;
 }
 
-export function decisionReport(memory: DecisionMemory | undefined) {
-  return Object.entries(memory?.tally ?? {}).map(([kind, tally]) => {
-    const rate = (outcomes: DecisionTally['outcomes']) => {
-      const total = (outcomes.completed ?? 0) + (outcomes.failed ?? 0);
-      return total ? Number(((outcomes.completed ?? 0) / total).toFixed(3)) : null;
-    };
-    const agreeing = Object.fromEntries(
-      (['completed', 'failed', 'interrupted'] as const).map((status) => [
-        status,
-        (tally.outcomes[status] ?? 0) - (tally.divergentOutcomes[status] ?? 0)
-      ])
-    );
-    return {
-      kind,
-      decisions: tally.decisions,
-      divergent: tally.divergent,
-      baselineSuccessRate: rate(agreeing),
-      divergentSuccessRate: rate(tally.divergentOutcomes),
-      providerConsulted: !underperforms(tally)
-    };
-  });
-}
-// Sums several residents' tallies into one memory for a fleet report, and counts who decided the
-// retained traces per kind: the model, or the local rule with the reason Jev was not asked.
-export function mergeDecisionMemory(memories: (DecisionMemory | undefined)[]) {
-  const tally: Record<string, DecisionTally> = {};
-  const sources: Record<string, Record<string, number>> = {};
-  const add = (into: Partial<Record<string, number>>, from: Partial<Record<string, number>>) => {
-    for (const [key, value] of Object.entries(from)) into[key] = (into[key] ?? 0) + (value ?? 0);
-  };
-  for (const memory of memories) {
-    for (const [kind, own] of Object.entries(memory?.tally ?? {})) {
-      const sum = tally[kind] ?? { decisions: 0, divergent: 0, outcomes: {}, divergentOutcomes: {} };
-      tally[kind] = sum;
-      sum.decisions += own.decisions;
-      sum.divergent += own.divergent;
-      add(sum.outcomes, own.outcomes);
-      add(sum.divergentOutcomes, own.divergentOutcomes);
-    }
-    for (const trace of memory?.history ?? []) {
-      const counts = sources[trace.kind] ?? {};
-      sources[trace.kind] = counts;
-      const key = trace.source === 'model' ? 'model' : `${trace.source}:${trace.reason}`;
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-  }
-  const memory: DecisionMemory = {
-    schemaVersion: 1,
-    budget: { day: '', attempts: 0, chargedInputTokens: 0 },
-    history: [],
-    tally
-  };
-  return { memory, sources };
-}
+export { decisionReport, mergeDecisionMemory } from './decision-report';
 
 export interface DecisionCandidate {
   id: string;
@@ -248,6 +196,7 @@ export function decisionGuard(session: PlayerSession, stopping?: () => boolean):
 }
 
 export class DecisionCoordinator {
+  private readonly save: (checkpoint: Checkpoint) => void;
   private readonly provider: DecisionProvider | null;
   private readonly configHash: string;
   private requests = 0;
@@ -256,10 +205,14 @@ export class DecisionCoordinator {
   private disabled = false;
   constructor(
     readonly config: DecisionConfig,
-    private readonly save: (checkpoint: Checkpoint) => void,
+    save: (checkpoint: Checkpoint) => void,
     provider?: DecisionProvider,
     private readonly ledger?: SpendLedger
   ) {
+    this.save = (checkpoint) => {
+      recordDecisions(checkpoint);
+      save(checkpoint);
+    };
     this.provider = config.provider === 'jev' ? (provider ?? new JevProvider(config)) : null;
     this.configHash = hash(config);
   }
@@ -383,13 +336,12 @@ export class DecisionCoordinator {
       trace.reason = reason;
       trace.selected = id;
       this.save(checkpoint);
-      info(`[decision] ${options.kind}: ${id} (${source}; ${reason})`);
+      logger('decisions').info(`[decision] ${options.kind}: ${id} (${source}; ${reason})`);
       return { id, traceId: trace.id };
     };
     const day = new Date().toISOString().slice(0, 10);
     if (memory.budget.day !== day) memory.budget = { day, attempts: 0, chargedInputTokens: 0 };
-    // Reserve the entire documented 64k request context before sending. A lost
-    // response retains that reservation; a valid response settles actual usage.
+    // Persist the full context reservation before sending; settle observed usage afterward.
     const reservation = 65536;
     const reason =
       this.provider === null
@@ -423,11 +375,11 @@ export class DecisionCoordinator {
     this.requests++;
     memory.budget.attempts++;
     memory.budget.chargedInputTokens += reservation;
-    this.ledger?.add(day, reservation);
+    this.busy = true;
+    await this.ledger?.add(day, reservation);
     trace.reservedInputTokens = reservation;
     this.save(checkpoint);
     this.nextRequestAt = Date.now() + this.config.minIntervalMs;
-    this.busy = true;
     const controller = new AbortController();
     let expired = false;
     const timeout = setTimeout(() => {
@@ -455,7 +407,7 @@ export class DecisionCoordinator {
       trace.inputTokens = result.inputTokens;
       trace.outputTokens = result.outputTokens;
       memory.budget.chargedInputTokens += result.inputTokens - reservation;
-      this.ledger?.add(day, result.inputTokens - reservation);
+      await this.ledger?.add(day, result.inputTokens - reservation);
       return select(result.choice, 'model', 'validated-choice');
     } catch (error) {
       trace.latencyMs = Date.now() - started;

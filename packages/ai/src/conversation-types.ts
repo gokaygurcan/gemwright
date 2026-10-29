@@ -1,8 +1,9 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { JournalEntry } from '@gemwright/network/world';
+
 import type { CharacterTemplate } from './config';
 import type { DecisionCoordinator } from './decisions';
 import type { Thread } from './dialogue';
-import type { PlayerSession } from './protocol/session';
-import type { JournalEntry } from './protocol/world';
 import type { Checkpoint } from './store';
 
 export type Options = {

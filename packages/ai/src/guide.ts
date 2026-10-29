@@ -1,4 +1,4 @@
-import type { PlayerSession } from './protocol/session';
+import type { PlayerSession } from '@gemwright/network/session';
 
 // Walking a lost player somewhere they asked about ("show me the bank"): the answer agrees
 // (conversation-answers.ts) and leaves the walk here; the resident's next housekeeping

@@ -1,3 +1,5 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { fundsStale, spendableGold } from './bank-gold';
 import { craftRecipes } from './craft-training';
 import { serviceLocations } from './locations';
@@ -5,7 +7,6 @@ import { createSmithing } from './miner-crafting';
 import type { createMinerServices } from './miner-services';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 import type { createServiceExperience } from './service-experience';
 
 const ingot = 0x1bf2;
@@ -24,6 +25,7 @@ export function createIngotSeller(
   const INGOT_RESERVE = 300;
   // Unknown funds count as sufficient until a banker has reported a balance.
   const shouldSell = (backpack: number) =>
+    checkpoint.workGoal?.active?.step === 'settle' ||
     (checkpoint.stock?.ingots ?? 0) >= INGOT_RESERVE ||
     (!fundsStale(checkpoint) && spendableGold(session, backpack, checkpoint) < 1000);
   // `force` skips the reserve rule: iron withdrawn for idle-time smithing is meant to be worked and sold.

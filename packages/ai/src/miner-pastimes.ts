@@ -1,3 +1,6 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, Position } from '@gemwright/network/world';
+
 import type { CharacterArchetype } from './archetypes';
 import { Blocked } from './blocked';
 import type { CharacterTemplate } from './config';
@@ -5,8 +8,6 @@ import type { DecisionCoordinator } from './decisions';
 import type { LifeContext } from './life';
 import type { createMinerServices } from './miner-services';
 import type { createNavigator } from './navigation';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, Position } from './protocol/world';
 import { scavenge } from './scavenge';
 import { passSetback } from './setback';
 import { trainSupportingSkill } from './skill-training';

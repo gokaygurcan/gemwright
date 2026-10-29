@@ -1,9 +1,10 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { tally } from './activity';
 import { appraise } from './appraise';
 import { noteSpoken, quietNow } from './conversation';
 import { gossipFor } from './gossip';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 import { sharedMemoryLine } from './resident-memory';
 import { reportPosition } from './spread';
 import type { Checkpoint } from './store';

@@ -1,6 +1,7 @@
+import { gumpCommands } from '@gemwright/network/gumps';
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { lasting } from './lasting';
-import { gumpCommands } from './protocol/gumps';
-import type { PlayerSession } from './protocol/session';
 import { noteTrouble } from './trouble';
 
 // The Help menu's "My character is physically stuck" (ServUO HelpGump button 2, then StuckMenu):

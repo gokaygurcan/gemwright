@@ -1,3 +1,5 @@
+import type { Entity } from '@gemwright/network/world';
+
 import type { DecisionCoordinator } from './decisions';
 import type { DungeonContext, RunRecord } from './dungeon-context';
 import { dungeonTurn } from './dungeon-turn';
@@ -7,7 +9,6 @@ import { fieldUpkeep, townNeed } from './fighter-trip';
 import type { LifeContext } from './life';
 import { distance } from './navigation';
 import { readyForDungeons } from './progression';
-import type { Entity } from './protocol/world';
 import { trainSupportingSkill } from './skill-training';
 
 // A fighter in a dungeon: its room work is to fight the nearest creature it can take, whatever the

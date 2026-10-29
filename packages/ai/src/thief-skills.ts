@@ -1,10 +1,10 @@
 import { skillId } from '@gemwright/common/skills';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, JournalEntry } from '@gemwright/network/world';
 
 import { createNavigator } from './navigation';
 import type { ProfessionContext } from './profession';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, JournalEntry } from './protocol/world';
 import { servuoRules } from './shard-profile';
 import { refuse } from './thief-marks';
 
@@ -187,7 +187,7 @@ export function createThiefSkills(state: ThiefSkillState) {
     const refusal = await Promise.race([
       waitReply(session, seen, [HANDS_FREE, SKILL_TOO_SOON], 'stealing refused', 3000),
       session
-        .waitFor(() => session.world.target !== null, 'stealing cursor', 3000)
+        .waitFor(() => session.world.target !== null, 'stealing cursor', 3000, { resource: 'target' })
         .then(
           () => undefined,
           () => undefined

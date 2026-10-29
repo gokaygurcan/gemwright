@@ -1,7 +1,7 @@
 import { skillId } from '@gemwright/common/skills';
+import type { PlayerSession } from '@gemwright/network/session';
 
 import type { CharacterTemplate } from './config';
-import type { PlayerSession } from './protocol/session';
 
 // How unpredictable a resident is, 0 to 1. Real players wander off their line: they go by way of
 // a shop or the bank they pass, stop to greet someone, change their plans. The population's chaos

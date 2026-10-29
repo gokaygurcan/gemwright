@@ -1,5 +1,6 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { packItems } from './inventory';
-import type { PlayerSession } from './protocol/session';
 
 // A bank box holds 125 items, nested ones included; a full one refuses every deposit (residents
 // then stood at the bank retrying). Past 110, the oldest kept pieces (exceptional smithing, spare

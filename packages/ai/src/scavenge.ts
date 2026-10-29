@@ -2,6 +2,9 @@ import { GHOST_BODIES } from '@gemwright/common/bodies';
 import { isDeathRobe, ore } from '@gemwright/common/items';
 import { skillId } from '@gemwright/common/skills';
 import { Tiledata } from '@gemwright/common/tiledata';
+import { Layer } from '@gemwright/network/layers';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity, Position, WorldView } from '@gemwright/network/world';
 
 import { Blocked } from './blocked';
 import { threatsNear } from './danger';
@@ -9,9 +12,6 @@ import { enoughTools, packItems } from './inventory';
 import { useAcquiredItems, usefulGift } from './inventory-use';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
-import { Layer } from './protocol/layers';
-import type { PlayerSession } from './protocol/session';
-import type { Entity, Position, WorldView } from './protocol/world';
 import type { Terrain } from './terrain';
 
 // Picks up worthwhile loose items lying on open ground, as any player would: gold, gems, reagents,

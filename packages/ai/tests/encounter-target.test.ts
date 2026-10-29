@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
 
+import type { Entity } from '@gemwright/network/world';
+import { WorldView } from '@gemwright/network/world';
+
 import { encounterTarget } from '../src/encounter-target';
-import type { Entity } from '../src/protocol/world';
-import { WorldView } from '../src/protocol/world';
 
 const mobile = (serial: number, x: number): Entity => ({
   serial,

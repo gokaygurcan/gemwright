@@ -1,8 +1,8 @@
 import { skillId } from '@gemwright/common/skills';
+import { createCharacter } from '@gemwright/network/packets';
+import type { CharacterRequest } from '@gemwright/network/session';
 
 import { appearanceOf } from './appearance';
-import { createCharacter } from './protocol/packets';
-import type { CharacterRequest } from './protocol/session';
 import { shardProfile } from './shard-profile';
 import type { Resident, ResidentStore } from './store';
 

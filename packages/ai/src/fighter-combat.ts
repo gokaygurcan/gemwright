@@ -1,13 +1,14 @@
 import { skillId } from '@gemwright/common/skills';
+import type { Entity } from '@gemwright/network/world';
 
 import { supportPreference } from './aid';
+import { combatCapability } from './combat-capability';
 import { assessCombat } from './combat-risk';
 import { bandageAdvice, encounterAdvice, rememberExperience } from './experience';
 import { bandage, curePotion, type FighterContext, healPotion, observedThreat, Retreat } from './fighter-context';
 import { recognised } from './fighter-prey';
 import { allyUnderPressure, groupMember, refreshAllyHealth } from './group-awareness';
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 import { rememberPartner } from './resident-memory';
 
 export function createFighterCombat(ctx: FighterContext) {
@@ -83,7 +84,14 @@ export function createFighterCombat(ctx: FighterContext) {
     updateBandage();
     const target = state.fightingSerial === null ? undefined : session.world.entities.get(state.fightingSerial);
     const experience = target?.position
-      ? encounterAdvice(ctx.checkpoint, { map: session.world.map ?? 1, ...target.position }, target.graphic)
+      ? encounterAdvice(
+          ctx.checkpoint,
+          { map: session.world.map ?? 1, ...target.position },
+          target.graphic,
+          Date.now(),
+          combatCapability(session),
+          target.name
+        )
       : null;
     const healing = bandageAdvice(ctx.checkpoint, session.world.skills.get(skillId('Healing'))?.value ?? null);
     return assessCombat({
@@ -148,7 +156,8 @@ export function createFighterCombat(ctx: FighterContext) {
         await session.waitFor(
           () => session.world.target !== null || dead() || (state.inCombat && combatAssessment().emergency),
           'bandage target',
-          2000
+          2000,
+          { resource: 'target' }
         );
         check();
       } catch {

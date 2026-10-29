@@ -1,8 +1,9 @@
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
+
 import { DangerInterrupt } from './action-purpose';
 import type { CharacterArchetype } from './archetypes';
 import { failObjective, suppliesCondition } from './objective-memory';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import { SessionBreak } from './session-habits';
 import { trainSupportingSkill } from './skill-training';
 import type { Checkpoint } from './store';

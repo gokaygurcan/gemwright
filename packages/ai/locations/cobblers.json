@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "facet": 1,
+  "cities": {
+    "Britain": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 1475,
+          "y": 1671
+        },
+        {
+          "name": "Guide cobbler",
+          "x": 1603,
+          "y": 1723
+        }
+      ]
+    },
+    "Buccaneer's Den": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 2747,
+          "y": 2252
+        }
+      ]
+    },
+    "Cove": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 2223,
+          "y": 1189
+        }
+      ]
+    },
+    "Delucia": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 5218,
+          "y": 4022
+        },
+        {
+          "name": "Guide cobbler",
+          "x": 5227,
+          "y": 4011
+        }
+      ]
+    },
+    "Jhelom": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 1436,
+          "y": 3801
+        }
+      ]
+    },
+    "Minoc": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 2531,
+          "y": 561
+        },
+        {
+          "name": "Guide cobbler",
+          "x": 2461,
+          "y": 434
+        }
+      ]
+    },
+    "Moonglow": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 4425,
+          "y": 1064
+        }
+      ]
+    },
+    "Papua": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 5741,
+          "y": 3268
+        }
+      ]
+    },
+    "Serpent's Hold": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 3019,
+          "y": 3387
+        }
+      ]
+    },
+    "Skara Brae": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 596,
+          "y": 2226
+        }
+      ]
+    },
+    "Trinsic": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 1853,
+          "y": 2806
+        },
+        {
+          "name": "Guide cobbler",
+          "x": 1852,
+          "y": 2843
+        }
+      ]
+    },
+    "Vesper": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 2979,
+          "y": 643
+        },
+        {
+          "name": "Guide cobbler",
+          "x": 2842,
+          "y": 875
+        }
+      ]
+    },
+    "Wind": {
+      "cobbler": [
+        {
+          "name": "Guide cobbler",
+          "x": 5160,
+          "y": 103
+        }
+      ]
+    }
+  }
+}

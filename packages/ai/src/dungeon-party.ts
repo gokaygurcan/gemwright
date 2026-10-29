@@ -115,7 +115,7 @@ async function lead(ctx: DungeonContext, random: () => number): Promise<boolean>
       if (m.invited.has(serial) || !other?.position || distance(other.position, position()) > 10) continue;
       try {
         session.party('add');
-        await session.waitFor(() => session.world.target !== null, 'party member cursor', 3000);
+        await session.waitFor(() => session.world.target !== null, 'party member cursor', 3000, { resource: 'target' });
         session.target({ serial, x: 0, y: 0, z: 0, graphic: other.graphic });
         m.invited.add(serial);
       } catch (error) {

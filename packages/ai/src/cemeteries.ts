@@ -245,7 +245,7 @@ export function retreatedFrom(ctx: FighterContext) {
 export function hurtOnTheWay(ctx: FighterContext) {
   const attacker = attackerNear(ctx);
   if (attacker && !ctx.state.inCombat && fightConfidence(ctx, attacker).ok) throw new Ambushed(attacker);
-  if (attacker) throw new Retreat('Taking damage outside combat; returning to safety');
+  throw new Retreat('Taking damage outside combat; returning to safety even when the attacker is unknown');
 }
 
 // Attacked on the way (hurtOnTheWay): it fights the attacker now, wherever this is. True when it did.

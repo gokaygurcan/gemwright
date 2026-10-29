@@ -109,10 +109,12 @@ export class ResidentStore {
 
   constructor(
     private readonly path: string,
-    readonly shardId: string
+    readonly shardId: string,
+    database?: Database,
+    readonly flush: () => Promise<void> = () => Promise.resolve()
   ) {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-    this.db = new Database(path, { create: true, strict: true });
+    this.db = database ?? new Database(path, { create: true, strict: true });
     // The database holds game-account passwords: owner-only, like the credential files it replaces.
     if (path !== ':memory:')
       for (const file of [path, `${path}-wal`, `${path}-shm`]) if (existsSync(file)) chmodSync(file, 0o600);
@@ -293,7 +295,7 @@ export class ResidentStore {
   }
 
   spendLedger() {
-    return new SpendLedger(this.db);
+    return new SpendLedger(this.db, this.flush);
   }
 
   activityRecorder() {

@@ -42,29 +42,13 @@ Population validation remains generic: it rejects structural mistakes without im
 
 New residents get a player name that fits their race and sex (`names.ts`, `world/names.json`): humans a given name and a surname, elves an elvish surname, gargoyles a single name in their own style. The pools draw on SphereServer's and ServUO's name lists plus authored ones. A name derives from the resident UUID, so it is stable, never repeats one already on the roster, and stays within ServUO's 16-character limit. It is saved during reconciliation and used at character creation; existing characters are never renamed or recreated. The resident UUID and server serial remain the identity, not the name. Starting stats are the ordinary 40 STR / 30 DEX / 10 INT request, with the server's normal starting kit.
 
-No arbitrary starting items, skills, or location changes will be injected into the world. If a requested template cannot be created through supported ordinary character creation, provisioning must reject it or require an explicit future design decision about shard setup. Never silently substitute a privileged mechanism.
+No arbitrary starting items, skills, or location changes will be injected into the world. If a requested template cannot be created through supported ordinary character creation, provisioning must reject it. Never silently substitute a privileged mechanism.
 
 ### Reusable character archetypes
 
 `packages/ai/templates/archetypes.json` holds the player builds residents grow into: primary skills, supporting skills in order of preference, and long-term stat targets.
 
-| Archetype | Primary skills | STR | DEX | INT |
-| --- | --- | ---: | ---: | ---: |
-| `pure-mage` | Magery, Eval Int | 100 | 25 | 100 |
-| `tank-mage` | Magery, Tactics | 100 | 45 | 80 |
-| `swordsman` | Swordsmanship, Tactics | 100 | 100 | 25 |
-| `mace-fighter` | Mace Fighting, Tactics | 100 | 100 | 25 |
-| `fencer` | Fencing, Tactics | 100 | 100 | 25 |
-| `archer` | Archery, Tactics | 100 | 100 | 25 |
-| `bard` | Provocation, Musicianship | 90 | 45 | 90 |
-| `tamer` | Animal Taming, Animal Lore | 100 | 25 | 100 |
-| `archer-tamer` | Animal Taming, Archery | 90 | 90 | 45 |
-| `thief` | Stealing, Snooping | 100 | 80 | 45 |
-| `craftsman` | Blacksmithy, Mining | 100 | 25 | 100 |
-| `fisherman` | Fishing, Cooking | 100 | 50 | 75 |
-| `tailor` | Tailoring, Arms Lore | 100 | 25 | 100 |
-
-Every stat target totals 225: these are builds residents train toward, not starting values or server grants. Stats are locked at the target, raised below it and lowered above it ([skill usage](skill-usage.md)). Primary skills set the build's focus; supporting skills are an ordered pool residents train in idle time, within the shard's skill cap.
+The [archetype catalog](../templates/archetypes.json) is authoritative for skill lists and stat targets. Targets describe development, not starting grants. Stat locks raise values below target, hold them at target and lower them above it. Supporting skills remain subject to the shard's skill cap.
 
 A population template can opt into an archetype:
 
@@ -91,15 +75,15 @@ An `(id, version)` pair is immutable once stored. Changing its content without i
 Residents retain both `creationVersion` and `policyVersion`:
 
 - `creationVersion` points to the immutable snapshot from which the resident was instantiated. Updates do not rename, relocate, re-equip, or reset the character.
-- `policyVersion` points to the latest accepted behavioral configuration. Reconciliation advances it for existing residents, including parked residents. The executor must apply changed preferences at a safe boundary when it exists.
+- `policyVersion` points to the latest accepted behavioral configuration. Reconciliation advances it for existing residents, including parked residents. New sessions use the selected policy snapshot.
 
 Changing creation fields in a new revision affects only residents created from that revision. An existing, not-yet-provisioned resident still retains its original creation snapshot. Operators must not expect a version bump to regenerate the roster.
 
-Removing a template from the active configuration parks its residents and preserves its historical snapshots. Reintroducing that template reuses residents in creation order. Residents are never deleted; to stop one for good, list it in `retired.json` ([population](population.md#population-mix)).
+Removing a template from the active configuration parks its residents and preserves its historical snapshots. Reintroducing that template reuses residents in creation order. Residents are never deleted; to stop one for good, list it in `retired.json` ([population](population.md#data-directory)).
 
 ## Appearance
 
-New characters are created with a look of their own (`appearance.ts`), derived from the resident id so it never changes: about half are women; the race is picked from `ai.races` in the shard's `gemwright.json` (default human and elf); skin, hair style and colour, beards (some men only; elves and women have none) and the starting shirt and pants colours stay within ServUO's race rules (`RaceDefinitions.cs`, dyeable hues 2–1001). Elves need Mondain's Legacy and gargoyles Stygian Abyss: the CLI rejects a race the expansion lacks, and the runtime creates only the races the expansion has. Gargoyles wear their own gear, so they are created only when listed. Existing characters keep the look they were created with.
+Appearance is derived from the resident UUID and remains stable. Race choices come from shard configuration and must be supported by its expansion. Existing characters keep their appearance; templates do not rename or recreate them.
 
 ## Population allocation
 
@@ -109,18 +93,7 @@ For example, a target of five with miner weight 1 and swordsman weight 1 produce
 
 Fixed allocation provides exact nonnegative counts per template. Counts must sum to `targetPopulation`; inconsistent settings are rejected. Templates omitted from allocation receive zero active slots in either mode.
 
-On reconciliation:
-
-1. Validate the complete configuration.
-2. Begin an immediate database transaction.
-3. Verify and store immutable template revisions.
-4. Reuse existing residents for each template, oldest ordinal first.
-5. Create residents only when the stored roster for a template is smaller than its allocation.
-6. Mark the chosen residents as desired active; park all others.
-7. Advance policy versions without changing creation snapshots or progress.
-8. Commit all changes together.
-
-Repeating reconciliation with identical input creates no residents and makes no resident revision changes. Scaling down preserves identity and progress. Scaling back up reuses the parked roster before creating additional residents. A weight change can redistribute the active subset and grow a different template's roster.
+Reconciliation validates and stores immutable templates transactionally, reuses the oldest residents before creating new ones, parks excess residents and advances policy versions without resetting characters. Identical input is idempotent. Scaling down preserves identity and progress; scaling up reuses parked residents first.
 
 A target of zero parks everyone. Large values are structurally valid; `population.max` in `world/world.json` caps what a runtime brings in ([population](population.md)).
 

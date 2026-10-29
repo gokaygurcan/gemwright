@@ -43,8 +43,9 @@ packages/ai/
   world/         world.json (facets, cities, professions, population cap) and names
   tests/         focused checks
   data/          local state per shard, never committed
-  src/           the runtime: CLI (index.ts), protocol/, one module per trade or activity,
-                 and offline catalog builders (build-*.ts), which read the ServUO source
+  src/           CLI, agent/runtime modules and offline catalog builders (build-*.ts)
+packages/network/
+  src/           transport, protocol decoding, semantic commands and client sessions
 ```
 
 Related: [sessions](sessions.md) · [templates](templates.md).

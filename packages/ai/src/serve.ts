@@ -1,14 +1,15 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { validateConnection } from '@gemwright/network/connection';
+import { CLIENT_VERSION } from '@gemwright/network/packets';
+
 import { setPopulationChaos } from './chaos';
 import { type PopulationConfig, validateConfig } from './config';
-import { validateConnection } from './connection';
 import { validateDecisionConfig } from './decision-provider';
 import { setWars } from './guild-wars';
-import { info, logToStdout } from './log';
+import { logger, logToStdout } from './log';
 import { enablePhrasing } from './phrasing';
-import { CLIENT_VERSION } from './protocol/packets';
 import { runPopulation } from './run-population';
 import { checkProvisioning, loadShardProfile } from './shard-profile';
 import { ResidentStore } from './store';
@@ -86,7 +87,7 @@ const store = new ResidentStore(dbPath, shard.id);
 try {
   // Residents retired by hand (retired.json in the data folder) no longer log in and are not replaced.
   const reconciled = store.reconcile(population);
-  info(
+  logger('serve').info(
     `[serve] ${profile.expansion} shard ${shard.id}: ${reconciled.active} residents active, ${reconciled.created} new`
   );
   checkProvisioning(store.list().filter((r) => r.desiredActive && !r.binding && !store.credentials(r.id)).length);
@@ -115,7 +116,7 @@ while (!stopping) {
       continuous: true
     });
   } catch (error) {
-    console.error(`[serve] population round failed: ${error instanceof Error ? error.message : error}`);
+    logger('serve').error(`[serve] population round failed: ${error instanceof Error ? error.message : error}`);
   }
   // A round that ends early (no residents, a failure) waits before the next one.
   while (!stopping && Date.now() - started < 60_000) await Bun.sleep(1000);

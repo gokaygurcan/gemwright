@@ -123,7 +123,8 @@ export async function trainMagery(ctx: MageryContext, until: number) {
       .waitFor(
         () => session.world.target !== null || [NO_SPELL, NO_MANA, NO_REAGENTS, FIZZLE].includes(reply() ?? 0),
         'spell cursor',
-        5000
+        5000,
+        { resource: 'target' }
       )
       .catch(() => {});
     if (session.world.target) {

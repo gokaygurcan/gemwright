@@ -1,6 +1,8 @@
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { canPause } from './action-purpose';
+import { reserveInteraction } from './execution-session';
 import { distance } from './navigation';
-import type { PlayerSession } from './protocol/session';
 
 // Talking competes with moving for the same hands: the mouse steers, the keyboard types. A resident
 // on the move answers briefly, lowercase and sometimes mistyped, but always answers a player; a real
@@ -25,7 +27,7 @@ export const moving = (session: PlayerSession) => Date.now() - (steppedAt.get(se
 
 export function engagedWith(session: PlayerSession) {
   if (!canPause(session)) {
-    engagements.delete(session);
+    endEngagement(session);
     return undefined;
   }
   const now = engagements.get(session);
@@ -33,13 +35,16 @@ export function engagedWith(session: PlayerSession) {
   const partner = session.world.entities.get(now.partner);
   const here = session.world.position;
   if (Date.now() > now.until || !partner?.position || !here || distance(here, partner.position) > 6) {
-    engagements.delete(session);
+    endEngagement(session);
     return undefined;
   }
   return now;
 }
 
-export const endEngagement = (session: PlayerSession) => engagements.delete(session);
+export const endEngagement = (session: PlayerSession) => {
+  reserveInteraction(session, 0);
+  return engagements.delete(session);
+};
 
 export function quoteTo(session: PlayerSession, partner: number, quote: Engagement['quote']) {
   const now = engagedWith(session);
@@ -47,9 +52,18 @@ export function quoteTo(session: PlayerSession, partner: number, quote: Engageme
 }
 
 // Walks wait here while the resident stands talking.
-export async function holdWhileEngaged(session: PlayerSession) {
+export async function holdWhileEngaged(session: PlayerSession, check: () => void = () => {}) {
   const started = Date.now();
-  while (engagedWith(session) && session.phase === 'ready' && Date.now() - started < MAX_MS) await Bun.sleep(500);
+  while (session.phase === 'ready' && Date.now() - started < MAX_MS) {
+    const trade = session.world.trade;
+    if (!canPause(session)) {
+      if (trade && !trade.closed) session.cancelTrade();
+      return;
+    }
+    if ((!trade || trade.closed) && !engagedWith(session)) return;
+    check();
+    await Bun.sleep(100);
+  }
 }
 
 // The resident's choice when a player speaks to it.
@@ -68,6 +82,7 @@ export function consider(
   if (current?.partner === partner) {
     // Each line keeps the conversation going for another minute, up to five in all.
     current.until = Math.min(now + 60_000, current.until + 60_000, now + MAX_MS);
+    reserveInteraction(session, current.until);
     return 'engaged';
   }
   if (current) return 'brief';
@@ -87,8 +102,9 @@ export function consider(
     (intent === 'wait' || intent === 'trade' ? 0.3 : 0) +
     // A real question deserves stopping for: where it is going, what it needs, what it does.
     (['plans', 'needs', 'doing', 'where', 'help'].includes(intent) ? 0.4 : 0);
-  if (Math.random() < chance) {
+  if (intent === 'trade' || intent === 'wait' || Math.random() < chance) {
     engagements.set(session, { partner, until: now + 60_000 });
+    reserveInteraction(session, now + 60_000);
     return 'engaged';
   }
   // A player who speaks is always answered: in passing, if not standing.

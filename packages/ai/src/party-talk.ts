@@ -1,3 +1,5 @@
+import type { Entity } from '@gemwright/network/world';
+
 import { tally } from './activity';
 import type { DecisionCoordinator } from './decisions';
 import { decisionState } from './decisions';
@@ -5,7 +7,6 @@ import { bandage, type FighterContext, weaponSkill } from './fighter-context';
 import { profileOf } from './fighter-prey';
 import { alliesNear, partyOf, roleOf } from './hunting-party';
 import { distance } from './navigation';
-import type { Entity } from './protocol/world';
 
 // A party talks its fight over in ordinary speech before acting: the leader proposes a target and
 // roles, members answer (ready, or not yet), and the leader calls the attack. The registry carries

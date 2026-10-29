@@ -9,11 +9,11 @@ import {
   reagents,
   sewingKit
 } from '@gemwright/common/items';
+import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { openOwnBackpack } from './backpack';
 import { chaosOf } from './chaos';
-import type { PlayerSession } from './protocol/session';
-import type { Entity } from './protocol/world';
 import type { Terrain } from './terrain';
 
 // How full a pack is, as ServUO counts it: a backpack holds 125 items in all, nested ones included
