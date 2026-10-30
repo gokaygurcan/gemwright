@@ -1,14 +1,45 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@gemwright/ai",
-  "private": true,
+  "description": "Independent ServUO resident runtime",
+  "version": "0.7.0",
   "type": "module",
-  "scripts": {
-    "start": "bun run src/index.ts"
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/ai"
   },
-  "dependencies": {
+  "engines": {
+    "bun": ">=1.4.3"
+  },
+  "scripts": {
+    "start": "bun dist/serve.js",
+    "dev": "bun --watch src/serve.ts",
+    "build": "rm -rf dist && bun build src/index.ts src/serve.ts src/report.ts src/progress-report.ts src/load-test.ts src/persistence-worker.ts src/life-journal-worker.ts src/path-worker.ts --outdir dist --target bun && cp ../../LICENSE ."
+  },
+  "devDependencies": {
     "@gemwright/common": "workspace:*",
+    "@gemwright/network": "workspace:*",
     "@anthropic-ai/sdk": "1.3.0",
-    "@typesafe-ai/sdk": "0.7.0",
-    "@gemwright/network": "workspace:*"
+    "@typesafe-ai/sdk": "0.7.0"
+  },
+  "files": [
+    "dist/",
+    "catalogs/",
+    "locations/",
+    "templates/",
+    "world/",
+    "tuning.json",
+    "start.sh",
+    "Dockerfile",
+    "railway.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "gemwright": {
+    "schemaVersion": 1
   }
 }

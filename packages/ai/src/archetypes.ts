@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import catalog from '../templates/archetypes.json';
 // New Haven's builds live in their own file: the original catalog stays exactly as stored

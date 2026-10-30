@@ -4,7 +4,10 @@ import type { TelemetryEvent } from './telemetry-schema';
 
 // Life-event history is append-only; detailed diagnostic traces have a bounded rolling window.
 export async function openLifeJournal(directory: string, onFailure: (error: Error) => void) {
-  const worker = new Worker(new URL('./life-journal-worker.ts', import.meta.url), { workerData: { directory } });
+  const worker = new Worker(
+    new URL(`./life-journal-worker${import.meta.url.endsWith('.ts') ? '.ts' : '.js'}`, import.meta.url),
+    { workerData: { directory } }
+  );
   let storage: Record<string, number> = {};
   let pending: TelemetryEvent[] = [];
   let pendingBytes = 0;

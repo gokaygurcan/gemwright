@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { createFighterCombat } from '../src/fighter-combat';
 import type { FighterContext } from '../src/fighter-context';

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@gemwright/deployment",
+  "description": "Service deployment and lifecycle workflows",
+  "version": "0.7.0",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/deployment"
+  },
+  "dependencies": {
+    "@gemwright/common": "workspace:*",
+    "@gemwright/client": "workspace:*"
+  },
+  "exports": {
+    "./pull": "./src/pull.ts",
+    "./process": "./src/process.ts",
+    "./providers/railway": "./src/providers/railway.ts",
+    "./state": "./src/state.ts",
+    "./deploy": "./src/deploy.ts",
+    "./restore": "./src/restore.ts",
+    "./ai-deploy": "./src/ai-deploy.ts",
+    "./client-deploy": "./src/client-deploy.ts",
+    "./client-files": "./src/client-files.ts"
+  },
+  "files": [
+    "src/"
+  ]
+}

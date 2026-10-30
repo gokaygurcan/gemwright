@@ -1,6 +1,6 @@
-import { gold } from '@gemwright/common/items';
-import { LAYERS } from '@gemwright/common/layers';
-import { MAPS } from '@gemwright/common/maps';
+import { gold } from '@gemwright/common/game/items';
+import { LAYERS } from '@gemwright/common/game/layers';
+import { MAPS } from '@gemwright/common/game/maps';
 
 import type { Analysis } from './analysis';
 import type { ClientFiles } from './client';

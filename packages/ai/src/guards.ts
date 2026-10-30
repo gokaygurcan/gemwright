@@ -1,4 +1,4 @@
-import { GHOST_BODIES, HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES, HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { allServiceLocations } from './locations';

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { Huffman } from '../src/huffman';
+import { Huffman } from '../src/codecs/huffman';
 
 // Encoded using Sphere's CHuffman compression table, including its end-of-packet marker.
 const vectors = [

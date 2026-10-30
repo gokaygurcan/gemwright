@@ -9,8 +9,8 @@ import {
   instruments,
   miningTools,
   sewingKit
-} from '@gemwright/common/items';
-import { skillId, skillNames } from '@gemwright/common/skills';
+} from '@gemwright/common/game/items';
+import { skillId, skillNames } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';

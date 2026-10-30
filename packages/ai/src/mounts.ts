@@ -1,4 +1,4 @@
-import { GARGOYLE_BODIES } from '@gemwright/common/bodies';
+import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
 import type { Entity } from '@gemwright/network/world';
 
 import { approachMobile } from './mobile-approach';

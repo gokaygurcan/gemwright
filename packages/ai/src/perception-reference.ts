@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
 
 import type { BaselineTraits, CreaturePrior, Reference } from './perception-types';
 

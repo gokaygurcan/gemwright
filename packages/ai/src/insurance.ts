@@ -1,4 +1,4 @@
-import { fishingPoles, hatchets, instruments, miningTools, sewingKit } from '@gemwright/common/items';
+import { fishingPoles, hatchets, instruments, miningTools, sewingKit } from '@gemwright/common/game/items';
 
 import { offersBank, openBankBox } from './bank-gold';
 import { weaponsFor } from './fighter-context';

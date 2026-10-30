@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
 import { atVendor, type CraftContext } from './craft-training';

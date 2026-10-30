@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 

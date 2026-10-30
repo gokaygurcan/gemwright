@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 
 import { chaosOf } from './chaos';
 import { type HouseRecord, houseOf, housingOpen, updateHouse } from './house-lots';

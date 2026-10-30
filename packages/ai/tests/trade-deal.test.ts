@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 import type { TradeWindow } from '@gemwright/network/trade';
 
 import { buyByTrade, buyPetByTrade, lastFailure, sellByTrade, sellPetByTrade } from '../src/trade-deal';

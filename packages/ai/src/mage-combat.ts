@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 
-import { HUMAN_BODIES } from '@gemwright/common/bodies';
-import { necroReagentByName, reagentByName } from '@gemwright/common/items';
-import { skillId } from '@gemwright/common/skills';
+import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
+import { necroReagentByName, reagentByName } from '@gemwright/common/game/items';
+import { skillId } from '@gemwright/common/game/skills';
 import type { Entity } from '@gemwright/network/world';
 
 import type { FighterContext } from './fighter-context';

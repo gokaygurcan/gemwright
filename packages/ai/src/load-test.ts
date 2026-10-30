@@ -43,7 +43,7 @@ validateConfig(population);
 save('population.json', population);
 const sourceRoot = resolve(import.meta.dir);
 const sources = readdirSync(sourceRoot, { recursive: true }).filter(
-  (name) => typeof name === 'string' && name.endsWith('.ts')
+  (name) => typeof name === 'string' && /\.(?:ts|js)$/.test(name)
 ) as string[];
 save('provenance.json', {
   sources: Object.fromEntries(
@@ -53,10 +53,7 @@ save('provenance.json', {
         .update(readFileSync(resolve(sourceRoot, name)))
         .digest('hex')
     ])
-  ),
-  huffman: createHash('sha256')
-    .update(readFileSync(resolve('packages/common/src/huffman.ts')))
-    .digest('hex')
+  )
 });
 const connection = validateConnection(await Bun.file(`${data}/connection.json`).json());
 const options = { population, connection, dbPath: `${data}/residents.sqlite` };

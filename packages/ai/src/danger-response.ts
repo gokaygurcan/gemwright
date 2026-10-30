@@ -1,4 +1,4 @@
-import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { DangerInterrupt, escapingDanger, recentlyHurt, urgentAction } from './action-purpose';

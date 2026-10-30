@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 import { createCharacter } from '@gemwright/network/packets';
 import type { CharacterRequest } from '@gemwright/network/session';
 

@@ -95,6 +95,8 @@ try {
   store.close();
 }
 
+await writeFile(join(data, '.ai-ready'), String(process.pid));
+
 let stopping = false;
 for (const signal of ['SIGTERM', 'SIGINT'] as const)
   process.once(signal, () => {

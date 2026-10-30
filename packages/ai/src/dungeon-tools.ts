@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import type { DungeonContext, DungeonRun, RunRecord } from './dungeon-context';
 import { type Dungeon, dungeonAt, exitStair, floorAt, nearestEntry, type Stair, stairRoute } from './dungeons';

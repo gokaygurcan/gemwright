@@ -1,6 +1,6 @@
-import { LAYERS } from '@gemwright/common/layers';
-import { MAPS } from '@gemwright/common/maps';
-import { skillLabel } from '@gemwright/common/skills';
+import { LAYERS } from '@gemwright/common/game/layers';
+import { MAPS } from '@gemwright/common/game/maps';
+import { skillLabel } from '@gemwright/common/game/skills';
 
 import type { Analysis } from './analysis';
 import { characterScene, SCENE_STYLE } from './character-view';

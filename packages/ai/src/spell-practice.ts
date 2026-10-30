@@ -1,5 +1,5 @@
-import { necroReagentByName } from '@gemwright/common/items';
-import { skillId } from '@gemwright/common/skills';
+import { necroReagentByName } from '@gemwright/common/game/items';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { checkedDelay } from './action-purpose';
 import { trainCraft } from './craft-training';

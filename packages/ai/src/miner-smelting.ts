@@ -1,4 +1,4 @@
-import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
+import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 
 import { Blocked } from './blocked';
 import { forgeSites } from './locations';

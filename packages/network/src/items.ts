@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 
 import { CommandRejected } from './errors';
 import { Layer } from './layers';

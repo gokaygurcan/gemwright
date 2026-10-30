@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 
 import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import { vendorMenu } from './lumber-shop';

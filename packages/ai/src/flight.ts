@@ -1,4 +1,4 @@
-import { GARGOYLE_BODIES } from '@gemwright/common/bodies';
+import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause } from './action-purpose';

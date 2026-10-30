@@ -1,7 +1,7 @@
-import { GHOST_BODIES } from '@gemwright/common/bodies';
-import { isDeathRobe, ore } from '@gemwright/common/items';
-import { skillId } from '@gemwright/common/skills';
-import { Tiledata } from '@gemwright/common/tiledata';
+import { Tiledata } from '@gemwright/common/assets/tiledata';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
+import { isDeathRobe, ore } from '@gemwright/common/game/items';
+import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity, Position, WorldView } from '@gemwright/network/world';

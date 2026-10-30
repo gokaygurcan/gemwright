@@ -1,5 +1,5 @@
-import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
-import { gold } from '@gemwright/common/items';
+import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { gold } from '@gemwright/common/game/items';
 import type { Entity } from '@gemwright/network/world';
 
 import { groundOf } from './cemeteries';

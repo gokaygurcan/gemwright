@@ -25,7 +25,7 @@ test('craft gump buttons are found beside their localized labels', () => {
 
 test('profit crafting can still attempt a viable recipe at skill 100', async () => {
   const { trainCraft, chooseRecipe } = await import('../src/craft-training');
-  const { skillId } = await import('@gemwright/common/skills');
+  const { skillId } = await import('@gemwright/common/game/skills');
   const { behaviorFixture, required } = await import('./behavior-fixture');
   const { ctx, session, world, checkpoint } = behaviorFixture();
   checkpoint.funds = { bank: 0, at: Date.now() };

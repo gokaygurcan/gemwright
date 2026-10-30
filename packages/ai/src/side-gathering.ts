@@ -1,4 +1,4 @@
-import { miningTools, ore } from '@gemwright/common/items';
+import { miningTools, ore } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 
 import { spendableGold } from './bank-gold';

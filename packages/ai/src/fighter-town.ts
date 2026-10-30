@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';
 

@@ -1,8 +1,41 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@gemwright/common",
-  "private": true,
+  "description": "Shared configuration, game data and binary codecs",
+  "version": "0.7.0",
   "type": "module",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/common"
+  },
+  "dependencies": {
+    "ajv": "8.20.0"
+  },
   "exports": {
-    "./*": "./src/*.ts"
-  }
+    "./game/bodies": "./src/game/bodies.ts",
+    "./game/expansions": "./src/game/expansions.ts",
+    "./game/items": "./src/game/items.ts",
+    "./game/layers": "./src/game/layers.ts",
+    "./game/maps": "./src/game/maps.ts",
+    "./game/skills": "./src/game/skills.ts",
+    "./codecs/huffman": "./src/codecs/huffman.ts",
+    "./codecs/bwt": "./src/codecs/bwt.ts",
+    "./assets/art": "./src/assets/art.ts",
+    "./assets/facet": "./src/assets/facet.ts",
+    "./assets/hues": "./src/assets/hues.ts",
+    "./assets/png": "./src/assets/png.ts",
+    "./assets/skill-groups": "./src/assets/skill-groups.ts",
+    "./assets/tiledata": "./src/assets/tiledata.ts",
+    "./assets/uop": "./src/assets/uop.ts",
+    "./config/shard": "./src/config/shard.ts",
+    "./config/types": "./src/config/types.ts",
+    "./config/schema": "./src/config/gemwright.schema.json",
+    "./config/compatibility": "./src/config/compatibility.ts"
+  },
+  "files": [
+    "src/"
+  ]
 }

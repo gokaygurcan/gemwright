@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ServerWebSocket } from 'bun';
 
-import { Huffman } from '@gemwright/common/huffman';
+import { Huffman } from '@gemwright/common/codecs/huffman';
 
 import { parseManifest } from './files';
 
@@ -53,7 +53,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     version,
     encryption,
     publicOrigin,
-    bundle: resolve(env.CLIENT_BUNDLE_PATH ?? fileURLToPath(new URL('./bundle/public', import.meta.url))),
+    bundle: resolve(
+      env.CLIENT_BUNDLE_PATH ??
+        fileURLToPath(new URL(import.meta.url.endsWith('.ts') ? './bundle/public' : './public', import.meta.url))
+    ),
     assets: resolve(env.GAMEFILES_PATH),
     listenPort: port(env.PORT ?? '3000', 'PORT', true),
     listenHost: env.CLIENT_LISTEN_HOST ?? '::'

@@ -124,7 +124,7 @@ test('a failed pet attack still recalls the companion and releases the urgent ac
   world.entities.set(2, pet);
   world.entities.set(3, foe);
   life.checkpoint.companion = { serial: 2, name: pet.name, minTame: 60 };
-  const { skillId } = await import('@gemwright/common/skills');
+  const { skillId } = await import('@gemwright/common/game/skills');
   world.skills.set(skillId('Veterinary'), { value: 50, base: 50, cap: 100, lock: 0 });
   session.inspect = async () => {};
   session.context = async () => [{ index: 0, cliloc: 3006111, flags: 0 }];

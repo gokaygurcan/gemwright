@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { chargedPurchase } from '../src/bank-gold';
 import { type GoalActions, residentTurn } from '../src/goal-turn';

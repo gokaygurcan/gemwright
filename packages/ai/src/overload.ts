@@ -1,4 +1,4 @@
-import { ore } from '@gemwright/common/items';
+import { ore } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 

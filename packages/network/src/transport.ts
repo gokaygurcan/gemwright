@@ -1,6 +1,6 @@
 import type { Socket } from 'bun';
 
-import { Huffman } from '@gemwright/common/huffman';
+import { Huffman } from '@gemwright/common/codecs/huffman';
 
 import type { ConnectionConfig } from './connection';
 import { timed } from './diagnostics';

@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 import type { Entity } from '@gemwright/network/world';
 
 import { recentlyHurt, takingUrgentAction, urgentAction } from './action-purpose';

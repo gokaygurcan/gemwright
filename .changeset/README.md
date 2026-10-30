@@ -1,17 +1,14 @@
 # Changesets
 
-Releases of the `gemwright` CLI are driven by [Changesets](https://changesets.dev). The other
-workspace packages are private and are never versioned or published.
-
-When a change should reach npm users, add a changeset with it:
+All Gemwright packages share a version. Private packages are versioned but never published or tagged. Public internal runtime dependencies use exact matching versions.
 
 ```sh
-bun changeset
+bun changeset               # Describe substantive changes, including private packages
+bun run version-packages    # Apply changesets and refresh the lockfile
 ```
 
-Pick `gemwright`, the bump (patch, minor or major) and write the line that should appear in the
-release notes. Commit the generated file with the change.
+The workflow opens the version PR. After merge it validates packed applications, publishes missing public versions in dependency order, then creates tags/GitHub releases once every publication succeeds.
 
-On `main`, the release workflow keeps a "Release gemwright" pull request open with the pending
-changesets applied (version bump and `packages/gemwright/CHANGELOG.md`). Merging it publishes that
-version to npm and creates the `gemwright@<version>` GitHub release from its changelog entry.
+For a partial release, rerun failed jobs at the same commit. Published versions are skipped; missing versions use the original packed artifacts. Metadata-only retries do not republish. Registry/GitHub lookup errors stop the job.
+
+Artifacts are retained for 30 days. If they expire, decide recovery explicitly rather than changing versions or silently rebuilding. Each public package needs registry ownership and publication authentication; publishing does not deploy services.

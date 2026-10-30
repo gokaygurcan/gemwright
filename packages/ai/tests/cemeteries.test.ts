@@ -5,7 +5,7 @@ import type { FighterContext } from '../src/fighter-context';
 
 test('a fighter moves on to grounds its skills meet: graveyards early, ogres and trolls later', async () => {
   const { grounds } = await import('../src/cemeteries');
-  const { skillId } = await import('@gemwright/common/skills');
+  const { skillId } = await import('@gemwright/common/game/skills');
   const fighter = (swords: number) =>
     ({
       trip: { ground: 'Britain' },

@@ -1,10 +1,5 @@
-# npm trusted publisher: gokaygurcan/gemwright, release.yml, environment npm; allow npm publish.
-# Releases with Changesets (https://changesets.dev). On every push to main, after the checks:
-# - with pending changesets, open or update the "Release gemwright" pull request, which bumps the
-#   version and writes CHANGELOG.md;
-# - once that pull request is merged (a version not yet on npm), pack the CLI, validate the
-#   tarball, publish it from the npm environment, tag it and create its GitHub release.
-# Only the gemwright CLI is published; the other workspace packages are private.
+# Trusted publishing: gokaygurcan/gemwright, release.yml, environment npm.
+# Publish missing public versions first; reconcile tags/releases only after success.
 name: Release
 
 on:
@@ -20,33 +15,9 @@ concurrency:
 jobs:
   check:
     if: github.repository == 'gokaygurcan/gemwright'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    uses: ./.github/workflows/check.yml
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24"
-          package-manager-cache: false
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-          no-cache: true
-
-      - name: Install dependencies without lifecycle scripts
-        run: bun install --frozen-lockfile --ignore-scripts
-
-      - name: Lint, typecheck and test
-        run: |
-          bun run lint
-          bun run typecheck
-          bun run test
 
   select-mode:
     needs: check
@@ -142,51 +113,27 @@ jobs:
       - name: Install dependencies without lifecycle scripts
         run: bun install --frozen-lockfile --ignore-scripts
 
-      # npm pack runs the package's prepack script, which builds dist/ and workspace/.
-      - name: Pack the CLI
+      - name: Build
+        run: bun run build
+
+      - name: Verify packaged CLI under Node
+        run: |
+          mkdir "$RUNNER_TEMP/npm-smoke"
+          npm pack ./packages/cli --ignore-scripts --pack-destination "$RUNNER_TEMP/npm-smoke"
+          npm pack ./packages/gemwright --ignore-scripts --pack-destination "$RUNNER_TEMP/npm-smoke"
+          cd "$RUNNER_TEMP/npm-smoke"
+          npm install --ignore-scripts --no-audit --no-fund ./*.tgz
+          node node_modules/gemwright/dist/index.js --help
+          node node_modules/@gemwright/cli/dist/index.js --version
+
+      - name: Verify contained service packages and clean installs
+        run: bun packages/cli/tests/integration/verify-services.ts
+
+      - name: Pack public packages
         id: pack
         uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
-
-      - name: Validate package contents
-        working-directory: packages/gemwright
-        run: |
-          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
-          node --input-type=module <<'NODE'
-          import assert from 'node:assert/strict';
-          import { globSync, mkdirSync, readFileSync, renameSync, statSync } from 'node:fs';
-          import { join } from 'node:path';
-
-          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-          assert.equal(pkg.name, 'gemwright');
-          assert.equal(pkg.repository.url, 'git+https://github.com/gokaygurcan/gemwright.git');
-          assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
-
-          const result = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'pack.json'), 'utf8'));
-          const pack = Array.isArray(result) ? result[0] : result[pkg.name];
-          assert.equal(pack.version, pkg.version);
-          const files = new Set(pack.files.map(file => file.path));
-          const expected = new Set(['LICENSE', 'README.md', 'package.json']);
-          for (const pattern of pkg.files) {
-            const matches = globSync(pattern.endsWith('/') ? [`${pattern}**/*`, `${pattern}**/.*`] : pattern).filter(path => statSync(path).isFile());
-            assert.ok(matches.length, `No package files match: ${pattern}`);
-            for (const path of matches) expected.add(path);
-          }
-          assert.deepEqual(files, expected, 'Package contents must match package.json');
-          for (const path of [pkg.bin.gemwright, '.github/small-forge.png', 'patches/servuo-pub57-hosting.patch', 'patches/sphere-hosting.patch', ...['servuo', 'sphere'].flatMap(emulator => ['Dockerfile', 'start.sh', 'railway-start.sh'].map(file => `templates/${emulator}/${file}`)), 'workspace/bun.lock', 'workspace/packages/ai/Dockerfile', 'workspace/packages/common/src/huffman.ts', 'workspace/packages/client/Dockerfile', 'workspace/packages/client/runtime/_framework/dotnet.js', 'workspace/packages/client/runtime/licenses/WebClients.txt'])
-            assert.ok(files.has(path), `Missing runtime file: ${path}`);
-
-          mkdirSync(join(process.env.RUNNER_TEMP, 'npm-smoke'));
-          renameSync(join(process.env.RUNNER_TEMP, pack.filename), join(process.env.RUNNER_TEMP, 'npm-smoke', 'gemwright.tgz'));
-          NODE
-
-      - name: Smoke-test the packaged CLI
-        run: |
-          cd "$RUNNER_TEMP/npm-smoke"
-          tar -xzf gemwright.tgz
-          ln -s "$GITHUB_WORKSPACE/packages/gemwright/node_modules" package/node_modules
-          node package/dist/index.js --help
 
   publish:
     needs: pack
@@ -194,7 +141,7 @@ jobs:
     timeout-minutes: 10
     environment: npm
     permissions:
-      contents: write
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -217,9 +164,38 @@ jobs:
       - name: Install dependencies without lifecycle scripts
         run: bun install --frozen-lockfile --ignore-scripts
 
-      # Publishes the tarball packed above, pushes the gemwright@<version> tag and creates the
-      # GitHub release from that version's CHANGELOG.md entry.
-      - name: Publish to npm and create the GitHub release
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+          path: ${{ runner.temp }}/changeset-pack
+          merge-multiple: true
+
+      - name: Publish only missing versions from the original artifacts
+        run: bun .changeset/release.ts publish "$RUNNER_TEMP/changeset-pack"
+
+  announce:
+    needs: [select-mode, publish]
+    if: always() && !cancelled() && needs.select-mode.result == 'success' && (needs.select-mode.outputs.mode == 'none' || needs.publish.result == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+          no-cache: true
+      - name: Install dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Reconcile tags and missing GitHub releases after all publications
         uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+          script: bun .changeset/release.ts announce

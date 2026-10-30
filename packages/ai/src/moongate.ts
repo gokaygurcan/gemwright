@@ -1,4 +1,4 @@
-import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import { moongateDestination } from '@gemwright/network/gumps';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Position } from '@gemwright/network/world';

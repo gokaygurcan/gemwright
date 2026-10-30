@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 
 import { tally } from './activity';
 import { nearAnyGround } from './cemeteries';

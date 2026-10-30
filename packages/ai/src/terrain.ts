@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 
-import { nameHash } from '@gemwright/common/uop';
+import { nameHash } from '@gemwright/common/assets/uop';
 
 import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';

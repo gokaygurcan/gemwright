@@ -1,4 +1,4 @@
-import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity, JournalEntry } from '@gemwright/network/world';
 

@@ -99,7 +99,7 @@ test('loot collects gold before heavy equipment and only accounts for actual rec
 
 test('a skilled guild smith creates a real contract from a blank scroll and hands it over securely', async () => {
   const { joinGuild } = await import('../src/guild-store');
-  const { skillId } = await import('@gemwright/common/skills');
+  const { skillId } = await import('@gemwright/common/game/skills');
   const f = repairFixture();
   f.world.entities.delete(20);
   f.world.entities.delete(21);

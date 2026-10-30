@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
 import type { Entity } from '@gemwright/network/world';
 

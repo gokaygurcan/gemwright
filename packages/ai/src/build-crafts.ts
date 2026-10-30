@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'n
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { reagentByName } from '@gemwright/common/items';
+import { reagentByName } from '@gemwright/common/game/items';
 
 // Offline build of catalogs/crafts/<skill>.json from the pinned ServUO source: every recipe of the craft
 // skills residents use that needs only the skill's basic material (DefBlacksmithy, DefCarpentry,

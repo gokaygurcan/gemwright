@@ -41,11 +41,15 @@ files/
 # test shard configuratiosn
 test-shards/
 
-# gemwright package build output (packages/gemwright/build.ts)
-/packages/gemwright/workspace/
-/packages/gemwright/README.md
-/packages/gemwright/LICENSE
-/packages/gemwright/.github/
+# CLI package assets
+/packages/cli/workspace/
+/packages/cli/.github/
 
 # the analyze package (a global ignore may cover folders named analyze)
 !/packages/analyze/
+
+/packages/cli/templates/
+/packages/cli/patches/
+
+# Project licenses copied into contained package artifacts by the build.
+/packages/*/LICENSE

@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { knownBankGold } from './bank-gold';
 import type { LifeContext } from './life';

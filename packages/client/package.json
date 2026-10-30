@@ -1,11 +1,42 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@gemwright/client",
-  "private": true,
+  "description": "Independent browser client host for compatible Ultima Online servers",
+  "version": "0.7.0",
   "type": "module",
-  "exports": {
-    "./*": "./*.ts"
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/client"
   },
-  "dependencies": {
+  "engines": {
+    "bun": ">=1.4.3"
+  },
+  "scripts": {
+    "start": "bun bundle/server.js",
+    "dev": "bun server.ts",
+    "build": "rm -rf bundle.next && bun build web/main.ts --outdir bundle.next/public --target browser --minify && bun build server.ts --outdir bundle.next --target bun --minify && bun src/prepare-assets.ts && cp ../../LICENSE ."
+  },
+  "devDependencies": {
     "@gemwright/common": "workspace:*"
+  },
+  "exports": {
+    "./files": "./files.ts"
+  },
+  "files": [
+    "bundle/",
+    "Dockerfile",
+    "railway.json",
+    ".dockerignore",
+    ".railwayignore",
+    "files.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "gemwright": {
+    "schemaVersion": 1
   }
 }

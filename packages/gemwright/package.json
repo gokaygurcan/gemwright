@@ -1,39 +1,31 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "gemwright",
   "description": "Forge your own shard",
   "version": "0.7.0",
+  "type": "module",
   "license": "MIT",
+  "private": false,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gokaygurcan/gemwright.git",
     "directory": "packages/gemwright"
   },
-  "bin": {
-    "gemwright": "dist/index.js"
-  },
-  "type": "module",
-  "files": [
-    "dist/index.js",
-    "templates/",
-    "patches/",
-    "workspace/",
-    ".github/small-forge.png",
-    "CHANGELOG.md"
-  ],
   "engines": {
     "node": ">=24"
   },
+  "bin": {
+    "gemwright": "dist/index.js"
+  },
   "scripts": {
     "start": "bun run src/index.ts",
-    "build": "bun build.ts",
-    "prepack": "bun run build"
+    "build": "rm -rf dist && bun build src/index.ts --outdir dist --target node --external @gemwright/cli && cp ../../LICENSE ."
   },
   "dependencies": {
-    "@clack/prompts": "1.8.1",
-    "chalk": "6.0.1"
+    "@gemwright/cli": "0.7.0"
   },
-  "devDependencies": {
-    "@gemwright/client": "workspace:*",
-    "@gemwright/common": "workspace:*"
-  }
+  "files": [
+    "dist/index.js",
+    "CHANGELOG.md"
+  ]
 }

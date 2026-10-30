@@ -1,22 +1,25 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@gemwright/workspace",
   "description": "Forge your own shard",
+  "type": "module",
   "license": "MIT",
+  "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gokaygurcan/gemwright.git"
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "."
   },
-  "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "start": "bun run packages/gemwright/src/index.ts",
+    "start": "bun run packages/cli/src/index.ts",
+    "build": "bun run --filter '*' --if-present build",
+    "test": "bun test",
     "format": "biome format --write",
     "typecheck": "bun check",
     "lint": "biome check",
-    "test": "bun test",
-    "build": "bun run --cwd packages/gemwright build",
     "postinstall": "lefthook install",
     "changeset": "changeset",
     "version-packages": "changeset version && bun install --lockfile-only"

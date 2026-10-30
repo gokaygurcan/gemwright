@@ -8,7 +8,7 @@ import {
   miningTools,
   reagents,
   sewingKit
-} from '@gemwright/common/items';
+} from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 

@@ -1,4 +1,4 @@
-import { skillLabel, skillNames } from '@gemwright/common/skills';
+import { skillLabel, skillNames } from '@gemwright/common/game/skills';
 
 import type { Analysis } from './analysis';
 import type { CharacterRecord } from './character';

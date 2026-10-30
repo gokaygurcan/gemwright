@@ -1,4 +1,4 @@
-import { skillNames } from '@gemwright/common/skills';
+import { skillNames } from '@gemwright/common/game/skills';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { beginLifeAction, entityDetails, lifeEvent, noteLifeTarget } from './life-events';

@@ -1,5 +1,5 @@
-import { gold, instruments } from '@gemwright/common/items';
-import { skillId } from '@gemwright/common/skills';
+import { gold, instruments } from '@gemwright/common/game/items';
+import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';

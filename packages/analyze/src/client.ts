@@ -2,12 +2,12 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { GumpArt, ItemArt } from '@gemwright/common/art';
-import { Facet } from '@gemwright/common/facet';
-import { Hues } from '@gemwright/common/hues';
-import { encodePng, type Image } from '@gemwright/common/png';
-import { clientSkills } from '@gemwright/common/skill-groups';
-import { Tiledata } from '@gemwright/common/tiledata';
+import { GumpArt, ItemArt } from '@gemwright/common/assets/art';
+import { Facet } from '@gemwright/common/assets/facet';
+import { Hues } from '@gemwright/common/assets/hues';
+import { encodePng, type Image } from '@gemwright/common/assets/png';
+import { clientSkills } from '@gemwright/common/assets/skill-groups';
+import { Tiledata } from '@gemwright/common/assets/tiledata';
 
 // The game client's files, drawn for the pages: gumps, item art and radar squares as PNGs (kept
 // once drawn), item tile data, and the client's skill names and groups.

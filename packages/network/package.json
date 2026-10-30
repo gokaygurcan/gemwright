@@ -1,15 +1,48 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@gemwright/network",
-  "private": true,
+  "description": "Ultima Online protocol and session handling",
+  "version": "0.7.0",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/network"
+  },
+  "engines": {
+    "bun": ">=1.4.3"
   },
   "scripts": {
     "test": "bun test"
   },
   "dependencies": {
     "@gemwright/common": "workspace:*"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./appearance": "./src/appearance.ts",
+    "./characters": "./src/characters.ts",
+    "./commands": "./src/commands.ts",
+    "./commerce": "./src/commerce.ts",
+    "./connection": "./src/connection.ts",
+    "./diagnostics": "./src/diagnostics.ts",
+    "./errors": "./src/errors.ts",
+    "./framing": "./src/framing.ts",
+    "./gumps": "./src/gumps.ts",
+    "./layers": "./src/layers.ts",
+    "./packets": "./src/packets.ts",
+    "./session": "./src/session.ts",
+    "./session-observation": "./src/session-observation.ts",
+    "./status": "./src/status.ts",
+    "./trade": "./src/trade.ts",
+    "./wait-options": "./src/wait-options.ts",
+    "./world": "./src/world.ts",
+    "./world-observations": "./src/world-observations.ts",
+    "./world-types": "./src/world-types.ts"
+  },
+  "files": [
+    "src/"
+  ]
 }

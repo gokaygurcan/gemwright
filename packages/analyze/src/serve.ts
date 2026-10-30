@@ -1,9 +1,8 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { pull } from 'gemwright/src/pull';
+import { pull } from '@gemwright/deployment/pull';
 
-import app from '../web/index.html';
 import { type Analysis, analyze } from './analysis';
 import { findClientFiles } from './client';
 import { decisionsDoc } from './decisions';
@@ -20,6 +19,14 @@ import { replayDoc } from './replay';
 import { readResidents, residentsDoc } from './residents';
 import { search } from './search';
 import { readLasting, troubleDoc } from './trouble';
+
+const app = import.meta.url.endsWith('.ts')
+  ? (await import(new URL('../web/index.html', import.meta.url).href)).default
+  : (request: Request) => {
+      const path = new URL(request.url).pathname;
+      const asset = path === '/index.js' ? 'index.js' : path === '/index.css' ? 'index.css' : 'index.html';
+      return new Response(Bun.file(new URL(`../web/${asset}`, import.meta.url)));
+    };
 
 // A local website over a shard's pulls (web/: a Preact app Bun bundles on the fly). Run from the
 // shard folder, it opens on the list of pulls (.gemwright/pulls): fetch a new one from the
@@ -76,17 +83,14 @@ const pulling: { running: boolean; lines: string[]; error?: string } = { running
 function fetchPull() {
   if (pulling.running) return;
   Object.assign(pulling, { running: true, lines: [], error: undefined });
-  const log = console.log;
-  console.log = (...args: unknown[]) => {
-    pulling.lines.push(args.map(String).join(' '));
-    log(...args);
-  };
-  pull({}, directory)
+  pull({}, directory, (line) => {
+    pulling.lines.push(line);
+    console.log(line);
+  })
     .catch((error) => {
       pulling.error = `Pull failed: ${error instanceof Error ? error.message : String(error)}`;
     })
     .finally(() => {
-      console.log = log;
       pulling.running = false;
     });
 }

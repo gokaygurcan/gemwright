@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@gemwright/server",
+  "description": "Emulator configuration and deployment assets",
+  "version": "0.7.0",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/server"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node dist/staging.js",
+    "build": "rm -rf dist && bun build src/index.ts --outfile dist/staging.js --target node && cp ../../LICENSE ."
+  },
+  "devDependencies": {
+    "@gemwright/common": "workspace:*",
+    "@gemwright/deployment": "workspace:*"
+  },
+  "exports": {
+    "./assets": "./src/assets.ts",
+    "./config": "./src/config.ts",
+    "./emulators/accounts": "./src/emulators/accounts.ts",
+    "./emulators/compatibility": "./src/emulators/compatibility.ts",
+    "./emulators/dotnet/config": "./src/emulators/dotnet/config.ts",
+    "./emulators/dotnet/source": "./src/emulators/dotnet/source.ts",
+    "./emulators/dotnet/staging": "./src/emulators/dotnet/staging.ts",
+    "./emulators/servuo/config": "./src/emulators/servuo/config.ts",
+    "./emulators/servuo/source": "./src/emulators/servuo/source.ts",
+    "./emulators/servuo/staging": "./src/emulators/servuo/staging.ts",
+    "./emulators/source": "./src/emulators/source.ts",
+    "./emulators/sphere/config": "./src/emulators/sphere/config.ts",
+    "./emulators/sphere/rules": "./src/emulators/sphere/rules.ts",
+    "./emulators/sphere/source": "./src/emulators/sphere/source.ts",
+    "./emulators/sphere/staging": "./src/emulators/sphere/staging.ts",
+    "./files": "./src/files.ts",
+    "./instance": "./src/instance.ts",
+    "./staging": "./src/staging.ts"
+  },
+  "files": [
+    "src/",
+    "templates/",
+    "patches/",
+    "dist/"
+  ],
+  "gemwright": {
+    "schemaVersion": 1
+  }
+}

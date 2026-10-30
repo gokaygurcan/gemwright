@@ -1,4 +1,4 @@
-import { arrow, bolt } from '@gemwright/common/items';
+import { arrow, bolt } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 
 export interface RangedWeapon {

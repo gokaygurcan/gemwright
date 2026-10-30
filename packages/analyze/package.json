@@ -1,14 +1,32 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@gemwright/analyze",
-  "private": true,
+  "description": "Shard save analysis and browser",
+  "version": "0.7.0",
   "type": "module",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/analyze"
+  },
+  "engines": {
+    "bun": ">=1.4.3"
+  },
   "scripts": {
-    "start": "bun run src/index.ts",
-    "serve": "bun run src/serve.ts"
+    "start": "bun dist/src/serve.js",
+    "dev": "bun --watch src/serve.ts",
+    "build": "rm -rf dist && bun build src/index.ts src/serve.ts --outdir dist/src --target bun && bun build web/index.html --outdir dist/web --target browser --minify --entry-naming '[name].[ext]' --asset-naming '[name].[ext]' --chunk-naming '[name].[ext]' --public-path /"
   },
   "dependencies": {
-    "@gemwright/common": "workspace:*",
-    "gemwright": "workspace:*",
     "preact": "11.1.0"
-  }
+  },
+  "devDependencies": {
+    "@gemwright/common": "workspace:*",
+    "@gemwright/deployment": "workspace:*"
+  },
+  "files": [
+    "dist/"
+  ]
 }

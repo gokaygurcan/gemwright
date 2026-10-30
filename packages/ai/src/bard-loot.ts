@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { HUMAN_BODIES } from '@gemwright/common/bodies';
+import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
 
 // Offline build of catalogs/aggressive-bodies.json: the bodies of creatures that attack on sight,
 // read from the pinned ServUO Scripts/Mobiles constructors. FightMode.Closest, Strongest, Weakest

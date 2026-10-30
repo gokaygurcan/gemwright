@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 
 import { type FighterContext, huntable, valuable } from './fighter-context';
 import { packFull } from './inventory';

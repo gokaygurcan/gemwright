@@ -1,5 +1,5 @@
-import { GHOST_BODIES } from '@gemwright/common/bodies';
-import { skillNames } from '@gemwright/common/skills';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
+import { skillNames } from '@gemwright/common/game/skills';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { currentLifeTarget, entityDetails, lifeEvent } from './life-events';

@@ -1,4 +1,4 @@
-import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import type { Entity } from '@gemwright/network/world';
 
 import { DangerInterrupt } from './action-purpose';

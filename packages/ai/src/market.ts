@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { JournalEntry, Position } from '@gemwright/network/world';
 

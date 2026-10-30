@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { reagentByName } from '@gemwright/common/items';
+import { reagentByName } from '@gemwright/common/game/items';
 
 // Offline build of catalogs/crafts/inscription.json from the pinned ServUO source
 // (Scripts/Services/Craft/DefInscription.cs): the Magery spell scrolls (AddSpell: a circle's skill

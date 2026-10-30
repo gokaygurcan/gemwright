@@ -10,7 +10,7 @@ import {
   isDeathRobe,
   magicFish,
   reagents
-} from '@gemwright/common/items';
+} from '@gemwright/common/game/items';
 import type { Entity } from '@gemwright/network/world';
 
 import { Blocked } from './blocked';

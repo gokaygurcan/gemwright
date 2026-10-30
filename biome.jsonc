@@ -7,19 +7,11 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": false,
+    "ignoreUnknown": true,
     "includes": [
-      "packages/*/*.ts",
-      "packages/client/web/**/*.ts",
-      "packages/*/tests/**/*.js",
-      "packages/*/src/**/*.ts",
-      "packages/analyze/web/**/*.ts",
-      "packages/analyze/web/**/*.tsx",
-      "packages/analyze/web/**/*.css",
-      "packages/*/tests/**/*.ts",
-      "packages/*/templates/**/*.json",
-      "packages/*/decisions/**/*.json",
-      "packages/*/*.json"
+      "**/*.{ts,tsx,js,jsx,json,jsonc,css}",
+      "!!**/runtime",
+      "!**/{catalogs,locations,world}/**/*.json"
     ]
   },
   "formatter": {

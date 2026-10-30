@@ -1,16 +1,21 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
   "changelog": [
-    "@changesets/changelog-github", {
+    "@changesets/changelog-github",
+    {
       "repo": "gokaygurcan/gemwright"
     }
   ],
   "commit": false,
-  "fixed": [],
+  "fixed": [["gemwright", "@gemwright/*"]],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [],
-  "format": false
+  "format": false,
+  "privatePackages": {
+    "version": true,
+    "tag": false
+  }
 }

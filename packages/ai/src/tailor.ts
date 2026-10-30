@@ -1,5 +1,5 @@
-import { gold } from '@gemwright/common/items';
-import { skillId } from '@gemwright/common/skills';
+import { gold } from '@gemwright/common/game/items';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { TOOLS } from './bank-gold';
 import { bulkOrderTurn } from './bulk-orders';

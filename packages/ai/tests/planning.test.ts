@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { type CombatCapability, comparableCapability } from '../src/combat-capability';
 import { encounterAdvice, rememberExperience } from '../src/experience';

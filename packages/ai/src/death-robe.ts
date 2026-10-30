@@ -1,5 +1,5 @@
-import { gold, isDeathRobe } from '@gemwright/common/items';
-import { LAYERS } from '@gemwright/common/layers';
+import { gold, isDeathRobe } from '@gemwright/common/game/items';
+import { LAYERS } from '@gemwright/common/game/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';

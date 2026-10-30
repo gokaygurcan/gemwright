@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/items';
+import { gold } from '@gemwright/common/game/items';
 
 import { knownBankGold } from './bank-gold';
 import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';

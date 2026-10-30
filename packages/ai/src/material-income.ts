@@ -1,4 +1,4 @@
-import { hatchets } from '@gemwright/common/items';
+import { hatchets } from '@gemwright/common/game/items';
 
 import { TOOLS } from './bank-gold';
 import { unsafeCheck } from './danger';

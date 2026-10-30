@@ -54,9 +54,12 @@ export class PathPool {
   };
   constructor(directory: string, facet: number, size = 2, buffers?: TerrainBuffers) {
     for (let index = 0; index < size; index++) {
-      const worker = new Worker(new URL('./path-worker.ts', import.meta.url), {
-        workerData: { directory, facet, buffers }
-      });
+      const worker = new Worker(
+        new URL(`./path-worker${import.meta.url.endsWith('.ts') ? '.ts' : '.js'}`, import.meta.url),
+        {
+          workerData: { directory, facet, buffers }
+        }
+      );
       const slot: Slot = { worker };
       this.slots.push(slot);
       worker.on('message', (message: { id: number; result?: RouteResult; error?: string }) =>

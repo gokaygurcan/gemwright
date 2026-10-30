@@ -6,7 +6,10 @@ import { PersistenceQueue, type Write } from './persistence-queue';
 // Gameplay reads/writes a memory mirror. Only this worker opens the persistent database.
 // Critical actions explicitly await flush(); ordinary checkpoints share a bounded five-second batch.
 export async function openPersistence(path: string, shardId: string, onFailure: (error: Error) => void) {
-  const worker = new Worker(new URL('./persistence-worker.ts', import.meta.url), { workerData: { path, shardId } });
+  const worker = new Worker(
+    new URL(`./persistence-worker${import.meta.url.endsWith('.ts') ? '.ts' : '.js'}`, import.meta.url),
+    { workerData: { path, shardId } }
+  );
   const queue = new PersistenceQueue();
   let committed = 0;
   let commits = 0;

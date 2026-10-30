@@ -1,4 +1,4 @@
-import { gold, isDeathRobe, magicFish, ore, reagents } from '@gemwright/common/items';
+import { gold, isDeathRobe, magicFish, ore, reagents } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';

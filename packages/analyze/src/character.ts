@@ -1,6 +1,6 @@
-import { gold } from '@gemwright/common/items';
-import { MAPS } from '@gemwright/common/maps';
-import { skillLabel } from '@gemwright/common/skills';
+import { gold } from '@gemwright/common/game/items';
+import { MAPS } from '@gemwright/common/game/maps';
+import { skillLabel } from '@gemwright/common/game/skills';
 
 import { table, tenths } from './markdown';
 import { itemLabel, type Placement } from './owners';

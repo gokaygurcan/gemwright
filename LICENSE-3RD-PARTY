@@ -1,0 +1,70 @@
+Third-party components
+
+Gemwright's own code is covered by LICENSE. The components below retain their
+upstream terms. Links identify the applicable license files, not a replacement
+license for those components.
+
+Bundled JavaScript
+- Ajv 8.20.0: MIT, https://github.com/ajv-validator/ajv/blob/v8.20.0/LICENSE
+- fast-deep-equal 3.1.3: MIT, https://github.com/epoberezkin/fast-deep-equal/blob/v3.1.3/LICENSE
+- fast-uri 3.1.9: BSD-3-Clause, https://github.com/fastify/fast-uri/blob/v3.1.9/LICENSE
+- json-schema-traverse 1.0.0: MIT, https://github.com/epoberezkin/json-schema-traverse/blob/v1.0.0/LICENSE
+- Anthropic SDK 1.3.0: Apache-2.0, https://github.com/anthropics/anthropic-sdk-typescript/blob/v1.3.0/LICENSE
+  Its embedded qs parser's MIT notice: https://unpkg.com/@anthropic-ai/sdk@1.3.0/src/internal/qs/LICENSE.md
+- OpenTelemetry API 1.10.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- @typesafe-ai/sdk 0.7.0: MIT, https://unpkg.com/@typesafe-ai/sdk@0.7.0/package.json
+- @stablelib/base64 1.0.1: MIT, https://github.com/StableLib/stablelib/blob/master/LICENSE
+- fast-sha256 1.3.0: Unlicense, https://github.com/dchest/fast-sha256-js/blob/master/LICENSE
+- standardwebhooks 1.1.1: package metadata says MIT; the upstream license at its
+  recorded source revision is Apache-2.0:
+  https://github.com/standard-webhooks/standard-webhooks/blob/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/LICENSE
+- Preact 11.1.0 (private analyzer): MIT, https://github.com/preactjs/preact/blob/11.1.0/LICENSE
+
+CLI dependencies installed separately by npm
+- @clack/prompts 1.8.1: MIT, https://github.com/bombshell-dev/clack/blob/main/LICENSE
+- Chalk 6.0.1: MIT, https://github.com/chalk/chalk/blob/main/license
+
+Browser runtime
+Source: https://github.com/rootmancer/uonexus-minimal/releases/tag/v1.0.56
+Commit: daa46b247616c55aa9664707cf171974c8883cf6
+Release archive SHA-256: dd97eb942e67b1b16aa47ca4c4f4a40a1e3a43091406c180181aaf0f5df407da
+All 182 WASM files match that release. Local changes are a dotnet.js re-export
+shim, line endings and a MIDI comment; no WASM changes.
+- WebClients: BSD-2-Clause,
+  https://github.com/rootmancer/uonexus-minimal/blob/daa46b247616c55aa9664707cf171974c8883cf6/LICENSE.md
+- ClassicUO/FNA, native dependencies and GeneralUser GS 2.0.3: original license
+  files are in the pinned release archive below (paths relative to its root):
+  https://github.com/rootmancer/uonexus-minimal/releases/download/v1.0.56/uonexus-minimal-v1.0.56.zip
+  client/minimal/lib/GeneralUser-GS.LICENSE.txt
+  source/cuo/external/FNA/lib/FAudio/LICENSE
+  source/cuo/external/FNA/lib/FAudio/csharp/LICENSE
+  source/cuo/external/FNA/lib/FNA3D/LICENSE
+  source/cuo/external/FNA/lib/FNA3D/MojoShader/LICENSE.txt
+  source/cuo/external/FNA/lib/SDL2-CS/LICENSE
+  source/cuo/external/FNA/lib/SDL3-CS/LICENSE
+  source/cuo/external/FNA/lib/Theorafile/csharp/LICENSE
+  source/cuo/external/FNA/lib/Theorafile/licenses/LICENSE
+  source/cuo/external/FNA/licenses/LICENSE
+  source/cuo/external/FileEmbed/LICENSE.txt
+  source/cuo/external/MP3Sharp/license.txt
+  source/vendor/sdl2-headers/LICENSE.txt
+- SpessaSynth core 4.2.13 and library 4.2.15: Apache-2.0,
+  https://github.com/spessasus/spessasynth_core/blob/9a9cf8d352b6b8755e7a04ffd5b3e31abc700adf/LICENSE
+  https://github.com/spessasus/spessasynth_lib/blob/aab98343f1d45a0d5c4c1566d0f9dbd9bc0d2be3/LICENSE
+- ImageSharp 3.1.11: Six Labors split license, conditions in
+  https://github.com/SixLabors/ImageSharp/blob/v3.1.11/LICENSE
+  https://github.com/SixLabors/ImageSharp/blob/v3.1.11/THIRD-PARTY-NOTICES.TXT
+- .NET 10.0.8: MIT and bundled third-party terms,
+  https://github.com/dotnet/runtime/blob/v10.0.8/LICENSE.TXT
+  https://github.com/dotnet/runtime/blob/v10.0.8/THIRD-PARTY-NOTICES.TXT
+  The distributed binaries are pinned by the WebClients release above.
+
+Emulator integration patches (upstream servers are downloaded separately)
+- ServUO: GPL-2.0, https://github.com/ServUO/ServUO/blob/d76bf4443cf76d081ddaf8f57c87ff33749256af/LICENSE
+- RunUO: GPL-2.0, https://github.com/runuo/runuo/blob/71b2794f12eb6f948b1c5598ae8b350401a22d4d/LICENSE
+- ModernUO: GPL-3.0, https://github.com/modernuo/ModernUO/blob/5570537aa0416a350b7ace08e7e45adf6481fb48/LICENSE
+- SphereServer and Sphere-X: Apache-2.0,
+  https://github.com/Sphereserver/Source/blob/e771bede803239216caa996204b9a29e832b43b9/LICENSE
+  https://github.com/Sphereserver/Source-X/blob/dd28a0ad53258adb55b548b1bd4df989065a1fe4/LICENSE
+- Sphere-X scripts: Apache-2.0,
+  https://github.com/Sphereserver/Scripts-X/blob/27e78bc896da239d3738fe02a6d6bf8e9045c16d/LICENSE

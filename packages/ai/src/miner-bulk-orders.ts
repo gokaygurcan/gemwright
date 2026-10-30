@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { bulkOrderTurn } from './bulk-orders';
 import { blacksmithing } from './miner-crafting';

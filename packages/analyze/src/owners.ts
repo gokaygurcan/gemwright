@@ -1,4 +1,4 @@
-import { LAYERS } from '@gemwright/common/layers';
+import { LAYERS } from '@gemwright/common/game/layers';
 
 import type { Item, Mobile, World } from './world';
 

@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { checkedDelay, recentlyHurt } from './action-purpose';
 import { bankNearbyGold, bankSurplus, registerBanking } from './bank-gold';

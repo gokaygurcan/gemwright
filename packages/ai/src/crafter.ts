@@ -1,5 +1,5 @@
-import { gold as goldCoin, reagentByName } from '@gemwright/common/items';
-import { skillId } from '@gemwright/common/skills';
+import { gold as goldCoin, reagentByName } from '@gemwright/common/game/items';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { BUSINESS } from './bank-gold';
 import { bulkOrderTurn } from './bulk-orders';

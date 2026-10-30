@@ -1,4 +1,4 @@
-import { bandage, gargishWeapons, gold, healPotion, weapons } from '@gemwright/common/items';
+import { bandage, gargishWeapons, gold, healPotion, weapons } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity, Position, WorldView } from '@gemwright/network/world';
 
@@ -52,7 +52,7 @@ export function homeOf(city: string, position?: () => { x: number; y: number }) 
 export type Home = ReturnType<typeof homeOf>;
 export const ghosts = GHOST_BODIES;
 
-import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 
 // Recognised graveyard undead bodies; per-type risk lives in fighter-prey.ts.
 import { prey } from './fighter-prey';
@@ -79,7 +79,7 @@ export class Ambushed extends Error {
   }
 }
 
-// Weapon families by combat skill (@gemwright/common/items); a fighter only equips and buys its own
+// Weapon families by combat skill (@gemwright/common/game/items); a fighter only equips and buys its own
 // family. Gargoyles wield only gargish weapons, listed with each family.
 const families: Record<string, number[]> = {
   Swordsmanship: [...weapons.Swordsmanship, ...gargishWeapons.Swordsmanship],

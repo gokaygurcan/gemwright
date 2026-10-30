@@ -5,7 +5,7 @@ import { validateConnection } from '../src/connection';
 import { variable } from '../src/packets';
 
 // Reverse the existing BSD decoder's tree for a test-only server encoder.
-const codec = await readFile(new URL('../../common/src/huffman.ts', import.meta.url), 'utf8');
+const codec = await readFile(new URL('../../common/src/codecs/huffman.ts', import.meta.url), 'utf8');
 const encodedTree = codec
   .split('Object.freeze([')[1]
   ?.split(']);')[0]

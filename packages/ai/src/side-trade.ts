@@ -1,5 +1,5 @@
-import { fishingPoles, gold } from '@gemwright/common/items';
-import { skillId } from '@gemwright/common/skills';
+import { fishingPoles, gold } from '@gemwright/common/game/items';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { fishingTurn } from './fisher';
 import { pickLocation, townAt } from './locations';

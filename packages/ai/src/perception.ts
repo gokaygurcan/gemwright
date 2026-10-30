@@ -1,4 +1,4 @@
-import { GHOST_BODIES } from '@gemwright/common/bodies';
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import type { WorldView } from '@gemwright/network/world';
 import type { WorldChange, WorldField } from '@gemwright/network/world-observations';
 import type { Entity } from '@gemwright/network/world-types';

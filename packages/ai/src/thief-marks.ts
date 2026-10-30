@@ -1,4 +1,4 @@
-import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
+import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity, Position, WorldView } from '@gemwright/network/world';
 

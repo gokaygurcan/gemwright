@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+rm -f /app/data/.ai-ready
+
 # gemwright restore uploads a pulled resident database to restore/ and restarts this service: it
 # replaces the current one here, before the residents start, and the replaced one is kept.
 if [ -e /app/data/restore/residents.sqlite ]; then
@@ -31,4 +33,4 @@ done
 trap - TERM INT
 
 cd /app
-exec bun packages/ai/src/serve.ts
+exec bun /app/dist/serve.js

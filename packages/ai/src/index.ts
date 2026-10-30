@@ -16,21 +16,21 @@ import { ResidentStore } from './store';
 
 const help = `Gemwright AI runtime and headless player sessions
 
-Run from the repository root:
-  bun run packages/ai/src/index.ts archetypes
-  bun run packages/ai/src/index.ts validate --config packages/ai/templates/population.example.json
-  bun run packages/ai/src/index.ts plan --config packages/ai/templates/population.example.json
-  bun run packages/ai/src/index.ts reconcile --config packages/ai/templates/population.example.json
-  bun run packages/ai/src/index.ts residents --config packages/ai/templates/population.example.json
-  bun run packages/ai/src/index.ts decisions --config <population.json>
-  bun run packages/ai/src/index.ts skills --config <population.json>
-  bun run packages/ai/src/index.ts dungeons --config <population.json>
-  bun run packages/ai/src/index.ts session --config <population.json> --connection <connection.json>
-  bun run packages/ai/src/index.ts population --config <population.json> --connection <connection.json> --assets <dir> --duration <s>
+Run from the AI package directory after building:
+  bun dist/index.js archetypes
+  bun dist/index.js validate --config templates/population.example.json
+  bun dist/index.js plan --config templates/population.example.json
+  bun dist/index.js reconcile --config templates/population.example.json
+  bun dist/index.js residents --config templates/population.example.json
+  bun dist/index.js decisions --config <population.json>
+  bun dist/index.js skills --config <population.json>
+  bun dist/index.js dungeons --config <population.json>
+  bun dist/index.js session --config <population.json> --connection <connection.json>
+  bun dist/index.js population --config <population.json> --connection <connection.json> --assets <dir> --duration <s>
 
 Options:
   --config <path>  Required, explicit population configuration
-  --db <path>      Default: packages/ai/data/<shardId>/residents.sqlite (relative to this module)
+  --db <path>      Default: data/<shardId>/residents.sqlite (relative to this module)
   --help          Show this help
 
 Session options:

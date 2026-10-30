@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    // Environment setup & latest features
     "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "Preserve",
@@ -9,24 +8,24 @@
     "jsxImportSource": "preact",
     "allowJs": true,
     "types": ["bun"],
-
-    // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-
-    // Best practices
     "strict": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noImplicitOverride": true
   },
-  "include": ["packages/*/*.ts", "packages/client/web", "packages/*/src", "packages/*/tests", "packages/analyze/web"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "**/out",
+    "**/bundle*",
+    "**/runtime",
+    "**/data",
+    "**/workspace"
+  ]
 }

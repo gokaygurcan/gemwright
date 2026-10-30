@@ -1,4 +1,4 @@
-import { HUMAN_ELF_BODIES } from '@gemwright/common/bodies';
+import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { unsafeCheck } from './danger';

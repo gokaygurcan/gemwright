@@ -1,4 +1,4 @@
-import { PLAIN_HUMAN_BODIES } from '@gemwright/common/bodies';
+import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';
 

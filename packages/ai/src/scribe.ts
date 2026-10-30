@@ -1,4 +1,4 @@
-import { skillId } from '@gemwright/common/skills';
+import { skillId } from '@gemwright/common/game/skills';
 
 import { type CraftSkill, craftRecipes, trainCraft } from './craft-training';
 import { lasting } from './lasting';

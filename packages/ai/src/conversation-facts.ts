@@ -1,4 +1,4 @@
-import { skillLabel } from '@gemwright/common/skills';
+import { skillLabel } from '@gemwright/common/game/skills';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import type { CharacterTemplate } from './config';
