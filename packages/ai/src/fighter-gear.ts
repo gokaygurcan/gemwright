@@ -1,5 +1,8 @@
-import { isDeathRobe } from '@gemwright/common/game/items';
+import { TileFlag } from '@gemwright/common/assets/tiledata';
+import { ItemProperty, isDeathRobe } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
+import { Opcode } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { chargedPurchase, fundsStale, spendableGold } from './bank-gold';
@@ -62,11 +65,11 @@ export function createFighterGear(
     [...session.world.entities.values()].find((item) => item.parent === serial && item.layer === layer);
   const holdsLight = (layer: number) => {
     const item = worn(layer);
-    return !!item && layer === Layer.TwoHanded && (terrain.tile(item.graphic, true).flags & 0x800000) !== 0;
+    return !!item && layer === Layer.TwoHanded && (terrain.tile(item.graphic, true).flags & TileFlag.LightSource) !== 0;
   };
   const wearLayer = (item: Entity) => {
     const tile = terrain.tile(item.graphic, true);
-    return tile.flags & 0x400000 && !reserved.has(tile.layer) ? tile.layer : 0;
+    return tile.flags & TileFlag.Wearable && !reserved.has(tile.layer) ? tile.layer : 0;
   };
   const refused = new Set<number>();
   // Returns whether the server confirmed the item worn.
@@ -85,9 +88,11 @@ export function createFighterGear(
       return false;
     }
   };
-  // Durability from the property list: "durability ~1_val~ / ~2_val~" (BaseWeapon/BaseArmor 1060639).
+  // Durability from the property list: "durability ~1_val~ / ~2_val~" (BaseWeapon/BaseArmor ItemProperty.durability).
   const wornOut = (item: Entity) => {
-    const text = session.world.entities.get(item.serial)?.properties?.find((p) => p.cliloc === 1060639)?.arguments;
+    const text = session.world.entities
+      .get(item.serial)
+      ?.properties?.find((p) => p.cliloc === ItemProperty.durability)?.arguments;
     const [hits, max] = (text ?? '').split('\t').map(Number);
     return !!max && hits !== undefined && (hits <= 3 || hits / max < WORN_SHARE);
   };
@@ -125,11 +130,11 @@ export function createFighterGear(
       const tile = terrain.tile(item.graphic, true);
       // A candle or torch is never held: the off hand is for a shield (tidyPack drops lights).
       if (layer === Layer.OneHanded || (layer === Layer.TwoHanded && !/shield|buckler/i.test(tile.name))) continue;
-      if (tile.flags & 0x800000) continue;
+      if (tile.flags & TileFlag.LightSource) continue;
       if (refused.has(item.graphic)) continue;
       const looted = trip.loot.includes(item.serial);
       // A candle or torch shares the shield layer but is not armor: never compared or sold.
-      const isLight = (terrain.tile(item.graphic, true).flags & 0x800000) !== 0;
+      const isLight = (terrain.tile(item.graphic, true).flags & TileFlag.LightSource) !== 0;
       if (armorLayers.has(layer) && !isLight) {
         await compareArmor(item, layer, light(layer));
         continue;
@@ -183,15 +188,24 @@ export function createFighterGear(
     const properties = session.world.entities.get(item.serial)?.properties ?? [];
     const raw = (cliloc: number) => properties.find((p) => p.cliloc === cliloc)?.arguments ?? '';
     const value = (cliloc: number) => Number.parseFloat(raw(cliloc)) || 0;
-    const [min, max] = raw(1061168)
+    const [min, max] = raw(ItemProperty.weaponDamage)
       .split('\t')
       .map((n) => Number(n) || 0);
-    const speedText = raw(1061167);
+    const speedText = raw(ItemProperty.weaponSpeed);
     const seconds = speedText.endsWith('s') ? Number.parseFloat(speedText) || 3 : 40 / (Number(speedText) || 13);
     const average = ((min ?? 0) + (max ?? 0)) / 2;
     const score =
-      ((average * (1 + value(1060401) / 100) * (1 + value(1060415) / 100) * (1 + value(1060486) / 100)) / seconds) * 10;
-    return { score, strength: value(1061170), twoHanded: properties.some((p) => p.cliloc === 1061171) };
+      ((average *
+        (1 + value(1060401) / 100) *
+        (1 + value(1060415) / 100) *
+        (1 + value(ItemProperty.swingSpeedIncrease) / 100)) /
+        seconds) *
+      10;
+    return {
+      score,
+      strength: value(ItemProperty.strengthRequirement),
+      twoHanded: properties.some((p) => p.cliloc === ItemProperty.twoHanded)
+    };
   };
 
   // Keeps the better of a carried piece and the one worn in its slot; the other is marked for sale.
@@ -259,7 +273,7 @@ export function createFighterGear(
       Number(session.world.entities.get(item.serial)?.properties?.find((p) => p.cliloc === cliloc)?.arguments ?? 0) ||
       0;
     const score = value(1060448) * 1.5 + value(1060447) + value(1060445) + value(1060449) + value(1060446);
-    return { score, strength: value(1061170) || (strengthFor(item.graphic) ?? 0) };
+    return { score, strength: value(ItemProperty.strengthRequirement) || (strengthFor(item.graphic) ?? 0) };
   };
 
   // With spare funds, fill empty armor slots from an ordinary blacksmith, one affordable piece each.
@@ -274,10 +288,14 @@ export function createFighterGear(
     await travelNear(ctx, ctx.home.one('blacksmith'), 5);
     for (const mobile of nearby()) {
       check();
-      const before = session.world.received.get(0x74) ?? 0;
-      if (!(await contextAction(mobile, 3006103))) continue;
+      const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
+      if (!(await contextAction(mobile, Actions.buy))) continue;
       try {
-        await session.waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'armor vendor stock', 2500);
+        await session.waitFor(
+          () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before,
+          'armor vendor stock',
+          2500
+        );
       } catch {
         check();
         continue;

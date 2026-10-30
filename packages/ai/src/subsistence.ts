@@ -1,6 +1,7 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { gold } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { Notoriety } from '@gemwright/network/opcodes';
 
 import { checkedDelay } from './action-purpose';
 import { isResident } from './activity';
@@ -31,7 +32,7 @@ export async function begForTool(ctx: SubsistenceContext, want: number) {
         (m) =>
           m.kind === 'mobile' &&
           PLAIN_HUMAN_BODIES.has(m.graphic) &&
-          (m.notoriety === 1 || m.notoriety === 7) &&
+          (m.notoriety === Notoriety.innocent || m.notoriety === Notoriety.invulnerable) &&
           m.serial !== ctx.serial &&
           !isResident(m.serial) &&
           m.position &&
@@ -39,9 +40,9 @@ export async function begForTool(ctx: SubsistenceContext, want: number) {
       )
       .sort(
         (a, b) =>
-          (a.notoriety === 1 ? 0 : 1000) +
+          (a.notoriety === Notoriety.innocent ? 0 : 1000) +
           distance(here, a.position ?? here) -
-          ((b.notoriety === 1 ? 0 : 1000) + distance(here, b.position ?? here))
+          ((b.notoriety === Notoriety.innocent ? 0 : 1000) + distance(here, b.position ?? here))
       )[0];
     if (!npc?.position) break;
     asked.add(npc.serial);

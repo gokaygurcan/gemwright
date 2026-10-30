@@ -1,4 +1,4 @@
-import { miningTools, ore } from '@gemwright/common/game/items';
+import { board, ingot, logPile, miningTools, ore, smallOrePile } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 
 import { spendableGold } from './bank-gold';
@@ -22,9 +22,9 @@ import { workAreas } from './work-areas';
 // pay: chopping trees near town and selling the boards to the carpenter, or digging ore in a
 // nearby mining district, smelting it at a forge and selling the iron to the smith. Each takes
 // only a cheap tool (a hatchet, a pickaxe) and no skill to start, as for players.
-const LOG = 0x1bdd;
-const BOARD = 0x1bd7;
-const INGOT = 0x1bf2;
+const LOG = logPile;
+const BOARD = board;
+const INGOT = ingot;
 const tool = (ctx: ProfessionContext, kinds: ReadonlySet<number>) =>
   [...ctx.carried(), ...ctx.session.world.childrenOf(ctx.serial)].find((item) => kinds.has(item.graphic));
 
@@ -100,7 +100,7 @@ export async function oreTurn(ctx: ProfessionContext): Promise<boolean> {
   const { exhausted, newTrip, plan } = minerPlan(ctx.checkpoint, ctx.template, ctx.persist);
   const blocked = new Set<string>();
   const smeltable = (pack: number) =>
-    ctx.carried(pack).filter((i) => ore.has(i.graphic) && !(i.graphic === 0x19b7 && (i.amount ?? 1) < 2));
+    ctx.carried(pack).filter((i) => ore.has(i.graphic) && !(i.graphic === smallOrePile && (i.amount ?? 1) < 2));
   const heavy = () => ctx.status().weight >= ctx.status().maxWeight * 0.75;
   if (!heavy()) {
     const found = await findMiningSite({

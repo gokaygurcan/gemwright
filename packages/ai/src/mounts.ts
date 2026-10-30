@@ -1,4 +1,5 @@
 import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
+import { ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { approachMobile } from './mobile-approach';
@@ -51,7 +52,7 @@ export function createMountController(ctx: MountContext, city: string, reserve =
       return false;
     }
     // Friends can follow/stay too; Guard and Transfer are offered only to the owner.
-    if (menu.some((entry) => [3006107, 3006113].includes(entry.cliloc) && !(entry.flags & 1))) {
+    if (menu.some((entry) => [ShardAction.stay, ShardAction.transfer].includes(entry.cliloc) && !(entry.flags & 1))) {
       verified.add(horse.serial);
       return true;
     }
@@ -225,7 +226,7 @@ export function createMountController(ctx: MountContext, city: string, reserve =
       }
       if (horse?.position && distance(position(), horse.position) <= 12) {
         const follow = (await session.context(horse.serial)).find(
-          (entry) => entry.cliloc === 3006108 && !(entry.flags & 1)
+          (entry) => entry.cliloc === ShardAction.follow && !(entry.flags & 1)
         );
         if (follow) {
           session.selectContext(horse.serial, follow.index);

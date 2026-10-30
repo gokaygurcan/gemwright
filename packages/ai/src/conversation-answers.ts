@@ -6,6 +6,7 @@ import { cemeteries } from './cemeteries';
 import type { CharacterTemplate } from './config';
 import { activityLine } from './conversation-facts';
 import type { DecisionCoordinator } from './decisions';
+import { requireDecision } from './decisions';
 import { type Intent, intents } from './dialogue';
 import { quoteTo } from './engagement';
 import { askGuide } from './guide';
@@ -132,7 +133,7 @@ export async function worldAnswer(
             ]
           })
         : null;
-      const choice = pick?.id ?? baseline;
+      const choice = decisions ? requireDecision(pick).id : baseline;
       if (pick) decisions?.finish(checkpoint, pick, 'completed', `Answered a help request with ${choice}`);
       return choice === 'offer-advice'
         ? `What is it thou needest, ${name}? I can point thee to the bank, healer, smith, or the nearest cemetery.`

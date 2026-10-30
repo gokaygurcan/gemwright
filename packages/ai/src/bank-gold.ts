@@ -1,6 +1,8 @@
 import { gems, gold } from '@gemwright/common/game/items';
 import { CommandRejected } from '@gemwright/network/errors';
 import { Layer } from '@gemwright/network/layers';
+import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { Actions, Bank } from '@gemwright/network/replies';
 
 import { tally } from './activity';
 import { Blocked } from './blocked';
@@ -18,11 +20,11 @@ import type { Checkpoint } from './store';
 
 export function reportedBankGold(cliloc: number, argumentsText: string): number | undefined {
   const fields = argumentsText.split('\t');
-  if (cliloc !== 1042759 && cliloc !== 1155855) return;
+  if (cliloc !== Bank.balance && cliloc !== Bank.accountBalance) return;
   const amounts = fields.map((field) => (/^\d[\d,]*$/.test(field) ? Number(field.replaceAll(',', '')) : NaN));
   if (amounts.some((amount) => !Number.isSafeInteger(amount) || amount < 0)) return;
-  if (cliloc === 1042759 && amounts.length === 1) return amounts[0];
-  if (cliloc === 1155855 && amounts.length === 2)
+  if (cliloc === Bank.balance && amounts.length === 1) return amounts[0];
+  if (cliloc === Bank.accountBalance && amounts.length === 2)
     return Math.min(Number.MAX_SAFE_INTEGER, (amounts[0] ?? 0) * 1_000_000_000 + (amounts[1] ?? 0));
 }
 
@@ -139,15 +141,16 @@ async function withinBankerRange(ctx: BankerContext, banker: number) {
 export async function openBankBox(ctx: BankerContext, banker: number): Promise<number> {
   const { session } = ctx;
   await withinBankerRange(ctx, banker);
-  const opened = session.world.received.get(0x3c) ?? 0;
-  const displayed = session.world.received.get(0x24) ?? 0;
+  const opened = session.world.received.get(Opcode.containerContents) ?? 0;
+  const displayed = session.world.received.get(Opcode.containerOpen) ?? 0;
   session.say('bank');
   const box = () =>
     [...session.world.entities.values()].find((item) => item.parent === ctx.serial && item.layer === Layer.Bank);
   await session.waitFor(
     () =>
       !!box() &&
-      ((session.world.received.get(0x3c) ?? 0) > opened || (session.world.received.get(0x24) ?? 0) > displayed),
+      ((session.world.received.get(Opcode.containerContents) ?? 0) > opened ||
+        (session.world.received.get(Opcode.containerOpen) ?? 0) > displayed),
     'bank box opened by speech',
     4000
   );
@@ -158,9 +161,9 @@ export async function openBankBox(ctx: BankerContext, banker: number): Promise<n
 
 // A banker is recognized by the enabled open-bank context entry, requested without walking over.
 export async function offersBank(session: MountContext['session'], mobile: number): Promise<boolean> {
-  if (session.world.entities.get(mobile)?.notoriety !== 7) return false;
+  if (session.world.entities.get(mobile)?.notoriety !== Notoriety.invulnerable) return false;
   try {
-    return (await session.context(mobile)).some((entry) => entry.cliloc === 3006105 && !(entry.flags & 1));
+    return (await session.context(mobile)).some((entry) => entry.cliloc === Actions.bank && !(entry.flags & 1));
   } catch (error) {
     if (session.phase !== 'ready') throw error;
     return false;
@@ -168,7 +171,9 @@ export async function offersBank(session: MountContext['session'], mobile: numbe
 }
 
 export async function queryBankBalance(
-  ctx: Pick<MountContext, 'session' | 'serial' | 'position' | 'terrain' | 'navigate' | 'check' | 'checkpoint'>,
+  ctx: Pick<MountContext, 'session' | 'serial' | 'position' | 'terrain' | 'navigate' | 'check' | 'checkpoint'> & {
+    log?: (message: string) => void;
+  },
   banker: number
 ): Promise<number> {
   const { session } = ctx;
@@ -178,10 +183,18 @@ export async function queryBankBalance(
   const reply = () =>
     session.world.journal.find(
       // Any banker in range may answer the keyword, not only the one approached.
-      (entry) => !before.has(entry) && [1042759, 1155855, 500389].includes(entry.cliloc ?? 0)
+      (entry) => !before.has(entry) && [Bank.balance, Bank.accountBalance, Bank.refused].includes(entry.cliloc ?? 0)
     );
   await session.waitFor(() => !!reply(), 'banker balance reply', 3000);
-  const bank = reportedBankGold(reply()?.cliloc ?? 0, reply()?.arguments ?? '') ?? 0;
+  const cliloc = reply()?.cliloc ?? 0;
+  const bank = reportedBankGold(cliloc, reply()?.arguments ?? '');
+  if (bank === undefined) {
+    // The banker answered, but not with a balance (500389: "I will not do business with a criminal!").
+    // Recording zero there made a flagged resident believe it was broke, and every purchase, saving
+    // and side-trade decision after that was wrong.
+    ctx.log?.(`The banker did not give a balance (${cliloc}); keeping the last known balance`);
+    return ctx.checkpoint.funds?.bank ?? 0;
+  }
   lifeEvent(session, 'bank_balance', 'observed', { before: ctx.checkpoint.funds?.bank ?? null, after: bank });
   ctx.checkpoint.funds = { bank, at: Date.now() };
   return bank;
@@ -222,7 +235,7 @@ export async function bankWhileWalking(session: MountContext['session']) {
     ![...session.world.entities.values()].some(
       (m) =>
         m.kind === 'mobile' &&
-        m.notoriety === 7 &&
+        m.notoriety === Notoriety.invulnerable &&
         m.position &&
         distance(ctx.position(), m.position) <= BANKER_SPEECH_RANGE
     )

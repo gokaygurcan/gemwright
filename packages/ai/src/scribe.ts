@@ -1,3 +1,4 @@
+import { spellbook } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 
 import { type CraftSkill, craftRecipes, trainCraft } from './craft-training';
@@ -13,7 +14,6 @@ import { postOffer, shopShare } from './resident-offers';
 // scroll and the spell's reagents, DefInscription), and with Inscription 45 binds a runebook
 // (eight blank scrolls, a Recall and a Gate Travel scroll), and sells both to residents
 // (resident-offers.ts). Few residents get there, so scrolls and books stay scarce and dear.
-export const BOOK = 0x0efa;
 export const RUNEBOOK = 0x22c5;
 export const travelScrolls = new Map([
   [0x1f4c, { spell: 32, label: 'recall scroll', price: 60 }],
@@ -30,7 +30,7 @@ const known = (ctx: ProfessionContext) => ctx.checkpoint.spells?.has ?? [];
 
 // Travel scrolls carried: learned when this resident casts, otherwise offered to those who do.
 export async function useScrolls(ctx: ProfessionContext) {
-  const book = ctx.carried().find((item) => item.graphic === BOOK);
+  const book = ctx.carried().find((item) => item.graphic === spellbook);
   for (const item of ctx.carried().filter((i) => travelScrolls.has(i.graphic))) {
     const scroll = travelScrolls.get(item.graphic);
     if (!scroll) continue;

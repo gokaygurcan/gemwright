@@ -21,6 +21,7 @@ import { meleeWeapons, weaponSkill, weaponsFor } from './fighter-context';
 import { workGear } from './inventory';
 import { quality } from './item-quality';
 import { lasting } from './lasting';
+import { LIFE_GOAL } from './life-goal';
 import { equippedRanged } from './ranged-weapons';
 import type { Checkpoint } from './store';
 import { professionOf } from './world';
@@ -31,7 +32,7 @@ import { professionOf } from './world';
 // confidence, Jev's decision state), so better gear makes a resident bolder and a full pack more
 // careful, without rules spelled out for each case.
 // The one goal every resident lives by, from its own trade, gear and skills (ROADMAP.md).
-export const LIFE_GOAL = 'Grow stronger and richer through your trade, without dying.';
+export { LIFE_GOAL } from './life-goal';
 
 const prices = new Map(
   (

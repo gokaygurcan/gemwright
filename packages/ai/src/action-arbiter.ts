@@ -43,6 +43,7 @@ export interface ActionScope {
   arbiter: ActionArbiter;
   id: string;
   intent: string;
+  intentStep?: string;
   intentId?: string;
   kind: ActionKind;
   parent?: ActionScope;
@@ -114,6 +115,7 @@ export class ActionArbiter {
       id: crypto.randomUUID(),
       intent,
       intentId: parent?.intentId ?? (detached ? undefined : traceContext()?.intentId),
+      intentStep: parent?.intentStep,
       kind,
       parent,
       controller: new AbortController(),

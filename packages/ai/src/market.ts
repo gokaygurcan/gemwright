@@ -5,7 +5,7 @@ import type { JournalEntry, Position } from '@gemwright/network/world';
 import { noteTrade } from './activity';
 import type { CharacterTemplate } from './config';
 import { dangerAhead } from './danger-response';
-import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
+import { type DecisionCoordinator, decisionGuard, decisionState, requireDecision } from './decisions';
 import { guildmates } from './guilds';
 import { allServiceLocations, pickLocation, townAt } from './locations';
 import { knownSeller, noteLine, noteSeller, supplyShift } from './market-supply';
@@ -115,7 +115,7 @@ async function stance(ctx: MarketContext, kind: string, good: Good): Promise<num
     baseline,
     stillCurrent: decisionGuard(ctx.session)
   });
-  const chosen = (pick?.id ?? baseline) as keyof typeof levels;
+  const chosen = requireDecision(pick).id as keyof typeof levels;
   ctx.decisions.finish(ctx.checkpoint, pick, 'completed', `Market stance: ${chosen}`);
   return lean(kind === 'market-ask' ? levels[chosen] : 1 - levels[chosen], good);
 }

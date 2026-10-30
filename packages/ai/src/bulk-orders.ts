@@ -1,4 +1,7 @@
+import { bulkOrderDeed } from '@gemwright/common/game/items';
 import { gumpCommands } from '@gemwright/network/gumps';
+import { Notoriety } from '@gemwright/network/opcodes';
+import { Actions, BulkOrder } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
@@ -16,15 +19,23 @@ import type { ProfessionContext } from './profession';
 // item), and hands the finished deed to a shopkeeper of the trade: the gold goes straight to the
 // bank (BaseVendor.OnDragDrop), and the points are banked for later (ConfirmBankPointsGump), which
 // the server needs answered before the next turn-in.
-const INFO = 3006152;
-const DEED = 0x2258;
-const OFFER_TITLE = 1045133; // A bulk order
-const EXCEPTIONAL = 1045141;
+const INFO = Actions.bulkOrderInfo;
+const DEED = bulkOrderDeed;
+const OFFER_TITLE = BulkOrder.offerTitle; // A bulk order
+const EXCEPTIONAL = BulkOrder.exceptional;
 // Material requirements on an offer: coloured ingots (1045142-1045150) and leathers (1049348-1049350).
 const coloured = (cliloc: number) =>
   (cliloc >= 1045142 && cliloc <= 1045150) || (cliloc >= 1049348 && cliloc <= 1049350);
-const NEXT_OFFER = 1072058; // An offer may be available in about ~1_minutes~ minutes.
-const POINTS_TITLE = 1157076;
+const NEXT_OFFER = BulkOrder.nextOffer; // An offer may be available in about ~1_minutes~ minutes.
+const POINTS_TITLE = BulkOrder.pointsTitle;
+// The reward is a step of its own: dropping a finished deed banks the gold and leaves the points
+// pending (BulkOrderSystem), and only the vendor's Claim Rewards entry turns them into an item.
+const CLAIM = Actions.claimRewards; // BaseVendor.ClaimRewardsEntry
+const REWARDS_TITLE = BulkOrder.rewardsTitle; // RewardsGump: the reward list
+const REWARD_CONFIRM = BulkOrder.rewardConfirm; // aConfirmRewardGump: claim this reward?
+const REWARD_GIVEN = BulkOrder.rewardGiven; // Your reward has been placed in your backpack.
+const CONFIRM_BUTTON = 2; // BaseConfirmGump: Close 0, Break 1, Confirm 2
+const AFFORDABLE = 200; // RewardsGump: button 200 + index, written only for rewards the points cover
 
 type Ctx = ProfessionContext & { refill?: (pack: number, least: number, graphic: number) => Promise<boolean> };
 
@@ -60,7 +71,7 @@ async function shopkeeper(ctx: Ctx, craft: CraftSkill) {
   if (!shop) return undefined;
   await ctx.navigate(shop, 4).catch(() => {});
   for (const mobile of [...ctx.session.world.entities.values()]) {
-    if (mobile.kind !== 'mobile' || mobile.notoriety !== 7 || !mobile.position) continue;
+    if (mobile.kind !== 'mobile' || mobile.notoriety !== Notoriety.invulnerable || !mobile.position) continue;
     if (distance(ctx.position(), mobile.position) > 10) continue;
     const entry = (await ctx.session.context(mobile.serial).catch(() => [])).find((e) => e.cliloc === INFO);
     if (entry) return { mobile, entry };
@@ -79,12 +90,7 @@ async function turnIn(ctx: Ctx, craft: CraftSkill, order: Order) {
   await session
     .waitFor(() => !session.world.entities.has(order.deed.serial), 'bulk order accepted', 4000)
     .catch(() => {});
-  const points = await session
-    .waitFor(() => !!gumpWith(ctx, POINTS_TITLE), 'bulk order points', 4000)
-    .then(() => gumpWith(ctx, POINTS_TITLE))
-    .catch(() => undefined);
-  // Bank the points (the first choice), which clears the pending turn-in.
-  if (points) session.replyGump(points.serial, points.id, 1, [1]);
+  const rewarded = await claimReward(ctx, vendor);
   await Bun.sleep(1000);
   for (const gump of [...session.world.gumps.values()]) session.replyGump(gump.serial, gump.id, 0, []);
   if (session.world.entities.has(order.deed.serial)) return false;
@@ -92,10 +98,63 @@ async function turnIn(ctx: Ctx, craft: CraftSkill, order: Order) {
   lifeEvent(session, 'bulk_order_turn_in', 'completed', {
     deed: order.deed.serial,
     quantity: order.want,
-    pointsConfirmationSent: !!points,
-    bankRewardVerified: false
+    rewardClaimed: rewarded,
+    bankRewardVerified: rewarded
   });
-  ctx.log(`Turned in a bulk order of ${order.want}; the reward went to the bank`);
+  ctx.log(
+    `Turned in a bulk order of ${order.want}; gold banked${rewarded ? ', reward claimed' : ', reward claim pending'}`
+  );
+  return true;
+}
+
+// Dropping the deed only banks the gold and leaves the points pending; the reward itself needs the
+// vendor's Claim Rewards menu (within three tiles), the points confirmation, a reward the points
+// cover (buttons are 200 + index, written only for those), and that gump's own confirmation.
+async function claimReward(ctx: Ctx, vendor: { mobile: Entity; entry: { index: number } }): Promise<boolean> {
+  const { session } = ctx;
+  const claim = (await session.context(vendor.mobile.serial).catch(() => [])).find((entry) => entry.cliloc === CLAIM);
+  if (!claim) return false;
+  ctx.phase('bulk-order-reward', 'Claiming the bulk order reward');
+  session.selectContext(vendor.mobile.serial, claim.index);
+  const points = await session
+    .waitFor(() => !!gumpWith(ctx, POINTS_TITLE), 'bulk order points', 4000)
+    .then(() => gumpWith(ctx, POINTS_TITLE))
+    .catch(() => undefined);
+  // The first choice banks the points; the reward list opens either way, and banked points survive.
+  if (points) {
+    session.replyGump(points.serial, points.id, 1, [1]);
+    await Bun.sleep(500);
+  }
+  const rewards = await session
+    .waitFor(() => !!gumpWith(ctx, REWARDS_TITLE), 'bulk order rewards', 4000)
+    .then(() => gumpWith(ctx, REWARDS_TITLE))
+    .catch(() => undefined);
+  if (!rewards) return !!points;
+  const pick = gumpCommands(rewards.layout)
+    .filter((command) => command[0] === 'button' && Number(command[5]) >= AFFORDABLE)
+    .map((command) => Number(command[5]))
+    .sort((a, b) => a - b)[0];
+  // Nothing this resident can afford yet: the points stay banked for the next turn-in.
+  if (pick === undefined) {
+    session.replyGump(rewards.serial, rewards.id, 0, []);
+    return true;
+  }
+  session.replyGump(rewards.serial, rewards.id, pick, []);
+  const confirm = await session
+    .waitFor(() => !!gumpWith(ctx, REWARD_CONFIRM), 'reward confirmation', 3000)
+    .then(() => gumpWith(ctx, REWARD_CONFIRM))
+    .catch(() => undefined);
+  if (!confirm) return true;
+  const heard = session.world.journal.length;
+  session.replyGump(confirm.serial, confirm.id, CONFIRM_BUTTON, []);
+  await session
+    .waitFor(
+      () => session.world.journal.slice(heard).some((entry) => entry.cliloc === REWARD_GIVEN),
+      'reward in the backpack',
+      3000
+    )
+    .catch(() => {});
+  tally(session, 'bulkOrderRewards');
   return true;
 }
 
@@ -106,8 +165,8 @@ async function combine(ctx: Ctx, order: Order, graphic: number) {
   ctx.phase('bulk-order-combine', `Combining ${pieces.length} pieces into the bulk order`);
   session.use(order.deed.serial);
   const gump = await session
-    .waitFor(() => !!gumpWith(ctx, 1045138), 'bulk order gump', 3000)
-    .then(() => gumpWith(ctx, 1045138))
+    .waitFor(() => !!gumpWith(ctx, BulkOrder.deedGump), 'bulk order gump', 3000)
+    .then(() => gumpWith(ctx, BulkOrder.deedGump))
     .catch(() => undefined);
   if (!gump) return;
   session.replyGump(gump.serial, gump.id, 2, []);
@@ -156,7 +215,9 @@ async function takeOrder(ctx: Ctx, craft: CraftSkill, skill: number) {
   const item = gumpCommands(offer.layout).find((c) => c[0]?.startsWith('xmfhtml') && c[1] === '40' && c[2] === '120');
   const recipe = craft.recipes.find((r) => r.label === Number(item?.[5]));
   const plain = !clilocs.includes(EXCEPTIONAL) && !clilocs.some(coloured);
-  const doable = !!recipe && plain && skill >= recipe.min + 10;
+  // Plain orders this crafter can attempt are taken: the profit pass already refuses a recipe below
+  // its minimum, and a margin of ten skill points refused nearly every offer a smith was given.
+  const doable = !!recipe && plain && skill >= recipe.min;
   session.replyGump(offer.serial, offer.id, doable ? 1 : 0, []);
   // Offers come about every six hours; the next ask waits at least that long either way.
   checkpoint.bulkOrders.nextAt = Date.now() + 6 * 3_600_000;

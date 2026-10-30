@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity, Position } from '@gemwright/network/world';
 
@@ -43,7 +44,7 @@ export function createServiceExperience(ctx: {
     // BaseVendor.IsInvulnerable is visible as notoriety 7 on the verified ServUO profile.
     // Player characters cannot offer NPC bank/buy/sell services.
     mobiles
-      .filter((mobile) => mobile.kind === 'mobile' && mobile.notoriety === 7)
+      .filter((mobile) => mobile.kind === 'mobile' && mobile.notoriety === Notoriety.invulnerable)
       .sort((a, b) => {
         const score = (mobile: Entity) =>
           distance(ctx.position(), mobile.position ?? ctx.position()) -

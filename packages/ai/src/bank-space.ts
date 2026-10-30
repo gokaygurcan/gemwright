@@ -1,3 +1,4 @@
+import { gold, ingot, ore } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { packItems } from './inventory';
@@ -6,14 +7,7 @@ import { packItems } from './inventory';
 // then stood at the bank retrying). Past 110, the oldest kept pieces (exceptional smithing, spare
 // gear: anything but gold, ingots and ore) come back out to be sold, as a player clears a box.
 const ROOM = 110;
-const staples = new Set([
-  0x0eed, // gold coins
-  0x1bf2, // ingots
-  0x19b7, // ore, the smallest pile
-  0x19b8, // ore
-  0x19b9, // ore, the largest pile
-  0x19ba // ore
-]);
+const staples = new Set([gold, ingot, ...ore]);
 
 // Pieces (anything but the staples) last seen in each resident's bank box: a crafter keeps a new
 // exceptional piece only while fewer than five are stored (miner-crafting.ts).

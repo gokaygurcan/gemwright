@@ -1,4 +1,4 @@
-import { hatchets } from '@gemwright/common/game/items';
+import { board, hatchets, logPile } from '@gemwright/common/game/items';
 
 import { TOOLS } from './bank-gold';
 import { unsafeCheck } from './danger';
@@ -15,7 +15,7 @@ export async function earnBoards(ctx: ProfessionContext): Promise<boolean> {
   const { session, checkpoint } = ctx;
   const key = 'income:boards';
   if (objectiveBlocked(checkpoint, key, suppliesCondition(session, checkpoint))) return false;
-  const sell = () => sellTo(ctx, 'carpenter', (item) => [0x1bd7, 0x1bdd].includes(item.graphic) && !item.hue);
+  const sell = () => sellTo(ctx, 'carpenter', (item) => [board, logPile].includes(item.graphic) && !item.hue);
   if ((await sell()) > 0) {
     completeObjective(checkpoint, key);
     return true;
@@ -44,15 +44,15 @@ export async function earnBoards(ctx: ProfessionContext): Promise<boolean> {
           tool,
           cutBoards: async () => {},
           full: () => packFull(session, ctx.backpack()),
-          logs: () => ctx.count(0x1bdd),
+          logs: () => ctx.count(logPile),
           noted: ctx.persist,
           describe: () => 'wood for sale'
         },
         tree
       );
       failObjective(checkpoint, treeKey, 'depleted', 'Worked this tree; allowing its resources to recover');
-      if (ctx.count(0x1bdd)) {
-        const log = ctx.carried().find((item) => item.graphic === 0x1bdd && !item.hue);
+      if (ctx.count(logPile)) {
+        const log = ctx.carried().find((item) => item.graphic === logPile && !item.hue);
         const axe = tool();
         if (log && axe) {
           session.use(axe.serial);
@@ -61,7 +61,7 @@ export async function earnBoards(ctx: ProfessionContext): Promise<boolean> {
           });
           session.target({ serial: log.serial, x: 0, y: 0, z: 0, graphic: log.graphic });
           await session
-            .waitFor(() => !session.world.entities.has(log.serial) || ctx.count(0x1bd7) > 0, 'boards observed', 4000)
+            .waitFor(() => !session.world.entities.has(log.serial) || ctx.count(board) > 0, 'boards observed', 4000)
             .catch(() => {});
         }
         if ((await sell()) > 0) {

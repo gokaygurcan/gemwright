@@ -1,4 +1,7 @@
+import { PACK_ANIMAL_BODIES } from '@gemwright/common/game/bodies';
 import { Layer } from '@gemwright/network/layers';
+import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { ShardAction, Stabling } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { knownBankGold } from './bank-gold';
@@ -13,12 +16,11 @@ import { flushSession } from './session-durability';
 
 // A gatherer's pack horse or llama, bought from the animal trainer like the riding horse (ServUO
 // SBAnimalTrainer: pack horse 631, pack llama 565 gold). Its StrongBackpack holds 1600 stones and
-// opens only for its owner (context entry 6145, sent as 3006145; PackAnimal.CheckAccess), which also proves
+// opens only for its owner (context entry 6145, sent as ShardAction.packAnimal; PackAnimal.CheckAccess), which also proves
 // ownership. A follower gives up beyond about five times its perception range, so the owner checks
 // behind before moving on and walks back for one left standing. No server help: everything is a
 // purchase, speech command, context entry or drag and drop any player has.
-export const packBodies = new Set([0x123, 0x124]);
-const OPEN_PACK = 3006145;
+const OPEN_PACK = ShardAction.packAnimal;
 const CAPACITY = 1500;
 // The pack animal takes a follower slot, beside a riding horse when there is one.
 const RESERVE = 300;
@@ -34,7 +36,7 @@ export function createPackAnimal(ctx: MountContext, city: string) {
   checkpoint.packAnimal ??= { schemaVersion: 1, state: 'seeking' };
   const memory: MountMemory & { load?: number; searches?: number; abandoned?: number; fullLoads?: number } =
     checkpoint.packAnimal;
-  const services = createMountServices(ctx, city, RESERVE, { bodies: packBodies, name: 'pack animal' });
+  const services = createMountServices(ctx, city, RESERVE, { bodies: PACK_ANIMAL_BODIES, name: 'pack animal' });
   let calledAt = 0;
   petSource(session, 'pack-animal', () => (memory.horse === undefined ? [] : [memory.horse]));
   const animal = () => (memory.horse === undefined ? undefined : session.world.entities.get(memory.horse));
@@ -54,7 +56,8 @@ export function createPackAnimal(ctx: MountContext, city: string) {
   // A newly delivered (or, after an uncertain purchase, any nearby) pack animal that answers its owner.
   const discover = async (excluded: readonly number[] = []) => {
     for (const mobile of session.world.entities.values()) {
-      if (mobile.kind !== 'mobile' || !packBodies.has(mobile.graphic) || excluded.includes(mobile.serial)) continue;
+      if (mobile.kind !== 'mobile' || !PACK_ANIMAL_BODIES.has(mobile.graphic) || excluded.includes(mobile.serial))
+        continue;
       if (!mobile.position || distance(position(), mobile.position) > 18 || !(await owns(mobile))) continue;
       memory.horse = mobile.serial;
       memory.state = 'owned';
@@ -117,20 +120,31 @@ export function createPackAnimal(ctx: MountContext, city: string) {
       follow();
       await Bun.sleep(3000);
       if (await discover()) return;
-      // Not there: ServUO stables a logged-out player's pets, so ask the trainer for it.
-      if (trainer) {
+      // Not there: ask the trainer only if this resident ever left the animal at a stable (or the
+      // shard stabled it on logout). Never stabled means lost in the world — a walk for nothing.
+      if (trainer && memory.stabled) {
         phase('pack-animal', 'Asking the animal trainer for my stabled pack animal');
         await navigate(trainer, 3).catch(() => {});
         const heard = new Set(session.world.journal);
         session.say('claim');
         await session
-          .waitFor(() => session.world.journal.some((e) => !heard.has(e) && e.cliloc === 1042559), 'claim', 4000)
+          .waitFor(
+            () => session.world.journal.some((e) => !heard.has(e) && e.cliloc === Stabling.claimed),
+            'claim',
+            4000
+          )
           .catch(() => {});
         await Bun.sleep(800);
         if (await discover()) return;
         // A delivery stands where it reached its buyer, by the trainer: look from the trainer's side.
         const npc = [...session.world.entities.values()]
-          .filter((m) => m.kind === 'mobile' && m.notoriety === 7 && m.position && distance(trainer, m.position) <= 18)
+          .filter(
+            (m) =>
+              m.kind === 'mobile' &&
+              m.notoriety === Notoriety.invulnerable &&
+              m.position &&
+              distance(trainer, m.position) <= 18
+          )
           .sort((a, b) => distance(trainer, a.position ?? trainer) - distance(trainer, b.position ?? trainer))[0];
         if (npc?.position) {
           await navigate(npc.position, 2).catch(() => {});
@@ -138,8 +152,19 @@ export function createPackAnimal(ctx: MountContext, city: string) {
         }
       }
       memory.searches = Math.min(3, (memory.searches ?? 0) + 1);
-      memory.retryAfter = Date.now() + 10 * 60_000;
-      log('Pack animal not found; working without it, not buying a replacement');
+      // Three searches without a sign: it is lost, not hiding. Stop walking back for it, work
+      // without it, and buy a replacement when affordable — repeating the walk is the loop.
+      if (memory.searches >= 3) {
+        memory.state = 'lost';
+        memory.abandoned = Date.now();
+        memory.retryAfter = Date.now() + 6 * 3_600_000;
+        memory.note = 'Pack animal lost after three searches; working without it';
+        delete memory.lastSeen;
+        log(memory.note);
+      } else {
+        memory.retryAfter = Date.now() + 10 * 60_000;
+        log('Pack animal not found; working without it, not buying a replacement');
+      }
       persist();
       return;
     }
@@ -221,13 +246,17 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     if (!a || !near(2)) return undefined;
     const pack = () =>
       [...session.world.entities.values()].find((item) => item.parent === a.serial && item.layer === Layer.Backpack);
-    const shown = session.world.received.get(0x24) ?? 0;
+    const shown = session.world.received.get(Opcode.containerOpen) ?? 0;
     const menu = await session.context(a.serial).catch(() => []);
     const entry = menu.find((e) => e.cliloc === OPEN_PACK && !(e.flags & 1));
     if (!entry) return undefined;
     session.selectContext(a.serial, entry.index);
     await session
-      .waitFor(() => !!pack() && (session.world.received.get(0x24) ?? 0) > shown, 'pack animal backpack', 4000)
+      .waitFor(
+        () => !!pack() && (session.world.received.get(Opcode.containerOpen) ?? 0) > shown,
+        'pack animal backpack',
+        4000
+      )
       .catch(() => {});
     return pack()?.serial;
   };

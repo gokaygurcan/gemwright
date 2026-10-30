@@ -2,7 +2,7 @@ import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
 import { appraise } from './appraise';
-import { type DecisionCoordinator, decisionState } from './decisions';
+import { type DecisionCoordinator, decisionState, requireDecision } from './decisions';
 import { type FighterContext, weaponSkill } from './fighter-context';
 import { distance } from './navigation';
 
@@ -102,7 +102,7 @@ async function answerInvite(ctx: FighterContext, leader: number, size: number, d
     baseline: 'join-party',
     stillCurrent: present
   });
-  const join = pick?.id !== 'hunt-alone';
+  const join = requireDecision(pick).id === 'join-party';
   decisions.finish(ctx.checkpoint, pick, 'completed', join ? 'Joined the party' : 'Declined the invitation');
   return join;
 }

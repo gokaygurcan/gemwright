@@ -15,7 +15,7 @@ import { bindCheckpoint } from './telemetry';
 import { earnedGold, skillGrowth, type WorkEvidence, workEvidence } from './work-evidence';
 
 export type GoalKind = 'recover' | 'equip' | 'order' | 'commitment' | 'earn' | 'learn';
-export type GoalStep = 'recover' | 'equip' | 'order' | 'commitment' | 'trade' | 'settle' | 'income';
+export type GoalStep = 'recover' | 'equip' | 'order' | 'commitment' | 'trade' | 'settle' | 'income' | 'wait';
 export interface ResidentGoal {
   kind: GoalKind;
   key: string;
@@ -42,12 +42,15 @@ export interface GoalSituation {
   evidence: WorkEvidence;
   planning?: PlanningContext;
   safe: boolean;
+  recoveryPending?: boolean;
   ready: boolean;
   learning: boolean;
   order?: string;
   commitment?: string;
   completedCommitment?: string;
   earningNeeded: boolean;
+  // No verified core-work progress for a while: side work waits (day-plan.ts).
+  coreStale?: boolean;
   settlementReady?: boolean;
 }
 const assessments = new WeakMap<
@@ -66,6 +69,18 @@ const bindings = new WeakMap<PlayerSession, Checkpoint>();
 const residents = new WeakMap<Checkpoint, PlayerSession>();
 const snapshots = new WeakMap<PlayerSession, () => GoalSituation>();
 const planSaves = new WeakMap<PlayerSession, () => void>();
+export function intentIsCurrent(session: PlayerSession, id: string, step?: string, now = Date.now()) {
+  if (!bindings.has(session)) return true;
+  const goal = bindings.get(session)?.workGoal?.active;
+  return (
+    !!goal &&
+    goal.intent?.id === id &&
+    (!step || goal.step === step) &&
+    !goal.blocker &&
+    goal.step !== 'wait' &&
+    now < Math.min(goal.until, goal.stepUntil)
+  );
+}
 export const registerGoal = (
   session: PlayerSession,
   checkpoint: Checkpoint,
@@ -146,21 +161,23 @@ export function blockGoal(checkpoint: Checkpoint, reason: string, now = Date.now
   const memory = checkpoint.workGoal;
   const goal = memory?.active;
   if (!memory || !goal) return;
-  memory.failed ??= {};
-  const failureKey = goal.step === 'income' ? 'income' : goal.key;
-  memory.failed[failureKey] = {
-    until: now + 2 * 60_000,
-    reason: reason.slice(0, 240),
-    condition: goal.intent?.condition
-  };
-  const failed = memory.failed;
-  const keys = Object.keys(failed).sort((a, b) => (failed[a]?.until ?? 0) - (failed[b]?.until ?? 0));
-  for (const key of keys.slice(0, Math.max(0, keys.length - 16))) delete memory.failed[key];
-  if (goal.step === 'settle') {
-    memory.failed.settle = { until: now + 2 * 60_000, reason };
-    delete memory.settle;
+  if (goal.step !== 'wait') {
+    memory.failed ??= {};
+    const failureKey = goal.step === 'income' ? 'income' : goal.key;
+    memory.failed[failureKey] = {
+      until: now + 2 * 60_000,
+      reason: reason.slice(0, 240),
+      condition: goal.intent?.condition
+    };
+    const failed = memory.failed;
+    const keys = Object.keys(failed).sort((a, b) => (failed[a]?.until ?? 0) - (failed[b]?.until ?? 0));
+    for (const key of keys.slice(0, Math.max(0, keys.length - 16))) delete memory.failed[key];
+    if (goal.step === 'settle') {
+      memory.failed.settle = { until: now + 2 * 60_000, reason };
+      delete memory.settle;
+    }
+    rememberPlan(checkpoint, goal, 'blocked', reason, state, now);
   }
-  rememberPlan(checkpoint, goal, 'blocked', reason, state, now);
   memory.last = { key: goal.key, result: 'blocked', reason: reason.slice(0, 240), at: now };
   const session = residents.get(checkpoint);
   if (session)
@@ -174,8 +191,9 @@ export function blockGoal(checkpoint: Checkpoint, reason: string, now = Date.now
   delete memory.active;
 }
 export function goalResult(goal: ResidentGoal, state: GoalSituation): string | undefined {
+  if (goal.step === 'wait') return;
   if (!state.safe) return;
-  if (goal.kind === 'recover') return 'Health recovered';
+  if (goal.kind === 'recover') return state.recoveryPending ? undefined : 'Health recovered';
   if (goal.kind === 'equip') return state.ready ? 'Work tool observed and ready' : undefined;
   if (goal.kind === 'order')
     return state.evidence.orders > goal.before.orders && state.order !== goal.key
@@ -235,6 +253,8 @@ export function chooseGoal(checkpoint: Checkpoint, state: GoalSituation, now = D
       !Number.isFinite(memory.active.stepUntil) ||
       !memory.active.before?.skills)
   )
+    delete memory.active;
+  if (memory.active?.step === 'wait' && proposeGoals(checkpoint, state, now).some((proposal) => proposal.allowed))
     delete memory.active;
   const old = memory.active;
   if (old && old.before.bankKnown !== state.evidence.bankKnown) {
@@ -343,7 +363,8 @@ export function chooseGoal(checkpoint: Checkpoint, state: GoalSituation, now = D
   const proposal = selectGoal(checkpoint, state, now);
   const { kind, key } = proposal;
   const step: GoalStep =
-    (kind === 'learn' || kind === 'earn') && memory.settle && !blocked('settle')
+    proposal.step ??
+    ((kind === 'learn' || kind === 'earn') && memory.settle && !blocked('settle')
       ? 'settle'
       : kind === 'learn'
         ? 'trade'
@@ -351,14 +372,14 @@ export function chooseGoal(checkpoint: Checkpoint, state: GoalSituation, now = D
           ? !state.ready || blocked('earn') || blocked('learn')
             ? 'income'
             : 'trade'
-          : kind;
+          : kind);
   memory.active = {
     kind,
     key,
     step,
     started: now,
     until: now + 30 * 60_000,
-    stepUntil: now + 10 * 60_000,
+    stepUntil: now + (step === 'wait' ? 2 : 10) * 60_000,
     budget: planBudget(kind, state),
     before: structuredClone(state.evidence)
   };
@@ -391,6 +412,7 @@ export function plannedSpendAllowed(session: PlayerSession, cost: number): boole
 
 export function leaseGoal(session: PlayerSession, goal: ResidentGoal) {
   leases.set(session, Math.min(goal.until, goal.stepUntil));
+  permits.set(session, goal.step);
 }
 
 export function reservePlannedSpend(session: PlayerSession, cost: number) {

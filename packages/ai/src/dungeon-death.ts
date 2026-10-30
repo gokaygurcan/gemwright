@@ -1,5 +1,8 @@
+import { bandage, corpse as corpseGraphic, ItemProperty, spellbook } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
+import { Opcode } from '@gemwright/network/opcodes';
+import { ShardMessage } from '@gemwright/network/replies';
 
 import type { DungeonContext, DungeonRun } from './dungeon-context';
 import { musterOf, partyChat, partySay } from './dungeon-party';
@@ -16,9 +19,8 @@ import { distance } from './navigation';
 // living member, and the ghost climbs out to a healer. A character that recovers its own corpse
 // later goes back down for it over the stairways while the corpse may still be there (player
 // corpses decay after seven minutes).
-const BANDAGE = 0x0e21;
-const CORPSE = 0x2006;
-const OWNER = 1046414; // "the remains of ~1_NAME~"
+const CORPSE = corpseGraphic;
+const OWNER = ItemProperty.corpseOf; // "the remains of ~1_NAME~"
 const ANSWER_MS = 20_000;
 const RAISE_MS = 90_000;
 const CORPSE_MS = 8 * 60_000;
@@ -27,15 +29,14 @@ const backpack = (ctx: DungeonContext) =>
   ctx.session.world.childrenOf(ctx.serial).find((item) => item.layer === Layer.Backpack)?.serial;
 const bandages = (ctx: DungeonContext) => {
   const pack = backpack(ctx);
-  return pack ? ctx.session.world.childrenOf(pack).filter((item) => item.graphic === BANDAGE) : [];
+  return pack ? ctx.session.world.childrenOf(pack).filter((item) => item.graphic === bandage) : [];
 };
 const skill = (ctx: DungeonContext, name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
 // Resurrection (ServUO ResurrectionSpell): 8th circle, so Magery 80.0 at least (MagerySpell
 // GetCastSkills), 50 mana, bloodmoss, garlic and ginseng, the caster next to the ghost, and the
 // spell in the book; "You do not have that spell!" rules it out for this character.
 const RESURRECTION = 59;
-const NO_SPELL = 500015;
-const SPELLBOOK = 0x0efa;
+const NO_SPELL = ShardMessage.noSuchSpell;
 const reagents = [0x0f7b, 0x0f84, 0x0f85];
 const withoutSpell = new Set<number>();
 const carried = (ctx: DungeonContext) => {
@@ -51,7 +52,7 @@ export function canRaise(ctx: DungeonContext): 'bandage' | 'spell' | undefined {
     skill(ctx, 'Magery') >= 80 &&
     !withoutSpell.has(ctx.serial) &&
     (ctx.session.world.status?.mana ?? 0) >= 50 &&
-    items.some((item) => item.graphic === SPELLBOOK) &&
+    items.some((item) => item.graphic === spellbook) &&
     reagents.every((graphic) => items.some((item) => item.graphic === graphic))
   )
     return 'spell';
@@ -105,9 +106,13 @@ export async function reclaimCorpse(ctx: DungeonContext): Promise<boolean> {
       ?.properties?.some((p) => p.cliloc === OWNER && p.arguments === name);
     if (!owned) continue;
     await ctx.navigate(body.position, 1);
-    const before = session.world.received.get(0x3c) ?? 0;
+    const before = session.world.received.get(Opcode.containerContents) ?? 0;
     session.use(body.serial);
-    await session.waitFor(() => (session.world.received.get(0x3c) ?? 0) > before, 'corpse contents', 4000);
+    await session.waitFor(
+      () => (session.world.received.get(Opcode.containerContents) ?? 0) > before,
+      'corpse contents',
+      4000
+    );
     for (const item of session.world.childrenOf(body.serial)) {
       ctx.check();
       await session.moveItem(item.serial, pack);

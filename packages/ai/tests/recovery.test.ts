@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { speech } from '@gemwright/network/packets';
 
+import { SESSION_BREAK } from '../src/action-errors';
 import { superviseBehavior } from '../src/behavior-supervisor';
 import { corpseRecoveryChoice, resurrectionButton } from '../src/fighter-recovery';
 
@@ -14,10 +15,13 @@ test('resurrection accepts the observed free healer Continue control and rejects
   expect(resurrectionButton(layout.replace('1 0 1', '1 0 2'))).toBeUndefined();
 });
 
-test('corpse recovery respects threats, age, repeated attempts, health and the template policy', () => {
+test('corpse recovery preserves a fresh target despite nearby monsters or earlier attempts', () => {
   const safe = { policy: 'recover-if-safe' as const, ageMs: 1000, attempts: 0, healthRatio: 1, threats: 0 };
   expect(corpseRecoveryChoice(safe)).toBe('recover');
-  for (const changed of [{ threats: 1 }, { ageMs: 16 * 60_000 }, { attempts: 2 }, { healthRatio: 0.7 }, { ageMs: NaN }])
+  for (const changed of [{ threats: 1 }, { attempts: 2 }, { healthRatio: 0.7 }])
+    expect(corpseRecoveryChoice({ ...safe, ...changed })).toBe('recover');
+  expect(corpseRecoveryChoice({ ...safe, healthRatio: 0.2 })).toBe('wait');
+  for (const changed of [{ ageMs: 16 * 60_000 }, { ageMs: NaN }])
     expect(corpseRecoveryChoice({ ...safe, ...changed })).toBe('replace');
   expect(corpseRecoveryChoice({ ...safe, policy: 'replace-equipment' })).toBe('replace');
   expect(corpseRecoveryChoice({ ...safe, policy: 'seek-help' })).toBe('seek-help');
@@ -206,4 +210,90 @@ test('an unfinished reconnect cannot extend the behavior deadline', async () => 
   expect(result.recoveryAttempts).toBe(1);
   expect(result.session.phase).toBe('offline');
   expect(result.runs).toBe(1);
+});
+
+test('an open-ended behavior keeps the character in the world: a returned run is run again, not reconnected', async () => {
+  let now = 0;
+  const runs: number[] = [];
+  let closes = 0;
+  const session = {
+    phase: 'ready',
+    reconnectable: false,
+    failureReason: null,
+    close: () => {
+      closes++;
+    }
+  };
+  const result = await superviseBehavior({
+    session,
+    deadline: Number.POSITIVE_INFINITY,
+    maxReconnects: 2,
+    stopping: () => runs.length >= 3,
+    assertOwnership: () => {},
+    now: () => now,
+    sleep: async (ms: number) => {
+      now += ms;
+    },
+    latestSession: () => session,
+    connect: async () => session,
+    run: async () => {
+      runs.push(now);
+      return 'still stranded';
+    }
+  });
+  expect(runs.length).toBe(3);
+  expect(result.runs).toBe(3);
+  expect(result.result).toBe('still stranded');
+  expect(closes).toBe(0);
+  expect(session.phase).toBe('ready');
+});
+
+test('a planned session break ends an open-ended run without the supervisor restarting it', async () => {
+  const options = supervisorSetup();
+  let offlineUntil = 0;
+  let calls = 0;
+  const result = await superviseBehavior({
+    ...options,
+    deadline: Number.POSITIVE_INFINITY,
+    shouldRepeat: () => offlineUntil <= options.now(),
+    run: async () => {
+      calls++;
+      if (calls > 1) throw new Error('Planned break was restarted');
+      offlineUntil = options.now() + 60_000;
+      return 'Taking a session break';
+    }
+  });
+  expect(result.runs).toBe(1);
+  expect(result.recoveryAttempts).toBe(0);
+  expect(result.result).toBe('Taking a session break');
+});
+
+test('a deliberate session break ends the run: the supervisor does not start it again', async () => {
+  const options = supervisorSetup();
+  const result = await superviseBehavior({
+    ...options,
+    deadline: Number.POSITIVE_INFINITY,
+    shouldRepeat: (value: unknown) => value !== SESSION_BREAK,
+    run: async () => SESSION_BREAK
+  });
+  expect(result.runs).toBe(1);
+  expect(result.result).toBe(SESSION_BREAK);
+});
+
+// An ordinary behavior that returns (not a break) is run again in the same session instead.
+test('an ordinary returned behavior is still run again, unlike a break', async () => {
+  const options = supervisorSetup();
+  let runs = 0;
+  const result = await superviseBehavior({
+    ...options,
+    deadline: Number.POSITIVE_INFINITY,
+    stopping: () => runs >= 3,
+    shouldRepeat: (value: unknown) => value !== SESSION_BREAK,
+    run: async () => {
+      runs++;
+      return 'still stranded';
+    }
+  });
+  expect(result.runs).toBe(3);
+  expect(result.result).toBe('still stranded');
 });

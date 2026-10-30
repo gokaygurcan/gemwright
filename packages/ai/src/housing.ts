@@ -1,4 +1,6 @@
 import { Layer } from '@gemwright/network/layers';
+import { Opcode } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 
 import { tally } from './activity';
 import { chargedPurchase, fundsStale, refreshFunds } from './bank-gold';
@@ -87,13 +89,15 @@ export async function travelTo(ctx: LifeContext, point: { x: number; y: number }
 export async function buyOne(ctx: LifeContext, service: 'architect' | 'provisioner', graphic: number, price: number) {
   const trade = craftContext(ctx);
   const { session } = ctx;
-  return atVendor(trade, service, 3006103, async (vendor) => {
-    const before = session.world.received.get(0x74) ?? 0;
+  return atVendor(trade, service, Actions.buy, async (vendor) => {
+    const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
     session.world.buyOffers.clear();
-    const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006103);
+    const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.buy);
     if (!entry) return false;
     session.selectContext(vendor, entry.index);
-    await session.waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'vendor stock', 2500).catch(() => {});
+    await session
+      .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'vendor stock', 2500)
+      .catch(() => {});
     const offer = [...session.world.buyOffers.values()]
       .flat()
       .find((o) => session.world.entities.get(o.serial)?.graphic === graphic && o.price <= price);

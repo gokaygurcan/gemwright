@@ -15,14 +15,6 @@
     "ajv": "8.20.0"
   },
   "exports": {
-    "./game/bodies": "./src/game/bodies.ts",
-    "./game/expansions": "./src/game/expansions.ts",
-    "./game/items": "./src/game/items.ts",
-    "./game/layers": "./src/game/layers.ts",
-    "./game/maps": "./src/game/maps.ts",
-    "./game/skills": "./src/game/skills.ts",
-    "./codecs/huffman": "./src/codecs/huffman.ts",
-    "./codecs/bwt": "./src/codecs/bwt.ts",
     "./assets/art": "./src/assets/art.ts",
     "./assets/facet": "./src/assets/facet.ts",
     "./assets/hues": "./src/assets/hues.ts",
@@ -30,10 +22,19 @@
     "./assets/skill-groups": "./src/assets/skill-groups.ts",
     "./assets/tiledata": "./src/assets/tiledata.ts",
     "./assets/uop": "./src/assets/uop.ts",
+    "./codecs/bwt": "./src/codecs/bwt.ts",
+    "./codecs/huffman": "./src/codecs/huffman.ts",
+    "./config/compatibility": "./src/config/compatibility.ts",
+    "./config/schema": "./src/config/gemwright.schema.json",
     "./config/shard": "./src/config/shard.ts",
     "./config/types": "./src/config/types.ts",
-    "./config/schema": "./src/config/gemwright.schema.json",
-    "./config/compatibility": "./src/config/compatibility.ts"
+    "./game/bodies": "./src/game/bodies.ts",
+    "./game/expansions": "./src/game/expansions.ts",
+    "./game/items": "./src/game/items.ts",
+    "./game/layers": "./src/game/layers.ts",
+    "./game/maps": "./src/game/maps.ts",
+    "./game/skills": "./src/game/skills.ts",
+    "./game/water": "./src/game/water.ts"
   },
   "files": [
     "src/"

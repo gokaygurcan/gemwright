@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 
 import { skillId } from '@gemwright/common/game/skills';
+import { Notoriety } from '@gemwright/network/opcodes';
+import { ShardAction, Taming } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
@@ -28,10 +30,10 @@ const byBody = new Map<number, Tamable[]>();
 for (const creature of tamables)
   for (const body of creature.bodies) byBody.set(body, [...(byBody.get(body) ?? []), creature]);
 
-const TAMED = 502799; // It seems to accept you as master.
-const FAILED = 502798; // You fail to tame the creature.
+const TAMED = Taming.tamed; // It seems to accept you as master.
+const FAILED = Taming.failed; // You fail to tame the creature.
 const CANNOT = [502801, 1049611, 502804, 502805, 502806, 1049653, 1049654, 1049655];
-const RELEASE = 3006118;
+const RELEASE = ShardAction.release;
 
 // The catalog entry for an observed creature (name breaks ties between bodies such as llamas).
 const profile = (mobile: Entity) => {
@@ -75,7 +77,7 @@ export const runTamer = (options: ProfessionOptions) => {
             m.kind === 'mobile' &&
             m.position &&
             !tried.has(m.serial) &&
-            m.notoriety !== 1 &&
+            m.notoriety !== Notoriety.innocent &&
             m.serial !== ctx.checkpoint.companion?.serial
         )
         .map((m) => ({ mobile: m, profile: profile(m) }))

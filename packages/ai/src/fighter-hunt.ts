@@ -1,10 +1,17 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 import { gold } from '@gemwright/common/game/items';
+import { hostileNotoriety } from '@gemwright/network/opcodes';
 import type { Entity } from '@gemwright/network/world';
 
 import { groundOf } from './cemeteries';
 import { combatCapability } from './combat-capability';
-import { type DecisionCoordinator, type DecisionPick, decisionGuard, decisionState } from './decisions';
+import {
+  type DecisionCoordinator,
+  type DecisionPick,
+  decisionGuard,
+  decisionState,
+  requireDecision
+} from './decisions';
 import { encounterAdvice } from './experience';
 import { bandage, type FighterContext, healPotion, huntable } from './fighter-context';
 import { describe, engageable, prey, profileOf } from './fighter-prey';
@@ -126,7 +133,7 @@ export async function chooseOpponent(
           current.name
         ).avoidUntil <= Date.now() &&
         engageable(ctx, current).ok &&
-        [3, 4, 5, 6].includes(current.notoriety ?? 0) &&
+        hostileNotoriety.includes(current.notoriety ?? 0) &&
         distance(position(), current.position) <= 16 &&
         status().hits >= status().maxHits * 0.7 &&
         !crowded(ctx, current) &&
@@ -173,8 +180,8 @@ export async function chooseOpponent(
     stillCurrent: decisionGuard(session, options.stopping)
   });
   check();
-  if (!pick) return { kind: 'patrol', pick: null };
-  if (pick.id === 'return-town') return { kind: 'return', pick };
-  const opponent = eligible.find((item) => pick.id === `fight-${item.serial}`);
-  return opponent ? { kind: 'fight', opponent, pick } : { kind: 'patrol', pick };
+  const selected = requireDecision(pick);
+  if (selected.id === 'return-town') return { kind: 'return', pick: selected };
+  const opponent = eligible.find((item) => selected.id === `fight-${item.serial}`);
+  return opponent ? { kind: 'fight', opponent, pick: selected } : { kind: 'patrol', pick: selected };
 }

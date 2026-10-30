@@ -1,12 +1,14 @@
-import { fishingPoles } from '@gemwright/common/game/items';
+import { blades, fish, fishingPoles, rawSteak } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { waterLandTiles, waterStaticGraphics } from '@gemwright/common/game/water';
+import { Fishing } from '@gemwright/network/replies';
 
 import { tally } from './activity';
 import { withinReach } from './areas';
 import { TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
 import { type CraftSkill, trainCraft } from './craft-training';
-import { fish, sellFishingCatch } from './fishing-catch';
+import { sellFishingCatch } from './fishing-catch';
 import { leavesEarly, packFull } from './inventory';
 import { eatMagicFish } from './inventory-use';
 import { allServiceLocations, pickLocation } from './locations';
@@ -20,10 +22,6 @@ const poles = fishingPoles;
 
 // ServUO Fishing.m_WaterTiles: land 0xA8-0xAB and 0x136-0x137; water statics 0x1797-0x179C
 // (listed there with the 0x4000 static offset). The pole reaches four tiles (MaxRange 4).
-const waterLand = new Set([0xa8, 0xa9, 0xaa, 0xab, 0x136, 0x137]);
-const waterStatics = new Set([0x1797, 0x1798, 0x1799, 0x179a, 0x179b, 0x179c]);
-const NOT_BITING = 503172;
-const FAILED = 503171;
 
 // A standing tile on the shore with water within reach, near `around`.
 function findSpot(ctx: ProfessionContext, around: { x: number; y: number; z: number }, avoid: Set<string>) {
@@ -38,8 +36,8 @@ function findSpot(ctx: ProfessionContext, around: { x: number; y: number; z: num
             const x = stand.x + wx;
             const y = stand.y + wy;
             const land = terrain.cell(x, y).land;
-            if (waterLand.has(land.id)) return { stand, water: { x, y, z: land.z, graphic: 0 } };
-            const still = terrain.findStatics(waterStatics, { x, y, z: stand.z }, 0)[0];
+            if (waterLandTiles.has(land.id)) return { stand, water: { x, y, z: land.z, graphic: 0 } };
+            const still = terrain.findStatics(waterStaticGraphics, { x, y, z: stand.z }, 0)[0];
             if (still) return { stand, water: { x, y, z: still.z, graphic: still.id } };
           }
       }
@@ -47,11 +45,6 @@ function findSpot(ctx: ProfessionContext, around: { x: number; y: number; z: num
   return undefined;
 }
 
-const blades = new Set([
-  0x0f51, // dagger, facing east
-  0x0f52 // dagger, facing south
-]);
-const rawSteak = 0x097a;
 // ServUO CraftItem.m_HeatSources (ovens, fireplaces, campfires) plus forges, which also count.
 const heat = new Set([
   ...Array.from({ length: 0x48e - 0x461 + 1 }, (_, i) => 0x461 + i),
@@ -175,12 +168,12 @@ export const fishingTurn =
       // The harvest takes a few seconds (cast, wait, reel in) before its reply.
       await Bun.sleep(8000 + Math.random() * 1500);
       const replies = session.world.journal.filter((e) => !seen.has(e)).map((e) => e.cliloc);
-      if (replies.includes(NOT_BITING)) {
+      if (replies.includes(Fishing.notBiting)) {
         avoid.add(`${spot.stand.x >> 3},${spot.stand.y >> 3}`);
         log('The fish are not biting here; finding another spot');
         break;
       }
-      if (!replies.includes(FAILED)) {
+      if (!replies.includes(Fishing.failed)) {
         ctx.progress.catches = (ctx.progress.catches ?? 0) + 1;
         tally(ctx.session, 'fished');
         done = leavesEarly(session);

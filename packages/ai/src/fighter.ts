@@ -1,5 +1,4 @@
 import { gold } from '@gemwright/common/game/items';
-import { Layer } from '@gemwright/network/layers';
 
 import { tally } from './activity';
 import { recoverWithAid } from './aid-recovery';
@@ -32,6 +31,7 @@ import { createCorpseLooter } from './fighter-loot';
 import { createFighterRecovery } from './fighter-recovery';
 import { checkFighter } from './fighter-safety';
 import { registerFighterSocial } from './fighter-social';
+import { createFighterInventory, initializeFighter } from './fighter-startup';
 import { createFighterTown } from './fighter-town';
 import { fieldUpkeep, planTownTrip } from './fighter-trip';
 import { residentTurn } from './goal-turn';
@@ -118,8 +118,10 @@ export async function runFighter(options: ResidentOptions) {
     check,
     phase,
     log,
-    // On the road it steers around monsters; at the hunting ground they are the work.
-    wary: () => travelling,
+    // A fighter's road is full of its prey: steering around the undead and waiting for them to move
+    // on is what left fighters standing still in front of the very monsters they came to kill. It
+    // walks its route; checkFighter engages what attacks it (or retreats when it cannot win).
+    wary: () => false,
     onStep: async () => {
       if (!options.overland || !travelling || checkingRoad || ++roadSteps % 24 !== 0) return;
       checkingRoad = true;
@@ -151,30 +153,7 @@ export async function runFighter(options: ResidentOptions) {
     avoidRest: true,
     purpose: 'escape'
   });
-  let backpack = [...session.world.entities.values()].find(
-    (item) => item.parent === serial && item.layer === Layer.Backpack
-  )?.serial;
-  if (!backpack) throw new Error('No observed backpack');
-  const contents = (container = backpack) =>
-    [...session.world.entities.values()].filter((item) => item.parent === container);
-  const count = (graphic: number) =>
-    contents()
-      .filter((item) => item.graphic === graphic)
-      .reduce((sum, item) => sum + (item.amount ?? 1), 0);
-  // Opening the pack can be refused for a moment (another action in flight); one retry, then throw.
-  const open = async (container: number) => {
-    for (let attempt = 0; ; attempt++) {
-      const before = session.world.received.get(0x3c) ?? 0;
-      session.use(container);
-      try {
-        await session.waitFor(() => (session.world.received.get(0x3c) ?? 0) > before, 'container contents', 4000);
-        return;
-      } catch (error) {
-        if (session.phase !== 'ready' || attempt) throw error;
-        await Bun.sleep(400);
-      }
-    }
-  };
+  const { backpack, contents, count, open, refreshBackpack } = createFighterInventory(session, serial);
   const stats = newFighterStats();
   let patrolIndex = template.behavior.temperament?.patrolOffset ?? 0;
   const unreachable = new Set<number>();
@@ -185,14 +164,6 @@ export async function runFighter(options: ResidentOptions) {
       (item) =>
         item.kind === 'mobile' && item.serial !== serial && item.position && distance(position(), item.position) <= 16
     );
-  const refreshBackpack = async () => {
-    const observed = [...session.world.entities.values()].find(
-      (item) => item.parent === serial && item.layer === Layer.Backpack
-    );
-    if (!observed) throw new Error('No observed backpack after recovery');
-    backpack = observed.serial;
-    await open(backpack);
-  };
   const ctx: FighterContext = {
     session,
     home,
@@ -202,10 +173,7 @@ export async function runFighter(options: ResidentOptions) {
     trip,
     serial,
     deadline,
-    backpack: () => {
-      if (!backpack) throw new Error('Backpack is not observed');
-      return backpack;
-    },
+    backpack,
     refreshBackpack,
     position,
     status,
@@ -284,28 +252,7 @@ export async function runFighter(options: ResidentOptions) {
     persist();
   };
   registerFighterSocial(ctx, defeat, heal);
-  const initialize = async () => {
-    await session.refreshStatus();
-    await session.refreshSkills();
-    await recover();
-    await refreshBackpack();
-    if (trip.encounter) {
-      const interrupted = trip.encounter.opponent;
-      trip.pending = 'return';
-      delete trip.encounter;
-      phase(
-        'reconciling-encounter',
-        `Encounter with ${interrupted} was interrupted; returning to town with observed inventory instead of replaying combat or looting`
-      );
-    }
-    if (trip.pending === 'return') await errands.leaveGround();
-    await errands.tidyAndSell();
-    if (trip.pending !== 'return') {
-      await restock();
-      await rest();
-      await mounts.acquire();
-    }
-  };
+  const initialize = () => initializeFighter(ctx);
   let ambusher: Ambushed['attacker'] | undefined;
   let initialized = false;
   let outcome = 'completed';
@@ -467,6 +414,10 @@ export async function runFighter(options: ResidentOptions) {
           await recover();
           continue;
         }
+        if (error instanceof Blocked && error.reason === 'halted' && session.phase === 'ready') {
+          await Bun.sleep(2000);
+          continue;
+        }
         if (error instanceof Blocked && session.phase === 'ready' && !options.stopping?.()) {
           if (++blockedStreak > 5) {
             blockedStreak = 0;
@@ -501,7 +452,15 @@ export async function runFighter(options: ResidentOptions) {
           phase('retreating', error.message);
           session.setWarMode(false);
           drinkPotion();
-          if (await recoverWithAid(ctx, heal)) trip.pending = 'hunt';
+          // The retreat itself can be interrupted (hurt again on the way, a danger check inside the
+          // recovery): that ends this turn, not the session — the return stays pending and the next
+          // turn leaves. Ending the run here made every street fight a logout/login.
+          try {
+            if (await recoverWithAid(ctx, heal)) trip.pending = 'hunt';
+          } catch (interrupted) {
+            if (session.phase !== 'ready') throw interrupted;
+            ctx.log(`Retreat interrupted: ${interrupted instanceof Error ? interrupted.message : String(interrupted)}`);
+          }
           continue;
         }
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;

@@ -78,5 +78,5 @@ export async function meetNeeds(ctx: LifeContext): Promise<'work' | 'handled' | 
     ctx.persist();
     if (bought) return 'handled';
   }
-  return priority.income || priority.supplies.length ? 'work' : undefined;
+  return priority.income || priority.supplies.some((need) => need.kind === 'tool') ? 'work' : undefined;
 }

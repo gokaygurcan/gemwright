@@ -1,9 +1,9 @@
+import { poisonPotion } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 
 import { type FighterContext, weaponsFor } from './fighter-context';
 
-export const poisonPotion = 0x0f0a;
 const APPLIED = 1010517; // You apply the poison
 const FAILED = [1010516, 1010518, 502148];
 const REFUSED = [502139, 502145, 1060204];

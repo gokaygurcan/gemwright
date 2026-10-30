@@ -1,3 +1,4 @@
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity, JournalEntry } from '@gemwright/network/world-types';
 
@@ -27,7 +28,7 @@ export function callOutReds(session: PlayerSession, threats: Entity[], human: (m
   const here = session.world.position;
   if (!here) return;
   for (const red of threats) {
-    if (red.notoriety !== 6 || !human(red) || !red.position || calls.active(red.serial)) continue;
+    if (red.notoriety !== Notoriety.murderer || !human(red) || !red.position || calls.active(red.serial)) continue;
     calls.set(red.serial, Date.now() + 2 * 60_000);
     const town = townAt(red.position, '');
     const inTown = !!town && serviceLocations(town, 'banker').some((bank) => distance(bank, red.position ?? here) < 60);

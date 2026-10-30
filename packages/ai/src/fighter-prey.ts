@@ -3,7 +3,7 @@ import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';
 
 import { fightConfidence } from './fight-confidence';
-import { bandage, type FighterContext, familyOf, healPotion, meleeWeapons, weaponSkill } from './fighter-context';
+import { type FighterContext, familyOf, meleeWeapons, weaponSkill } from './fighter-context';
 import { alliesNear } from './hunting-party';
 import { type Monster, monsters } from './monster-reference';
 import { distance } from './navigation';
@@ -191,7 +191,6 @@ export function engageable(ctx: FighterContext, mobile: Entity): { ok: boolean; 
     status.armor < (armor ?? 0) && `armor ${status.armor}/${armor}`,
     status.hits < status.maxHits * (health ?? 1) && `health ${status.hits}/${status.maxHits}`,
     !together && ctx.template.behavior.riskTolerance < (risk ?? 1) && 'template risk tolerance',
-    ctx.count(bandage) < 10 && ctx.count(healPotion) < 2 && 'healing supplies',
     // Spells ignore armor: casters and liches need resistance and reliable bandaging.
     !together &&
       ['caster', 'lich'].includes(profile.tier) &&

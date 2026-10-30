@@ -1,12 +1,11 @@
-import { gold } from '@gemwright/common/game/items';
+import { board, gold } from '@gemwright/common/game/items';
+import { Actions } from '@gemwright/network/replies';
 
 import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
 import { vendorMenu } from './lumber-shop';
 import { approachVendor } from './mobile-approach';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
-
-const board = 0x1bd7;
 
 // At the carpenter's: the first nearby vendor whose buy list takes the carried plain boards buys
 // them all. Returns what sold and the gold it brought, or undefined when nobody bought.
@@ -16,11 +15,11 @@ export async function sellBoards(
   const { session, position, status } = ctx;
   for (const mobile of [...session.world.entities.values()]) {
     if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-    const entry = await vendorMenu(session, mobile, 3006104);
+    const entry = await vendorMenu(session, mobile, Actions.sell);
     if (!entry) continue;
     await approachVendor(ctx, mobile.serial);
     session.world.sellOffers.delete(mobile.serial);
-    const current = await vendorMenu(session, mobile, 3006104);
+    const current = await vendorMenu(session, mobile, Actions.sell);
     if (!current) continue;
     session.selectContext(mobile.serial, current.index);
     const offered = await session

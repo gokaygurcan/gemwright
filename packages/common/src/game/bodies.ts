@@ -40,3 +40,9 @@ export const GHOST_BODIES = new Set([
   0x2b6, // gargoyle female ghost
   0x2b7 // gargoyle male ghost
 ]);
+
+// Rideable horses and their pack variants.
+export const HORSE_BODIES = new Set([0xc8, 0xe2, 0xe4, 0xcc]);
+
+// Pack horses and pack llamas.
+export const PACK_ANIMAL_BODIES = new Set([0x123, 0x124]);

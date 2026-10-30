@@ -1,4 +1,5 @@
 import { gold } from '@gemwright/common/game/items';
+import { ShardAction } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -205,7 +206,7 @@ async function buy(
 
 // A pet sold face to face: its Transfer entry (ServUO TransferEntry, 6113) targeted at the
 // buyer opens the trade window with a transfer token; the pet changes master when both accept.
-const TRANSFER = 3006113;
+const TRANSFER = ShardAction.transfer;
 export const sellPetByTrade = (session: PlayerSession, backpack: number, buyer: number, pet: number, price: number) =>
   withPartner(session, buyer, async () => {
     if (!validLot(1, price)) return fail(session, 'invalid pet price');

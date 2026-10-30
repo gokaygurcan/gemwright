@@ -1,5 +1,6 @@
 import { instruments } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { hostileNotoriety } from '@gemwright/network/opcodes';
 import type { Entity } from '@gemwright/network/world';
 
 import { checkedDelay } from './action-purpose';
@@ -57,7 +58,7 @@ export function bardTarget(ctx: Pick<ProfessionContext, 'session' | 'serial'>, m
     mobile.kind === 'mobile' &&
     mobile.serial !== ctx.serial &&
     !ctx.session.world.partyMembers.has(mobile.serial) &&
-    [3, 4, 5, 6].includes(mobile.notoriety ?? 0) &&
+    hostileNotoriety.includes(mobile.notoriety ?? 0) &&
     !ctx.session.world.deaths.has(mobile.serial) &&
     prey.has(mobile.graphic)
   );
@@ -141,7 +142,7 @@ const bardDungeon: DungeonRole = {
         (m) =>
           bardTarget(ctx, m) &&
           recognised(m.graphic) &&
-          [3, 4, 5, 6].includes(m.notoriety ?? 0) &&
+          hostileNotoriety.includes(m.notoriety ?? 0) &&
           !!m.position &&
           distance(ctx.position(), m.position) <= Math.min(radius, 10)
       )

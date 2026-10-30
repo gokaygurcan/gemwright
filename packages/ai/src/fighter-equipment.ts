@@ -1,18 +1,12 @@
 import { Layer } from '@gemwright/network/layers';
+import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { chargedPurchase, fundsStale, queryBankBalance, spendableGold } from './bank-gold';
 import { Blocked } from './blocked';
 import { travelNear } from './cemeteries';
-import {
-  bandage,
-  curePotion,
-  type FighterContext,
-  healPotion,
-  meleeWeapons,
-  weaponSkill,
-  weaponsFor
-} from './fighter-context';
+import { bandage, type FighterContext, healPotion, meleeWeapons, weaponSkill, weaponsFor } from './fighter-context';
 import { createFighterGear } from './fighter-gear';
 import { serviceLocations } from './locations';
 import { forcedToWork } from './loop-watch';
@@ -152,21 +146,21 @@ export function createFighterEquipment(
         for (const item of contents(box.serial)) {
           if (
             (weaponsFor(ctx.template).has(item.graphic) && !equippedSword() && !contents().some(usable)) ||
-            ([bandage, healPotion, curePotion].includes(item.graphic) && !ctx.count(item.graphic)) ||
+            ([bandage, healPotion].includes(item.graphic) && !ctx.count(item.graphic)) ||
             wearables.has(item.serial)
           ) {
             await session.moveItem(item.serial, ctx.backpack());
             await Bun.sleep(700);
           }
         }
-        learning.record(mobile, 3006105, 'success');
+        learning.record(mobile, Actions.bank, 'success');
         // Vendors charge the bank balance directly; record it instead of carrying gold.
         await queryBankBalance(ctx, mobile.serial);
         await session.refreshStatus();
         return;
       }
     }
-    const shown = nearby().filter((mobile) => mobile.notoriety === 7);
+    const shown = nearby().filter((mobile) => mobile.notoriety === Notoriety.invulnerable);
     log(
       `No banker answered; ${shown.length} invulnerable mobiles were within reach (${shown
         .map((m) => m.name ?? m.graphic)
@@ -212,11 +206,11 @@ export function createFighterEquipment(
         await errand(ctx, `weapon:${stop.x},${stop.y}`, `buying a weapon at ${stop.x},${stop.y}`, async () => {
           await navigate(stop, 5);
           for (const mobile of nearby()) {
-            const before = session.world.received.get(0x74) ?? 0;
-            if (!(await services.contextAction(mobile, 3006103))) continue;
+            const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
+            if (!(await services.contextAction(mobile, Actions.buy))) continue;
             try {
               await session.waitFor(
-                () => (session.world.received.get(0x74) ?? 0) > before,
+                () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before,
                 'weapon vendor stock',
                 2500
               );
@@ -245,7 +239,7 @@ export function createFighterEquipment(
             await chargedPurchase(ctx, offer.price, () =>
               session.purchaseItem(mobile.serial, offer.serial, ctx.backpack(), 1, 150)
             );
-            learning.record(mobile, 3006103, 'success');
+            learning.record(mobile, Actions.buy, 'success');
             stats.replacementWeapons++;
             phase('replacement-purchased', `Confirmed an ordinary weapon purchase for ${offer.price} gold`);
             break;

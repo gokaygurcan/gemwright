@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 
+import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { nameHash } from '@gemwright/common/assets/uop';
 
 import { teleporterTiles } from './links';
@@ -184,6 +185,34 @@ export class Terrain {
     );
   }
 
+  // Whether a straight line between two points crosses no wall, window or other sight blocker:
+  // the client's own rule, read from tiledata flags (Wall 0x10, Impassable 0x40, Window 0x2000,
+  // NoShoot 0x4000). Land cliffs and static walls both count, with a height window so a roof above
+  // the line does not hide the street. Perception uses it so a monster behind a building is not
+  // treated as standing on the road (which made residents wait for it to move).
+  sight(from: { x: number; y: number; z?: number }, to: { x: number; y: number; z?: number }): boolean {
+    const steps = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
+    if (steps === 0) return true;
+    const fromZ = from.z ?? 0;
+    const toZ = to.z ?? fromZ;
+    for (let step = 1; step < steps; step++) {
+      const x = Math.round(from.x + ((to.x - from.x) * step) / steps);
+      const y = Math.round(from.y + ((to.y - from.y) * step) / steps);
+      const z = fromZ + ((toZ - fromZ) * step) / steps;
+      const { land, statics } = this.cell(x, y);
+      if (this.tile(land.id).flags & (TileFlag.Wall | TileFlag.Impassable)) return false;
+      for (const staticTile of statics) {
+        if (staticTile.z > z + 16 || staticTile.z + 20 < z - 4) continue;
+        if (
+          this.tile(staticTile.id, true).flags &
+          (TileFlag.Wall | TileFlag.Impassable | TileFlag.Window | TileFlag.NoShoot)
+        )
+          return false;
+      }
+    }
+    return true;
+  }
+
   cell(x: number, y: number) {
     if (x < 0 || x >= 7167 || y < 0 || y >= 4095) throw new Error('Terrain coordinate outside supported facet');
     const key = x * 4096 + y;
@@ -233,7 +262,7 @@ export class Terrain {
       for (const item of this.cell(from.x, from.y).statics) {
         const tile = this.tile(item.id, true);
         const top = item.z + (tile.flags & 0x400 ? Math.floor(tile.height / 2) : tile.height);
-        if (tile.flags & 0x200 && top <= fromZ) startTop = Math.max(startTop, item.z + tile.height);
+        if (tile.flags & TileFlag.Surface && top <= fromZ) startTop = Math.max(startTop, item.z + tile.height);
       }
     }
     let best: number | undefined;

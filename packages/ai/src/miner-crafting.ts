@@ -1,5 +1,8 @@
+import { ingot } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
+import { Opcode } from '@gemwright/network/opcodes';
+import { Actions, ShardCraft } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
@@ -12,8 +15,6 @@ import type { createMinerServices } from './miner-services';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 import { atSmithingStation, rejectSmithingStation } from './smithing-stations';
-
-const ingot = 0x1bf2;
 // Iron ingots are a vendor "economy" item on the pinned shard: 75% of the 5-gold sale price.
 export const RAW_INGOT_VALUE = 3;
 const tongs = new Set([0x0fbb, 0x0fbc]);
@@ -64,7 +65,7 @@ export const CREATED = [1044154, 1044155, 1044156, 502785, 500279];
 // Exceptional quality, with or without the maker's mark: such pieces are banked, not sold.
 export const EXCEPTIONAL = [1044155, 1044156];
 export const FAILED = [1044043, 1044157, 500287];
-export const STOP = [1044038, 1044267, 1044037, 1044153];
+export const STOP = [ShardCraft.toolWornOut, ShardCraft.stationMessage, 1044037, 1044153];
 
 export { buttonFor } from './gump-flow';
 
@@ -84,15 +85,15 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
       for (const mobile of [...session.world.entities.values()]) {
         if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
         const buy = (await session.context(mobile.serial).catch(() => [])).find(
-          (e) => e.cliloc === 3006103 && !(e.flags & 1)
+          (e) => e.cliloc === Actions.buy && !(e.flags & 1)
         );
         if (!buy) continue;
         await approachMobile(ctx, mobile.serial);
-        const before = session.world.received.get(0x74) ?? 0;
+        const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
         session.world.buyOffers.clear();
         session.selectContext(mobile.serial, buy.index);
         await session
-          .waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'smith stock', 2500)
+          .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'smith stock', 2500)
           .catch(() => {});
         const offer = [...session.world.buyOffers.values()]
           .flat()
@@ -197,7 +198,8 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
       const seen = new Set(session.world.journal);
       const prior = new Set(carried(backpack).map((item) => item.serial));
       const known = [...CREATED, ...FAILED, ...STOP];
-      const menus = () => (session.world.received.get(0xdd) ?? 0) + (session.world.received.get(0xb0) ?? 0);
+      const menus = () =>
+        (session.world.received.get(Opcode.compressedGump) ?? 0) + (session.world.received.get(Opcode.gump) ?? 0);
       const shown = menus();
       const notice = () => {
         if (menus() <= shown) return undefined;
@@ -212,7 +214,7 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
       await session.waitFor(() => reply() !== undefined, 'crafting result', 8000);
       const result = reply() ?? 0;
       if (STOP.includes(result)) {
-        if (result === 1044267) rejectSmithingStation(ctx);
+        if (result === ShardCraft.stationMessage) rejectSmithingStation(ctx);
         log(`Smithing stopped by server reply ${result}`);
         break;
       }

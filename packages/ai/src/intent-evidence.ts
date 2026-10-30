@@ -50,17 +50,19 @@ export function intentRationale(goal: ResidentGoal, state: GoalSituation) {
   const missing = Object.entries(state.evidence.skills).filter(([, value]) => value < 100);
   const funds = `${state.evidence.funds} known gold (${state.evidence.gold} carried; bank ${state.evidence.bankKnown ? 'known' : 'unknown'})`;
   const why =
-    goal.kind === 'recover'
-      ? `Work is unsafe or insufficiently observed; health reading ${state.evidence.health}, ${state.planning?.exposed ?? state.evidence.gold} gold of assets exposed`
-      : goal.kind === 'order'
-        ? `Accepted deed ${state.order ?? goal.key} remains unfinished; crafting and vendor acceptance support capability and income`
-        : goal.kind === 'commitment'
-          ? `Active agreement ${state.commitment ?? goal.key} requires completion before optional work`
-          : goal.kind === 'equip'
-            ? `Trade prerequisites are missing; ${funds} is available to restore earning capacity`
-            : goal.kind === 'learn'
-              ? `${missing.length} relevant skills remain below 100.0; invest from ${funds} within the spending limit`
-              : `${state.earningNeeded ? 'Working reserves are low' : 'Productive trade is available'}; grow secure wealth from ${funds}`;
+    goal.step === 'wait'
+      ? 'No productive method currently satisfies the plan prerequisites; reconcile before retrying'
+      : goal.kind === 'recover'
+        ? `Work is unsafe or insufficiently observed; health reading ${state.evidence.health}, ${state.planning?.exposed ?? state.evidence.gold} gold of assets exposed`
+        : goal.kind === 'order'
+          ? `Accepted deed ${state.order ?? goal.key} remains unfinished; crafting and vendor acceptance support capability and income`
+          : goal.kind === 'commitment'
+            ? `Active agreement ${state.commitment ?? goal.key} requires completion before optional work`
+            : goal.kind === 'equip'
+              ? `Trade prerequisites are missing; ${funds} is available to restore earning capacity`
+              : goal.kind === 'learn'
+                ? `${missing.length} relevant skills remain below 100.0; invest from ${funds} within the spending limit`
+                : `${state.earningNeeded ? 'Working reserves are low' : 'Productive trade is available'}; grow secure wealth from ${funds}`;
   return {
     why,
     prerequisites: [

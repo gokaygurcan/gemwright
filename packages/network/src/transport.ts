@@ -19,6 +19,12 @@ export class Transport {
   private readonly decoded = Buffer.allocUnsafe(65536);
   private queued: Buffer[] = [];
   private queuedBytes = 0;
+  // A black box for the next time the shard closes a socket without a word: which packets were
+  // last sent, and how long the shard had been silent. The failure message carries it, so the run
+  // log answers "closed" with evidence instead of a shrug.
+  private lastSent: { opcode: number; at: number }[] = [];
+  private lastReceivedAt = 0;
+  private lastReceivedOpcode = -1;
 
   constructor(
     compressed: boolean,
@@ -42,7 +48,11 @@ export class Transport {
         const block = bytes.subarray(offset, offset + 4096);
         const decoder = this.decoder;
         const decoded = decoder ? timed('decode', () => decoder.decompress(block, 65536, this.decoded)) : block;
-        for (const packet of this.framer.push(decoded)) this.onPacket(packet);
+        for (const packet of this.framer.push(decoded)) {
+          this.lastReceivedAt = Date.now();
+          this.lastReceivedOpcode = packet[0] ?? -1;
+          this.onPacket(packet);
+        }
       }
     } catch (error) {
       this.fail(error instanceof Error ? error : new Error('Protocol decoding failed'));
@@ -75,7 +85,15 @@ export class Transport {
               this.fail(error as Error);
               return;
             }
-            this.fail(new Error('Shard connection closed'));
+            const silent = this.lastReceivedAt ? Math.round((Date.now() - this.lastReceivedAt) / 1000) : -1;
+            const sent = this.lastSent
+              .map((entry) => `0x${entry.opcode.toString(16)}${Math.round((Date.now() - entry.at) / 1000)}s`)
+              .join(',');
+            this.fail(
+              new Error(
+                `Shard connection closed (last received 0x${this.lastReceivedOpcode.toString(16)} ${silent}s ago; sent ${sent || 'nothing'})`
+              )
+            );
           }
         }
       });
@@ -104,6 +122,7 @@ export class Transport {
     const socket = this.socket;
     if (!socket || this.closing || this.failed || !this.connected) throw new Error('Shard socket is not writable');
     if (this.queuedBytes + packet.length > 1024 * 1024) throw new Error('Shard send queue exceeded 1 MiB');
+    this.lastSent = [...this.lastSent.slice(-4), { opcode: packet[0] ?? -1, at: Date.now() }];
     if (!this.queued.length) {
       const wrote = socket.write(packet);
       if (wrote >= packet.length) return;

@@ -2,7 +2,7 @@ import { type PlanEstimate, planningCondition } from './intent';
 import { progressAssumption } from './plan-assumptions';
 import { calibrateEstimate, calibration } from './plan-calibration';
 import { planAdvice } from './plan-memory';
-import type { GoalKind, GoalSituation } from './resident-goal';
+import type { GoalKind, GoalSituation, GoalStep } from './resident-goal';
 import type { Checkpoint } from './store';
 
 export interface GoalProposal {
@@ -13,6 +13,7 @@ export interface GoalProposal {
   utility: number;
   allowed: boolean;
   reason: string;
+  step?: GoalStep;
 }
 export function riskBudget(state: GoalSituation) {
   const context = state.planning;
@@ -84,13 +85,19 @@ export function proposeGoals(checkpoint: Checkpoint, state: GoalSituation, now =
       (state.planning.available && estimate.deathRisk !== null && estimate.deathRisk <= budget);
 
     const assumption = progressAssumption(checkpoint, failedKey === 'income' ? 'income' : kind, condition, now);
-    const allowed = prerequisite && !blocked(failedKey) && assumption.status !== 'invalidated' && riskAllowed;
+    const allowed =
+      prerequisite &&
+      !(failedKey === 'income' && state.coreStale && state.ready) &&
+      ((recovery && state.recoveryPending) || (!blocked(failedKey) && assumption.status !== 'invalidated')) &&
+      riskAllowed;
     return {
       kind,
       key,
       estimate,
       riskBudget: budget,
-      utility: utility(estimate) - planAdvice(checkpoint, kind, condition, now, estimate.method).penalty,
+      utility:
+        utility(estimate) -
+        planAdvice(checkpoint, kind, condition, now, estimate.method, state.planning?.coarse).penalty,
       allowed,
       reason: !prerequisite
         ? 'Prerequisite unavailable'
@@ -137,12 +144,13 @@ export function selectGoal(checkpoint: Checkpoint, state: GoalSituation, now = D
   const selected = proposals.filter((candidate) => candidate.allowed).sort((a, b) => b.utility - a.utility)[0];
   const recovery = proposals[0];
   if (!recovery) throw new Error('Planner requires a recovery proposal');
-  // Recovery is a bounded risk-reducing fallback, not permission to remain idle indefinitely.
   return (
     selected ?? {
       ...recovery,
       allowed: true,
-      reason: 'No admissible productive plan; recover and gather current evidence'
+      key: 'wait',
+      step: 'wait',
+      reason: 'No admissible productive plan; wait for changed evidence or a bounded retry'
     }
   );
 }

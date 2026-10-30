@@ -1,28 +1,10 @@
+import { fish } from '@gemwright/common/game/items';
+
 import { bankNearbyGold, bankSurplus } from './bank-gold';
 import { Blocked } from './blocked';
 import { townAt } from './locations';
 import type { ProfessionContext } from './profession';
 import { sellTo } from './vendor-trade';
-
-export const fish = new Set([
-  0x09cc, // fish
-  0x09cd, // fish
-  0x09ce, // fish
-  0x09cf, // fish
-  0x097a, // raw fish steak
-  // High Seas fish (Fish.cs BaseHighseasFish): no shop buys them whole, but each carves into
-  // four raw steaks like a plain fish.
-  0x4302, // fish
-  0x4303, // fish
-  0x4304, // fish
-  0x4305, // fish
-  0x4306, // fish
-  0x4307, // fish
-  0x44c3, // fish
-  0x44c4, // fish
-  0x44c5, // fish
-  0x44c6 // fish
-]);
 
 // ServUO Fishing's footwear catches and SBCobbler's buyback list.
 export const fishingFootwear = new Set([0x170b, 0x170c, 0x170d, 0x170e, 0x170f, 0x1710, 0x1711, 0x1712]);

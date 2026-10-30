@@ -1,3 +1,4 @@
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { JournalEntry } from '@gemwright/network/world';
 
@@ -6,9 +7,11 @@ import { notePlayer, tally } from './activity';
 import { hearAid, observeAid } from './aid';
 import { answer } from './conversation-answer-flow';
 import type { Listener, Options } from './conversation-types';
+import { requireDecision } from './decisions';
 import { baselineIntent, type Intent, QUIET_MS, stopWords, threadFor } from './dialogue';
 import { endEngagement, patienceFor } from './engagement';
 import { independentAction } from './execution-session';
+import { halt, parseUtility, release, statusLine, whyLine } from './gm';
 import { groupMember } from './group-awareness';
 import { identify, identityKnown } from './identity';
 import { logger } from './log';
@@ -97,6 +100,29 @@ async function listen(listener: Listener) {
   for (const entry of session.world.journal) {
     if (listener.handled.has(entry) || !entry.text || peers?.has(entry.serial)) continue;
     if (entry.serial === session.world.serial || entry.serial === 0xffffffff) continue;
+    // GEMWRIGHT:: utility commands: given by staff, never discussed. A staff speaker is a player (the
+    // context menu offers party entries, never a vendor's) whose notoriety is Invulnerable; ordinary
+    // players cannot be invulnerable and vendors are not players.
+    const utility = parseUtility(entry.text);
+    if (utility) {
+      const speaker = session.world.entities.get(entry.serial);
+      const staff =
+        speaker?.kind === 'mobile' &&
+        speaker.notoriety === Notoriety.invulnerable &&
+        (await identify(session, entry.serial)) === 'player';
+      if (staff) {
+        if (utility === 'STOP') {
+          halt(session, speaker);
+          session.say('Holding.');
+        } else if (utility === 'CONTINUE') {
+          release(session);
+          session.say('Continuing.');
+        } else if (utility === 'STATUS') session.say(statusLine(session));
+        else session.say(whyLine(session));
+      }
+      continue;
+    }
+
     if (!session.world.entities.has(entry.serial)) continue;
     strangers.add(entry.serial);
   }
@@ -327,6 +353,7 @@ async function addressedToMe(listener: Listener, entry: JournalEntry, speaker: s
     baseline: 'to-me',
     stillCurrent: () => session.phase === 'ready'
   });
+  requireDecision(pick);
   decisions.finish(checkpoint, pick, 'completed', `Judged "${(entry.text ?? '').slice(0, 40)}" ${pick?.id ?? 'to-me'}`);
   return pick?.id !== 'to-someone-else';
 }

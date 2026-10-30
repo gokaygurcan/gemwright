@@ -1,3 +1,4 @@
+import { bulkOrderDeed } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 
 import { bulkOrderTurn } from './bulk-orders';
@@ -5,7 +6,7 @@ import { blacksmithing } from './miner-crafting';
 import type { ProfessionContext } from './profession';
 
 export const carriesBulkOrder = (ctx: Pick<ProfessionContext, 'carried'>) =>
-  ctx.carried().some((item) => item.graphic === 0x2258);
+  ctx.carried().some((item) => item.graphic === bulkOrderDeed);
 
 export async function minerBulkOrder(
   ctx: ProfessionContext,

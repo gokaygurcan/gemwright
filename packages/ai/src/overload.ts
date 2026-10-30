@@ -1,4 +1,4 @@
-import { ore } from '@gemwright/common/game/items';
+import { boards, containers, hides, ingot, logs, ore, sand } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -10,20 +10,12 @@ import { packItems } from './inventory';
 // (after selling): items on the ground decay after about an hour.
 const DECAY_MS = 50 * 60_000;
 // Cheap and heavy, put down first: ore (12 stones a piece), logs, boards, hides, ingots, sand.
-const heavyFirst = [
-  [...ore], // ore
-  [0x1bdd, 0x1be0], // logs
-  [0x1bd7, 0x1bd8], // boards
-  [0x1078, 0x1079], // hides
-  [0x1bf2], // ingots
-  [0x11ea, 0x11eb] // sand
-];
+const heavyFirst = [[...ore], [...logs], [...boards], [...hides], [ingot], [...sand]];
 const rank = (graphic: number) => {
   const tier = heavyFirst.findIndex((kind) => kind.includes(graphic));
   return tier < 0 ? heavyFirst.length : tier;
 };
 const spots = [-1, 0, 1].flatMap((x) => [-1, 0, 1].map((y) => ({ x, y })));
-const containers = new Set([0x0e75, 0x0e76, 0x0e79, 0x09b0, 0x0eed]);
 
 // Puts one item down at its feet or on a tile around it (one tile fills up after a few piles,
 // Item.FindDropPoint). True when it left the pack; a pile merged into a like pile counts too.

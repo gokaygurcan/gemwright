@@ -6,6 +6,7 @@ import { ActionBusy, ActionInterrupted, DangerInterrupt, InteractionInterrupt } 
 import type { ResidentIntent } from './intent';
 import { lifeEvent } from './life-events';
 import { perceptionFor } from './perception-session';
+import { intentIsCurrent } from './resident-goal';
 import { inTrace, updateTrace } from './telemetry';
 import { observeInterruption } from './telemetry-metrics';
 
@@ -68,6 +69,12 @@ export function executionFor(session: PlayerSession): Execution {
     emit: (event) => trace(session, event),
     authorize: (scope, command) => {
       if (cleanupCommand(command) || command.resources.length === 0) return;
+      if (
+        scope.intentId &&
+        ['work', 'trade'].includes(scope.kind) &&
+        !intentIsCurrent(session, scope.intentId, scope.intentStep)
+      )
+        throw new ActionInterrupted('Plan changed, blocked or expired; replan before another work command');
       const model = perceptionFor(session);
       if (!model.available) throw new ActionInterrupted('Perception unavailable; reconcile before acting');
       const trade = session.world.trade;
@@ -100,12 +107,13 @@ export const urgentActive = (session: PlayerSession) => {
   return !!arbiter && (arbiter.activeKind('combat') || arbiter.activeKind('escape'));
 };
 
-export function bindIntent(session: PlayerSession, intent: ResidentIntent) {
+export function bindIntent(session: PlayerSession, intent?: ResidentIntent) {
   const scope = executions.get(session)?.arbiter.current();
   if (scope) {
-    updateTrace({ intentId: intent.id, traceId: intent.id });
-    scope.intent = intent.outcome;
-    scope.intentId = intent.id;
+    updateTrace({ intentId: intent?.id, traceId: intent?.id ?? scope.id });
+    scope.intent = intent?.outcome ?? scope.kind;
+    scope.intentId = intent?.id;
+    scope.intentStep = intent?.currentStep;
   }
 }
 

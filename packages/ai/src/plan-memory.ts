@@ -12,7 +12,11 @@ export interface PlanOutcome {
   key: string;
   kind: ResidentGoal['kind'];
   method?: ResidentGoal['step'];
+  // Fine key: what the resident carried and could afford at the time. Coarse key: where and as
+  // whom — the part that survives a shopping trip, so a failure is not forgotten by crossing a
+  // boundary. Advice matches either.
   condition: string;
+  coarse?: string;
   at: number;
   result: 'completed' | 'blocked' | 'died';
   prediction?: PlanEstimate;
@@ -41,6 +45,7 @@ export function rememberPlan(
     state && goal.before.bankKnown === state.evidence.bankKnown ? earnedGold(goal.before, state.evidence) : null;
   const entry: PlanOutcome = {
     id,
+    coarse: state?.planning?.coarse,
     prediction: goal.intent?.prediction ?? goal.intent?.estimate,
     durationMs: Math.max(0, now - goal.started),
     died: outcomeLabels(state, result),
@@ -74,13 +79,14 @@ export function planAdvice(
   kind: ResidentGoal['kind'],
   condition: string,
   now = Date.now(),
-  method?: ResidentGoal['step']
+  method?: ResidentGoal['step'],
+  coarse?: string
 ) {
   const events = (checkpoint.workGoal?.outcomes ?? []).filter(
     (event) =>
       event.kind === kind &&
       (!method || !event.method || event.method === method) &&
-      event.condition === condition &&
+      (event.condition === condition || (coarse !== undefined && event.coarse === coarse)) &&
       event.at <= now &&
       now - event.at < 86400_000
   );

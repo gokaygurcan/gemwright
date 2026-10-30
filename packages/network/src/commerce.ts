@@ -1,5 +1,6 @@
 import { CommandRejected } from './errors';
 import * as packets from './packets';
+import { Commerce } from './replies';
 import type { PlayerSession } from './session';
 
 export async function purchaseItem(
@@ -35,7 +36,7 @@ export async function purchaseItem(
   // 500191/500192: the vendor found neither carried nor banked gold to cover the cost.
   const refused = () =>
     session.world.journal.some(
-      (entry) => !seen.has(entry) && entry.serial === vendor && [500191, 500192].includes(entry.cliloc ?? 0)
+      (entry) => !seen.has(entry) && entry.serial === vendor && Commerce.cannotAfford.includes(entry.cliloc ?? 0)
     );
   const owned = new Set(
     [...session.world.entities.values()].filter((entry) => entry.parent === backpack).map((entry) => entry.serial)

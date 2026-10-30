@@ -1,11 +1,14 @@
+import { bulkOrderDeed } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 
 import { checkedDelay, recentlyHurt } from './action-purpose';
 import { bankNearbyGold, bankSurplus, registerBanking } from './bank-gold';
 import { recoverBlockedWork } from './blocked-work';
 import { escapeDanger } from './danger-response';
+import { coreStale } from './day-plan';
 import { escortOpportunity } from './escort';
 import { bindIntent } from './execution-session';
+import { assertNotHalted } from './gm';
 import { riskBudget } from './goal-policy';
 import { packFull } from './inventory';
 import type { LifeContext } from './life';
@@ -13,6 +16,7 @@ import { lifeEvent } from './life-events';
 import { pickLocation, townAt } from './locations';
 import { meetNeeds } from './need-planning';
 import { perceptionFor } from './perception-session';
+import { updatePersonalGoals } from './personal-goals';
 import { personalTurn } from './personal-turn';
 import { rememberPlan } from './plan-memory';
 import { planningContext } from './planning-context';
@@ -22,7 +26,6 @@ import {
   attachGoal,
   blockGoal,
   chooseGoal,
-  failResidentGoal,
   type GoalSituation,
   goalPermission,
   leaseGoal,
@@ -31,6 +34,7 @@ import {
 import { isGhost, resurrectGhost } from './resurrection';
 import { jobReady } from './self';
 import { sellingTurn } from './selling';
+import { sessionBreakTurn } from './session-habits';
 import { passSetback } from './setback';
 import { housekeeping, optionalTurn } from './shared-turn';
 import { sideTradeTurn } from './side-trade';
@@ -67,16 +71,22 @@ export function goalSituation(ctx: ProfessionContext): GoalSituation {
   ].map(skillId);
   const evidence = workEvidence(ctx.session, ctx.checkpoint, skills.length ? skills : undefined);
   const ready = jobReady(ctx.session, ctx.template);
-  const order = ctx.carried().find((item) => item.graphic === 0x2258);
+  const order = ctx.carried().find((item) => item.graphic === bulkOrderDeed);
   const commitment = ctx.checkpoint.personal?.commitment;
   const completedOrder = ctx.checkpoint.personal?.orders.find(
     (o) => o.state === 'completed' && `delivery:${o.id}` === ctx.checkpoint.workGoal?.active?.key
   );
   const playerOrder = ctx.checkpoint.personal?.orders.find((o) => ['accepted', 'ready'].includes(o.state));
+  const personalGoal = updatePersonalGoals(ctx);
+  const savingsTarget =
+    personalGoal && ['mount', 'equipment', 'home'].includes(personalGoal.kind) ? personalGoal.target : 0;
+  const recoveryPending = !!ctx.checkpoint.hunting?.recovery && ctx.checkpoint.hunting.recovery.stage !== 'ready';
   return {
     evidence,
     planning: planningContext(ctx, evidence),
+    recoveryPending,
     safe:
+      !recoveryPending &&
       !isGhost(ctx) &&
       ctx.status().hits >= ctx.status().maxHits * 0.85 &&
       !(ctx.session.world.poisonLevel ?? 0) &&
@@ -97,7 +107,10 @@ export function goalSituation(ctx: ProfessionContext): GoalSituation {
         : completedOrder
           ? `delivery:${completedOrder.id}`
           : undefined,
-    earningNeeded: evidence.funds < Math.max(150, ready.ready ? 0 : ready.price),
+    earningNeeded: evidence.funds < Math.max(150, ready.ready ? 0 : ready.price, savingsTarget),
+    // Side work is not proposed while the resident's own work has not gained anything: a fisher does
+    // not walk to another city to earn with a full tank and an unworked trade.
+    coreStale: coreStale(ctx.session),
     settlementReady:
       packFull(ctx.session, ctx.backpack(), 0.8) ||
       ctx.status().weight >= ctx.status().maxWeight * 0.8 ||
@@ -109,6 +122,7 @@ export function goalSituation(ctx: ProfessionContext): GoalSituation {
 // bounded work step; optional runners cannot preempt it while an objective is active.
 export async function residentTurn(ctx: ProfessionContext, actions: GoalActions): Promise<boolean> {
   const { session, checkpoint } = ctx;
+  assertNotHalted(session);
   let savedGoal = JSON.stringify(checkpoint.workGoal);
   const persist = () => {
     const current = JSON.stringify(checkpoint.workGoal);
@@ -121,6 +135,7 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
   registerRecall(ctx);
   registerBanking(ctx);
   if (checkpoint.funds) rememberBalance(session, checkpoint.funds.bank);
+  await sessionBreakTurn(actions.life ?? ctx);
   if (isGhost(ctx)) {
     const lost = checkpoint.workGoal?.suspended ?? checkpoint.workGoal?.active;
     if (lost && lost.kind !== 'recover')
@@ -144,6 +159,27 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
   const previous = checkpoint.workGoal?.last;
   const previousGoal = checkpoint.workGoal?.active;
   const goal = chooseGoal(checkpoint, state);
+  const last = checkpoint.workGoal?.last;
+  if (last !== previous) {
+    ctx.log(`[goal] ${last?.result}: ${last?.key}: ${last?.reason}`);
+    persist();
+    if (
+      last?.result === 'completed' &&
+      !['recover', 'equip'].includes(last.key) &&
+      actions.optional &&
+      state.ready &&
+      !state.earningNeeded &&
+      !state.order &&
+      !state.commitment &&
+      !checkpoint.workGoal?.settle
+    ) {
+      if (checkpoint.workGoal) delete checkpoint.workGoal.active;
+      bindIntent(session);
+      persist();
+      await goalPermission(session, 'optional', async () => (await actions.optional?.()) || (await optionalTurn(ctx)));
+      return true;
+    }
+  }
   if (goal !== previousGoal)
     lifeEvent(
       session,
@@ -161,40 +197,30 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
     );
   leaseGoal(session, goal);
   if (goal.intent) bindIntent(session, goal.intent);
-  const last = checkpoint.workGoal?.last;
-  if (last !== previous) {
-    ctx.log(`[goal] ${last?.result}: ${last?.key}: ${last?.reason}`);
-    persist();
-    if (
-      last?.result === 'completed' &&
-      !['recover', 'equip'].includes(last.key) &&
-      actions.optional &&
-      state.ready &&
-      !state.earningNeeded &&
-      !state.order &&
-      !state.commitment &&
-      !checkpoint.workGoal?.settle
-    ) {
-      if (checkpoint.workGoal) delete checkpoint.workGoal.active;
-      if (
-        await goalPermission(session, 'optional', async () => (await actions.optional?.()) || (await optionalTurn(ctx)))
-      )
-        return true;
-      if (checkpoint.workGoal) checkpoint.workGoal.active = goal;
-    }
-  }
   persist();
   try {
+    if (goal.step === 'wait') {
+      ctx.phase('plan-wait', 'Productive methods are blocked; reconciling observations before a bounded retry');
+      await session.refreshStatus();
+      await checkedDelay(1500, ctx.check);
+      return true;
+    }
     if (goal.step === 'recover') {
+      if (state.recoveryPending && actions.recover) {
+        await goalPermission(session, 'recover', actions.recover);
+        return true;
+      }
       const budget = riskBudget(state);
       const risk = state.planning?.deathRisk ?? 1;
       if (state.safe && state.planning?.available && risk > budget) {
         const here = ctx.position();
         const before = riskWaits.get(session);
         const sameGround = before && Math.max(Math.abs(before.x - here.x), Math.abs(before.y - here.y)) <= 10;
-        // This ground was already found unsecurable (worn gear and threats are not bankable): the
-        // trade keeps its turn without going through the settle trip again on every single turn.
-        if (before && Date.now() - before.at < 10 * 60_000 && sameGround && before.tries > 2) return false;
+        if (before && Date.now() - before.at < 10 * 60_000 && sameGround && before.tries > 2) {
+          ctx.phase('recovery-wait', 'Assets could not be secured here; waiting for a changed risk assessment');
+          await checkedDelay(10_000, ctx.check);
+          return true;
+        }
         ctx.phase(
           'securing-assets',
           `Risk ${risk.toFixed(4)} exceeds the work budget ${budget.toFixed(4)}; securing carried goods before resuming`
@@ -206,55 +232,53 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
         }
         const next = goalSituation(ctx);
         lifeEvent(session, 'risk_recovery', 'observed', { before: state.planning, after: next.planning });
-        // Securing did not change the risk (worn gear and threats are not bankable): pace the retry
-        // with the numbers in the log, but only twice on the same ground. Waiting forever on a risk
-        // it cannot put down never earns, never rests, and reads as a resident doing nothing; after
-        // that the trade's own bounded step keeps the turn (its danger handling flees what attacks).
         if (next.planning?.available && (next.planning.deathRisk ?? 1) > riskBudget(next)) {
           const here = ctx.position();
           const before = riskWaits.get(session);
           const sameGround = before && Math.max(Math.abs(before.x - here.x), Math.abs(before.y - here.y)) <= 10;
           const tries = before && Date.now() - before.at < 10 * 60_000 && sameGround ? before.tries + 1 : 1;
           riskWaits.set(session, { at: Date.now(), tries, x: here.x, y: here.y });
-          if (tries > 2) {
-            lifeEvent(session, 'risk_recovery', 'observed', { waited: tries, risk: next.planning.deathRisk });
-            ctx.log(
-              `Risk ${(next.planning.deathRisk ?? 1).toFixed(4)} cannot be secured away here; working on and leaving the danger to the trade`
-            );
-            return false;
-          }
           ctx.phase(
             'recovery-wait',
-            `Risk ${(next.planning.deathRisk ?? 1).toFixed(4)} still exceeds the work budget ${riskBudget(next).toFixed(4)} after securing; waiting before retrying (${tries}/2)`
+            `Risk ${(next.planning.deathRisk ?? 1).toFixed(4)} still exceeds the work budget ${riskBudget(next).toFixed(4)} after securing; waiting before reassessment (${tries})`
           );
           await checkedDelay(10_000, ctx.check);
         }
         return true;
       }
       if (state.safe && state.planning?.available === false) {
-        // Missing observations are a precondition, not a step: asking again every turn is a spin
-        // (it was the town's top loop). Two refreshes, then the goal is failed so the plan layer
-        // takes another course, and the asking is paced until the observations come back.
+        // Missing observations are a precondition, not a step — and they must be asked for again
+        // (an earlier "paced" retry stopped asking after two tries, so the observation never came
+        // back and the resident waited for ever, standing still with no reason in the log).
+        const missing =
+          (state.planning.evidence ?? [])
+            .filter((entry) => entry.id.startsWith('perception:') && entry.kind !== 'observed')
+            .map(
+              (entry) =>
+                `${entry.id.replace('perception:', '')}=${entry.kind}${entry.at ? `@${Math.round((Date.now() - entry.at) / 1000)}s` : ''}`
+            )
+            .join(', ') || 'planning unavailable';
         const refreshes = statusRefreshes.get(session) ?? { count: 0, at: 0 };
-        if (Date.now() - refreshes.at > 60_000) refreshes.count = 0;
+        refreshes.count = Date.now() - refreshes.at > 60_000 ? 0 : refreshes.count + 1;
+        const paced = refreshes.count > 2;
         refreshes.at = Date.now();
-        refreshes.count += 1;
         statusRefreshes.set(session, refreshes);
-        if (refreshes.count > 2) {
-          failResidentGoal(session, 'Safety observations stay unavailable; cannot judge the work');
-          ctx.phase('reconciling-status', 'Observations still missing; waiting before asking again');
-          await checkedDelay(10_000, ctx.check);
-          return true;
-        }
-        ctx.phase('reconciling-status', 'Refreshing missing or stale safety observations before resuming');
-        await session.refreshStatus();
-        // One refresh is a request: give the shard a beat to answer before calling it stale again.
-        await checkedDelay(1500, ctx.check);
+        ctx.phase(
+          'reconciling-status',
+          `Observations missing (${missing}); refreshing${paced ? ' slowly' : ''} before resuming`
+        );
+        await session.refreshStatus().catch((error) => {
+          if (session.phase !== 'ready') throw error;
+          ctx.log(`Status refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
+        await checkedDelay(paced ? 8_000 : 1_500, ctx.check);
         return true;
       }
-      // Safe and within the budget: the fallback recovery has nothing to secure or heal, so the
-      // trade's own bounded work step keeps the turn.
-      if (state.safe && state.planning?.available) return false;
+      if (state.safe && state.planning?.available) {
+        ctx.phase('recovery-wait', 'Reassessing the recovery plan before resuming work');
+        await checkedDelay(10_000, ctx.check);
+        return true;
+      }
       const status = ctx.status();
       const idle = status.hits >= status.maxHits * 0.9 && !(session.world.poisonLevel ?? 0);
       const note = `Getting safely back to working health before resuming the plan (${status.hits}/${status.maxHits} hp, poison ${session.world.poisonLevel ?? 'unknown'}, hurt ${recentlyHurt(session)}, attacked ${perceptionFor(session).underAttack()})`;
@@ -281,7 +305,7 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
       return true;
     }
     if (await housekeeping(ctx, actions.keep)) return true;
-    if (goalControlledFailure(ctx)) return true;
+    if (checkpoint.workGoal?.active !== goal || goalControlledFailure(ctx)) return true;
     if (goal.step === 'equip') {
       await goalPermission(session, 'equip', async () => {
         await actions.prepare?.();
@@ -346,7 +370,7 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
       }
       return true;
     }
-    return false;
+    return goal.step !== 'trade' || checkpoint.workGoal?.active !== goal;
   } catch (error) {
     ctx.check();
     blockGoal(checkpoint, error instanceof Error ? error.message : String(error), Date.now(), goalSituation(ctx));

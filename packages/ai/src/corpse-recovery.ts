@@ -1,17 +1,19 @@
+import { corpse as corpseGraphic } from '@gemwright/common/game/items';
+
 import { nearAnyGround } from './cemeteries';
 import { threatsNear } from './danger';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
+import { WALKING_LIMIT } from './tuning';
 
 // Back to its own corpse after a resurrection, as a player does. ServUO's self-loot (Corpse.Open,
 // AOS) does the rest when the owner double-clicks its corpse: every item that was worn goes back
 // on, everything else goes into the pack, and the death robe is deleted. The corpse decays seven
 // minutes after death (Corpse.m_DefaultDecayTime), so a trip that cannot arrive in time is not
 // started; a resident who could not get its clothes back buys a robe later (death-robe.ts).
-const CORPSE = 0x2006;
+const CORPSE = corpseGraphic;
 const DECAY_MS = 7 * 60_000;
-const WALKING_LIMIT = 300;
 
 // Deaths by place, so a resident that died twice near one spot in an hour stops going back.
 const deaths = new WeakMap<object, { x: number; y: number; at: number }[]>();

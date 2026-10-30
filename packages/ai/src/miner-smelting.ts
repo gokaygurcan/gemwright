@@ -1,4 +1,7 @@
+import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { ingot } from '@gemwright/common/game/items';
+import { ShardMessage, Smelting } from '@gemwright/network/replies';
 
 import { Blocked } from './blocked';
 import { forgeSites } from './locations';
@@ -6,7 +9,6 @@ import type { MinerServicesContext } from './miner-types';
 import { distance } from './navigation';
 
 export const forges = new Set([0x0fb1, ...Array.from({ length: 48 }, (_, index) => 6522 + index)]);
-const ingot = 0x1bf2;
 
 // Smelting: the nearest free, reachable forge (remembered ones first); a town without one (Cove)
 // crosses to another town's smithy by gate. Then an approach from a free side, then each ore pile
@@ -147,26 +149,35 @@ export function createSmelter(ctx: MinerServicesContext) {
         serial: forge.serial,
         x: forge.x,
         y: forge.y,
-        z: forge.z + (!forge.serial && tile.flags & 0x200 ? tile.height : 0),
+        z: forge.z + (!forge.serial && tile.flags & TileFlag.Surface ? tile.height : 0),
         graphic: forge.id
       });
       const feedback = () =>
         (last ? session.world.journal.slice(session.world.journal.indexOf(last) + 1) : session.world.journal).find(
-          (entry) => [501988, 501990, 501986, 501987, 501976, 500446, 500237].includes(entry.cliloc ?? 0)
+          (entry) =>
+            [
+              Smelting.success,
+              Smelting.reduced,
+              Smelting.unknownOre,
+              Smelting.tooLean,
+              501976,
+              ShardMessage.tooFar,
+              ShardMessage.targetNotSeen
+            ].includes(entry.cliloc ?? 0)
         );
       await session.waitFor(() => feedback() !== undefined, 'smelting outcome', 4000);
       await Bun.sleep(250);
       const result = feedback()?.cliloc;
       const remaining = session.world.entities.get(pile.serial);
-      if (result === 501986 || result === 501987) {
+      if (result === Smelting.unknownOre || result === Smelting.tooLean) {
         unsmeltable.add(pile.serial);
         log(`ore ${pile.serial} cannot currently be smelted (${result}); retaining it`);
         continue;
       }
-      if (result === 501988) {
+      if (result === Smelting.success) {
         if (countIngots() <= before.ingots) throw new Error('Smelting success was not confirmed by backpack ingots');
         progress.smelts++;
-      } else if (result === 501990) {
+      } else if (result === Smelting.reduced) {
         if (remaining && remaining.graphic === before.graphic && remaining.amount === before.amount)
           throw new Error('Smelting failure had no confirmed ore change; reconcile before continuing');
       } else throw new Error(`Forge target rejected (${result}); ore retained`);

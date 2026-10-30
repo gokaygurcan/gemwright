@@ -98,3 +98,11 @@ test('contact answers reject malformed values and config-line injection', () => 
   expect(() => createConfig({ emulator: 'sphere', url: 'https://example.com' })).toThrow('omit');
   expect(createConfig({ adminEmail: 'gemwright@example.com', url: 'www.example.com' }).url).toBe('www.example.com');
 });
+
+test('ai.debug is a boolean and defaults to off', () => {
+  expect(createConfig({ emulator: 'servuo', ai: { debug: true } }).ai?.debug).toBe(true);
+  expect(createConfig({ emulator: 'servuo', ai: { population: 10 } }).ai?.debug).toBeUndefined();
+  expect(() => createConfig({ emulator: 'servuo', ai: { debug: 'yes' } as unknown as { debug: boolean } })).toThrow(
+    'Invalid ai settings'
+  );
+});

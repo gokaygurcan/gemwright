@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import { Layer } from '@gemwright/network/layers';
+import { Notoriety } from '@gemwright/network/opcodes';
+import { ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { Blocked } from './blocked';
@@ -17,9 +19,9 @@ import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import { dyingOverAndOver, noteDeath, useStuckMenu } from './stuck';
+import { WALKING_LIMIT } from './tuning';
 
 const ghosts = GHOST_BODIES;
-const WALKING_LIMIT = 300;
 // Ankh pieces a ghost can double-click (Ankhs.cs AnkhWest and AnkhNorth, plain or bloodied).
 const ankhGraphics = new Set([
   0x0002, // ankh, west, second piece
@@ -89,7 +91,7 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
     const npcs = [...session.world.entities.values()].filter(
       (m) =>
         m.kind === 'mobile' &&
-        m.notoriety === 7 &&
+        m.notoriety === Notoriety.invulnerable &&
         m.position &&
         !met.has(m.serial) &&
         distance(position(), m.position) <= 18
@@ -144,8 +146,10 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
           }
           await Bun.sleep(1500);
         }
-        // What the server said: 500446 too far away, 502391 cannot be resurrected there.
-        const refusal = session.world.journal.filter((e) => e.cliloc === 500446 || e.cliloc === 502391).at(-1);
+        // What the server said: ShardMessage.tooFar too far away, 502391 cannot be resurrected there.
+        const refusal = session.world.journal
+          .filter((e) => e.cliloc === ShardMessage.tooFar || e.cliloc === 502391)
+          .at(-1);
         if (!offer() && refusal)
           log(`The ankh refused from ${position().x},${position().y},${position().z}: cliloc ${refusal.cliloc}`);
       } else {
@@ -159,7 +163,11 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
         // the NPC nearest the known spot.
         const npcs = [...session.world.entities.values()]
           .filter(
-            (m) => m.kind === 'mobile' && m.notoriety === 7 && m.position && distance(position(), m.position) <= 18
+            (m) =>
+              m.kind === 'mobile' &&
+              m.notoriety === Notoriety.invulnerable &&
+              m.position &&
+              distance(position(), m.position) <= 18
           )
           .sort((a, b) => distance(option, a.position ?? option) - distance(option, b.position ?? option));
         let healer: (typeof npcs)[number] | undefined;

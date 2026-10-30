@@ -7,6 +7,7 @@ import { commitmentConversation } from './commitments';
 import { worldAnswer } from './conversation-answers';
 import { activityLine, factSheet, needsReply, planLine } from './conversation-facts';
 import type { Listener } from './conversation-types';
+import { requireDecision } from './decisions';
 import { baselineIntent, type Intent, intents, QUIET_MS, replyOptions, type Thread } from './dialogue';
 import { consider, endEngagement, moving, terse, typingMs } from './engagement';
 import { independentAction } from './execution-session';
@@ -79,6 +80,7 @@ async function answerBody(listener: Listener, thread: Thread, entry: JournalEntr
         stillCurrent: () => session.phase === 'ready'
       })
     : null;
+  if (decisions) requireDecision(read);
   // A player's free-form trade talk ("wtb 50 boards") is trade, whatever else it reads as.
   const talk = thread.peer ? undefined : await readTradeTalk(text);
   // What the player wants or offers, and at what price, is a market signal (player-insight.ts).
@@ -189,6 +191,7 @@ async function answerBody(listener: Listener, thread: Thread, entry: JournalEntr
           stillCurrent: () => session.phase === 'ready'
         })
       : null;
+  if (decisions && options.length > 1) requireDecision(pick);
   const chosen = options.find((option) => option.id === (pick?.id ?? replyBaseline)) ?? options[0];
   log(
     session,

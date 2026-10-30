@@ -4,6 +4,7 @@ import { callOutReds, hearCalls } from './danger-calls';
 import { lasting } from './lasting';
 import { distance } from './navigation';
 import { perceptionFor } from './perception-session';
+import { residentTerrain } from './resident-context';
 
 const REMEMBER_MS = 20 * 60_000;
 const cell = (point: { x: number; y: number }) => `${point.x >> 4},${point.y >> 4}`;
@@ -25,7 +26,16 @@ export function threatsNear(session: PlayerSession, point: { x: number; y: numbe
   // Red players are called out, and others' calls heard (danger-calls.ts).
   callOutReds(session, threats, (mobile) => model.entity(mobile.serial)?.reference.value.humanLike ?? false);
   hearCalls(session, seen, cell);
-  return threats.filter((threat) => threat.position && distance(point, threat.position) <= radius);
+  // A creature behind a wall is not on the road: sight decides, not distance alone (a monster in a
+  // building used to veto routes and make residents wait for it to move). Adjacent creatures count
+  // regardless — they can attack through the doorway they stand in.
+  const terrain = residentTerrain(session);
+  return threats.filter(
+    (threat) =>
+      threat.position &&
+      distance(point, threat.position) <= radius &&
+      (distance(point, threat.position) <= 2 || !terrain?.sight || terrain.sight(point, threat.position))
+  );
 }
 
 // A check for many candidate spots: unsafe with a threat within ten tiles, or in an area where

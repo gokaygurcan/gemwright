@@ -1,4 +1,15 @@
-import { gold, isDeathRobe, magicFish, ore, reagents } from '@gemwright/common/game/items';
+import { TileFlag } from '@gemwright/common/assets/tiledata';
+import {
+  board,
+  gold,
+  ItemProperty,
+  ingot,
+  isDeathRobe,
+  logPile,
+  magicFish,
+  ore,
+  reagents
+} from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
@@ -21,23 +32,25 @@ const value = (item: Entity, cliloc: number) =>
   Number.parseFloat(item.properties?.find((p) => p.cliloc === cliloc)?.arguments ?? '') || 0;
 
 export function equipmentScore(item: Entity, weapon: boolean): number {
-  if (!item.properties) return -1;
+  // A plain piece whose property list is empty (or could not be read) has no modifiers: it scores
+  // zero, not -1 — otherwise plain jewellery and clothing could never be worn at all.
+  if (!item.properties) return 0;
   const durability = item.properties
-    .find((p) => p.cliloc === 1060639)
+    .find((p) => p.cliloc === ItemProperty.durability)
     ?.arguments.split('\t')
     .map(Number);
   if (durability && (durability[0] ?? 0) <= 0) return -1;
   if (weapon) {
-    const [min = 0, max = 0] = (item.properties.find((p) => p.cliloc === 1061168)?.arguments ?? '')
+    const [min = 0, max = 0] = (item.properties.find((p) => p.cliloc === ItemProperty.weaponDamage)?.arguments ?? '')
       .split('\t')
       .map(Number);
-    const speed = item.properties.find((p) => p.cliloc === 1061167)?.arguments ?? '';
+    const speed = item.properties.find((p) => p.cliloc === ItemProperty.weaponSpeed)?.arguments ?? '';
     const seconds = speed.endsWith('s') ? Number.parseFloat(speed) : 40 / (Number(speed) || 13);
     return (
       ((min + max) / 2 / Math.max(1.25, seconds || 3)) *
       (1 + value(item, 1060401) / 100) *
       (1 + value(item, 1060415) / 100) *
-      (1 + value(item, 1060486) / 100) *
+      (1 + value(item, ItemProperty.swingSpeedIncrease) / 100) *
       10
     );
   }
@@ -57,7 +70,7 @@ export function equipmentMisfit(session: PlayerSession, item: Entity): string | 
   if (!ctx || !terrain) return;
   const tile = terrain.tile(item.graphic, true);
   const layer = tile.layer;
-  if (!(tile.flags & 0x400000) || reserved.has(layer) || isDeathRobe(item)) return;
+  if (!(tile.flags & TileFlag.Wearable) || reserved.has(layer) || isDeathRobe(item)) return;
   const weapon = weaponsFor(ctx.template).has(item.graphic);
   if ((layer === 1 || layer === 2) && !weapon && !/shield|buckler/i.test(tile.name)) return "not this trade's weapon";
   if (
@@ -109,7 +122,10 @@ export async function betterEquipment(session: PlayerSession, item: Entity): Pro
   const weapon = weaponsFor(ctx.template).has(item.graphic);
   if (!item.properties) await session.inspectProperties(item.serial).catch(() => {});
   const candidate = session.world.entities.get(item.serial) ?? item;
-  if (!candidate.properties || value(candidate, 1061170) > status.strength) return false;
+  // The strength requirement comes from the property list; with none (a plain piece, or a list the
+  // shard did not answer) the piece is a candidate and the shard's refusal is the requirement check
+  // (a refused piece is remembered and marked for sale).
+  if (value(candidate, ItemProperty.strengthRequirement) > status.strength) return false;
   const worn = session.world
     .childrenOf(session.world.serial ?? -1)
     .filter((piece) =>
@@ -140,10 +156,10 @@ export async function usefulGift(session: PlayerSession, item: Entity): Promise<
 
   const profession = professionOf(ctx.template.id)?.[0] ?? ctx.template.archetype?.id ?? '';
   const materials: Record<string, number[]> = {
-    miner: [0x1bf2, ...ore], // iron ingots, ore
-    lumberjack: [0x1bd7, 0x1bdd],
+    miner: [ingot, ...ore], // iron ingots, ore
+    lumberjack: [board, logPile],
     tailor: [0x1766, 0x1767, 0x0f95, 0x0df8, 0x0e1d, 0x0e1e, 0x0e1f, 0x0f9e, 0x0f9f],
-    bowyer: [0x1bd7, 0x1bdd, 0x1bd1, 0x1bd4],
+    bowyer: [board, logPile, 0x1bd1, 0x1bd4],
     alchemist: [0x0f0e, ...reagents] // bottles, reagents
   };
   if (materials[profession]?.includes(item.graphic)) return true;
@@ -182,7 +198,7 @@ export async function useAcquiredItems(session: PlayerSession): Promise<boolean>
       if (!(await betterEquipment(session, item))) {
         // A strength requirement above its own (the property list was read while judging it).
         const fresh = session.world.entities.get(item.serial) ?? item;
-        const need = value(fresh, 1061170);
+        const need = value(fresh, ItemProperty.strengthRequirement);
         const strength = session.world.status?.strength ?? 0;
         if (need && need > strength) markForSale(ctx, item.serial, `needs ${need} strength`);
         continue;
@@ -190,7 +206,8 @@ export async function useAcquiredItems(session: PlayerSession): Promise<boolean>
       if (!canPause(session)) return false;
       const layer = terrain.tile(item.graphic, true).layer;
       const handWeapon = weaponsFor(ctx.template).has(item.graphic);
-      const twoHanded = item.properties?.some((p) => p.cliloc === 1061171) || (handWeapon && layer === 2);
+      const twoHanded =
+        item.properties?.some((p) => p.cliloc === ItemProperty.twoHanded) || (handWeapon && layer === 2);
       const old = session.world
         .childrenOf(serial)
         .filter(

@@ -1,6 +1,7 @@
 import { EntityMap } from './entity-map';
 import { applyHealthBar, applyParty } from './group-observations';
 import { gumpLayout } from './gumps';
+import { Opcode } from './opcodes';
 import type { TargetCursor } from './packets';
 import { speechEntry } from './speech';
 import { type PlayerStatus, playerStatus, recordHealth } from './status';
@@ -278,7 +279,7 @@ export class WorldView {
           this.status.hits = packet.readUInt16BE(7);
         }
         break;
-      case 0x74: {
+      case Opcode.vendorBuyList: {
         const container = packet.readUInt32BE(3);
         const count = packet.readUInt8(7);
         const vendor = this.entities.get(container)?.parent;
@@ -407,7 +408,7 @@ export class WorldView {
       case 0x25:
         this.containerEntry(packet, 1);
         break;
-      case 0x3c: {
+      case Opcode.containerContents: {
         const count = packet.readUInt16BE(3);
         if (packet.length !== 5 + count * 20) throw new Error('Invalid grid-container content length');
         const parents = new Set<number>();
@@ -503,12 +504,17 @@ export class WorldView {
           for (const [key, gump] of this.gumps) if (gump.id === id) this.gumps.delete(key);
         }
         break;
-      case 0xb0:
-      case 0xdd: {
+      case Opcode.gump:
+      case Opcode.compressedGump: {
         if (this.gumps.size >= 100) throw new Error('Open gump limit exceeded');
         const serial = packet.readUInt32BE(3);
         const id = packet.readUInt32BE(7);
-        this.gumps.set(`${serial}:${id}`, { serial, id, packed: opcode === 0xdd, layout: gumpLayout(packet) });
+        this.gumps.set(`${serial}:${id}`, {
+          serial,
+          id,
+          packed: opcode === Opcode.compressedGump,
+          layout: gumpLayout(packet)
+        });
         break;
       }
     }

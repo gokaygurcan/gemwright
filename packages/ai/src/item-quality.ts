@@ -1,12 +1,13 @@
+import { ItemProperty } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
 // What an item is worth beyond its kind, read from its ordinary property list (0xD6), the tooltip a
 // player sees on hover. Clilocs from the pinned ServUO Item, BaseWeapon and BaseArmor lists.
-//   artifact     artifact rarity (1061078): never sold to a shop, kept or traded
-//   blessed      1038021: kept
+//   artifact     artifact rarity (ItemProperty.artifact): never sold to a shop, kept or traded
+//   blessed      ItemProperty.blessed: kept
 //   magic        AOS attributes: kept, worn or traded, never sold to a shop at base price
-//   exceptional  1060636: a crafter's best work, traded to residents rather than sold to a shop
+//   exceptional  ItemProperty.exceptional: a crafter's best work, traded to residents rather than sold to a shop
 //   normal       everything else: fine to sell to a shop
 // `unknown` means the property list has not been seen yet (see `learnQuality`).
 export type Quality = 'artifact' | 'blessed' | 'magic' | 'exceptional' | 'normal' | 'unknown';
@@ -22,10 +23,10 @@ export function quality(item: Entity): Quality {
   const properties = item.properties;
   if (!properties) return 'unknown';
   const has = (cliloc: number) => properties.some((entry) => entry.cliloc === cliloc);
-  if (has(1061078)) return 'artifact';
-  if (has(1038021)) return 'blessed';
+  if (has(ItemProperty.artifact)) return 'artifact';
+  if (has(ItemProperty.blessed)) return 'blessed';
   if (properties.some((entry) => magicProperty(entry.cliloc))) return 'magic';
-  if (has(1060636)) return 'exceptional';
+  if (has(ItemProperty.exceptional)) return 'exceptional';
   return 'normal';
 }
 

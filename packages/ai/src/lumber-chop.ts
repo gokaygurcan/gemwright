@@ -1,3 +1,4 @@
+import { ShardCraft, ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -5,15 +6,15 @@ import { checkedDelay } from './action-purpose';
 import { tally } from './activity';
 
 // Lumberjacking.cs replies: AOS resource messages 1072540-1072546 or the classic 500498 on
-// success, 500495 on a failed chop, 500493 depleted tree, 500446 too far, 500497 pack full,
+// success, 500495 on a failed chop, 500493 depleted tree, ShardMessage.tooFar too far, 500497 pack full,
 // 500499 broken axe.
 const CHOPPED = [500498, 1072540, 1072541, 1072542, 1072543, 1072544, 1072545, 1072546];
 const FAILED = 500495;
-const DEPLETED = [500493, 500446, 500494];
+const DEPLETED = [500493, ShardMessage.tooFar, 500494];
 const PACK_FULL = 500497;
 const BROKE = 500499;
-// HarvestSystem.CheckTool: a spent tool answers this instead of asking for a target (1044038).
-const WORN_OUT = 1044038;
+// HarvestSystem.CheckTool: a spent tool answers this instead of asking for a target (ShardCraft.toolWornOut).
+const WORN_OUT = ShardCraft.toolWornOut;
 
 interface ChopContext {
   session: PlayerSession;
@@ -43,7 +44,7 @@ export async function chopTree(ctx: ChopContext, tree: { x: number; y: number; z
       await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000, { resource: 'target' });
     } catch (error) {
       if (session.phase !== 'ready') throw error;
-      // No target asked for: a spent axe says so (1044038) and never asks. It is dropped here and
+      // No target asked for: a spent axe says so (ShardCraft.toolWornOut) and never asks. It is dropped here and
       // the next turn buys a replacement (lumberjack.ts) instead of swinging a dead tool forever.
       const answers = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);
       if (!answers.some((entry) => entry.cliloc === WORN_OUT)) throw error;

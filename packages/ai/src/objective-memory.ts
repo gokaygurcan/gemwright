@@ -3,6 +3,9 @@ import { createHash } from 'node:crypto';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 
+import { ActionBusy, ActionInterrupted, ActionTimeout, DangerInterrupt, InteractionInterrupt } from './action-errors';
+import { Blocked } from './blocked';
+import { noteSideWork, sideWorkAllowed } from './day-plan';
 import type { Checkpoint } from './store';
 
 const BAN_MS = 2 * 3_600_000;
@@ -71,6 +74,10 @@ export function suppliesCondition(session: PlayerSession, checkpoint: Checkpoint
 // An errand run once: skipped while it is banned; when it changes nothing the resident owns
 // (gold, bank, carried items), it is banned for two hours and the resident says why. True when it
 // ran and gained something.
+// Side errands (restocking) have a budget: they are not the job. Own-output trips — selling,
+// banking — are core and never wait on it.
+const sideErrand = (key: string) => key.startsWith('restock:');
+
 export async function errand(
   ctx: { session: PlayerSession; checkpoint: Checkpoint; log: (text: string) => void },
   key: string,
@@ -78,19 +85,35 @@ export async function errand(
   run: () => Promise<unknown>
 ): Promise<boolean> {
   const { session, checkpoint } = ctx;
+  if (sideErrand(key) && !sideWorkAllowed(session)) {
+    ctx.log(`Core work first: skipping ${what} until my own work has gained something`);
+    return false;
+  }
   if (objectiveBlocked(checkpoint, key, suppliesCondition(session, checkpoint))) return false;
+  const started = Date.now();
   const before = holdings(session, checkpoint);
   try {
     await run();
   } catch (error) {
     if (session.phase !== 'ready') throw error;
+    if (
+      error instanceof ActionInterrupted ||
+      error instanceof ActionTimeout ||
+      error instanceof ActionBusy ||
+      error instanceof DangerInterrupt ||
+      error instanceof InteractionInterrupt ||
+      (error instanceof Blocked && error.reason === 'stuck')
+    )
+      throw error;
   }
   if (holdings(session, checkpoint) !== before) {
     completeObjective(checkpoint, key);
+    if (sideErrand(key)) noteSideWork(session, Date.now() - started);
     return true;
   }
   failObjective(checkpoint, key, suppliesCondition(session, checkpoint), `${what} gained nothing`);
   ctx.log(`Gave up on ${what} for two hours: it gained nothing`);
+  if (sideErrand(key)) noteSideWork(session, Date.now() - started);
   return false;
 }
 

@@ -1,5 +1,7 @@
 import { gold } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { Notoriety } from '@gemwright/network/opcodes';
+import { ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { supportingOf } from './archetypes';
@@ -10,7 +12,7 @@ import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 
 // NPC teaching on the pinned ServUO shard (BaseCreature.CheckTeachSkills / TeachEntry):
-// - the context entry is TeachEntry 6000 + skill id (cliloc 3006000 + id on the wire), enabled while
+// - the context entry is TeachEntry 6000 + skill id (cliloc ShardAction.teachBase + id on the wire), enabled while
 //   the NPC can teach more;
 // - selecting it quotes 1019077 with the price as an affix: one gold per 0.1 skill point;
 // - an NPC teaches up to a third of its own skill and never above 42.0;
@@ -76,7 +78,9 @@ const carried = (ctx: TrainingContext) =>
 export async function trainFromNpc(ctx: TrainingContext, npc: Entity, skill: string, budget: number): Promise<number> {
   const { session } = ctx;
   const id = skillId(skill);
-  const entry = (await session.context(npc.serial)).find((e) => e.cliloc === 3006000 + id && !(e.flags & 1));
+  const entry = (await session.context(npc.serial)).find(
+    (e) => e.cliloc === ShardAction.teachBase + id && !(e.flags & 1)
+  );
   if (!entry) return 0;
   await approachMobile(ctx, npc.serial);
   const before = new Set(session.world.journal);
@@ -158,7 +162,7 @@ export async function trainingVisit(ctx: TrainingContext, city: string) {
       let spent = 0;
       for (const npc of ctx
         .nearby()
-        .filter((m) => m.kind === 'mobile' && m.serial !== ctx.serial && m.notoriety === 7)) {
+        .filter((m) => m.kind === 'mobile' && m.serial !== ctx.serial && m.notoriety === Notoriety.invulnerable)) {
         try {
           spent = await trainFromNpc(ctx, npc, skill, budget);
         } catch (error) {

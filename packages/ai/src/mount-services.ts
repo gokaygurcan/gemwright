@@ -1,4 +1,6 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
+import { Opcode } from '@gemwright/network/opcodes';
+import { Actions, Commerce, ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { fundsStale, queryBankBalance, spendableGold } from './bank-gold';
@@ -34,9 +36,9 @@ export function createMountServices(
     if (!fundsStale(ctx.checkpoint)) return;
     for (const bank of serviceLocations(city, 'banker')) {
       await navigate(bank, 4);
-      for (const mobile of learning.order(mobiles(), 3006105)) {
+      for (const mobile of learning.order(mobiles(), Actions.bank)) {
         check();
-        if (learning.blocked(mobile, 3006105)) continue;
+        if (learning.blocked(mobile, Actions.bank)) continue;
         let menu: Awaited<ReturnType<typeof session.context>>;
         try {
           menu = await session.context(mobile.serial);
@@ -44,9 +46,9 @@ export function createMountServices(
           check();
           continue;
         }
-        if (!menu.some((entry) => entry.cliloc === 3006105)) continue;
+        if (!menu.some((entry) => entry.cliloc === Actions.bank)) continue;
         await queryBankBalance(ctx, mobile.serial);
-        learning.record(mobile, 3006105, 'success');
+        learning.record(mobile, Actions.bank, 'success');
         return;
       }
     }
@@ -57,7 +59,7 @@ export function createMountServices(
       return true;
     } catch (error) {
       check();
-      learning.record(vendor, 3006103, 'unreachable', [0xcc]);
+      learning.record(vendor, Actions.buy, 'unreachable', [0xcc]);
       log(`Trainer approach unavailable: ${error instanceof Error ? error.message : error}`);
       return false;
     }
@@ -115,9 +117,9 @@ export function createMountServices(
         why = `the ${stop.name} stables were unreachable`;
         continue;
       }
-      for (const vendor of learning.order(mobiles(), 3006103, [0xcc])) {
+      for (const vendor of learning.order(mobiles(), Actions.buy, [0xcc])) {
         check();
-        if (learning.blocked(vendor, 3006103, [0xcc])) continue;
+        if (learning.blocked(vendor, Actions.buy, [0xcc])) continue;
         let menu: Awaited<ReturnType<typeof session.context>>;
         try {
           menu = await session.context(vendor.serial);
@@ -125,18 +127,22 @@ export function createMountServices(
           check();
           continue;
         }
-        if (!menu.some((entry) => entry.cliloc === 3006126)) continue;
+        if (!menu.some((entry) => entry.cliloc === ShardAction.trainerMenu)) continue;
         if (!(await approachTrainer(vendor))) {
           why = `could not get next to the trainer ${vendor.name ?? vendor.serial}`;
           continue;
         }
         menu = await session.context(vendor.serial);
-        const buy = menu.find((entry) => entry.cliloc === 3006103 && !(entry.flags & 1));
+        const buy = menu.find((entry) => entry.cliloc === Actions.buy && !(entry.flags & 1));
         if (!buy) continue;
         session.world.buyOffers.clear();
-        const beforeStock = session.world.received.get(0x74) ?? 0;
+        const beforeStock = session.world.received.get(Opcode.vendorBuyList) ?? 0;
         session.selectContext(vendor.serial, buy.index);
-        await session.waitFor(() => (session.world.received.get(0x74) ?? 0) > beforeStock, 'trainer stock', 3000);
+        await session.waitFor(
+          () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > beforeStock,
+          'trainer stock',
+          3000
+        );
         const offers = [...session.world.buyOffers.values()]
           .flat()
           .filter((offer) => {
@@ -146,7 +152,7 @@ export function createMountServices(
           })
           .sort((a, b) => a.price - b.price);
         if (!offers.length) {
-          learning.record(vendor, 3006103, 'no-stock', [0xcc]);
+          learning.record(vendor, Actions.buy, 'no-stock', [0xcc]);
           why = `${vendor.name ?? 'the trainer'} had no ${animal.name} in stock`;
           continue;
         }
@@ -191,7 +197,7 @@ export function createMountServices(
             (entry) =>
               !before.has(entry) &&
               entry.serial === vendor.serial &&
-              [500190, 500187, 500191, 500192].includes(entry.cliloc ?? 0)
+              [500190, 500187, ...Commerce.cannotAfford].includes(entry.cliloc ?? 0)
           );
         await flushSession(session);
         check();
@@ -215,7 +221,7 @@ export function createMountServices(
           );
           const horse = await discover(memory.pending.before);
           if (horse) {
-            learning.record(vendor, 3006103, 'success', [0xcc]);
+            learning.record(vendor, Actions.buy, 'success', [0xcc]);
             return;
           }
           if (rejected()) {

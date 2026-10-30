@@ -6,6 +6,7 @@ import { CLIENT_VERSION } from '@gemwright/network/packets';
 
 import { setPopulationChaos } from './chaos';
 import { type PopulationConfig, validateConfig } from './config';
+import { setDebug } from './debug';
 import { validateDecisionConfig } from './decision-provider';
 import { setWars } from './guild-wars';
 import { logger, logToStdout } from './log';
@@ -31,9 +32,20 @@ const required = (name: string) => {
 
 const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
   id: string;
-  ai?: { population?: number; decisions?: string; speech?: string; chaos?: number; wars?: boolean; cohorts?: Cohorts };
+  ai?: {
+    population?: number;
+    decisions?: string;
+    speech?: string;
+    chaos?: number;
+    wars?: boolean;
+    cohorts?: Cohorts;
+    debug?: boolean;
+  };
 };
 enablePhrasing(shard.ai?.speech === 'claude');
+// Visible debugging (debug.ts): every resident emotes the phase it is in above its head.
+setDebug(shard.ai?.debug === true);
+if (shard.ai?.debug) logger('debug').info('ai.debug is on: residents emote their phase above their heads');
 // How unpredictable residents are (chaos.ts): the shard's setting, else the world's, else 0.3.
 setPopulationChaos(shard.ai?.chaos ?? world.lifecycle?.chaos ?? 0.3);
 // Order and Chaos guild wars (guild-wars.ts) only when the shard turns them on.

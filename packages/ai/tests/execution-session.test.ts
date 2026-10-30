@@ -309,3 +309,39 @@ test('death updates calibrated plan memory from the server event without waiting
     await close();
   }
 });
+
+test('changed, blocked and expired intents stop work commands while explicit recovery can still act', async () => {
+  const { session, close } = await fixture();
+  const { chooseGoal, registerGoal, blockGoal } = await import('../src/resident-goal');
+  const { bindIntent } = await import('../src/execution-session');
+  const { ActionInterrupted } = await import('../src/action-errors');
+  const checkpoint: import('../src/store').Checkpoint = { goal: null, memories: [], relationships: {} };
+  const state: import('../src/resident-goal').GoalSituation = {
+    safe: true,
+    ready: true,
+    learning: false,
+    earningNeeded: false,
+    evidence: { funds: 1000, bankKnown: true, gold: 0, skills: {}, products: 0, orders: 0, goods: 0, health: 100 }
+  };
+  try {
+    const goal = chooseGoal(checkpoint, state);
+    registerGoal(session, checkpoint);
+    await actionScope(session, 'work', 'work under plan', async () => {
+      bindIntent(session, goal.intent);
+      goal.step = 'settle';
+      await expect(session.walk(2)).rejects.toBeInstanceOf(ActionInterrupted);
+      goal.step = 'trade';
+      const deadline = goal.stepUntil;
+      goal.stepUntil = Date.now() - 1;
+      await expect(session.walk(2)).rejects.toBeInstanceOf(ActionInterrupted);
+      goal.stepUntil = deadline;
+      blockGoal(checkpoint, 'No reachable work', Date.now(), state);
+      await expect(session.walk(2)).rejects.toBeInstanceOf(ActionInterrupted);
+      await actionScope(session, 'recovery', 'explicit recovery', async () => {
+        await session.walk(2);
+      });
+    });
+  } finally {
+    await close();
+  }
+});

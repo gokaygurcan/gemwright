@@ -1,5 +1,6 @@
 import { fishingPoles, gold } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { Notoriety } from '@gemwright/network/opcodes';
 
 import { fishingTurn } from './fisher';
 import { pickLocation, townAt } from './locations';
@@ -113,7 +114,7 @@ export async function sideTradeTurn(ctx: ProfessionContext, profession: string, 
       [...ctx.session.world.entities.values()].filter(
         (m) => m.kind === 'mobile' && m.position && distance(ctx.position(), m.position) <= 12
       );
-    for (const npc of nearby().filter((m) => m.notoriety === 7)) {
+    for (const npc of nearby().filter((m) => m.notoriety === Notoriety.invulnerable)) {
       if (await trainFromNpc({ ...local, nearby }, npc, 'Fishing', 350).catch(() => 0)) break;
     }
   }

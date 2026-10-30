@@ -1,5 +1,7 @@
-import { gold, miningTools, ore } from '@gemwright/common/game/items';
+import { gold, ingot, miningTools, ore } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { Opcode } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -15,12 +17,14 @@ import { createSmelter } from './miner-smelting';
 import type { MinerServicesContext } from './miner-types';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
+import { putDown } from './overload';
 import { craftedGoods } from './selling';
 import { createServiceExperience } from './service-experience';
 import { buyFrom, sellTo } from './vendor-trade';
 
 export const tools = miningTools;
-export const ingot = 0x1bf2;
+// How many piles of unsmeltable ore are worth keeping for a higher Mining skill.
+export const ORE_STASH = 10;
 export { forges } from './miner-smelting';
 export type { MinerProgress } from './miner-types';
 
@@ -60,13 +64,13 @@ export function createMinerServices(ctx: MinerServicesContext) {
   const smelt = createSmelter(ctx);
   const findBanker = async () => {
     const observedBanker = async () => {
-      for (const mobile of learning.order([...session.world.entities.values()], 3006105)) {
-        if (!mobile.position || distance(position(), mobile.position) > 12 || learning.blocked(mobile, 3006105))
+      for (const mobile of learning.order([...session.world.entities.values()], Actions.bank)) {
+        if (!mobile.position || distance(position(), mobile.position) > 12 || learning.blocked(mobile, Actions.bank))
           continue;
         check();
         try {
           const menu = await session.context(mobile.serial);
-          const entry = menu.find((item) => item.cliloc === 3006105 && !(item.flags & 1));
+          const entry = menu.find((item) => item.cliloc === Actions.bank && !(item.flags & 1));
           if (entry) return { serial: mobile.serial, index: entry.index };
         } catch (error) {
           if (session.phase !== 'ready') throw error;
@@ -108,8 +112,21 @@ export function createMinerServices(ctx: MinerServicesContext) {
       'bank-deposit',
       `Depositing ingots; box ${held} items${held >= 110 ? ` (${packSummary(session, box.serial)})` : ''}`
     );
+    // The hoard already in the box: ore the forge refuses, beyond the stash this skill may grow into,
+    // comes back out and goes down in town. The cap on deposits alone would leave it there for good.
+    const boxed = packItems(session, box.serial).filter((item) => ore.has(item.graphic));
+    for (const item of boxed.slice(0, Math.min(10, Math.max(0, boxed.length - ORE_STASH)))) {
+      check();
+      if (await session.moveItem(item.serial, backpack).catch(() => false))
+        await putDown(session, item.serial).catch(() => {});
+    }
     // Ore the forge refused would otherwise pin the pack at its weight limit with no way to mine.
     const retained = new Set(retainedOre(backpack).map((item) => item.serial));
+    // Ore the forge keeps refusing (this miner's skill is too low for the vein) is banked only to a
+    // small stash: mountains of it are dead weight no resident would hoard. The rest goes down in
+    // town — it can be picked up again when the skill grows, and the bank stays for what is used.
+    const boxedOre = packItems(session, box.serial).filter((item) => ore.has(item.graphic)).length;
+    let stash = Math.max(0, ORE_STASH - boxedOre);
     let refused = false;
     for (const item of [...session.world.entities.values()]) {
       // Gold is deposited too: vendors charge the bank, and carried gold is lost on death.
@@ -119,6 +136,10 @@ export function createMinerServices(ctx: MinerServicesContext) {
         (item.graphic !== ingot && item.graphic !== gold && !retained.has(item.serial) && !kept)
       )
         continue;
+      if (retained.has(item.serial) && stash-- <= 0) {
+        await putDown(session, item.serial).catch(() => {});
+        continue;
+      }
       check();
       // A full box refuses the deposit: the iron is sold instead, below.
       if (
@@ -194,7 +215,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
     };
     await queryBankBalance({ ...ctx, checkpoint }, banker.serial);
     const confirmedBanker = session.world.entities.get(banker.serial);
-    if (confirmedBanker) learning.record(confirmedBanker, 3006105, 'success');
+    if (confirmedBanker) learning.record(confirmedBanker, Actions.bank, 'success');
     // Exceptional armour goes to fighters at the Minoc market first, for more than the shop pays.
     if (toSell.some((serial) => goodMatch('exceptional armour')(session.world.entities.get(serial) ?? ({} as Entity))))
       await sellCarried(
@@ -247,8 +268,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
         'buy-ingots',
         `Buying iron from the smith for ${recipe.name}s (${recipe.perIngot.toFixed(1)} gold an ingot)`
       );
-      if (!(await buyFrom({ ...ctx, backpack: () => backpack }, 'blacksmith', new Map([[0x1bf2, 16]]), 5)))
-        return false;
+      if (!(await buyFrom({ ...ctx, backpack: () => backpack }, 'blacksmith', new Map([[ingot, 16]]), 5))) return false;
     } else if (!(await withdrawIngots(backpack, recipe.ingots, recipe.ingots * 8))) return false;
     const sold = progress.sold;
     await sellIngots(backpack, true);
@@ -271,7 +291,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
     const inspected = new Set<number>();
     for (const landmark of [position(), ...shops]) {
       await navigate(landmark, 3);
-      for (const mobile of learning.order([...session.world.entities.values()], 3006103, [...tools])) {
+      for (const mobile of learning.order([...session.world.entities.values()], Actions.buy, [...tools])) {
         if (
           mobile.kind !== 'mobile' ||
           mobile.serial === session.world.serial ||
@@ -282,7 +302,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
           continue;
         check();
         inspected.add(mobile.serial);
-        if (learning.blocked(mobile, 3006103, [...tools])) continue;
+        if (learning.blocked(mobile, Actions.buy, [...tools])) continue;
         let menu: Awaited<ReturnType<PlayerSession['context']>>;
         try {
           menu = await session.context(mobile.serial);
@@ -290,25 +310,29 @@ export function createMinerServices(ctx: MinerServicesContext) {
           if (session.phase !== 'ready') throw error;
           else continue;
         }
-        const buy = menu.find((entry) => entry.cliloc === 3006103 && !(entry.flags & 1));
+        const buy = menu.find((entry) => entry.cliloc === Actions.buy && !(entry.flags & 1));
         if (!buy) continue;
         try {
           await approachVendor(ctx, mobile.serial);
         } catch (error) {
           check();
-          learning.record(mobile, 3006103, 'unreachable');
+          learning.record(mobile, Actions.buy, 'unreachable');
           log(`Tool vendor approach unavailable: ${error instanceof Error ? error.message : 'unknown obstruction'}`);
           continue;
         }
         const freshBuy = (await session.context(mobile.serial)).find(
-          (entry) => entry.cliloc === 3006103 && !(entry.flags & 1)
+          (entry) => entry.cliloc === Actions.buy && !(entry.flags & 1)
         );
         if (!freshBuy) continue;
         session.world.buyOffers.clear();
-        const before = session.world.received.get(0x74) ?? 0;
+        const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
         session.selectContext(mobile.serial, freshBuy.index);
         try {
-          await session.waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'vendor stock', 2500);
+          await session.waitFor(
+            () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before,
+            'vendor stock',
+            2500
+          );
         } catch (error) {
           if (session.phase !== 'ready') throw error;
           else continue;
@@ -334,7 +358,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
             const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
             return item && stock?.parent === mobile.serial && tools.has(item.graphic) && (item.amount ?? 0) > 0;
           });
-          if (!stocked) learning.record(mobile, 3006103, 'no-stock', [...tools]);
+          if (!stocked) learning.record(mobile, Actions.buy, 'no-stock', [...tools]);
           continue;
         }
         phase(
@@ -346,7 +370,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
         await chargedPurchase({ ...ctx, backpack: () => backpack }, offer.price, () =>
           session.purchaseItem(mobile.serial, offer.serial, backpack, 1, 100)
         );
-        learning.record(mobile, 3006103, 'success', [...tools]);
+        learning.record(mobile, Actions.buy, 'success', [...tools]);
         progress.purchases++;
         phase('resupply-complete', 'Confirmed the purchased tool in the backpack');
         return;

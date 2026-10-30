@@ -1,4 +1,4 @@
-import { arrow, bolt } from '@gemwright/common/game/items';
+import { arrow, crossbowBolt } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 
 export interface RangedWeapon {
@@ -12,9 +12,9 @@ export interface RangedWeapon {
 const definitions: [number[], RangedWeapon][] = [
   [[0x13b1, 0x13b2], { name: 'bow', ammo: arrow, range: 10, seconds: 4.25 }],
   [[0x26c2, 0x26cc], { name: 'composite bow', ammo: arrow, range: 10, seconds: 4 }],
-  [[0x0f4f, 0x0f50], { name: 'crossbow', ammo: bolt, range: 8, seconds: 4.5 }],
-  [[0x13fc, 0x13fd], { name: 'heavy crossbow', ammo: bolt, range: 8, seconds: 5 }],
-  [[0x26c3, 0x26cd], { name: 'repeating crossbow', ammo: bolt, range: 7, seconds: 2.75 }]
+  [[0x0f4f, 0x0f50], { name: 'crossbow', ammo: crossbowBolt, range: 8, seconds: 4.5 }],
+  [[0x13fc, 0x13fd], { name: 'heavy crossbow', ammo: crossbowBolt, range: 8, seconds: 5 }],
+  [[0x26c3, 0x26cd], { name: 'repeating crossbow', ammo: crossbowBolt, range: 7, seconds: 2.75 }]
 ];
 const profiles = new Map(definitions.flatMap(([ids, profile]) => ids.map((id) => [id, profile] as const)));
 export const rangedGraphics: ReadonlySet<number> = new Set(profiles.keys());

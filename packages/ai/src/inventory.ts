@@ -1,5 +1,8 @@
+import { TileFlag } from '@gemwright/common/assets/tiledata';
 import {
+  backpack,
   bandage,
+  containers,
   fishingPoles,
   hatchets,
   healPotion,
@@ -7,7 +10,8 @@ import {
   isDeathRobe,
   miningTools,
   reagents,
-  sewingKit
+  sewingKit,
+  spellbook
 } from '@gemwright/common/game/items';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
@@ -41,12 +45,6 @@ export function leavesEarly(session: PlayerSession) {
 }
 
 // Bags and pouches inside a pack (opened to see what they hold).
-const containers = new Set([
-  0x0e75, // backpack
-  0x0e76, // bag
-  0x0e79, // pouch
-  0x09b0 // leather pouch
-]);
 
 // What a resident never drops to lighten its pack: its tools and supplies.
 export const workGear = new Set<number>([
@@ -93,7 +91,7 @@ export function enoughTools(session: PlayerSession, pack: number, graphic: numbe
 }
 // Backpacks found inside a backpack: what a dead pack animal leaves (its pack's contents).
 const foreignBags = new Set([
-  0x0e75, // backpack
+  backpack, // backpack
   0x09b2 // backpack (alternate)
 ]);
 
@@ -101,7 +99,6 @@ const foreignBags = new Set([
 // resurrection (the robe is newbied, so each death in it leaves the old one in the pack). That one
 // comes off as soon as there is anything else to wear. Extras are dropped, where they decay.
 // Called between tasks by every runner and after every resurrection.
-const SPELLBOOK = 0x0efa;
 const PLAIN_BOOKS = new Set([
   0x0fef, // brown book
   0x0ff0, // tan book
@@ -126,15 +123,16 @@ export async function tidyPack(
   }
   const items = packItems(session, pack);
   const worn = session.world.childrenOf(session.world.serial ?? -1);
-  const books = items.filter((item) => item.graphic === SPELLBOOK);
-  const spareBooks = worn.some((item) => item.graphic === SPELLBOOK) ? books : books.slice(1);
+  const books = items.filter((item) => item.graphic === spellbook);
+  const spareBooks = worn.some((item) => item.graphic === spellbook) ? books : books.slice(1);
   const robes = items.filter(isDeathRobe);
   // What the server hands every new character and no player keeps: the candle (and any light
   // source, tiledata flag 0x800000) and the blank books. Spellbooks and runebooks stay.
   const junk = items.filter(
     (item) =>
       item.parent === pack &&
-      (PLAIN_BOOKS.has(item.graphic) || (!!terrain && (terrain.tile(item.graphic, true).flags & 0x800000) !== 0))
+      (PLAIN_BOOKS.has(item.graphic) ||
+        (!!terrain && (terrain.tile(item.graphic, true).flags & TileFlag.LightSource) !== 0))
   );
   // Tools: one or two of each kind is plenty, and a lost one is cheap to replace.
   const tools = new Map<number, Entity[]>();

@@ -84,4 +84,7 @@ export interface AiSettings {
   // Residents of a fixed size started in one city, by profession weight, counted within
   // population: { "New Haven": { count: 50, professions: { miner: 6, bard: 3 } } }.
   cohorts?: Record<string, { count: number; professions: Record<string, number> }>;
+  // Whether every resident emotes the phase it is in above its head (watchStep): reads a stuck loop
+  // in the game itself, before any log. Off by default; the shard turns it on while tuning.
+  debug?: boolean;
 }

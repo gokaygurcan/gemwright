@@ -1,3 +1,4 @@
+import { PACK_ANIMAL_BODIES } from '@gemwright/common/game/bodies';
 import type { Entity } from '@gemwright/network/world';
 
 import type { ProfessionContext } from './profession';
@@ -7,7 +8,6 @@ import { offered, postOffer, shopShare, withdrawOffer } from './resident-offers'
 // beyond the one it rides, and pack animals. The stable master charges about 550 for a horse
 // and 600 for a pack animal (SBAnimalTrainer); a resident pays 60% of that. Two are for sale at a
 // time, so follower slots stay free for taming; one unsold after 45 minutes is released.
-const PACK = new Set([0x123, 0x124]);
 const PRICES = { mount: 550, pack: 600 };
 const FOR_MS = 45 * 60_000;
 const forSale = new WeakMap<object, Map<number, { kind: 'mount' | 'pack'; since: number }>>();
@@ -21,7 +21,7 @@ const listed = (ctx: ProfessionContext) => {
 
 // True when the new pet is put up for sale (else the caller releases it).
 export function offerPet(ctx: ProfessionContext, pet: Entity, mount: boolean): boolean {
-  const kind = PACK.has(pet.graphic) ? 'pack' : mount ? 'mount' : undefined;
+  const kind = PACK_ANIMAL_BODIES.has(pet.graphic) ? 'pack' : mount ? 'mount' : undefined;
   const list = listed(ctx);
   if (!kind || list.size >= 2) return false;
   list.set(pet.serial, { kind, since: Date.now() });

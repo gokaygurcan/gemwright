@@ -1,4 +1,4 @@
-import { gold as goldCoin, reagentByName } from '@gemwright/common/game/items';
+import { board, bottle, gold as goldCoin, reagentByName } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 
 import { BUSINESS } from './bank-gold';
@@ -18,8 +18,6 @@ import { orderDemand } from './work-orders';
 // Town crafters beyond the tailor: each buys its material from the trade's shop, crafts what
 // `chooseRecipe` picks (training up to its skill goal, then only what pays), sells to the trade's
 // vendor and banks exceptional pieces (craft-training.ts), five minutes at a time.
-const bottle = 0x0f0e;
-const board = 0x1bd7;
 
 // DefAlchemy potions: each takes its own reagent and a bottle, all sold by the alchemist (SBAlchemist:
 // black pearl and bloodmoss 5 gold, other reagents 3, bottles 5); the alchemist buys potions back.

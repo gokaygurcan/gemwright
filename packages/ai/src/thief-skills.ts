@@ -1,5 +1,7 @@
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
+import { Opcode } from '@gemwright/network/opcodes';
+import { Hiding, ShardMessage, Stealing, Stealth } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity, JournalEntry } from '@gemwright/network/world';
 
@@ -33,28 +35,35 @@ export type StealOutcome = 'stolen' | 'failed' | 'heavy' | 'empty' | 'far' | 're
 const SKILL_WINDOW_MS = 10_500;
 const SKILL_RETRY_MS = 4_000;
 
-// Replies on the pinned revision. Stealing.cs: 502723 failure, 502724 success, 1005584 empty
-// hands, 502703 too far, 1005585 equipped, 1005596 thieves guild, 1005598 shopkeeper, 502710
-// cannot steal that, 502704 red-handed, 500237 unseen, 1048147 pack full, "too heavy" as text.
-// Hiding.cs: 501238 busy, 501240 hidden, 501237/501241 cannot hide. Stealth.cs: 502725 hide first,
-// 502726 not hidden well enough, 502727 too much armor, 1063086 cannot right now, 502730 moves quietly, 502731 failed.
-// Snooping.cs: 500210 failed peek, 1001018 negative acts, 500209 cannot peek, 500446 too far.
-const STEAL_SUCCESS = 502724;
-const STEAL_FAILED = 502723;
-const HANDS_FREE = 1005584;
-const STEAL_TOO_FAR = 502703;
-const STEAL_UNSEEN = 500237;
-const STEAL_REFUSED = [1005585, 1005596, 1005598, 502710, 502704, 500237];
-const STEAL_PACK_FULL = 1048147;
+// Replies on the pinned revision. Stealing.cs: Stealing.failed failure, Stealing.success success, Stealing.emptyHands empty
+// hands, Stealing.tooFar too far, Stealing.equipped equipped, Stealing.guild thieves guild, Stealing.shopkeeper shopkeeper, Stealing.cannotStealThat
+// cannot steal that, Stealing.redHanded red-handed, ShardMessage.targetNotSeen unseen, Stealing.packFull pack full, "too heavy" as text.
+// Hiding.cs: Hiding.busy busy, Hiding.hidden hidden, Hiding.cannotHide/Hiding.cannotHideAlt cannot hide. Stealth.cs: Stealth.hideFirst hide first,
+// Stealth.notHiddenEnough not hidden well enough, Stealth.tooMuchArmor too much armor, Stealth.cannotNow cannot right now, Stealth.movesQuietly moves quietly, Stealth.failed failed.
+// Snooping.cs: 500210 failed peek, 1001018 negative acts, 500209 cannot peek, ShardMessage.tooFar too far.
+const STEAL_SUCCESS = Stealing.success;
+const STEAL_FAILED = Stealing.failed;
+const HANDS_FREE = Stealing.emptyHands;
+const STEAL_TOO_FAR = Stealing.tooFar;
+const STEAL_UNSEEN = ShardMessage.targetNotSeen;
+const STEAL_REFUSED = [
+  Stealing.equipped,
+  Stealing.guild,
+  Stealing.shopkeeper,
+  Stealing.cannotStealThat,
+  Stealing.redHanded,
+  ShardMessage.targetNotSeen
+];
+const STEAL_PACK_FULL = Stealing.packFull;
 const SKILL_TOO_SOON = 500118;
-const HIDE_OK = 501240;
-const HIDE_BUSY = 501238;
-const HIDE_REFUSED = [501237, 501241];
-const SNEAK_OK = 502730;
-const NOT_HIDDEN_WELL = 502726;
-const SNEAK_REFUSED = [502725, NOT_HIDDEN_WELL, 502727, 1063086, 502731];
+const HIDE_OK = Hiding.hidden;
+const HIDE_BUSY = Hiding.busy;
+const HIDE_REFUSED = [Hiding.cannotHide, Hiding.cannotHideAlt];
+const SNEAK_OK = Stealth.movesQuietly;
+const NOT_HIDDEN_WELL = Stealth.notHiddenEnough;
+const SNEAK_REFUSED = [Stealth.hideFirst, NOT_HIDDEN_WELL, Stealth.tooMuchArmor, Stealth.cannotNow, Stealth.failed];
 const SNOOP_FAILED = 500210;
-const SNOOP_REFUSED = [1001018, 500209, 500446];
+const SNOOP_REFUSED = [1001018, 500209, ShardMessage.tooFar];
 const TOO_HEAVY = 'That is too heavy to steal.';
 
 export function createThiefSkills(state: ThiefSkillState) {
@@ -252,20 +261,23 @@ export function createThiefSkills(state: ThiefSkillState) {
   // Snooping.cs Container_Snoop). Success opens the container so its contents become observations.
   async function snoop(ctx: ProfessionContext, owner: Entity, pack: Entity): Promise<boolean> {
     const { session } = ctx;
-    const opened = session.world.received.get(0x3c) ?? 0;
-    const displayed = session.world.received.get(0x24) ?? 0;
+    const opened = session.world.received.get(Opcode.containerContents) ?? 0;
+    const displayed = session.world.received.get(Opcode.containerOpen) ?? 0;
     const seen = snapshot(session);
     session.use(pack.serial);
     const ready = () =>
-      (session.world.received.get(0x3c) ?? 0) > opened ||
-      (session.world.received.get(0x24) ?? 0) > displayed ||
+      (session.world.received.get(Opcode.containerContents) ?? 0) > opened ||
+      (session.world.received.get(Opcode.containerOpen) ?? 0) > displayed ||
       !!replySince(session, seen, [SNOOP_FAILED, ...SNOOP_REFUSED]);
     try {
       await session.waitFor(ready, 'snooping result', 3000);
     } catch (error) {
       if (session.phase !== 'ready') throw error;
     }
-    if ((session.world.received.get(0x3c) ?? 0) > opened || (session.world.received.get(0x24) ?? 0) > displayed) {
+    if (
+      (session.world.received.get(Opcode.containerContents) ?? 0) > opened ||
+      (session.world.received.get(Opcode.containerOpen) ?? 0) > displayed
+    ) {
       const items = session.world.childrenOf(pack.serial);
       ctx.progress.snooped = (ctx.progress.snooped ?? 0) + 1;
       ctx.log(`Peeked into the pack of ${owner.name ?? 'a pack animal'} and saw ${items.length} item(s)`);

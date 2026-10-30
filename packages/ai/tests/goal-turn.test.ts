@@ -77,6 +77,7 @@ for (const trade of ['miner', 'lumberjack', 'fighter', 'tamer', 'thief'])
     await residentTurn(f.ctx, actions);
     expect(f.checkpoint.workGoal?.last).toMatchObject({ key: 'earn', result: 'completed' });
     expect(optional).toBe(1);
+    expect(f.checkpoint.workGoal?.active).toBeUndefined();
   });
 
 test('recovery takes priority over an accepted order, then returns to it without taking a break', async () => {
@@ -205,7 +206,7 @@ test('unavailable income still yields when supporting skills have nothing left t
   expect((failure as Error).message).toContain('shutdown interrupts income retry delay');
 });
 
-test('a fallback recovery with nothing to secure leaves the turn to the trade', async () => {
+test('blocked methods wait for replanning instead of silently falling through to ordinary work', async () => {
   const f = fixture('miner');
   // No admissible trade goal: earning and side income are cooling down, nothing else applies.
   f.checkpoint.workGoal = {
@@ -222,7 +223,9 @@ test('a fallback recovery with nothing to secure leaves the turn to the trade', 
       recovered++;
     }
   };
-  expect(await residentTurn(f.ctx, actions)).toBe(false);
+  expect(await residentTurn(f.ctx, actions)).toBe(true);
+  expect(f.checkpoint.workGoal?.active?.step).toBe('wait');
+  expect(f.checkpoint.workGoal?.last).toBeUndefined();
   expect(recovered).toBe(0);
 });
 
@@ -254,4 +257,30 @@ test('healthy risk recovery secures carried assets instead of invoking health se
   expect(settled).toBe(1);
   expect(recovered).toBe(0);
   expect(f.checkpoint.goal?.phase).not.toBe('training');
+});
+
+test('full health does not complete recovery while the personal corpse is still pending', async () => {
+  const f = fixture('fighter');
+  f.checkpoint.workGoal = { failed: { recover: { until: Date.now() + 600_000, reason: 'Previous recovery failed' } } };
+  f.checkpoint.hunting = {
+    loot: [],
+    killsSinceBank: 0,
+    pending: 'return',
+    recovery: { stage: 'corpse', diedAt: new Date().toISOString(), ownerName: 'Test fighter', attempts: 0 }
+  };
+  let recoveries = 0;
+  const actions: GoalActions = {
+    trade: 'fighter',
+    keep: () => true,
+    recover: async () => {
+      recoveries++;
+      required(f.checkpoint.hunting?.recovery).stage = 'ready';
+    }
+  };
+  expect(await residentTurn(f.ctx, actions)).toBe(true);
+  expect(recoveries).toBe(1);
+  expect(f.checkpoint.workGoal?.active?.kind).toBe('recover');
+  expect(f.checkpoint.workGoal?.last?.result).not.toBe('completed');
+  await residentTurn(f.ctx, actions);
+  expect(f.checkpoint.workGoal?.last).toMatchObject({ key: 'recover', result: 'completed' });
 });

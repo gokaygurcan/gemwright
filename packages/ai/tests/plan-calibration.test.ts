@@ -33,6 +33,7 @@ const situation = (): GoalSituation => ({
   },
   planning: {
     condition: 'same-build',
+    coarse: 'coarse-condition',
     available: true,
     riskTolerance: 0.5,
     exposed: 100,

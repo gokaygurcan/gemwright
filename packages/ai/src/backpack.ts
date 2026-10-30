@@ -1,4 +1,5 @@
 import { Layer } from '@gemwright/network/layers';
+import { Opcode } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 
 // Opens the character's own backpack so its contents are observed, and returns its serial. A
@@ -10,10 +11,10 @@ export async function openOwnBackpack(session: PlayerSession): Promise<number> {
   );
   if (!backpack) throw new Error('No observed backpack');
   for (let tries = 1; ; tries++) {
-    const before = session.world.received.get(0x3c) ?? 0;
+    const before = session.world.received.get(Opcode.containerContents) ?? 0;
     const heard = new Set(session.world.journal);
     session.use(backpack.serial);
-    const shown = () => (session.world.received.get(0x3c) ?? 0) > before;
+    const shown = () => (session.world.received.get(Opcode.containerContents) ?? 0) > before;
     await session.waitFor(shown, 'backpack contents', 4000).catch((e) => {
       if (tries < 3) return;
       const replies = session.world.journal.filter((j) => !heard.has(j)).map((j) => j.cliloc ?? j.text);

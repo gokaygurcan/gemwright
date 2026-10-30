@@ -6,13 +6,13 @@ import { observedThreat } from './fighter-context';
 import { recognised } from './fighter-prey';
 import { moongates, travelByMoongate } from './moongate';
 import { createNavigator, distance } from './navigation';
+import { WALKING_LIMIT } from './tuning';
 
 // Shared by every dungeon run: walking that stops for a closing monster, stairways, the way in
 // and out, and travel to any point inside a dungeon (a corpse) over its stairways.
 export type { DungeonRun, RunRecord };
 
 // Farther than this, an entrance is reached through its moongate.
-const WALKING_LIMIT = 300;
 
 export class Engaged extends Error {}
 

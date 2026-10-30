@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/game/items';
+import { boltOfCloth, bulkOrderDeed, cloth, gold, scissors, uncutCloth } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 
 import { TOOLS } from './bank-gold';
@@ -13,12 +13,8 @@ import { woolToBolt } from './tailor-wool';
 import { buyFrom, sellTo } from './vendor-trade';
 import { orderDemand, reservedFor } from './work-orders';
 
-const cloth = 0x1766;
 // Below this, material for training is not bought at a loss (gold carried and banked).
 const POOR = 2000;
-const uncutCloth = 0x1767;
-const boltOfCloth = 0x0f95;
-const scissors = new Set([0x0f9e, 0x0f9f]);
 // DefTailoring with cut cloth (groups: Hats 1011375, Shirts and Pants 1111747, Misc 1015283).
 export const tailoring: CraftSkill = {
   skill: 'Tailoring',
@@ -35,7 +31,7 @@ export const tailoring: CraftSkill = {
 };
 
 // Cuts uncut cloth and bolts into cloth with scissors (ServUO IScissorable: an uncut piece gives one
-// cloth, a bolt fifty). Returns whether any cloth came of it.
+// cloth, a crossbowBolt fifty). Returns whether any cloth came of it.
 async function cutCloth(ctx: ProfessionContext) {
   const { session } = ctx;
   const blade = ctx.carried().find((item) => scissors.has(item.graphic));
@@ -57,7 +53,7 @@ async function cutCloth(ctx: ProfessionContext) {
 }
 
 // Cloth from the tailor vendor (2 gold a yard); when the vendor's 20 yards are sold out, uncut cloth
-// or a bolt from the same vendor cut with scissors; failing both, wool from the sheep (tailor-wool.ts).
+// or a crossbowBolt from the same vendor cut with scissors; failing both, wool from the sheep (tailor-wool.ts).
 async function refill(ctx: ProfessionContext, least: number) {
   if (await buyFrom(ctx, 'tailor', new Map([[cloth, Math.max(least, 60)]]), 3)) return true;
   if (!ctx.carried().some((item) => scissors.has(item.graphic)))
@@ -72,7 +68,7 @@ async function refill(ctx: ProfessionContext, least: number) {
     110
   );
   if ((await cutCloth(ctx)) || ctx.count(cloth) >= least) return true;
-  // Nothing to buy at all: wool from the sheep, spun and woven into a bolt, then cut.
+  // Nothing to buy at all: wool from the sheep, spun and woven into a crossbowBolt, then cut.
   return (await woolToBolt(ctx)) && (await cutCloth(ctx));
 }
 
@@ -141,7 +137,7 @@ export const runTailor = (options: ProfessionOptions) =>
         return;
       }
       // New offers are optional work; accepted deeds are dispatched by the shared controller.
-      if (!ctx.carried().some((item) => item.graphic === 0x2258) && (await tailorOrder(ctx))) return;
+      if (!ctx.carried().some((item) => item.graphic === bulkOrderDeed) && (await tailorOrder(ctx))) return;
       // Robes and shirts are kept back and offered to residents at a discount (resident-offers.ts).
       postGarments(ctx);
       // No garment sells for more than the cloth it takes from the shop (2 gold a yard; 0 of 27

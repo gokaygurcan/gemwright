@@ -1,7 +1,8 @@
+import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { gold } from '@gemwright/common/game/items';
 
 import { knownBankGold } from './bank-gold';
-import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
+import { type DecisionCoordinator, decisionGuard, decisionState, requireDecision } from './decisions';
 import {
   ammoFor,
   bandage,
@@ -15,12 +16,21 @@ import { packFull } from './inventory';
 import { magicProperty } from './item-quality';
 import { forcedToWork } from './loop-watch';
 import { combatReagents } from './mage-combat';
+import { objectiveBlocked, suppliesCondition } from './objective-memory';
+import { isSaleable } from './selling';
 import { tuning } from './tuning';
 
 // Carried gold is lost on death, but a few coins are not worth a long ride to the bank.
 export const CARRIED_GOLD_LIMIT = tuning.fighter.carriedGold;
 
 const hasHealing = (ctx: FighterContext) => ctx.count(bandage) >= 5 || ctx.count(healPotion) >= 1;
+
+// Supplies are optional, hunting is the job (the restock pass says so itself): a town that could not
+// supply the last restock is remembered for two hours (objective-memory.ts), and until then a fighter
+// works with what it has instead of walking to the shops again and again. Hunting is only truly
+// blocked when it cannot heal and is badly hurt — then a hard need is right.
+const suppliesRemembered = (ctx: FighterContext) =>
+  objectiveBlocked(ctx.checkpoint, `supplies:${ctx.home.city}`, suppliesCondition(ctx.session, ctx.checkpoint));
 
 // A supply run before the fight that needs it: an archer nearly out of arrows or bolts, or a
 // caster out of a reagent its combat spells use, goes to town to restock (fighter-town.ts).
@@ -49,7 +59,7 @@ const lootedWearables = (ctx: FighterContext) =>
       (item) =>
         ctx.trip.loot.includes(item.serial) &&
         item.graphic !== gold &&
-        (ctx.terrain.tile(item.graphic, true).flags & 0x400000) !== 0
+        (ctx.terrain.tile(item.graphic, true).flags & TileFlag.Wearable) !== 0
     );
 
 // Loot that is costly to lose on death: wearables the server describes with magic properties. One
@@ -78,9 +88,13 @@ export function townNeed(ctx: FighterContext): { reason: string; hard: boolean }
   // Hunting goes on until the pack is full (inventory.ts), as for gatherers.
   if (packFull(ctx.session, ctx.backpack(), 0.85))
     return { reason: `pack full: ${status.weight}/${status.maxWeight} stones`, hard: true };
-  if (!hasHealing(ctx)) return { reason: 'healing supplies are nearly exhausted', hard: true };
-  const short = supplyShortage(ctx);
-  if (short) return { reason: short, hard: true };
+  const low = supplyShortage(ctx);
+  if (low) {
+    // Hurt and unable to heal: this is the one supply case that justifies a hard trip to town.
+    if (!hasHealing(ctx) && status.hits < status.maxHits * 0.5)
+      return { reason: `${low}, and ${status.hits}/${status.maxHits} health`, hard: true };
+    if (!suppliesRemembered(ctx)) return { reason: low, hard: false };
+  }
   if (status.hits < status.maxHits * 0.5)
     return { reason: `health ${status.hits}/${status.maxHits} after field healing`, hard: true };
   const limit = ctx.template.behavior.temperament?.carriedGold ?? CARRIED_GOLD_LIMIT;
@@ -91,6 +105,10 @@ export function townNeed(ctx: FighterContext): { reason: string; hard: boolean }
   // ten carried pieces (or a full pack) is a sale trip before the next hunt.
   const loot = ctx.trip.loot.length;
   if (loot >= 10) return { reason: `carrying ${loot} looted pieces to sell`, hard: false };
+  // Anything a shop buys (a fish steak picked up on the road counts) is a sale trip once the basket
+  // is worth the walk; the sell itself then covers every saleable piece.
+  const saleable = ctx.contents().filter((item) => isSaleable(ctx, item));
+  if (saleable.length >= 8) return { reason: `carrying ${saleable.length} saleable pieces`, hard: false };
   const magic = importantLoot(ctx);
   if (magic)
     return {
@@ -125,19 +143,23 @@ export async function planTownTrip(ctx: FighterContext, decisions?: DecisionCoor
       note: 'Carried gold and loot are lost on death. A town trip takes several minutes of travel.'
     }),
     observationRevision: ctx.session.world.revision,
-    baseline: 'return-town',
+    // The safe default keeps the fighter in the field: a soft reason (loot, carried gold, low
+    // supplies) is a judgement to make, not a trip to take by default. When no model answers (the
+    // budget is spent) the resident hunts on — one kill per town trip is what made a fighter walk
+    // between the graveyard and the shops all day.
+    baseline: 'keep-hunting',
     stillCurrent: decisionGuard(ctx.session),
     candidates: [
       { id: 'return-town', description: `Ride back to bank now: ${need.reason}.`, valid: () => true },
       {
         id: 'keep-hunting',
         description: 'Accept the risk and keep hunting in the graveyard before the next town trip.',
-        valid: () => hasHealing(ctx)
+        valid: () => ctx.status().hits >= ctx.status().maxHits * 0.5
       }
     ]
   });
   ctx.check();
-  const returning = pick?.id !== 'keep-hunting';
+  const returning = requireDecision(pick).id !== 'keep-hunting';
   if (!returning) deferred.set(ctx.trip, { reason: need.reason, until: Date.now() + 10 * 60_000 });
   decisions.finish(ctx.checkpoint, pick, 'completed', returning ? `Returning: ${need.reason}` : 'Kept hunting');
   return returning ? need.reason : null;

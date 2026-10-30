@@ -2,7 +2,7 @@ import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
 import type { DecisionCoordinator } from './decisions';
-import { decisionState } from './decisions';
+import { decisionState, requireDecision } from './decisions';
 import { bandage, type FighterContext, weaponSkill } from './fighter-context';
 import { profileOf } from './fighter-prey';
 import { alliesNear, partyOf, roleOf } from './hunting-party';
@@ -73,6 +73,7 @@ export async function leadPlan(ctx: FighterContext, eligible: Entity[], decision
       baseline: `party-${baseline.serial}`,
       stillCurrent: () => !!ctx.session.world.entities.get(baseline.serial)
     });
+    requireDecision(pick);
     chosen = eligible.find((mobile) => pick && `party-${mobile.serial}` === pick.id) ?? baseline;
   }
   const roles = together
@@ -146,7 +147,7 @@ export async function followPlan(ctx: FighterContext, decisions?: DecisionCoordi
           stillCurrent: () => party.plan === plan
         })
       : null;
-    const answer = pick?.id ?? baseline;
+    const answer = decisions ? requireDecision(pick).id : baseline;
     if (answer === 'sit-out') {
       plan.out.add(ctx.serial);
       say(ctx, 'I will sit this one out.');

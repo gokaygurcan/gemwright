@@ -1,3 +1,4 @@
+import { ItemProperty } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -16,7 +17,7 @@ import { sellByTrade } from './trade-deal';
 
 export function durability(item: Entity): { current: number; maximum: number } | undefined {
   const values = item.properties
-    ?.find((p) => p.cliloc === 1060639)
+    ?.find((p) => p.cliloc === ItemProperty.durability)
     ?.arguments.split('\t')
     .map(Number);
   if (values?.length !== 2 || !values.every(Number.isFinite) || !values[1] || (values[0] ?? -1) < 0) return undefined;

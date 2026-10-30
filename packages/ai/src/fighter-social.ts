@@ -1,3 +1,4 @@
+import { hostileNotoriety } from '@gemwright/network/opcodes';
 import type { Entity } from '@gemwright/network/world';
 
 import { urgentAction } from './action-purpose';
@@ -15,7 +16,7 @@ export function registerFighterSocial(
 ) {
   const { session } = ctx;
   registerCombat(session, {
-    canFight: (target) => [3, 4, 5, 6].includes(target.notoriety ?? 0) && engageable(ctx, target).ok,
+    canFight: (target) => hostileNotoriety.includes(target.notoriety ?? 0) && engageable(ctx, target).ok,
     fight: defeat,
     ready: () => !ctx.dead() && !townNeed(ctx)?.hard,
     support: async () => {

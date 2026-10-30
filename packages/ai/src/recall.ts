@@ -1,5 +1,6 @@
 import { gold } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { tally } from './activity';
@@ -27,7 +28,7 @@ const RECALL_BUTTON = 50;
 // Read when needed, not at load: this module sits in an import cycle with the travel code.
 const reagents = () => ['BlackPearl', 'Bloodmoss', 'MandrakeRoot'].map((name) => reagentGraphics[name] ?? -1);
 // FAILURES (spell-action.ts) plus "That location is blocked" and the rune-is-blank reply.
-const REFUSED = new Set([500015, 502632, 500641, 502625, 502630, 500946, 501942, 502354]);
+const REFUSED = new Set([ShardMessage.noSuchSpell, 502632, 500641, 502625, 502630, 500946, 501942, 502354]);
 
 const magery = (session: PlayerSession) => session.world.skills.get(skillId('Magery'))?.base ?? 0;
 const reagentsFor = (ctx: ProfessionContext) => reagents().every((graphic) => ctx.count(graphic) >= 1);

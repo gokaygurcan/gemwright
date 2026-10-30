@@ -9,6 +9,7 @@ import { directRoute } from './direct-route';
 import { createDoorOpener, isDoor, openNearbyDoors } from './doors';
 import { holdWhileEngaged, noteStep } from './engagement';
 import { land, takeOff } from './flight';
+import { assertNotHalted } from './gm';
 import { confinedToHaven, onHaven } from './haven';
 import { pauseFor, slip, walkingPace } from './human-pace';
 import { recordLifeAction } from './life-events';
@@ -148,9 +149,10 @@ export function createNavigator(options: {
         check();
         continue;
       }
-      if (!path?.length && wary.length && waits < 2) {
-        // Every way passes them: back off from them and wait for the road to clear (creatures
-        // wander), as a player waits at a distance; twice at most, then it gives up this way.
+      if (!path?.length && wary.length && waits < 1) {
+        // Every way passes them: back off and give the road a moment to clear. One short wait, not
+        // the minute of standing still it used to be: a resident that cannot pass takes another
+        // course (the Blocked path below) rather than idling in front of a wall.
         waits++;
         const here = position();
         const cx = wary.reduce((n, m) => n + (m.position?.x ?? 0), 0) / wary.length;
@@ -171,7 +173,7 @@ export function createNavigator(options: {
             await Bun.sleep(220);
           }
         }
-        await checkedDelay(30_000 + Math.random() * 30_000, check);
+        await checkedDelay(6_000 + Math.random() * 4_000, check);
         origins.clear();
         continue;
       }
@@ -208,6 +210,7 @@ export function createNavigator(options: {
       for (let index = 0; index < path.length; index++) {
         const point = path[index];
         if (!point) break;
+        assertNotHalted(session);
         check();
         // A new hostile creature in sight: plan again around it.
         if (
@@ -281,6 +284,17 @@ export function createNavigator(options: {
           break;
         }
         const sentAt = performance.now();
+        // The shard walks one step when the ground changes by a little; sixteen stones down in one
+        // step is a fall through a floor, not a step, and it refuses it. The path search can offer
+        // such a step when the goal's z sits on another surface (a shop below a balcony), and the
+        // resident then retried it for ever (New Haven, 3476,2535 z52 toward z36, eight refusals in
+        // seven minutes). Treat it as a refused step: remember it and plan around it, the way the
+        // walks to a house's upper floor go — by the stairs.
+        if (Math.abs(point.z - before.z) > 8) {
+          rejected.set(`${point.x},${point.y}`, rememberRejectedStep(session, terrain, point, true));
+          detouring = true;
+          break;
+        }
         const accepted = await session.walk(slip(direction, urgent), point.z, running);
         noteStep(session);
         if (accepted) noteNavigationStep(session);

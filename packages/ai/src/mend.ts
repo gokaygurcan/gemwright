@@ -1,6 +1,7 @@
 import { GHOST_BODIES, HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { bandage } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -128,7 +129,7 @@ export async function healOthers(ctx: Ctx, log: (message: string) => void): Prom
       m.kind === 'mobile' &&
       m.serial !== session.world.serial &&
       HUMAN_BODIES.has(m.graphic) &&
-      (m.notoriety === 1 || m.notoriety === 2) &&
+      (m.notoriety === Notoriety.innocent || m.notoriety === Notoriety.ally) &&
       !!m.position &&
       !!m.maxHits &&
       (m.hits ?? m.maxHits) / m.maxHits < 0.5 &&

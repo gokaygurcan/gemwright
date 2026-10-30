@@ -1,15 +1,25 @@
 import { readdirSync } from 'node:fs';
 
+import { TileFlag } from '@gemwright/common/assets/tiledata';
 import {
   arrow,
   bandage,
-  bolt,
+  board,
+  boltOfCloth,
+  bulkOrderDeed,
+  cloth,
+  crossbowBolt,
+  fish,
   gems,
   gold,
   healPotion,
+  ingot,
   isDeathRobe,
+  logPile,
   magicFish,
-  reagents
+  ore,
+  reagents,
+  uncutCloth
 } from '@gemwright/common/game/items';
 import type { Entity } from '@gemwright/network/world';
 
@@ -18,10 +28,13 @@ import { type CraftContext, craftRecipes } from './craft-training';
 import { fishingFootwear } from './fishing-catch';
 import { packFull, workGear } from './inventory';
 import { learnQuality, quality, shopSafe } from './item-quality';
-import { type ServiceType, townAt } from './locations';
+import { pickLocation, type ServiceType, serviceLocations, townAt } from './locations';
+import { distance as nearDistance } from './navigation';
 import { lighten, putDown, recoverPile } from './overload';
 import { sellTo } from './vendor-trade';
+import { reachRegion } from './work-areas';
 import { reservedFor } from './work-orders';
+import { world } from './world';
 
 // Selling is a task of its own, chosen between others like mining or practice: a resident whose
 // pack holds goods it has no use for (what it made, caught or picked up) takes them to the shops
@@ -49,44 +62,31 @@ for (const file of readdirSync(new URL('../catalogs/crafts/', import.meta.url)))
 }
 // Everything a trade makes (catalogs/crafts), sold rather than hoarded.
 export const craftedGoods: ReadonlySet<number> = new Set(buyers.keys());
-const fish = new Set([
-  0x09cc, // fish
-  0x09cd, // fish
-  0x09ce, // fish
-  0x09cf // fish
-]);
-const materials = new Set([
-  0x1bf2, // ingots
-  0x19b7, // ore
-  0x19b8, // ore
-  0x19b9, // ore
-  0x19ba, // ore
-  0x1bdd, // logs
-  0x1bd7, // boards
-  0x1766, // cloth
-  0x1767, // uncut cloth
-  0x0f95 // bolt of cloth
-]);
+const materials = new Set([ingot, ...ore, logPile, board, cloth, uncutCloth, boltOfCloth]);
 const kept = (item: Entity) =>
   workGear.has(item.graphic) ||
   item.graphic === gold ||
   gems.has(item.graphic) ||
   reagents.has(item.graphic) ||
-  [bandage, healPotion, arrow, bolt].includes(item.graphic) ||
+  [bandage, healPotion, arrow, crossbowBolt].includes(item.graphic) ||
   materials.has(item.graphic) ||
   isDeathRobe(item);
 
-function shopsFor(ctx: Ctx, item: Entity): ServiceType[] {
+export function shopsFor(ctx: Pick<Ctx, 'terrain'>, item: Entity): ServiceType[] {
   if (fishingFootwear.has(item.graphic)) return ['cobbler'];
   const crafted = buyers.get(item.graphic);
   if (crafted?.length) return crafted;
   if (fish.has(item.graphic)) return ['fisherman'];
   // Worn goods it is not wearing: armour and weapons to the smiths, clothing to the tailor.
-  if (ctx.terrain.tile(item.graphic, true).flags & 0x400000) return ['blacksmith', 'weaponsmith', 'tailor'];
+  if (ctx.terrain.tile(item.graphic, true).flags & TileFlag.Wearable) return ['blacksmith', 'weaponsmith', 'tailor'];
   return [];
 }
 
-const BULK_ORDER_DEED = 0x2258;
+// The one answer to "will a shop buy this?": looting, town-trip planning and selling all ask it.
+export const isSaleable = (ctx: Pick<Ctx, 'session' | 'terrain'>, item: Entity) =>
+  !kept(item) && !reservedFor(ctx.session, item) && shopsFor(ctx, item).length > 0;
+
+const BULK_ORDER_DEED = bulkOrderDeed;
 const lastTrip = new WeakMap<object, number>();
 const MIN_PIECES = 6;
 const REST_MS = 20 * 60_000;
@@ -109,7 +109,7 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   // (inventory-use.ts marked it).
   const listed = new Set(ctx.checkpoint.forSale ?? []);
   const goods = carried.filter((item) => {
-    if (kept(item) || reservedFor(session, item) || !shopsFor(ctx, item).length) return false;
+    if (!isSaleable(ctx, item)) return false;
     if (listed.has(item.serial)) return true;
     if (ordering && buyers.has(item.graphic)) return false;
     // One exceptional piece of each kind is kept (it goes to the bank).
@@ -128,9 +128,32 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   const shops = [...new Set(goods.flatMap((item) => shopsFor(ctx, item)))];
   ctx.phase('selling-goods', `Taking ${goods.length} pieces to sell (${shops.join(', ')})`);
   // It sells in the town it is in, not the one it calls home (a Trinsic fighter hunting near
-  // Jhelom sells in Jhelom).
+  // Jhelom sells in Jhelom) — unless that town has no shop for what is carried: shoes and sandals
+  // with no cobbler about is a load that walks to the nearest town whose shops cover it (Britain,
+  // usually, with every trade under one roof). Once per rest period, like any other selling trip.
   const town = townAt(ctx.position(), ctx.city);
-  const local = { ...ctx, city: town };
+  let market = town;
+  const missing = shops.filter((service) => serviceLocations(town, service).length === 0);
+  if (missing.length && goods.length >= MIN_PIECES) {
+    const here = ctx.position();
+    const target = (Object.keys(world.cities) as string[])
+      .filter((name) => name !== town && world.cities[name]?.enabled)
+      .flatMap((name) => {
+        const bank = pickLocation(name, 'banker');
+        if (!bank || !missing.every((service) => serviceLocations(name, service).length > 0)) return [];
+        return [{ name, bank, away: nearDistance(here, bank) }];
+      })
+      .sort((a, b) => a.away - b.away)[0];
+    if (target) {
+      ctx.phase(
+        'selling-travel',
+        `No ${missing.join(', ')} shop in ${town}; taking ${goods.length} pieces to ${target.name}`
+      );
+      await reachRegion(ctx, target.bank);
+      market = target.name;
+    }
+  }
+  const local = { ...ctx, city: market };
   await lighten(session, ctx.backpack(), kept, ctx.log);
   const forSale = new Set(goods.map((item) => item.serial));
   let earned = 0;

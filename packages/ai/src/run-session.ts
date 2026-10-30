@@ -5,6 +5,7 @@ import type { ConnectionConfig } from '@gemwright/network/connection';
 import { Layer } from '@gemwright/network/layers';
 import { PlayerSession } from '@gemwright/network/session';
 
+import { SESSION_BREAK } from './action-errors';
 import { runBard } from './bard';
 import { superviseBehavior } from './behavior-supervisor';
 import { registerChaos } from './chaos';
@@ -17,8 +18,10 @@ import { type DecisionConfig, inModelShare } from './decision-provider';
 import { DecisionCoordinator } from './decisions';
 import { runFighter } from './fighter';
 import { runFisher } from './fisher';
+import { registerCheckpoint } from './gm';
 import { watchForGuards } from './guards';
 import { registerHaven } from './haven';
+import { LIFE_GOAL } from './life-goal';
 import { logger } from './log';
 import { runLumberjack } from './lumberjack';
 import { runMiner } from './miner';
@@ -33,6 +36,8 @@ import type { Resident, ResidentStore } from './store';
 import { emitEvent, inSession, makeEvent } from './telemetry';
 
 export { withRuntime } from './runtime';
+
+import { Opcode } from '@gemwright/network/opcodes';
 
 import { runTailor } from './tailor';
 import { runTamer } from './tamer';
@@ -68,9 +73,12 @@ async function exercise(session: PlayerSession) {
     (entity) => entity.parent === session.world.serial && entity.layer === Layer.Backpack
   );
   if (!backpack) throw new Error('No observed backpack');
-  const contentsBefore = session.world.received.get(0x3c) ?? 0;
+  const contentsBefore = session.world.received.get(Opcode.containerContents) ?? 0;
   session.use(backpack.serial);
-  await session.waitFor(() => (session.world.received.get(0x3c) ?? 0) > contentsBefore, 'backpack contents');
+  await session.waitFor(
+    () => (session.world.received.get(Opcode.containerContents) ?? 0) > contentsBefore,
+    'backpack contents'
+  );
   const tool = [...session.world.entities.values()].find(
     (entity) => entity.parent === backpack.serial && [0x0e85, 0x0e86, 0x0f39, 0x0f3a].includes(entity.graphic)
   );
@@ -216,16 +224,20 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     const actions = options.exercise ? await exercise(active) : null;
     const template = store.template(resident.templateId, resident.policyVersion);
     if (!template) throw new Error('Resident policy template is missing');
+    logger('run-session').info(`[life-goal:${resident.proposedName}] ${LIFE_GOAL}`);
     let mining: Awaited<ReturnType<typeof runMiner>> | null = null;
     let hunting: Awaited<ReturnType<typeof runFighter>> | null = null;
     let lumber: Awaited<ReturnType<typeof runLumberjack>> | null = null;
     let profession: { behavior: string; stopped: string; progress: Record<string, number> } | null = null;
+    let sessionBreak = false;
     let behaviorRecoveryAttempts = 0;
     let behaviorRuns = 0;
     if (options.minerAssets || options.fighterAssets || options.lumberjackAssets || options.profession) {
       const totals: Record<string, number> = {};
       const behave = async (session: PlayerSession, seconds: number) => {
         registerHaven(session, template);
+        if (options.naturalSessions) enableSessionHabits(session);
+        registerCheckpoint(session, resident.checkpoint);
         const peers = new Map(
           store
             .bindings()
@@ -322,6 +334,8 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
               { stdout: true }
             )
           ),
+        // A deliberate break ends the session: it is not a returned behavior to run again.
+        shouldRepeat: (result: unknown) => result !== SESSION_BREAK,
         run: async (session, seconds) =>
           inSession(session, async () => {
             // Every character steers its stat and skill locks toward its build for the whole run.
@@ -331,7 +345,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
             try {
               return await behave(session, seconds);
             } catch (error) {
-              if (error instanceof SessionBreak) return 'Taking a session break';
+              if (error instanceof SessionBreak) return SESSION_BREAK;
               throw error;
             } finally {
               releaseLocks();
@@ -341,6 +355,9 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       active = supervised.session;
       behaviorRecoveryAttempts = supervised.recoveryAttempts;
       behaviorRuns = supervised.runs;
+      // A break ends the session cleanly: the population honours the habit's offline window before
+      // the resident comes back, instead of restarting it into the same evening.
+      if (supervised.result === SESSION_BREAK) sessionBreak = true;
     }
     if (options.reconnect) {
       const serial = active.world.serial;
@@ -399,6 +416,9 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       behaviorRuns,
       recoveryAttempts,
       stoppedBySignal: stopping(),
+      // A deliberate break (session-habits.ts): the population honours the offline window instead of
+      // treating this as a finished session to restart.
+      sessionBreak,
       sessionPhase: active.phase,
       movement: active.movementCounts,
       latency: active.timing.snapshot(),

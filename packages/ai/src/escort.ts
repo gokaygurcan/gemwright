@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { gold } from '@gemwright/common/game/items';
+import { ShardAction } from '@gemwright/network/replies';
 
 import { tally } from './activity';
 import { nearAnyGround } from './cemeteries';
@@ -26,8 +27,8 @@ type Ctx = Pick<
   'session' | 'serial' | 'position' | 'navigate' | 'check' | 'phase' | 'log' | 'count'
 >;
 
-const ASK = 3006100;
-const ACCEPT = 3006101;
+const ASK = ShardAction.escortAsk;
+const ACCEPT = ShardAction.escortAccept;
 const ARRIVED = 1042809;
 // Escortable bodies are ordinary humans; their name property ends with their role.
 const ESCORTS = /\b(noble|mage|seeker of adventure|merchant|peasant|healer|bride|groom|messenger)\s*$/i;

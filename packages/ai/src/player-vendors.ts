@@ -2,6 +2,8 @@ import { gold, instruments } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
 import { Layer } from '@gemwright/network/layers';
+import { Notoriety } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { distance } from './navigation';
@@ -15,7 +17,7 @@ import type { ProfessionContext } from './profession';
 // the confirmation gump (1019070, button 1); the server takes the price from pack and bank.
 const SHOP_NAME = 1062449;
 const PRICE = 1043304;
-const BUY = 3006103;
+const BUY = Actions.buy;
 const CONFIRM = 1019070;
 const SKILL_BONUS = [1060451, 1060452, 1060453, 1060454, 1060455];
 const JEWELLERY = new Set<number>([Layer.Ring, Layer.Bracelet, Layer.Earrings, Layer.Neck]);
@@ -31,7 +33,7 @@ const visited = new WeakMap<object, number>();
 export async function noticeVendors(ctx: ProfessionContext) {
   const { session } = ctx;
   for (const m of session.world.entities.values()) {
-    if (m.kind !== 'mobile' || m.notoriety !== 7 || !m.position || looked.has(m.serial)) continue;
+    if (m.kind !== 'mobile' || m.notoriety !== Notoriety.invulnerable || !m.position || looked.has(m.serial)) continue;
     if (distance(ctx.position(), m.position) > 14) continue;
     looked.add(m.serial);
     await session.inspectProperties(m.serial).catch(() => {});

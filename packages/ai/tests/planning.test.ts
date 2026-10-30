@@ -30,6 +30,7 @@ const situation = (): GoalSituation => ({
   },
   planning: {
     condition: 'skills50-tool1',
+    coarse: 'coarse-condition',
     available: true,
     riskTolerance: 0.5,
     exposed: 100,

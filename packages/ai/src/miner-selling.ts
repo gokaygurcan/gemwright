@@ -1,3 +1,5 @@
+import { ingot } from '@gemwright/common/game/items';
+import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { fundsStale, spendableGold } from './bank-gold';
@@ -8,8 +10,6 @@ import type { createMinerServices } from './miner-services';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
 import type { createServiceExperience } from './service-experience';
-
-const ingot = 0x1bf2;
 
 // Everything a smith makes from iron (catalogs/crafts/blacksmith.json; a label is 1020000 + graphic).
 export const smithed = new Set(craftRecipes('Blacksmith').map((recipe) => recipe.label - 1020000));
@@ -54,13 +54,13 @@ export function createIngotSeller(
     // Smiths buy iron ingots (ServUO SBBlacksmith); the tool shops are a fallback route.
     for (const shop of [...serviceLocations(city, 'blacksmith'), ...shops]) {
       await navigate(shop, 4);
-      for (const mobile of learning.order([...session.world.entities.values()], 3006104, [ingot])) {
+      for (const mobile of learning.order([...session.world.entities.values()], Actions.sell, [ingot])) {
         if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-        if (mobile.serial === session.world.serial || learning.blocked(mobile, 3006104, [ingot])) continue;
+        if (mobile.serial === session.world.serial || learning.blocked(mobile, Actions.sell, [ingot])) continue;
         check();
         let entry: Awaited<ReturnType<PlayerSession['context']>>[number] | undefined;
         try {
-          entry = (await session.context(mobile.serial)).find((e) => e.cliloc === 3006104 && !(e.flags & 1));
+          entry = (await session.context(mobile.serial)).find((e) => e.cliloc === Actions.sell && !(e.flags & 1));
         } catch (error) {
           if (session.phase !== 'ready') throw error;
         }
@@ -69,7 +69,7 @@ export function createIngotSeller(
           await approachVendor(ctx, mobile.serial);
         } catch {
           check();
-          learning.record(mobile, 3006104, 'unreachable', [ingot]);
+          learning.record(mobile, Actions.sell, 'unreachable', [ingot]);
           continue;
         }
         session.world.sellOffers.delete(mobile.serial);
@@ -91,7 +91,7 @@ export function createIngotSeller(
           );
         });
         if (!sale.length) {
-          learning.record(mobile, 3006104, 'no-service', [ingot]);
+          learning.record(mobile, Actions.sell, 'no-service', [ingot]);
           continue;
         }
         const before = status().gold;
@@ -100,7 +100,7 @@ export function createIngotSeller(
           sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
         );
         await session.refreshStatus();
-        learning.record(mobile, 3006104, 'success', [ingot]);
+        learning.record(mobile, Actions.sell, 'success', [ingot]);
         progress.sold += sale.reduce((sum, offer) => sum + offer.amount, 0);
         const items = sale.filter((offer) => crafted.has(offer.serial)).length;
         phase(

@@ -1,3 +1,4 @@
+import { arrow, board, crossbowBolt, ingot } from '@gemwright/common/game/items';
 import type { Entity } from '@gemwright/network/world';
 
 import { quality } from './item-quality';
@@ -58,16 +59,16 @@ export const goods: Record<Good, GoodDef> = {
     shop: 'blacksmith',
     lot: 1
   },
-  arrows: { graphic: 0x0f3f, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
-  bolts: { graphic: 0x1bfb, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
+  arrows: { graphic: arrow, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
+  bolts: { graphic: crossbowBolt, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
   cloth: { graphic: 0x1766, shopPays: 1, shopCharges: 2, market: 'britain', shop: 'tailor', lot: 10 },
   bandages: { graphic: 0x0e21, shopPays: 1, shopCharges: 5, market: 'britain', shop: 'healer', lot: 10 },
-  boards: { graphic: 0x1bd7, shopPays: 2, shopCharges: 3, market: 'yew', shop: 'carpenter', lot: 10 },
+  boards: { graphic: board, shopPays: 2, shopCharges: 3, market: 'yew', shop: 'carpenter', lot: 10 },
   'heal potions': { graphic: 0x0f0c, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
   'cure potions': { graphic: 0x0f07, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
   'poison potions': { graphic: 0x0f0a, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
   // SBBlacksmith: sells iron at 5 (only 16 in stock), buys at 4; Minoc is the miners' town.
-  'iron ingots': { graphic: 0x1bf2, shopPays: 4, shopCharges: 5, market: 'minoc', shop: 'blacksmith', lot: 10 },
+  'iron ingots': { graphic: ingot, shopPays: 4, shopCharges: 5, market: 'minoc', shop: 'blacksmith', lot: 10 },
   // A bowyer's exceptional bows and composite bows (item-quality.ts) for archers. Shops buy any bow
   // back for at most 27 (SBRangedWeapon), so the band starts above that and runs to 80.
   'exceptional bows': {

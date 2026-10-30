@@ -2,6 +2,7 @@ import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause, takingUrgentAction } from './action-purpose';
 import { Blocked } from './blocked';
+import { debugEnabled } from './debug';
 import { lasting } from './lasting';
 import { lifeEvent } from './life-events';
 import { logger } from './log';
@@ -29,6 +30,7 @@ interface Watch {
   phase: string;
   progress: WorkEvidence;
   progressAt: number;
+  idleAt: number;
   at: { x: number; y: number };
   checkedAt: number;
   trail: { x: number; y: number; at: number }[];
@@ -45,14 +47,14 @@ export const forcedToWork = (session: PlayerSession) => (forced.get(session) ?? 
 
 // Numbers and coordinates do not make a step different.
 const kindOf = (phase: string, note: string) => `${phase}: ${note.replace(/-?\d+/g, '#')}`.slice(0, 120);
-// Bounded recovery: paced by the goal's own deadline (goalGuard) and its planning gates, so its
-// phases are not the repeated-step pattern the guard exists to break.
-const recovering = (phase: string) => /^(recovering|recovering-health|recovery-wait|securing-assets)$/.test(phase);
+// Recovery and planned waits use the goal deadline rather than the repeated-step detector.
+const recovering = (phase: string) =>
+  /^(recovering|recovering-health|recovery-wait|securing-assets|plan-wait)$/.test(phase);
 
 function trigger(session: PlayerSession, watch: Watch, reason: string) {
   const now = Date.now();
   watch.steps = [];
-  watch.progressAt = now;
+  watch.idleAt = now;
   forced.set(session, now + FORCE_MS);
   pending.set(session, reason);
   interruptGoal(session, reason);
@@ -96,6 +98,7 @@ function watchOf(session: PlayerSession) {
     phase: '',
     progress: workEvidence(session),
     progressAt: now,
+    idleAt: now,
     at: session.world.position ?? { x: 0, y: 0 },
     checkedAt: now,
     trail: []
@@ -104,8 +107,31 @@ function watchOf(session: PlayerSession) {
   return watch;
 }
 
+const emotedAt = new Map<PlayerSession, { at: number; text: string }>();
+
+// The phase, above the resident's head (ai.debug): rate-limited, never repeated for the same phase,
+// and never allowed to break the loop it is reporting on.
+function emotePhase(session: PlayerSession, phase: string, note: string) {
+  const text = `[${phase}] ${note}`.slice(0, 120);
+  const last = emotedAt.get(session);
+  if (last && (last.text === text || Date.now() - last.at < 2000)) return;
+  emotedAt.set(session, { at: Date.now(), text });
+  try {
+    session.emote(text);
+  } catch {
+    /* Debugging output cannot end a session. */
+  }
+}
+
+// When the resident's own work last gained something (work-evidence.ts). The day plan reads it:
+// side work is refused while the core work is stale, so every layer cannot start a trip of its own.
+export function lastCoreProgressAt(session: PlayerSession) {
+  return watchOf(session).progressAt;
+}
+
 export function watchStep(session: PlayerSession, name: string, phase: string, note: string) {
   lifeEvent(session, 'activity', 'observed', { phase, note });
+  if (debugEnabled()) emotePhase(session, phase, note);
   if (/^(setback|loop|blocked|retreating|death)$/.test(phase)) {
     if (phase === 'setback' || phase === 'loop') interruptGoal(session, note);
     else failResidentGoal(session, note);
@@ -116,6 +142,7 @@ export function watchStep(session: PlayerSession, name: string, phase: string, n
   const current = workEvidence(session);
   if (positiveProgress(watch.progress, current)) {
     watch.progressAt = Date.now();
+    watch.idleAt = watch.progressAt;
     watch.steps = [];
     return;
   }
@@ -127,7 +154,7 @@ export function watchStep(session: PlayerSession, name: string, phase: string, n
     !run &&
     watch.steps.length >= 12 &&
     new Set(watch.steps.slice(-12)).size === 1 &&
-    Date.now() - watch.progressAt > 60_000 &&
+    Date.now() - watch.idleAt > 60_000 &&
     !interactionActive(session)
   )
     trigger(session, watch, `Repeated ${phase} without a verified gain; abandoning this plan`);
@@ -167,7 +194,7 @@ export function checkLoop(session: PlayerSession) {
   if (blocked) {
     interruptGoal(session, blocked);
     const watch = watchOf(session);
-    watch.progressAt = now;
+    watch.idleAt = now;
     watch.checkedAt = now;
     watch.steps = [];
     pending.delete(session);
@@ -179,11 +206,12 @@ export function checkLoop(session: PlayerSession) {
     const current = workEvidence(session);
     if (positiveProgress(watch.progress, current)) {
       watch.progressAt = now;
+      watch.idleAt = now;
       watch.steps = [];
     }
     // A running recovery action holds the idle clock: its bound is the goal deadline, not the guard.
-    if (recovering(watch.phase)) watch.progressAt = now;
-    if (now - watch.progressAt > IDLE_MS && !takingUrgentAction(session) && !interactionActive(session))
+    if (recovering(watch.phase)) watch.idleAt = now;
+    if (now - watch.idleAt > IDLE_MS && !takingUrgentAction(session) && !interactionActive(session))
       trigger(session, watch, `five minutes without a verified gain (${watch.phase || 'no phase'})`);
   }
   const loop = pending.get(session);

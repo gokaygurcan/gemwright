@@ -1,3 +1,4 @@
+import { blades } from '@gemwright/common/game/items';
 import type { Entity } from '@gemwright/network/world';
 
 import { TOOLS } from './bank-gold';
@@ -10,11 +11,10 @@ import { reachRegion } from './work-areas';
 
 // Cloth the long way, when the tailor vendor has none: shear sheep with a blade (ServUO Sheep.Carve,
 // one wool per sheep on Trammel, regrown after two hours), spin each wool into three balls of yarn
-// on a public spinning wheel, weave five balls into a bolt on a public loom, and cut the bolt into
+// on a public spinning wheel, weave five balls into a crossbowBolt on a public loom, and cut the crossbowBolt into
 // fifty cloth with scissors (tailor.ts).
 const wool = 0x0df8;
 const yarn = new Set([0x0e1d, 0x0e1e, 0x0e1f]);
-const blades = new Set([0x0f51, 0x0f52, 0x13f6, 0x0ec4]); // daggers, butcher and skinning knives
 const woolly = 0xcf; // a shorn sheep has body 0xdf until its wool grows back
 const SHEARED = 500452; // You place the gathered wool into your backpack.
 const NOT_READY = 500449; // This sheep is not yet ready to be shorn.
@@ -120,7 +120,7 @@ async function weave(ctx: ProfessionContext) {
       .reduce((n, i) => n + (i.amount ?? 1), 0);
   for (const spot of looms) {
     if (balls() < 5) return;
-    phase('tailor-weave', 'Weaving yarn into a bolt of cloth');
+    phase('tailor-weave', 'Weaving yarn into a crossbowBolt of cloth');
     try {
       await ctx.navigate(spot, 1);
     } catch (error) {
@@ -129,7 +129,7 @@ async function weave(ctx: ProfessionContext) {
     }
     const loom = near(ctx, loomGraphics, spot);
     if (!loom) continue;
-    // The loom counts five balls per bolt; another weaver's balls count toward the same bolt.
+    // The loom counts five balls per crossbowBolt; another weaver's balls count toward the same crossbowBolt.
     while (balls() >= 1) {
       ctx.check();
       const ball = ctx.carried().find((i) => yarn.has(i.graphic));
@@ -142,7 +142,7 @@ async function weave(ctx: ProfessionContext) {
   }
 }
 
-// Shears, spins and weaves; returns whether a bolt of cloth came of it. Sheep regrow for two hours,
+// Shears, spins and weaves; returns whether a crossbowBolt of cloth came of it. Sheep regrow for two hours,
 // so a tailor tries this at most every two hours.
 const lastTrip = new WeakMap<ProfessionContext['checkpoint'], number>();
 export async function woolToBolt(ctx: ProfessionContext) {

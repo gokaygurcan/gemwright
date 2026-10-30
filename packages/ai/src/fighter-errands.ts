@@ -50,7 +50,9 @@ export function createFighterErrands(
       await markHere(asProfession(), `${home.city} bank`).catch(() => false);
     }
     await healOthers(ctx, log);
-    await sellingTurn(asProfession()).catch(() => false);
+    // The trip was the decision: sell everything a shop buys (the basket threshold only decides
+    // whether to make a trip at all, not whether a fish steak travels home again).
+    await sellingTurn(asProfession(), true).catch(() => false);
     await town.prepareEquipment();
   };
 

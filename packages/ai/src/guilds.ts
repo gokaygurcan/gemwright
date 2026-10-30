@@ -1,3 +1,4 @@
+import { ShardAction } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { tally } from './activity';
@@ -23,7 +24,7 @@ export const FEE = 25_000;
 // (diplomacy), Guild Relationship, Declaration of War and the invitation.
 export const MENU = {
   create: 1062939,
-  info: 3006115,
+  info: ShardAction.guildInfo,
   roster: 1062992,
   diplomacy: 1063136,
   relationship: 1062975,

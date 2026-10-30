@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { necroReagentByName, reagentByName } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import type { FighterContext } from './fighter-context';
@@ -198,7 +199,7 @@ async function summonTurn(
     for (const mobile of candidates) {
       ctx.check();
       const order = (await session.context(mobile.serial).catch(() => [])).find(
-        (entry) => entry.cliloc === 3006111 && !(entry.flags & 1)
+        (entry) => entry.cliloc === ShardAction.petAttack && !(entry.flags & 1)
       );
       if (!order) continue;
       memory.summoned.serial = mobile.serial;

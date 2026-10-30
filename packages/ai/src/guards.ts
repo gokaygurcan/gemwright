@@ -1,4 +1,5 @@
 import { GHOST_BODIES, HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { allServiceLocations } from './locations';
@@ -64,7 +65,9 @@ export function watchForGuards(session: PlayerSession, boldness: number, log: (m
     if (Math.random() > boldness) return;
     try {
       session.say('guards');
-      log(`Called the guards on ${offender.name ?? 'a'} ${offender.notoriety === 6 ? 'murderer' : 'criminal'}`);
+      log(
+        `Called the guards on ${offender.name ?? 'a'} ${offender.notoriety === Notoriety.murderer ? 'murderer' : 'criminal'}`
+      );
     } catch {
       // A shout that could not be sent is one nobody heard.
     }

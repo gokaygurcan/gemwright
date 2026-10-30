@@ -1,6 +1,7 @@
 import type { Database } from 'bun:sqlite';
 
 import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { attachGuilds } from './guild-store';
@@ -70,7 +71,7 @@ export function notePlayer(session: PlayerSession, key: string, signal: Omit<Pla
   const mobile = session.world.entities.get(signal.serial);
   // Players have human or elf bodies; speaking monsters (orcs, lizardmen) and vendors are not players.
   const human = !mobile || HUMAN_BODIES.has(mobile.graphic);
-  if (residents.has(signal.serial) || mobile?.notoriety === 7 || !human || noted.has(key)) return;
+  if (residents.has(signal.serial) || mobile?.notoriety === Notoriety.invulnerable || !human || noted.has(key)) return;
   noted.add(key);
   if (noted.size > 5000) noted.delete(noted.values().next().value as string);
   const at = mobile?.position ?? session.world.position;

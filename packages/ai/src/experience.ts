@@ -28,7 +28,7 @@ export type ExperienceEvent =
       vendor: number;
       action: number;
       needs?: number[];
-      outcome: 'success' | 'unreachable' | 'unavailable' | 'no-stock' | 'no-service';
+      outcome: 'success' | 'unreachable' | 'unavailable' | 'no-stock' | 'no-service' | 'no-answer';
     });
 export interface ExperienceMemory {
   schemaVersion: 1;
@@ -160,6 +160,14 @@ export function bandageAdvice(checkpoint: Checkpoint, skill: number | null, now 
   };
 }
 
+const SERVICE_COOLDOWN: Record<string, number> = {
+  'no-service': 6 * 3_600_000,
+  'no-answer': 30 * 60_000,
+  unavailable: 30 * 60_000,
+  'no-stock': 30 * 60_000,
+  unreachable: 5 * 60_000
+};
+
 export function serviceAdvice(
   checkpoint: Checkpoint,
   place: Place,
@@ -184,7 +192,11 @@ export function serviceAdvice(
     (event) =>
       event.outcome !== 'success' && (!last || event.at >= (events.findLast((e) => e.outcome === 'success')?.at ?? 0))
   ).length;
-  const wait = last?.outcome === 'unreachable' ? 5 * 60_000 : Math.min(5 * 60_000, 30_000 * 2 ** Math.min(4, failures));
+  // How long a vendor's answer holds. A service the vendor does not offer at all changes only when
+  // the vendor's own state does (hours); an offered action that stays silent is a closed or busy
+  // shop (half an hour); a failed route is tried sooner, and a stock-out sooner still. The old
+  // five-minute cap meant a resident walked back to the same silent vendor all evening.
+  const wait = SERVICE_COOLDOWN[last?.outcome ?? ''] ?? Math.min(5 * 60_000, 30_000 * 2 ** Math.min(4, failures));
   return {
     cooldownUntil: last && last.outcome !== 'success' && last.at + wait > now ? last.at + wait : 0,
     successful: !!last && last.outcome === 'success'

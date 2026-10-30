@@ -1,4 +1,5 @@
 import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -162,7 +163,7 @@ export function warOpponent(ctx: FighterContext): Entity | undefined {
       (m) =>
         m.kind === 'mobile' &&
         humans.has(m.graphic) &&
-        m.notoriety === 5 &&
+        m.notoriety === Notoriety.enemy &&
         !!m.position &&
         !session.world.deaths.has(m.serial) &&
         distance(here, m.position) <= 12

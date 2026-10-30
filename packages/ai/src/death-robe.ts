@@ -1,3 +1,4 @@
+import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { gold, isDeathRobe } from '@gemwright/common/game/items';
 import { LAYERS } from '@gemwright/common/game/layers';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -32,7 +33,7 @@ export async function shedDeathRobe(session: PlayerSession, terrain: Terrain, ca
   const robe = session.world.childrenOf(session.world.serial ?? -1).find(isDeathRobe);
   if (!robe) return false;
   const own = carried
-    .filter((item) => !isDeathRobe(item) && terrain.tile(item.graphic, true).flags & 0x400000)
+    .filter((item) => !isDeathRobe(item) && terrain.tile(item.graphic, true).flags & TileFlag.Wearable)
     .map((item) => ({ item, layer: terrain.tile(item.graphic, true).layer }))
     .filter(({ layer }) => TORSO.includes(layer as (typeof TORSO)[number]))
     .sort(

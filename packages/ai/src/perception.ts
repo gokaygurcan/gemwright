@@ -66,7 +66,12 @@ export class Perception {
   // A failed observation stream can become healthy again: the next reconciliation and status reply
   // prove it, so the failure is retried rather than bricking this session's model for good.
   revive() {
-    if (!this.closed) this.failed = false;
+    if (this.closed) return;
+    this.failed = false;
+    // The character's own position is local state, not a packet to wait for: without this stamp a
+    // revived model reported "position unknown" and the goal layer refused to plan (fighters spent
+    // turns in reconciling-status between fights instead of fighting).
+    if (this.world.position && !this.stamps.has('position')) this.stamps.set('position', this.now());
   }
 
   start(intervalMs = 5000) {
@@ -245,6 +250,10 @@ export class Perception {
   }
   private fact<T>(field: WorldField, value: T | null | undefined, expires = true): Known<T> {
     if (!this.available) return unknown(this.failed ? 'perception-failed' : 'disconnected', this.stamps.get(field));
+    // The character's own place is local state: a model built before the login packets (or revived
+    // while healthy) had no stamp for it and planning refused to run with "position unknown". Stamp
+    // it whenever the world has one, so the observation cannot go missing again.
+    if (field === 'position' && value != null && !this.stamps.has('position')) this.stamps.set('position', this.now());
     const at = this.stamps.get(field);
     if (value == null || at === undefined) return unknown('not-observed');
     if (expires && this.now() - at > (this.options.freshnessMs ?? 60_000)) return unknown('stale', at);

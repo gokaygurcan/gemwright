@@ -1,3 +1,5 @@
+import { Opcode } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
@@ -16,15 +18,15 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
   return atVendor(
     ctx,
     service,
-    3006103,
+    Actions.buy,
     async (vendor) => {
-      const before = session.world.received.get(0x74) ?? 0;
+      const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
       session.world.buyOffers.clear();
-      const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006103);
+      const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.buy);
       if (!entry) return false;
       session.selectContext(vendor, entry.index);
       await session
-        .waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'vendor stock', 2500)
+        .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'vendor stock', 2500)
         .catch(() => {});
       let bought = false;
       for (const offer of [...session.world.buyOffers.values()].flat()) {
@@ -76,9 +78,9 @@ export async function sellTo(
   await atVendor(
     ctx,
     service,
-    3006104,
+    Actions.sell,
     async (vendor) => {
-      const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006104);
+      const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.sell);
       if (!entry) return false;
       session.world.sellOffers.delete(vendor);
       session.selectContext(vendor, entry.index);

@@ -2,16 +2,17 @@ import { recentlyHurt, takingUrgentAction } from './action-purpose';
 import { hurtOnTheWay } from './cemeteries';
 import { beingAttacked } from './danger-response';
 import { checkAction } from './execution-session';
-import { Died, type FighterContext, observedThreat, Retreat } from './fighter-context';
+import { Died, type FighterContext, Retreat } from './fighter-context';
+import { assertNotHalted } from './gm';
 import { checkLoop } from './loop-watch';
-import { distance } from './navigation';
 
 export function checkFighter(
   ctx: FighterContext,
   combatAssessment: () => { emergency: boolean; reason: string; largestHit: number; damagePerSecond: number },
   stopping?: () => boolean
 ) {
-  const { session, deadline, state, dead, status, nearby, position, stats, phase } = ctx;
+  const { session, deadline, state, dead, status, stats, phase } = ctx;
+  assertNotHalted(session);
   checkAction(session);
   if (stopping?.() || Date.now() >= deadline) throw new Error('Fighter run duration reached or interrupted');
   if (session.phase !== 'ready') throw new Error('Fighter disconnected; reconcile before continuing');
@@ -22,21 +23,13 @@ export function checkFighter(
   if (dead() && !state.recovering) throw new Died('Character died');
   if (
     !state.recovering &&
+    !state.recoveringCorpse &&
     !state.inCombat &&
     !takingUrgentAction(session) &&
     (recentlyHurt(session) || beingAttacked(session))
   )
     hurtOnTheWay(ctx);
-  if (
-    state.recoveringCorpse &&
-    (status().hits < status().maxHits * 0.8 ||
-      nearby().some(
-        (mobile) =>
-          mobile.position &&
-          observedThreat(mobile, session.world.combatant) &&
-          distance(position(), mobile.position) < 8
-      ))
-  )
+  if (state.recoveringCorpse && status().hits < status().maxHits * 0.35)
     throw new Retreat('Corpse approach became unsafe');
   if (state.inCombat) {
     const assessment = combatAssessment();
@@ -49,5 +42,5 @@ export function checkFighter(
       throw new Retreat(assessment.reason);
     }
   }
-  if (!state.inCombat && !state.recovering) checkLoop(session);
+  if (!state.inCombat && !state.recovering && !state.recoveringCorpse) checkLoop(session);
 }

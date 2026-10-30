@@ -1,3 +1,4 @@
+import { ShardMessage } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import type { FighterContext } from './fighter-context';
@@ -39,7 +40,7 @@ export function observedSpellEffect(name: string, before: SpellObservation, afte
   );
 }
 
-const FAILURES = new Set([500015, 502632, 500641, 502625, 502630, 500946]);
+const FAILURES = new Set([ShardMessage.noSuchSpell, 502632, 500641, 502625, 502630, 500946]);
 
 export async function requestSpell(
   ctx: FighterContext,
@@ -137,7 +138,7 @@ export async function requestSpell(
     }
     await wait(() => !!failure() || effect(), aim === null ? 1500 + (3 + spell.circle) * 250 : 3500);
     const failed = failure();
-    if (failed?.cliloc === 500015) missing.add(spell.id);
+    if (failed?.cliloc === ShardMessage.noSuchSpell) missing.add(spell.id);
     const outcome = failed ? 'failed' : effect() ? 'confirmed' : 'unknown';
     ctx.log(`${spell.name}: ${outcome}${outcome === 'confirmed' ? ' (observed expected effect)' : ''}`);
     return outcome;

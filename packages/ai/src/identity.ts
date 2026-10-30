@@ -1,14 +1,22 @@
+import { Actions, ShardAction } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 
 // Who is speaking: a person, or a server character? The shard serves a context menu per mobile and
 // its entries give the kind away (ServUO ContextMenuEntry numbers, 3000000 added for the old ids):
-//   - a vendor, trainer or guildmaster carries business entries — Buy 3006103, Sell 3006104,
-//     Bulk Order Info 3006152, Bribe 1152294, Claim Rewards 1155593, Convert Mage Armor 1154114;
-//   - a player carries the party entries BaseVendor never adds — Add 3000197, Remove 3000198.
+//   - a vendor, trainer or guildmaster carries business entries — Buy Actions.buy, Sell Actions.sell,
+//     Bulk Order Info Actions.bulkOrderInfo, Bribe Actions.bribe, Claim Rewards Actions.claimRewards, Convert Mage Armor Actions.convertMageArmor;
+//   - a player carries the party entries BaseVendor never adds — Add ShardAction.partyAdd, Remove 3000198.
 // Nothing is decided from notoriety or from names: a guildmaster is as invulnerable as a vendor, a
 // player may be called "Cher", and a game master checking on the town must still be talked to.
-const BUSINESS = new Set([3006103, 3006104, 3006152, 1152294, 1155593, 1154114]);
-const PARTY = new Set([3000197, 3000198]);
+const BUSINESS = new Set([
+  Actions.buy,
+  Actions.sell,
+  Actions.bulkOrderInfo,
+  Actions.bribe,
+  Actions.claimRewards,
+  Actions.convertMageArmor
+]);
+const PARTY = new Set([ShardAction.partyAdd, ShardAction.partyRemove]);
 export type Identity = 'npc' | 'player' | 'unknown';
 
 export function identityFrom(entries: { cliloc: number }[]): Identity {

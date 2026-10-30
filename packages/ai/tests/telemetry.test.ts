@@ -262,6 +262,7 @@ test('resident health telemetry exposes observed status and the reason work is b
     evidence: { funds: 0, bankKnown: true, gold: 0, products: 0, orders: 0, goods: 10, skills: {}, health: 100 },
     planning: {
       condition: 'assets',
+      coarse: 'coarse-condition',
       available: true,
       riskTolerance: 0,
       exposed: 2000,

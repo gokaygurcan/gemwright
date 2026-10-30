@@ -1,7 +1,6 @@
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
-import { DangerInterrupt } from './action-purpose';
 import type { CharacterArchetype } from './archetypes';
 import { failObjective, suppliesCondition } from './objective-memory';
 import { SessionBreak } from './session-habits';
@@ -33,6 +32,11 @@ async function handleSetback(
   },
   reason: string
 ) {
+  // A game master's halt is a wait, not a failure: it writes no objective memory and no setback.
+  if (/halted by a game master/i.test(reason)) {
+    await Bun.sleep(2000);
+    return;
+  }
   ctx.log(`Setback: ${reason}; doing something else before trying again`);
   // No money for a tool or supplies: the way out is to earn, so a side trade for two hours. Going
   // in circles is not handled here: the loop guard puts it back to its job (loop-watch.ts).
@@ -63,15 +67,27 @@ async function handleSetback(
   // Even maxed skills must not bypass a failed objective's retry deadline.
   const resume = practised ? until : Math.min(until, Date.now() + 15_000);
   while (Date.now() < resume) {
-    ctx.check();
+    try {
+      ctx.check();
+    } catch (error) {
+      // A guard fires while the resident waits out a failure (a loop interrupt, a blocked course):
+      // that ends the wait, not the run. Only a session-level failure travels (disconnect, death).
+      if (ctx.session.phase !== 'ready') throw error;
+      ctx.log(`Setback interrupted: ${error instanceof Error ? error.message : String(error)}`);
+      break;
+    }
     await Bun.sleep(2000);
   }
 }
 
 export async function passSetback(...args: Parameters<typeof handleSetback>) {
+  const ctx = args[0];
   try {
     await handleSetback(...args);
   } catch (error) {
-    if (!(error instanceof DangerInterrupt)) throw error;
+    // The same rule at the exit: a goal-level interruption raised while handling a setback used to
+    // end the run, and a run ending is a logout — the town relogged for ever on "Going in circles".
+    if (ctx.session.phase !== 'ready') throw error;
+    ctx.log(`Setback interrupted: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

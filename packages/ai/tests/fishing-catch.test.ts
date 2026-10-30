@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
 
+import { fish } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 
-import { fish, fishingFootwear, sellFishingCatch } from '../src/fishing-catch';
+import { fishingFootwear, sellFishingCatch } from '../src/fishing-catch';
 import { serviceLocations } from '../src/locations';
 import type { ProfessionContext } from '../src/profession';
 import { required } from './behavior-fixture';

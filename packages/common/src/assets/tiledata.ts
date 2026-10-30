@@ -41,3 +41,31 @@ export class Tiledata {
     };
   }
 }
+
+// Tiledata flags as the shard reads them (ServUO TileFlag, low 32 bits). The reader above returns raw
+// bits; consumers name them here instead of writing 0x400000 in a dozen modules.
+export const TileFlag = {
+  Background: 0x00000001,
+  Weapon: 0x00000002,
+  Transparent: 0x00000004,
+  Translucent: 0x00000008,
+  Wall: 0x00000010,
+  Damaging: 0x00000020,
+  Impassable: 0x00000040,
+  Wet: 0x00000080,
+  Surface: 0x00000200,
+  Bridge: 0x00000400,
+  Generic: 0x00000800,
+  Window: 0x00001000,
+  NoShoot: 0x00002000,
+  Foliage: 0x00020000,
+  PartialHue: 0x00040000,
+  Map: 0x00100000,
+  Container: 0x00200000,
+  Wearable: 0x00400000,
+  LightSource: 0x00800000,
+  Animation: 0x01000000,
+  Armor: 0x08000000,
+  Door: 0x20000000,
+  StairBack: 0x40000000
+} as const;

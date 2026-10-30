@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'n
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { reagentByName } from '@gemwright/common/game/items';
+import { board, ingot, reagentByName } from '@gemwright/common/game/items';
 
 // Offline build of catalogs/crafts/<skill>.json from the pinned ServUO source: every recipe of the craft
 // skills residents use that needs only the skill's basic material (DefBlacksmithy, DefCarpentry,
@@ -51,7 +51,6 @@ const words = (type: string) =>
 
 // Reagents an alchemy recipe may use as its material (item graphics), and the bottle every potion
 // also takes (DefAlchemy AddRes Bottle).
-const BOTTLE = 0x0f0e;
 
 function recipes(def: string, material: string, prices: Map<string, number>) {
   const text = sources.get(join(scripts, 'Services/Craft', `${def}.cs`)) ?? '';
@@ -83,7 +82,7 @@ function recipes(def: string, material: string, prices: Map<string, number>) {
         amount: Number(amount),
         pays: prices.get(type) ?? 0,
         ...(material === 'Reagent'
-          ? { material: reagentByName[resource ?? ''], extra: [{ graphic: BOTTLE, amount: 1 }] }
+          ? { material: reagentByName[resource ?? ''], extra: [{ graphic: bottle, amount: 1 }] }
           : {})
       }
     ];
@@ -94,16 +93,16 @@ const crafts = {
   Blacksmith: {
     def: 'DefBlacksmithy',
     material: 'IronIngot',
-    graphic: 0x1bf2,
+    graphic: ingot,
     vendor: 'Blacksmith',
     service: 'blacksmith'
   },
-  Carpentry: { def: 'DefCarpentry', material: 'Board', graphic: 0x1bd7, vendor: 'Carpenter', service: 'carpenter' },
+  Carpentry: { def: 'DefCarpentry', material: 'Board', graphic: board, vendor: 'Carpenter', service: 'carpenter' },
   Tailoring: { def: 'DefTailoring', material: 'Cloth', graphic: 0x1766, vendor: 'Tailor', service: 'tailor' },
-  Tinkering: { def: 'DefTinkering', material: 'IronIngot', graphic: 0x1bf2, vendor: 'Tinker', service: 'tinker' },
+  Tinkering: { def: 'DefTinkering', material: 'IronIngot', graphic: ingot, vendor: 'Tinker', service: 'tinker' },
   // Each potion names its own reagent (`material` per recipe) and a bottle.
   Alchemy: { def: 'DefAlchemy', material: 'Reagent', graphic: 0x0f85, vendor: 'Alchemist', service: 'alchemist' },
-  Bowcraft: { def: 'DefBowFletching', material: 'Board', graphic: 0x1bd7, vendor: 'Bowyer', service: 'bowyer' }
+  Bowcraft: { def: 'DefBowFletching', material: 'Board', graphic: board, vendor: 'Bowyer', service: 'bowyer' }
 };
 // One file per skill keeps each catalog small enough to read and review.
 mkdirSync(resolve(values.output), { recursive: true });

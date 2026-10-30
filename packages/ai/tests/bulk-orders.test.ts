@@ -46,6 +46,7 @@ function orderFixture() {
   f.terrain.pathAsync = async (_from, goal) => [{ ...goal, z: 0 }];
   const messages: string[] = [];
   let attempts = 0;
+  let claims = 0;
   let refills = 0;
   let outcome = 1044154;
   const ctx: ProfessionContext = {
@@ -88,6 +89,26 @@ function orderFixture() {
       f.world.gumps.set('order', { serial: 30, id: 2, packed: false, layout: '{ xmfhtmlgump 0 0 0 0 1045138 }' });
   };
   f.session.replyGump = (item, _id, button) => {
+    // The reward flow the shard asks for: bank the points, pick an affordable reward (200 + index),
+    // confirm it, and the item lands in the pack (aConfirmRewardGump).
+    if (item === 99 && button === 1) {
+      f.world.gumps.set('rewards', {
+        serial: 100,
+        id: 4,
+        packed: false,
+        layout: '{ xmfhtmlgump 0 0 0 0 1157082 } { button 35 110 2103 2104 200 0 0 }'
+      });
+      return;
+    }
+    if (item === 100 && button === 200) {
+      f.world.gumps.set('confirm', { serial: 101, id: 5, packed: false, layout: '{ xmfhtmlgump 0 0 0 0 1074974 }' });
+      return;
+    }
+    if (item === 101 && button === 2) {
+      f.world.entities.set(210, { serial: 210, kind: 'item', graphic: 0x13bb, parent: 10 });
+      f.world.addJournal({ serial: 1, name: '', cliloc: 1073621 });
+      return;
+    }
     if (button === 0) return;
     if (item === 30) {
       f.world.target = { id: 1, ground: false, flags: 0 };
@@ -119,12 +140,19 @@ function orderFixture() {
     const have = Number(property.arguments.split('\t')[1]);
     property.arguments = `#1025051\t${have + 1}`;
   };
-  f.session.context = async () => [{ cliloc: 3006152, flags: 0, index: 0 }];
+  // The shard offers both menus on a bulk-order vendor: the order menu and, on its own, the reward.
+  f.session.context = async () => [
+    { cliloc: 3006152, flags: 0, index: 0 },
+    { cliloc: 1155593, flags: 0, index: 1 }
+  ];
+  f.session.selectContext = (_serial, index) => {
+    if (index !== 1) return;
+    claims++;
+    f.world.gumps.set('points', { serial: 99, id: 3, packed: false, layout: '{ xmfhtmlgump 0 0 0 0 1157076 }' });
+  };
+  // Handing in the deed banks the gold and leaves the points pending: no gump, no reward yet.
   f.session.moveItem = async (item) => {
-    if (item === 30) {
-      f.world.entities.delete(30);
-      f.world.gumps.set('points', { serial: 99, id: 3, packed: false, layout: '{ xmfhtmlgump 0 0 0 0 1157076 }' });
-    }
+    if (item === 30) f.world.entities.delete(30);
   };
   return {
     ...f,
@@ -132,6 +160,7 @@ function orderFixture() {
     refill,
     messages,
     attempts: () => attempts,
+    claims: () => claims,
     refills: () => refills,
     setOutcome: (code: number) => {
       outcome = code;
@@ -155,7 +184,9 @@ test('an accepted order is prioritized, returns from the bank before each craft,
   expect(f.attempts()).toBe(2);
   expect(f.refills()).toBe(2);
   expect(f.world.entities.has(30)).toBe(false);
-  expect(f.messages.some((m) => m.includes('Turned in a bulk order'))).toBe(true);
+  expect(f.claims()).toBe(1);
+  expect(f.world.entities.has(210)).toBe(true);
+  expect(f.messages.some((m) => m.includes('reward claimed'))).toBe(true);
 }, 10000);
 
 test('exceptional pieces for a plain bulk order stay available for combining', async () => {

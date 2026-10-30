@@ -1,3 +1,5 @@
+import { hostileNotoriety } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 import type { WorldView } from '@gemwright/network/world';
 import type { Entity } from '@gemwright/network/world-types';
 
@@ -16,9 +18,9 @@ const itemReference = {
   value: { humanLike: false, candidates: [], aggressive: null }
 };
 const commands = new Map<number, 'buy' | 'sell' | 'bank'>([
-  [3006103, 'buy'],
-  [3006104, 'sell'],
-  [3006105, 'bank']
+  [Actions.buy, 'buy'],
+  [Actions.sell, 'sell'],
+  [Actions.bank, 'bank']
 ]);
 
 export function perceiveEntity(
@@ -92,7 +94,7 @@ export function perceiveEntity(
       confidence: 0.5,
       evidence: ['notoriety raises risk; does not establish intent']
     };
-  else if (!vendor && reference.value.aggressive === true && [3, 4, 5, 6].includes(entity.notoriety ?? 0))
+  else if (!vendor && reference.value.aggressive === true && hostileNotoriety.includes(entity.notoriety ?? 0))
     risk = {
       kind: 'inferred',
       value: 'caution',

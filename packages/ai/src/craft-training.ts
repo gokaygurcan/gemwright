@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 
+import { board, ingot } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
+import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { Actions, ShardCraft } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
@@ -104,7 +107,7 @@ export const tinkering: CraftSkill = {
   vendor: 'tinker',
   tools: new Set([0x1eb8, 0x1ebc]),
   toolPrice: 15,
-  material: 0x1bf2,
+  material: ingot,
   recipes: craftRecipes('Tinkering'),
   unitCost: 5
 };
@@ -114,7 +117,7 @@ export const carpentry: CraftSkill = {
   vendor: 'carpenter',
   tools: new Set([0x1034, 0x1035, 0x1028, 0x1029]),
   toolPrice: 20,
-  material: 0x1bd7,
+  material: board,
   recipes: craftRecipes('Carpentry'),
   unitCost: 3
 };
@@ -138,7 +141,7 @@ export type CraftContext = Pick<
   onBlocked?: (reason: 'materials' | 'tool' | 'station' | 'menu') => void;
 };
 
-// One vendor interaction (3006103 buy, 3006104 sell) at the first stop where it succeeds.
+// One vendor interaction (Actions.buy buy, Actions.sell sell) at the first stop where it succeeds.
 export async function atVendor(
   ctx: CraftContext,
   vendorType: ServiceType,
@@ -165,7 +168,7 @@ export async function atVendor(
   const elsewhere =
     // A Young resident of Haven cannot take a gate (haven.ts): other towns' shops are not trips it
     // can make, so they are not tried at all (the block used to repeat every turn).
-    !confinedToHaven(session) && (cliloc === 3006104 || funds >= 100)
+    !confinedToHaven(session) && (cliloc === Actions.sell || funds >= 100)
       ? alternatives.filter((shop) => !stops.some((stop) => stop.x === shop.x && stop.y === shop.y)).slice(0, 3)
       : [];
   // The shop landmark is the door; the vendor stands somewhere inside or beside it. The spawner data
@@ -206,7 +209,7 @@ export async function atVendor(
     .filter(
       (mobile) =>
         mobile.kind === 'mobile' &&
-        mobile.notoriety === 7 &&
+        mobile.notoriety === Notoriety.invulnerable &&
         mobile.position &&
         distance(position(), mobile.position) <= 60 &&
         !planned.some((visit) => distance(visit.point, mobile.position as { x: number; y: number }) <= 3)
@@ -243,7 +246,7 @@ export async function atVendor(
       await navigate(shop, 4);
       let heard = false;
       for (const mobile of [...session.world.entities.values()]) {
-        if (mobile.kind !== 'mobile' || mobile.notoriety !== 7 || !mobile.position) continue;
+        if (mobile.kind !== 'mobile' || mobile.notoriety !== Notoriety.invulnerable || !mobile.position) continue;
         if (distance(position(), mobile.position) > 18) continue;
         const menu = async () =>
           (await session.context(mobile.serial)).find((entry) => entry.cliloc === cliloc && !(entry.flags & 1));
@@ -314,15 +317,15 @@ export async function trainCraft(
     const bought = await atVendor(
       ctx,
       craft.vendor,
-      3006103,
+      Actions.buy,
       async (vendor) => {
-        const before = session.world.received.get(0x74) ?? 0;
+        const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
         session.world.buyOffers.clear();
-        const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006103);
+        const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.buy);
         if (!entry) return false;
         session.selectContext(vendor, entry.index);
         await session
-          .waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'tool stock', 2500)
+          .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'tool stock', 2500)
           .catch(() => {});
         const offer = [...session.world.buyOffers.values()]
           .flat()
@@ -428,7 +431,8 @@ export async function trainCraft(
     const before = new Set(carried(backpack).map((item) => item.serial));
     const seen = new Set(session.world.journal);
     const known = [...CREATED, ...FAILED, ...STOP];
-    const menus = () => (session.world.received.get(0xdd) ?? 0) + (session.world.received.get(0xb0) ?? 0);
+    const menus = () =>
+      (session.world.received.get(Opcode.compressedGump) ?? 0) + (session.world.received.get(Opcode.gump) ?? 0);
     const shown = menus();
     // ServUO shows the result as the re-sent menu's notice (CraftGump at 170,295) or as a message.
     const reply = () =>
@@ -444,8 +448,9 @@ export async function trainCraft(
     attempts++;
     if (STOP.includes(reply() ?? 0)) {
       const code = reply();
-      const reason = code === 1044267 ? 'station' : code === 1044038 ? 'tool' : 'materials';
-      if (code === 1044267) rejectSmithingStation(ctx);
+      const reason =
+        code === ShardCraft.stationMessage ? 'station' : code === ShardCraft.toolWornOut ? 'tool' : 'materials';
+      if (code === ShardCraft.stationMessage) rejectSmithingStation(ctx);
       ctx.onBlocked?.(reason);
       if (!ctx.onBlocked) failResidentGoal(session, `${craft.skill}: ${reason} (server reply ${code})`);
       log(`${craft.skill} stopped: ${reason} (server reply ${code})`);

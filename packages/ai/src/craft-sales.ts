@@ -1,10 +1,12 @@
+import { Actions } from '@gemwright/network/replies';
+
 import { atVendor, type CraftContext, type CraftSkill } from './craft-training';
 import { reservedFor } from './work-orders';
 
 export async function sellCrafted(ctx: CraftContext, craft: CraftSkill, made: Set<number>, backpack: number) {
   const { session } = ctx;
-  await atVendor(ctx, craft.vendor, 3006104, async (vendor) => {
-    const entry = (await session.context(vendor)).find((e) => e.cliloc === 3006104);
+  await atVendor(ctx, craft.vendor, Actions.sell, async (vendor) => {
+    const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.sell);
     if (!entry) return false;
     session.world.sellOffers.delete(vendor);
     session.selectContext(vendor, entry.index);

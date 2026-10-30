@@ -12,7 +12,6 @@ import type { Terrain } from './terrain';
 import { reachableFrom } from './unreachable';
 
 export { bandage, healPotion };
-export const curePotion = 0x0f07;
 export const graveyard = serviceLocation('Britain', 'graveyard');
 // A fighter's home town: its bank is the town point, and every service comes from that city, falling
 // back to Britain's when the city has none (world.json decides where fighters live).
@@ -53,6 +52,8 @@ export type Home = ReturnType<typeof homeOf>;
 export const ghosts = GHOST_BODIES;
 
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
+import { arrow as arrowGraphic, crossbowBolt } from '@gemwright/common/game/items';
+import { hostileNotoriety } from '@gemwright/network/opcodes';
 
 // Recognised graveyard undead bodies; per-type risk lives in fighter-prey.ts.
 import { prey } from './fighter-prey';
@@ -65,8 +66,8 @@ export const valuable = (graphic: number) =>
   (graphic >= 0x1b72 && graphic <= 0x1b7b) ||
   Object.values(families).some((ids) => ids.includes(graphic)) ||
   // Arrows and bolts: AOS puts missed ammunition in the target's pack, so archers recover it.
-  graphic === 0x0f3f ||
-  graphic === 0x1bfb ||
+  graphic === arrowGraphic ||
+  graphic === crossbowBolt ||
   // Spell scrolls: mages buy them back, and casters add new ones to their spellbook.
   (graphic >= 0x1f2d && graphic <= 0x1f6c);
 
@@ -103,8 +104,6 @@ export const meleeWeapons = new Set(
 export const familyOf = (graphic: number | undefined) =>
   graphic === undefined ? 'Wrestling' : ([...sets].find(([, ids]) => ids.has(graphic))?.[0] ?? 'Wrestling');
 export const weaponsFor = (template: CharacterTemplate) => sets.get(weaponSkill(template)) ?? new Set<number>();
-export const arrow = 0x0f3f;
-export const bolt = 0x1bfb;
 // Ammunition a ranged weapon consumes (BaseRanged.AmmoType): crossbows use bolts.
 export const ammoFor = (weapon: number | undefined) => rangedWeapon(weapon)?.ammo;
 
@@ -114,10 +113,10 @@ const passiveBodies = new Set([
 
 // Skips opponents this session could not legally reach; serials are session-scoped observations.
 export const huntable = (mobile: Entity, unreachable: Set<number>) =>
-  prey.has(mobile.graphic) && [3, 4, 5, 6].includes(mobile.notoriety ?? 0) && !unreachable.has(mobile.serial);
+  prey.has(mobile.graphic) && hostileNotoriety.includes(mobile.notoriety ?? 0) && !unreachable.has(mobile.serial);
 
 export function observedThreat(mobile: Entity, combatant: number | null = null): boolean {
-  if (mobile.kind !== 'mobile' || ![3, 4, 5, 6].includes(mobile.notoriety ?? 0)) return false;
+  if (mobile.kind !== 'mobile' || !hostileNotoriety.includes(mobile.notoriety ?? 0)) return false;
   if (mobile.serial === combatant || [4, 5, 6].includes(mobile.notoriety ?? 0)) return true;
   return !passiveBodies.has(mobile.graphic);
 }

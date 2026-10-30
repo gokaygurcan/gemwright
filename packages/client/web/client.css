@@ -35,7 +35,7 @@ canvas {
   touch-action: none;
 }
 canvas.game-ready {
-  cursor: none !important;
+  cursor: none;
   user-select: none;
   -webkit-user-select: none;
 }

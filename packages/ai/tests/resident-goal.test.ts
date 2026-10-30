@@ -210,3 +210,39 @@ test('an income alternative stays selected through its sale instead of switching
   chooseGoal(c, s, 151000);
   expect(c.workGoal?.last?.result).toBe('completed');
 });
+
+test('stale core work remains admissible while side income waits', () => {
+  const cp = checkpoint();
+  const state = { ...situation(), learning: false, coreStale: true };
+  const work = chooseGoal(cp, state, 1000);
+  expect(work).toMatchObject({ kind: 'earn', step: 'trade' });
+  blockGoal(cp, 'Primary method unavailable', 2000, state);
+  expect(chooseGoal(cp, state, 3000).step).toBe('wait');
+  // Losing a required tool still allows an income method that can restore the prerequisite.
+  state.ready = false;
+  state.evidence.funds = 0;
+  state.earningNeeded = true;
+  cp.workGoal = { failed: { equip: { until: 100_000, reason: 'No affordable tool' } } };
+  expect(chooseGoal(cp, state, 4000).step).toBe('income');
+});
+
+test('a wait does not fabricate recovery success or teach that recovery failed', () => {
+  const cp = checkpoint();
+  const state = { ...situation(), learning: false };
+  cp.workGoal = {
+    failed: {
+      earn: { until: 500_000, reason: 'Blocked trade' },
+      income: { until: 500_000, reason: 'Blocked income' }
+    }
+  };
+  const wait = chooseGoal(cp, state, 1000);
+  expect(wait.step).toBe('wait');
+  expect(chooseGoal(cp, state, 2000)).toBe(wait);
+  blockGoal(cp, 'Wait deadline reached', 130_000, state);
+  expect(cp.workGoal?.failed?.recover).toBeUndefined();
+  expect(cp.workGoal?.outcomes).toBeUndefined();
+  expect(cp.workGoal?.assumptions).toBeUndefined();
+  const next = chooseGoal(cp, state, 501_000);
+  expect(next).toMatchObject({ kind: 'earn', step: 'trade' });
+  expect(cp.workGoal?.last?.result).not.toBe('completed');
+});

@@ -1,4 +1,5 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
+import { board, logPile } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';
 
@@ -36,8 +37,7 @@ import { learnedPlaceCost } from './strategy-learning';
 import { Terrain } from './terrain';
 import { reachRegion, workArea } from './work-areas';
 
-const log = 0x1bdd;
-const board = 0x1bd7;
+const log = logPile;
 const woodSet = new Set([board]);
 // Trees regrow 20-30 minutes after depletion (Lumberjacking.cs MinRespawn/MaxRespawn).
 const REGROW = 30 * 60_000;

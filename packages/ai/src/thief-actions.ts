@@ -1,4 +1,5 @@
-import { gold } from '@gemwright/common/game/items';
+import { gold, reagents } from '@gemwright/common/game/items';
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { Entity } from '@gemwright/network/world';
 
 import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
@@ -41,7 +42,6 @@ export interface ThiefActions {
 }
 
 // The thief's own possessions, never banked: a spellbook and the magery reagents training buys.
-const keep = new Set([0x0efa, 0x0f84, 0x0f85, 0x0f86, 0x0f88, 0x0f8d, 0x0f8c, 0x0f7b]);
 const TRIP_MS = 5 * 60_000;
 const TRIP_THEFTS = 2;
 const TRIP_ATTEMPTS = 6;
@@ -103,7 +103,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
   let patrol = 0;
 
   // Stolen loot: everything the thief carries that is not a reagent or its spellbook.
-  const loot = (ctx: ProfessionContext) => ctx.carried().filter((item) => !keep.has(item.graphic));
+  const loot = (ctx: ProfessionContext) => ctx.carried().filter((item) => !reagents.has(item.graphic));
   const homeAnchor = (ctx: ProfessionContext) => pickLocation(ctx.city, 'banker');
 
   // Gold is lost on death and vendors charge the bank directly, so nothing worth keeping stays in
@@ -117,7 +117,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
         await ctx.navigate(home, 4);
       }
       for (const mobile of session.world.entities.values()) {
-        if (mobile.kind !== 'mobile' || mobile.notoriety !== 7 || !mobile.position) continue;
+        if (mobile.kind !== 'mobile' || mobile.notoriety !== Notoriety.invulnerable || !mobile.position) continue;
         if (distance(ctx.position(), mobile.position) > 12) continue;
         if (!(await offersBank(session, mobile.serial))) continue;
         let box: number;
@@ -163,8 +163,8 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
   // one waits for the flag to clear. Each town vendor kind is offered what it buys.
   async function sellTakings(ctx: ProfessionContext): Promise<void> {
     const self = ctx.session.world.entities.get(ctx.serial);
-    if (self?.notoriety !== 1) return;
-    const takings = (item: Entity) => item.graphic !== gold && !keep.has(item.graphic);
+    if (self?.notoriety !== Notoriety.innocent) return;
+    const takings = (item: Entity) => item.graphic !== gold && !reagents.has(item.graphic);
     // Remembers the best offer per item kind; sells where the offer is within a tenth of the best
     // known, so a gem waits for the jeweler rather than going cheap to the first vendor asked.
     ctx.checkpoint.prices ??= {};

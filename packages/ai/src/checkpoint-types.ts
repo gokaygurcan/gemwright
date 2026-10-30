@@ -14,6 +14,9 @@ export interface Checkpoint {
   mount?: MountMemory;
   // fullLoads: loads that filled the pack (pack-animal.ts buys one only after a few).
   packAnimal?: MountMemory & { load?: number; searches?: number; abandoned?: number; fullLoads?: number };
+  // A game master's GEMWRIGHT::STOP (gm.ts): set until GEMWRIGHT::CONTINUE or the staff member
+  // leaves the resident's view.
+  halt?: { at: number; by: number; name?: string };
   // Last banker-reported balance; vendors on the verified profile can charge it directly.
   funds?: { bank: number; at: number };
   // Side trade (side-trade.ts): funds at the last check, and until when it works the side trade.
@@ -36,7 +39,13 @@ export interface Checkpoint {
   // A corpse left in a dungeon after a death nobody could resurrect (dungeon-death.ts).
   dungeonCorpse?: { dungeon: string; x: number; y: number; z: number; diedAt: string; attempts: number };
   // The resident's current life phase and when it ends (life.ts); `city` is a visit's destination.
-  life?: { phase: string; until: number; city?: string };
+  life?: {
+    phase: string;
+    until: number;
+    city?: string;
+    decision?: import('./decisions').DecisionPick;
+    before?: import('./work-evidence').WorkEvidence;
+  };
   // Best price a vendor kind has offered per item graphic (a thief's takings, thief-actions.ts).
   prices?: Record<string, { service: string; price: number }>;
   // Exceptional crafted pieces kept from sale and banked (miner-crafting.ts, craft-training.ts).
@@ -121,6 +130,7 @@ export interface Checkpoint {
       attempts: number;
       outcome?: string;
       locationSource?: 'death-status' | 'last-seen';
+      retryAt?: number;
     };
     deathSite?: { x: number; y: number; z: number };
     corpse?: { serial: number; x: number; y: number; z: number };

@@ -1,11 +1,13 @@
+import { curePotion } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { Healing, ShardMessage } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { supportPreference } from './aid';
 import { combatCapability } from './combat-capability';
 import { assessCombat } from './combat-risk';
 import { bandageAdvice, encounterAdvice, rememberExperience } from './experience';
-import { bandage, curePotion, type FighterContext, healPotion, observedThreat, Retreat } from './fighter-context';
+import { bandage, type FighterContext, healPotion, observedThreat, Retreat } from './fighter-context';
 import { recognised } from './fighter-prey';
 import { allyUnderPressure, groupMember, refreshAllyHealth } from './group-awareness';
 import { distance } from './navigation';
@@ -45,7 +47,10 @@ export function createFighterCombat(ctx: FighterContext) {
       : session.world.journal;
     const completion = entries.find(
       (entry) =>
-        Date.parse(entry.at) >= bandageStartedAt && [500968, 500969, 500962, 500963].includes(entry.cliloc ?? 0)
+        Date.parse(entry.at) >= bandageStartedAt &&
+        [Healing.barelyHelp, ShardMessage.bandagesApplied, Healing.diedMidway, Healing.outOfRange].includes(
+          entry.cliloc ?? 0
+        )
     );
     if (completion || Date.now() > bandageActiveUntil) {
       if (bandageForHealing) {
@@ -55,7 +60,7 @@ export function createFighterCombat(ctx: FighterContext) {
           at: Date.now(),
           map: session.world.map ?? 1,
           ...position(),
-          outcome: completion?.cliloc === 500969 ? 'success' : completion ? 'failure' : 'unknown',
+          outcome: completion?.cliloc === ShardMessage.bandagesApplied ? 'success' : completion ? 'failure' : 'unknown',
           skill: session.world.skills.get(skillId('Healing'))?.value ?? null
         });
         ctx.persist();
@@ -73,7 +78,7 @@ export function createFighterCombat(ctx: FighterContext) {
           ctx.persist();
         }
         bandagedAlly = undefined;
-      } else if (completion?.cliloc === 500969) stats.completedBandages++;
+      } else if (completion?.cliloc === ShardMessage.bandagesApplied) stats.completedBandages++;
       else stats.failedBandages++;
       bandageActiveUntil = 0;
       bandageUntil = Date.now() + 500;

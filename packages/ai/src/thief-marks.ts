@@ -1,4 +1,4 @@
-import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { HUMAN_ELF_BODIES, PACK_ANIMAL_BODIES } from '@gemwright/common/game/bodies';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity, Position, WorldView } from '@gemwright/network/world';
 
@@ -23,7 +23,6 @@ export const refuse = new Set([0x1da1, 0x1da2, 0x1d9f, 0x1da3, 0x1da4, 0x0f7e]);
 const humans = HUMAN_ELF_BODIES;
 // Pack horse and pack llama: their StrongBackpack is the only creature pack Container_Snoop opens
 // to a player; every other creature pack is refused without a reply.
-const packAnimals = new Set([0x123, 0x124]);
 
 export type TheftGround = (typeof cemeteries)[number];
 
@@ -115,7 +114,7 @@ export function snoopTargets(
 ): { owner: Entity; pack: Entity }[] {
   return [...world.entities.values()].flatMap((entity) => {
     if (entity.kind !== 'mobile' || entity.serial === serial || !entity.position) return [];
-    if (humans.has(entity.graphic) || !packAnimals.has(entity.graphic) || peers?.has(entity.serial)) return [];
+    if (humans.has(entity.graphic) || !PACK_ANIMAL_BODIES.has(entity.graphic) || peers?.has(entity.serial)) return [];
     const pack = world.childrenOf(entity.serial).find((item) => item.layer === Layer.Backpack);
     return pack ? [{ owner: entity, pack }] : [];
   });

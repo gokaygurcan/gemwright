@@ -1,4 +1,8 @@
+import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { arrow, bandage } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { hostileNotoriety } from '@gemwright/network/opcodes';
+import { Healing, ShardAction, ShardMessage } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { recentlyHurt, takingUrgentAction, urgentAction } from './action-purpose';
@@ -13,13 +17,10 @@ import type { ProfessionContext } from './profession';
 import { rangedGraphics, rangedWeapon } from './ranged-weapons';
 import { buyFrom } from './vendor-trade';
 
-const bandage = 0x0e21;
 const bows = rangedGraphics;
-const arrow = 0x0f3f;
 const restocked = new WeakMap<ProfessionContext, number>();
 const NOT_DAMAGED = 500955; // That being is not damaged!
 // Human and elf bodies: players and NPCs are never sent against.
-const humanoid = new Set([400, 401, 605, 606]);
 // An unseen companion is missing, not confirmed dead. After five minutes the resident moves on.
 const LOST_AFTER = 5 * 60_000;
 const healingUntil = new WeakMap<ProfessionContext, number>();
@@ -52,10 +53,21 @@ export async function veterinary(ctx: ProfessionContext, pet: Entity) {
     ctx.check();
     const observed = session.world.entities.get(pet.serial);
     const reply = session.world.journal.find(
-      (entry) => !seen.has(entry) && [NOT_DAMAGED, 500969, 500968, 500962, 500963].includes(entry.cliloc ?? 0)
+      (entry) =>
+        !seen.has(entry) &&
+        [
+          NOT_DAMAGED,
+          ShardMessage.bandagesApplied,
+          Healing.barelyHelp,
+          Healing.diedMidway,
+          Healing.outOfRange
+        ].includes(entry.cliloc ?? 0)
     );
     if (reply || (before !== undefined && observed?.hits !== undefined && observed.hits > before)) {
-      if (reply?.cliloc === 500969 || (before !== undefined && observed?.hits !== undefined && observed.hits > before))
+      if (
+        reply?.cliloc === ShardMessage.bandagesApplied ||
+        (before !== undefined && observed?.hits !== undefined && observed.hits > before)
+      )
         ctx.progress.bandaged = (ctx.progress.bandaged ?? 0) + 1;
       return;
     }
@@ -115,7 +127,7 @@ export function companion(ctx: ProfessionContext) {
 // Fights through the companion (ServUO BaseAI owner orders): "all kill" at a monster near the tamer,
 // bandaging the pet when it drops below half health, retreating with it when the tamer itself is
 // badly hurt, then "all follow me". Monsters are grey like animals on ServUO, so tamable bodies
-// (`animal`) and humanoids are left alone. Returns whether a fight took place.
+// (`animal`) and HUMAN_ELF_BODIESs are left alone. Returns whether a fight took place.
 async function petEncounter(ctx: ProfessionContext, animal: (mobile: Entity) => boolean): Promise<boolean> {
   const { session, status } = ctx;
   const pet = companion(ctx);
@@ -131,8 +143,8 @@ async function petEncounter(ctx: ProfessionContext, animal: (mobile: Entity) => 
         m.serial !== pet.serial &&
         m.serial !== ctx.serial &&
         !!m.position &&
-        [3, 4, 5, 6].includes(m.notoriety ?? 0) &&
-        !humanoid.has(m.graphic) &&
+        hostileNotoriety.includes(m.notoriety ?? 0) &&
+        !HUMAN_ELF_BODIES.has(m.graphic) &&
         !animal(m) &&
         !session.world.deaths.has(m.serial) &&
         petFightReadiness(
@@ -156,7 +168,7 @@ async function petEncounter(ctx: ProfessionContext, animal: (mobile: Entity) => 
   const ranged = rangedWeapon(ctx.session.world.childrenOf(ctx.serial).find((item) => bows.has(item.graphic))?.graphic);
   ctx.phase('pet-combat', `Sending ${memo.name} at ${hostile.name ?? hostile.serial}`);
   const order = (await session.context(pet.serial).catch(() => [])).find(
-    (entry) => entry.cliloc === 3006111 && !(entry.flags & 1)
+    (entry) => entry.cliloc === ShardAction.petAttack && !(entry.flags & 1)
   );
   if (!order) return false;
   session.selectContext(pet.serial, order.index);

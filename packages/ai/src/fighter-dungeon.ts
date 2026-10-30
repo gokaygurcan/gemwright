@@ -1,3 +1,4 @@
+import { hostileNotoriety } from '@gemwright/network/opcodes';
 import type { Entity } from '@gemwright/network/world';
 
 import type { DecisionCoordinator } from './decisions';
@@ -57,7 +58,7 @@ export function fighterDungeon(
         .filter(
           (m) =>
             recognised(m.graphic) &&
-            [3, 4, 5, 6].includes(m.notoriety ?? 0) &&
+            hostileNotoriety.includes(m.notoriety ?? 0) &&
             !deps.unreachable.has(m.serial) &&
             !ignored.has(m.serial) &&
             !!m.position &&

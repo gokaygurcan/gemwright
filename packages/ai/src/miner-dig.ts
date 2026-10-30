@@ -1,4 +1,6 @@
+import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { ore } from '@gemwright/common/game/items';
+import { Mining, ShardCraft, ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -51,6 +53,10 @@ export async function digSite(
     }
     const last = session.world.journal.at(-1);
     const oreBefore = oreIn(dig.carried(dig.backpack));
+    // A shovel only reaches two tiles, and only a real rock or cave floor can be dug at all: walk to
+    // the site before using the tool instead of hitting it from across the room.
+    if (Math.max(Math.abs(position().x - dig.site.x), Math.abs(position().y - dig.site.y)) > 2)
+      await navigate({ x: dig.site.x, y: dig.site.y, z: dig.site.z }, 1).catch(() => {});
     session.use(dig.tool);
     await session.waitFor(() => session.world.target !== null, 'mining tool cursor', 4000, { resource: 'target' });
     const tile = dig.site.graphic ? terrain.tile(dig.site.graphic, true) : null;
@@ -58,7 +64,7 @@ export async function digSite(
       serial: 0,
       x: dig.site.x,
       y: dig.site.y,
-      z: dig.site.z + (tile && tile.flags & 0x200 ? tile.height : 0),
+      z: dig.site.z + (tile && tile.flags & TileFlag.Surface ? tile.height : 0),
       graphic: dig.site.graphic
     });
     attempts++;
@@ -67,13 +73,33 @@ export async function digSite(
     const since = last ? session.world.journal.slice(session.world.journal.indexOf(last) + 1) : session.world.journal;
     const feedback = since.filter((entry) => entry.cliloc !== undefined);
     log(`attempt ${start + attempts}: ${feedback.map((entry) => entry.cliloc).join('; ') || 'no localized feedback'}`);
-    if (feedback.some((entry) => [503040, 503042, 500446, 501862, 501863, 500237].includes(entry.cliloc ?? 0))) {
-      if (feedback.some((entry) => [503040, 503042].includes(entry.cliloc ?? 0)))
+    // Mining.cannotMineThere/Mining.cannotMineThat: the shard refuses the tile ("You can't mine there/that") — not a mine at all.
+    // Mining.cannotMineThat and Mining.cannotMineThere mean the same thing from our side, and neither is worth another swing.
+    if (feedback.some((entry) => [Mining.cannotMineThere, Mining.cannotMineThat].includes(entry.cliloc ?? 0))) {
+      exhausted.add(`${dig.site.x >> 3},${dig.site.y >> 3}`);
+      exhausted.add(`tile:${dig.site.x},${dig.site.y}`);
+      log(`No mine at ${dig.site.x},${dig.site.y}; the shard refused the tile`);
+      break;
+    }
+    if (feedback.some((entry) => entry.cliloc === Mining.outOfRange)) {
+      // Moved out of reach mid-dig: walk back once and keep the vein.
+      await navigate({ x: dig.site.x, y: dig.site.y, z: dig.site.z }, 1).catch(() => {});
+      continue;
+    }
+    if (
+      feedback.some((entry) =>
+        [Mining.noMetal, Mining.alreadyMined, ShardMessage.tooFar, ShardMessage.targetNotSeen].includes(
+          entry.cliloc ?? 0
+        )
+      )
+    ) {
+      if (feedback.some((entry) => [Mining.noMetal, Mining.alreadyMined].includes(entry.cliloc ?? 0)))
         exhausted.add(`${dig.site.x >> 3},${dig.site.y >> 3}`);
       else exhausted.add(`tile:${dig.site.x},${dig.site.y}`);
       break;
     }
-    if (feedback.some((entry) => entry.cliloc === 1044038) || !session.world.entities.has(dig.tool)) break;
+    if (feedback.some((entry) => entry.cliloc === ShardCraft.toolWornOut) || !session.world.entities.has(dig.tool))
+      break;
     if (!feedback.length)
       throw new Error('Mining produced no interpretable feedback; stopping instead of repeating blindly');
     if (feedback.some((entry) => entry.cliloc === 1010481)) {

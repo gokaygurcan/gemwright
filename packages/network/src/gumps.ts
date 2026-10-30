@@ -1,7 +1,9 @@
 import { inflateSync } from 'node:zlib';
 
+import { Opcode } from './opcodes';
+
 export function gumpLayout(packet: Buffer): string {
-  if (packet[0] === 0xb0) {
+  if (packet[0] === Opcode.gump) {
     const length = packet.readUInt16BE(19);
     if (21 + length > packet.length) throw new Error('Truncated gump layout');
     return packet
@@ -20,6 +22,26 @@ export function gumpLayout(packet: Buffer): string {
 
 export function gumpCommands(layout: string): string[][] {
   return [...layout.matchAll(/\{([^{}]*)\}/g)].map((match) => (match[1] ?? '').trim().split(/\s+/));
+}
+
+// Whether a gump reply uses the controls that gump actually offered: a reply button is { button x y
+// normal pressed id type param } with type 0 (type 1 turns a page), a switch belongs to a radio and
+// a text to a textentry. Button 0 always closes, as the client's own close box does.
+export function offersReply(
+  layout: string,
+  button: number,
+  switches: readonly number[],
+  texts: readonly { id: number }[]
+): boolean {
+  const commands = gumpCommands(layout);
+  const offered = (kind: string, at: number, value: number) =>
+    commands.some((command) => command[0] === kind && Number(command[at]) === value);
+  return (
+    (button === 0 ||
+      commands.some((command) => command[0] === 'button' && command[6] === '0' && Number(command[5]) === button)) &&
+    switches.every((value) => offered('radio', 6, value)) &&
+    texts.every((entry) => offered('textentry', 6, entry.id))
+  );
 }
 
 // The Trammel page of a public moongate menu: the radio beside a destination's localized label.

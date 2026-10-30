@@ -22,31 +22,37 @@ export function planningContext(ctx: ProfessionContext, evidence: WorkEvidence):
     (a, b) => distance(ctx.position(), a) - distance(ctx.position(), b)
   )[0];
   const escapeKnown = !!bank && distance(ctx.position(), bank) <= 18 && caution === 0 && !immediate;
-  const equipment = ctx.session.world
+  const _equipment = ctx.session.world
     .childrenOf(ctx.serial)
     .filter((item) => item.layer !== Layer.Backpack && item.layer !== Layer.Bank)
     .map((item) => [item.layer, item.graphic, item.hue ?? 0])
     .sort((a, b) => Number(a[0]) - Number(b[0]));
+  // What a remembered failure is filed under. It must be stable across an errand: carried graphics,
+  // exact equipment and the tile the resident stood on change constantly, and hashing them made a
+  // learned obstacle vanish the moment the resident shopped or picked something up. Where it is,
+  // what it was doing and with what means (funds band, skill bands) are the durable parts.
+  const area = townAt(ctx.position(), ctx.city);
+  const coarse = createHash('sha256')
+    .update(JSON.stringify([ctx.session.world.map, area, ctx.template.archetype?.id]))
+    .digest('hex');
   const condition = createHash('sha256')
     .update(
       JSON.stringify([
         ctx.session.world.map,
-        [Math.floor(ctx.position().x / 64), Math.floor(ctx.position().y / 64)],
+        area,
         ctx.template.archetype?.id,
         evidence.bankKnown,
         Math.floor(Math.log2(evidence.funds + 1)),
         Object.entries(evidence.skills)
           .sort()
-          .map(([id, value]) => [id, Math.floor(value / 10)]),
-        equipment,
-        ctx.checkpoint.companion?.serial ?? null,
-        [...new Set(ctx.carried().map((item) => item.graphic))].sort((a, b) => a - b)
+          .map(([id, value]) => [id, Math.floor(value / 10)])
       ])
     )
     .digest('hex');
   const held = selfNow(ctx.session, ctx.checkpoint, ctx.template);
   return {
     condition,
+    coarse,
     evidence: [
       {
         id: 'perception:health',

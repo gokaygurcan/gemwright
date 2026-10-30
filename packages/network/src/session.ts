@@ -6,10 +6,14 @@ import { purchaseItem, requestAnimalPurchase } from './commerce';
 import type { ConnectionConfig } from './connection';
 import { timed } from './diagnostics';
 import { ExecutionBoundary } from './execution-boundary';
-import { gumpCommands } from './gumps';
+import { offersReply } from './gumps';
 import { dropAtFeet, equipItem, giveToMobile, moveItem } from './items';
 import * as packets from './packets';
 import { refreshCharacterStatus, requestContext, resynchronize, SessionTiming } from './session-observation';
+
+// MessageType.Emote (ServUO PacketHandlers): an overhead emote, not speech.
+const EMOTE = 0x02;
+
 import { requestSkills } from './skill-query';
 import { tradeAccept, tradeCancel } from './trade';
 import { Transport } from './transport';
@@ -282,6 +286,13 @@ export class PlayerSession {
     this.send(packets.speech(message));
   }
 
+  // Overhead emote (MessageType.Emote, 0x02): the client renders it as *text*, and residents skip
+  // the type when listening (conversation.ts), so debug output is never answered. Debug only.
+  emote(message: string): void {
+    this.requireReady();
+    this.send(packets.speech(message.slice(0, 200), EMOTE));
+  }
+
   replyGump(
     serial: number,
     id: number,
@@ -292,15 +303,7 @@ export class PlayerSession {
     this.requireReady();
     const gump = this.world.gumps.get(`${serial}:${id}`);
     if (!gump) throw new Error('Gump is not currently open');
-    const commands = gumpCommands(gump.layout);
-    const offered = (kind: string, at: number, value: number) =>
-      commands.some((command) => command[0] === kind && Number(command[at]) === value);
-    if (
-      !commands.some((command) => command[0] === 'button' && command[5] === '1' && Number(command[7]) === button) ||
-      switches.some((value) => !offered('radio', 6, value)) ||
-      texts.some((entry) => !offered('textentry', 6, entry.id))
-    )
-      throw new Error('Gump reply must use offered controls');
+    if (!offersReply(gump.layout, button, switches, texts)) throw new Error('Gump reply must use offered controls');
     this.send(packets.gumpReply(serial, id, button, switches, texts));
     this.world.gumps.delete(`${serial}:${id}`);
   }

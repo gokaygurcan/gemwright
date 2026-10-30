@@ -1,6 +1,16 @@
 import { Tiledata } from '@gemwright/common/assets/tiledata';
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
-import { isDeathRobe, ore } from '@gemwright/common/game/items';
+import {
+  arrow,
+  board,
+  crossbowBolt,
+  fish,
+  hides,
+  ingot,
+  isDeathRobe,
+  logPile,
+  ore
+} from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -44,14 +54,14 @@ const kinds: [number, number][] = [
   [0x0e21, 0x0e21], // bandages
   [0x0f06, 0x0f0d], // potions
   [0x1f2d, 0x1f6c], // spell scrolls
-  [0x0f3f, 0x0f3f], // arrows
-  [0x1bfb, 0x1bfb], // bolts
-  [0x1bf2, 0x1bf2], // ingots
+  [arrow, arrow], // arrows
+  [crossbowBolt, crossbowBolt], // bolts
+  [ingot, ingot], // ingots
   [0x19b7, 0x19ba], // ore
-  [0x1bd7, 0x1bd7], // boards
-  [0x1bdd, 0x1bdd], // logs
+  [board, board], // boards
+  [logPile, logPile], // logs
   [0x1766, 0x1767], // cloth and uncut cloth
-  [0x1078, 0x1079], // hides
+  [Math.min(...hides), Math.max(...hides)], // hides
   [0x1081, 0x1081], // leather
   [0x0f95, 0x0f9c], // bolts of cloth
   // Things any shop buys back or a resident's work uses (ServUO SB* sell lists).
@@ -69,7 +79,7 @@ const kinds: [number, number][] = [
   [0x1bd4, 0x1bd4], // shafts
   [0x0e9c, 0x0e9e], // drums and tambourines
   [0x0eb1, 0x0eb3], // harps and lutes
-  [0x09cc, 0x09cf], // fish
+  [Math.min(...fish), Math.max(...fish)], // fish
   [0x1f14, 0x1f14] // recall runes
 ];
 // Items this session could not reach or the server refused; never tried again.

@@ -1,4 +1,6 @@
 import { hatchets } from '@gemwright/common/game/items';
+import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -13,9 +15,9 @@ import type { Checkpoint } from './store';
 // replacement hatchet from the town blacksmith.
 export { hatchets };
 
-// A vendor's enabled context entry (3006103 buy, 3006104 sell); only vendors (notoriety 7) are asked.
+// A vendor's enabled context entry (Actions.buy buy, Actions.sell sell); only vendors (notoriety 7) are asked.
 export const vendorMenu = async (session: PlayerSession, mobile: Entity, cliloc: number) =>
-  (mobile.notoriety === 7 ? await session.context(mobile.serial).catch(() => []) : []).find(
+  (mobile.notoriety === Notoriety.invulnerable ? await session.context(mobile.serial).catch(() => []) : []).find(
     (entry) => entry.cliloc === cliloc && !(entry.flags & 1)
   );
 
@@ -61,16 +63,16 @@ export async function buyHatchetFrom(
       continue;
     for (const mobile of [...session.world.entities.values()]) {
       if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-      const entry = await vendorMenu(session, mobile, 3006103);
+      const entry = await vendorMenu(session, mobile, Actions.buy);
       if (!entry) continue;
       await approachVendor({ session, terrain, position, navigate, check, serial }, mobile.serial);
-      const before = session.world.received.get(0x74) ?? 0;
+      const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
       session.world.buyOffers.clear();
-      const current = await vendorMenu(session, mobile, 3006103);
+      const current = await vendorMenu(session, mobile, Actions.buy);
       if (!current) continue;
       session.selectContext(mobile.serial, current.index);
       await session
-        .waitFor(() => (session.world.received.get(0x74) ?? 0) > before, 'smith stock', 2500)
+        .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'smith stock', 2500)
         .catch(() => {});
       const offer = [...session.world.buyOffers.values()]
         .flat()

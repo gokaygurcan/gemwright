@@ -11,3 +11,7 @@ export class InteractionInterrupt extends Error {
 export class ActionBusy extends Error {}
 export class ActionTimeout extends Error {}
 export class ActionInterrupted extends Error {}
+
+// A deliberate session break (session-habits.ts): the run ends on purpose, and must not be
+// restarted by the supervisor or re-logged-in by the population until the habit's offline window.
+export const SESSION_BREAK: unique symbol = Symbol('gemwright.session-break');

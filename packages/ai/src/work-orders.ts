@@ -21,7 +21,7 @@ const aliases: Record<string, Good> = {
   boards: 'boards',
   arrow: 'arrows',
   arrows: 'arrows',
-  bolt: 'bolts',
+  crossbowBolt: 'bolts',
   bolts: 'bolts',
   cloth: 'cloth',
   bandage: 'bandages',

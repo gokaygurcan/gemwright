@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
 
+// How far a resident walks to a place before taking the gate instead. One value, one place.
+export const WALKING_LIMIT = 300;
+
 // Gameplay thresholds in one file (packages/ai/tuning.json), so tuning from what the pulls show
 // needs no code change. Read once at start; a deploy carries a new copy.
 interface Tuning {

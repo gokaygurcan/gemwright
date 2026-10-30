@@ -290,3 +290,87 @@ export const weapons: Readonly<Record<'Swordsmanship' | 'Fencing' | 'Mace Fighti
     0x2d31 // wild staff
   ]
 };
+
+// Common goods the residents move, sell and wear.
+export const ingot = 0x1bf2;
+export const board = 0x1bd7;
+export const logPile = 0x1bdd;
+export const crossbowBolt = 0x1bfb;
+export const corpse = 0x2006;
+export const bulkOrderDeed = 0x2258;
+export const moongate = 0x0f6c;
+
+// Item-property labels the AI reads. Which properties make a piece valuable is policy (the AI's
+// item-quality.ts); the numbers are the shard's vocabulary.
+export const ItemProperty = {
+  exceptional: 1060636,
+  artifact: 1061078,
+  blessed: 1038021,
+  // The labels fighter-gear.ts and inventory-use.ts read to decide what a piece is worth.
+  durability: 1060639, // durability ~1_val~ / ~2_val~
+  weaponDamage: 1061168, // weapon damage ~1_val~ - ~2_val~
+  weaponSpeed: 1061167, // weapon speed ~1_val~
+  strengthRequirement: 1061170, // strength requirement ~1_val~
+  twoHanded: 1061171, // two-handed weapon
+  swingSpeedIncrease: 1060486, // swing speed increase ~1_val~%
+  corpseOf: 1046414 // the remains of ~1_NAME~
+} as const;
+
+// The smallest ore pile: ServUO smelts it only when two or more are held together.
+export const smallOrePile = 0x19b7;
+export const cloth = 0x1766;
+export const uncutCloth = 0x1767;
+export const boltOfCloth = 0x0f95;
+
+// Containers inside a pack, opened to see what they hold.
+export const backpack = 0x0e75;
+export const bag = 0x0e76;
+export const pouch = 0x0e79;
+export const leatherPouch = 0x09b0;
+export const containers: ReadonlySet<number> = new Set([backpack, bag, pouch, leatherPouch]);
+
+// Goods that come in two facing art variants; both are the same item.
+export const logs: ReadonlySet<number> = new Set([0x1bdd, 0x1be0]);
+export const boards: ReadonlySet<number> = new Set([0x1bd7, 0x1bd8]);
+export const hides: ReadonlySet<number> = new Set([0x1078, 0x1079]);
+export const sand: ReadonlySet<number> = new Set([0x11ea, 0x11eb]);
+
+// Tailor's scissors, both facings.
+export const scissors: ReadonlySet<number> = new Set([0x0f9e, 0x0f9f]);
+
+// The BaseAxe weapon family (pickaxes included): a miner always carries a valid Arms Lore target.
+export const axeWeapons: ReadonlySet<number> = new Set([
+  0x0e85, 0x0e86, 0x0f43, 0x0f44, 0x0f49, 0x0f4a, 0x13b9, 0x13ba, 0x0f51, 0x0f52, 0x1b72, 0x1b73
+]);
+
+// A spellbook (magery and inscription use the same graphic) and an empty bottle.
+export const spellbook = 0x0efa;
+export const bottle = 0x0f0e;
+
+// Potions and the raw steak a fish carves into.
+export const curePotion = 0x0f07;
+export const poisonPotion = 0x0f0a;
+export const rawSteak = 0x097a; // raw fish steak
+
+// Everything a fisher hauls in: plain fish, the raw steak a fish carves into, and the High Seas fish
+// (Fish.cs BaseHighseasFish), which no shop buys whole but each carves into four steaks.
+export const fish: ReadonlySet<number> = new Set([
+  0x09cc,
+  0x09cd,
+  0x09ce,
+  0x09cf,
+  0x097a, // raw fish steak
+  0x4302,
+  0x4303,
+  0x4304,
+  0x4305,
+  0x4306,
+  0x4307,
+  0x44c3,
+  0x44c4,
+  0x44c5,
+  0x44c6
+]);
+
+// Cutting blades: daggers (both facings), the butcher knife and the skinning knife.
+export const blades: ReadonlySet<number> = new Set([0x0f51, 0x0f52, 0x13f6, 0x0ec4]);

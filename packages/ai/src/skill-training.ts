@@ -1,5 +1,8 @@
-import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { HORSE_BODIES, HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { axeWeapons } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
+import { Notoriety } from '@gemwright/network/opcodes';
+import { ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -14,11 +17,7 @@ import { distance } from './navigation';
 import { practiseInscription, practiseNecromancy } from './spell-practice';
 import { buyFrom } from './vendor-trade';
 
-const TOO_SOON = 500118; // You must wait a few moments to use another skill.
 // Pickaxes are BaseAxe weapons in ServUO, so a miner always carries a valid Arms Lore target.
-const ARMS = new Set([0x0e85, 0x0e86, 0x0f43, 0x0f44, 0x0f49, 0x0f4a, 0x13b9, 0x13ba, 0x0f51, 0x0f52, 0x1b72, 0x1b73]);
-const HUMANS = HUMAN_ELF_BODIES;
-const HORSES = new Set([0xc8, 0xe2, 0xe4, 0xcc]);
 
 export interface PracticeContext {
   session: PlayerSession;
@@ -52,25 +51,25 @@ const others = (ctx: PracticeContext, bodies?: Set<number>) => {
     (m) =>
       m.kind === 'mobile' &&
       m.serial !== world.serial &&
-      m.notoriety !== 7 &&
+      m.notoriety !== Notoriety.invulnerable &&
       (!bodies || bodies.has(m.graphic)) &&
       !!m.position &&
       !!here &&
       Math.max(Math.abs(m.position.x - here.x), Math.abs(m.position.y - here.y)) <= 8
   );
 };
-const studied = (ctx: PracticeContext) => [...others(ctx, HORSES), ...others(ctx, HUMANS)];
+const studied = (ctx: PracticeContext) => [...others(ctx, HORSE_BODIES), ...others(ctx, HUMAN_ELF_BODIES)];
 
 const practices: Record<string, Practice> = {
   ArmsLore: {
     skill: 'ArmsLore',
     delay: 1000,
-    target: (ctx) => ctx.items().filter((i) => ARMS.has(i.graphic)),
+    target: (ctx) => ctx.items().filter((i) => axeWeapons.has(i.graphic)),
     refused: [500352]
   },
   Anatomy: { skill: 'Anatomy', delay: 1000, target: studied, refused: [500324, 500326] },
   EvalInt: { skill: 'EvalInt', delay: 1000, target: studied, refused: [500324, 500326] },
-  AnimalLore: { skill: 'AnimalLore', delay: 1000, target: (ctx) => others(ctx, HORSES) },
+  AnimalLore: { skill: 'AnimalLore', delay: 1000, target: (ctx) => others(ctx, HORSE_BODIES) },
   Hiding: { skill: 'Hiding', delay: 10000, target: 'none' },
   DetectHidden: { skill: 'DetectHidden', delay: 10000, target: 'ground' },
   Stealth: { skill: 'Stealth', delay: 10000, target: 'none', before: 'Hiding' },
@@ -109,10 +108,10 @@ export async function practiseSkill(ctx: PracticeContext, practice: Practice) {
     try {
       if (practice.target === 'none') {
         await session.waitFor(() => feedback() !== undefined, `${practice.skill} result`, 3000).catch(() => {});
-        if (feedback()?.cliloc !== TOO_SOON) uses++;
+        if (feedback()?.cliloc !== ShardMessage.tooSoon) uses++;
       } else {
         await session.waitFor(
-          () => session.world.target !== null || feedback()?.cliloc === TOO_SOON,
+          () => session.world.target !== null || feedback()?.cliloc === ShardMessage.tooSoon,
           'skill cursor',
           3000,
           { resource: 'target' }

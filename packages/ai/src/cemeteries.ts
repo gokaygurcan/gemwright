@@ -13,6 +13,7 @@ import { type Gate, moongates, nearestGate, travelByMoongate } from './moongate'
 import { distance } from './navigation';
 import { residentsNear } from './spread';
 import { learnedPlaceCost } from './strategy-learning';
+import { WALKING_LIMIT } from './tuning';
 
 // Trammel cemeteries (uo.com "Cemeteries" list) that hold undead spawners on the pinned shard
 // (Spawns/trammel.xml Graveyards#0-#5). Nujel'm has no undead spawner and is not listed.
@@ -63,7 +64,6 @@ const reach = (ground: Ground) => ground.radius ?? HUNTING_RADIUS;
 // Residents at a cemetery beyond which a fighter moving on looks elsewhere.
 const CROWDED = 8;
 // Farther than this, a route is taken through a moongate instead of walked.
-const WALKING_LIMIT = 300;
 
 // A stranded fighter hunts where it stands (areas.ts): a ground named after its spot.
 const LOCAL = 'where I am stranded near ';

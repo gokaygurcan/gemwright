@@ -1,4 +1,3 @@
-import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Position } from '@gemwright/network/world';
@@ -7,29 +6,30 @@ import { checkedDelay } from './action-purpose';
 import { Blocked } from './blocked';
 import { chaosOf } from './chaos';
 import type { CharacterTemplate } from './config';
-import { type DecisionCoordinator, decisionGuard, decisionState } from './decisions';
-import { driveBias, hadFun, strongestDrive } from './drives';
+import type { DecisionCoordinator } from './decisions';
+import { hadFun, strongestDrive } from './drives';
 import { guildTurn } from './guilds';
-import { confinedToHaven } from './haven';
 import { housingTurn, leisureAtHome } from './house-life';
+import { chooseLifePhase, config, finishLifeDecision, observeLifeWork } from './life-choice';
 import { cityLandmarks, pickLocation, serviceLocations } from './locations';
 import { forcedToWork } from './loop-watch';
 import { moongates, nearestGate, travelByMoongate } from './moongate';
 import { type createNavigator, distance } from './navigation';
 import { meetNeeds } from './need-planning';
-import { goalPhaseBias } from './personal-goals';
 import { personalTurn } from './personal-turn';
 import { playerPull } from './player-insight';
 import { goalAllows, goalControlled } from './resident-goal';
 import { scavenge } from './scavenge';
 import { selfNow } from './self';
-import { shardProfile } from './shard-profile';
-import { trainable } from './skill-training';
 import { crowdFactor, pickWeighted, residentsNear } from './spread';
 import type { Checkpoint } from './store';
 import { learnedPlaceCost } from './strategy-learning';
 import type { Terrain } from './terrain';
-import { type LifePhase, world } from './world';
+import { WALKING_LIMIT } from './tuning';
+import { skillGrowth, workEvidence } from './work-evidence';
+import { world } from './world';
+
+export { skillCurve, skillProgress } from './life-choice';
 
 // A resident's life between its own work and everything else (world.json `lifecycle`). At each
 // natural break point (back in town, after banking) the current phase is checked; when it has run
@@ -59,150 +59,11 @@ export interface LifeContext {
   errands?: () => Promise<void>;
 }
 
-const config = world.lifecycle ?? {
-  mix: 'balanced',
-  mixes: { balanced: { work: 40, dungeon: 15, errands: 10, leisure: 15, visit: 10, practice: 10 } },
-  minutes: {
-    work: [20, 45],
-    dungeon: [20, 45],
-    errands: [3, 10],
-    leisure: [5, 15],
-    visit: [15, 40],
-    practice: [5, 15]
-  },
-  maxSwitchesPerMinute: 5
-};
-const mix = config.mixes[config.mix];
-if (!mix) throw new Error(`Unknown lifecycle mix ${config.mix}`);
-const phases = Object.keys(mix) as LifePhase[];
-const describe: Record<LifePhase, string> = {
-  work: 'Get on with my own work',
-  dungeon: 'Go on a dungeon run, alone or with a party',
-  errands: 'Run errands in town: bank, sell, restock',
-  leisure: 'Spend some time at the bank or an inn among other people',
-  visit: 'Travel to another town for a while, then come home',
-  practice: 'Practise a supporting skill or rest somewhere safe'
-};
 const switches: number[] = [];
 // Residents seen at a break point lately, by serial; the switch cap scales with them.
 const residents = new Map<number, number>();
-const WALKING_LIMIT = 300;
 
 const between = ([low, high]: [number, number]) => low + Math.random() * (high - low);
-const mean = ([low, high]: [number, number]) => (low + high) / 2;
-
-// Picks from the time split: a phase's chance is its share of time over its mean length, so the
-// time spent comes out at the configured shares.
-// How far a resident's build has come: the mean base of its primary skills, 0 to 1.
-export function skillProgress(ctx: Pick<LifeContext, 'session' | 'template'>): number {
-  const primaries = ctx.template.archetype?.primarySkills ?? [];
-  if (!primaries.length) return 0.5;
-  const sum = primaries.reduce((n, name) => n + (ctx.session.world.skills.get(skillId(name))?.base ?? 0), 0);
-  return Math.min(1, sum / primaries.length / 100);
-}
-
-// The skill curve: the lower the skills, the more the time goes to work and practice (where skills
-// rise); the higher, the more to leisure and visits (long trips, nearly none early on). At progress
-// p: work x(1 + 0.5(1-p)), practice x(1 + (1-p)), leisure x(0.3 + 0.7p), visit x p^2.
-export function skillCurve(p: number): Partial<Record<LifePhase, number>> {
-  return { work: 1 + 0.5 * (1 - p), practice: 2 - p, leisure: 0.3 + 0.7 * p, visit: p * p };
-}
-
-// Seasons of activity: evenings bring more leisure, visits and dungeon groups, late nights more
-// quiet work and practice, weekends more dungeons. Only the weights shift; every phase stays
-// possible, and work, selling and recovery are never held back.
-function season(phase: LifePhase, now = new Date()) {
-  // The shard's own clock (gemwright.json timezone): its evenings are its players' evenings.
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: shardProfile().timezone,
-    hour: 'numeric',
-    hourCycle: 'h23',
-    weekday: 'short'
-  }).formatToParts(now);
-  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? now.getUTCHours());
-  const weekend = ['Sat', 'Sun'].includes(parts.find((p) => p.type === 'weekday')?.value ?? '');
-  const evening = hour >= 17 && hour < 23;
-  const night = hour < 6;
-  const social = phase === 'leisure' || phase === 'visit';
-  let weight = 1;
-  if (evening && (social || phase === 'dungeon')) weight *= 1.4;
-  if (night && (phase === 'work' || phase === 'practice')) weight *= 1.3;
-  if (night && social) weight *= 0.7;
-  if (weekend && phase === 'dungeon') weight *= 1.5;
-  return weight;
-}
-
-function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
-  const { sociability, riskTolerance } = ctx.template.behavior;
-  const curve = skillCurve(skillProgress(ctx));
-  // Traits (temperament.ts): a homebody seldom visits other towns; a restless one goes out more.
-  const { homebody = 1, restlessness = 1 } = ctx.template.behavior.temperament ?? {};
-  const shade: Partial<Record<LifePhase, number>> = {
-    work: curve.work,
-    practice: curve.practice,
-    leisure: (0.5 + sociability) * (curve.leisure ?? 1),
-    visit: ((0.5 + sociability) * (curve.visit ?? 1) * restlessness) / homebody,
-    dungeon: 0.5 + riskTolerance
-  };
-  const weights = valid.map(
-    (p) =>
-      ((mix?.[p] ?? 0) / mean(config.minutes[p])) *
-      (shade[p] ?? 1) *
-      goalPhaseBias(ctx, p) *
-      season(p) *
-      driveBias(ctx, p)
-  );
-  let roll = Math.random() * weights.reduce((sum, w) => sum + w, 0);
-  for (const [i, p] of valid.entries()) {
-    roll -= weights[i] ?? 0;
-    if (roll <= 0) return p;
-  }
-  return 'work';
-}
-
-async function choose(ctx: LifeContext): Promise<LifePhase> {
-  // Practice only while a supporting skill can still rise (skill-training.ts): maxed ones are done.
-  // A Young resident of New Haven neither visits other towns nor goes below (haven.ts).
-  const confined = confinedToHaven(ctx.session);
-  const valid = phases.filter((p) =>
-    confined && (p === 'visit' || p === 'dungeon')
-      ? false
-      : p === 'dungeon'
-        ? !!ctx.dungeon && !!ctx.dungeonReady?.()
-        : p === 'practice'
-          ? trainable(ctx.session, ctx.template.archetype).length > 0
-          : true
-  );
-  let baseline = localPick(ctx, valid);
-  // A change of plans (chaos.ts): a planned visit or leisure sometimes becomes something else.
-  if (['visit', 'leisure'].includes(baseline) && Math.random() < chaosOf(ctx.session) / 3) {
-    const instead = localPick(
-      ctx,
-      valid.filter((p) => p !== baseline)
-    );
-    ctx.log(`Changed my mind: ${instead} instead of ${baseline}`);
-    baseline = instead;
-  }
-  if (!ctx.decisions) return baseline;
-  const pick = await ctx.decisions.choose({
-    kind: 'life-phase',
-    checkpoint: ctx.checkpoint,
-    observationRevision: ctx.session.world.revision,
-    state: decisionState(ctx.session, ctx.template, ctx.checkpoint, {
-      previous: ctx.checkpoint.life?.phase ?? 'none',
-      timeSplit: mix,
-      // How far the build has come (0-1): low means train, high means enjoy (skillCurve).
-      skillProgress: Number(skillProgress(ctx).toFixed(2)),
-      home: ctx.city
-    }),
-    candidates: valid.map((p) => ({ id: p, description: describe[p], valid: () => true })),
-    baseline,
-    stillCurrent: decisionGuard(ctx.session)
-  });
-  const chosen = (valid.find((p) => p === pick?.id) ?? baseline) as LifePhase;
-  ctx.decisions.finish(ctx.checkpoint, pick, 'completed', `Next life phase: ${chosen}`);
-  return chosen;
-}
 
 // Walks there, or through the moongate nearest it when far.
 async function goTo(ctx: LifeContext, point: { x: number; y: number }) {
@@ -227,19 +88,16 @@ function pickUp(ctx: LifeContext) {
 
 async function linger(ctx: LifeContext, city: string, until: number) {
   // Leisure in the home town is sometimes spent in one's own house (house-life.ts).
-  if (city === ctx.city && (await leisureAtHome(ctx, until))) return;
+  if (city === ctx.city && (await leisureAtHome(ctx, until))) return true;
   const spots = [...serviceLocations(city, 'banker'), ...cityLandmarks(city, /\b(inn|tavern|pub|saloon)\b/i)];
   // Somewhere with company, not a crowd (spread.ts).
   const self = ctx.session.world.serial ?? undefined;
   const spot = pickWeighted(spots, (s) => crowdFactor(residentsNear(s, 12, self)));
-  if (!spot) return;
+  if (!spot) return false;
   const label = !('name' in spot) || spot.name === 'guide' ? `the ${city} bank` : spot.name;
   ctx.phase('leisure', `Passing time at ${label}`);
-  // A spot out of reach (a closed door, a route that does not resolve): pass the time here.
-  await goTo(ctx, spot).catch((error) => {
-    if (ctx.session.phase !== 'ready') throw error;
-    ctx.log(`Could not reach ${label}: ${error instanceof Error ? error.message : error}; staying here`);
-  });
+  await goTo(ctx, spot);
+  if (distance(ctx.position(), spot) > 6) return false;
   while (Date.now() < until) {
     ctx.check();
     await checkedDelay(4000, ctx.check);
@@ -254,6 +112,7 @@ async function linger(ctx: LifeContext, city: string, until: number) {
       if (step && distance(step, spot) <= 6) await ctx.navigate(step, 0).catch(() => {});
     }
   }
+  return true;
 }
 
 // A plain bank visit, as a player checks in: "bank" opens the box, "balance" reports the gold.
@@ -299,13 +158,18 @@ function destination(ctx: LifeContext): string | undefined {
 export async function lifeTurn(ctx: LifeContext): Promise<boolean> {
   if (goalControlled(ctx.session) && !goalAllows(ctx.session, 'optional')) return false;
   // The loop guard put it back to its job (loop-watch.ts).
-  if (forcedToWork(ctx.session)) return false;
+  if (forcedToWork(ctx.session)) {
+    finishLifeDecision(ctx, 'interrupted', 'Loop recovery preempted the life phase');
+    return false;
+  }
+  observeLifeWork(ctx);
   const started = Date.now();
   if (await personalTurn(ctx)) return true;
   const need = await meetNeeds(ctx);
   if (need === 'handled') return true;
   if (need === 'work') {
     if (ctx.checkpoint.life?.phase !== 'work') {
+      finishLifeDecision(ctx, 'interrupted', 'Supplying immediate needs preempted the life phase');
       ctx.checkpoint.life = { phase: 'work', until: Date.now() + 60_000 };
       ctx.phase('work', 'Earning and supplying my needs before optional plans');
     }
@@ -335,6 +199,7 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
   while (switches.length && (switches[0] ?? 0) < now - 60_000) switches.shift();
   let life = ctx.checkpoint.life;
   if (!life || now >= life.until) {
+    finishLifeDecision(ctx, 'failed', 'Phase expired without its expected outcome');
     // The cap is per 50 residents in this runtime, so a large population still changes at a
     // natural pace.
     const self = ctx.session.world.serial ?? 0;
@@ -347,7 +212,8 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
       if (life.until === 0) life.phase = 'work';
       life.until = now + 60_000;
     } else {
-      let phase = await choose(ctx);
+      const choice = await chooseLifePhase(ctx);
+      let phase = choice.phase;
       // A break (leisure, a visit) is earned: only after the resident grew richer or more skilled
       // since its last one (self.ts), and it stays short. Otherwise it works.
       const me = selfNow(ctx.session, ctx.checkpoint, ctx.template);
@@ -359,6 +225,13 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
         me.skillTotal <= last.skillTotal
       )
         phase = 'work';
+      if (phase !== choice.phase)
+        ctx.decisions?.finish(
+          ctx.checkpoint,
+          choice.pick,
+          'interrupted',
+          'Phase overridden: work must earn the next break'
+        );
       if (phase === 'leisure' || phase === 'visit')
         ctx.checkpoint.lastBreak = { at: now, wealth: me.wealth, skillTotal: me.skillTotal };
       const restless = ctx.template.behavior.temperament?.restlessness ?? 1;
@@ -367,6 +240,8 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
       const minutes = (between(config.minutes[phase]) * swing) / restless;
       life = {
         phase,
+        decision: phase === choice.phase ? (choice.pick ?? undefined) : undefined,
+        before: workEvidence(ctx.session, ctx.checkpoint),
         until: now + (phase === 'leisure' || phase === 'visit' ? Math.min(10, minutes) : minutes) * 60_000
       };
       if (phase === 'visit') life.city = destination(ctx);
@@ -381,7 +256,11 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
     }
     ctx.persist();
   }
-  const done = () => {
+  const done = (
+    status: 'completed' | 'failed' | 'interrupted' = 'completed',
+    note = `Life phase ${life?.phase} finished`
+  ) => {
+    finishLifeDecision(ctx, status, note);
     if (ctx.checkpoint.life) ctx.checkpoint.life.until = 0;
     ctx.persist();
   };
@@ -391,41 +270,70 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
         return false;
       case 'dungeon': {
         const ran = (await ctx.dungeon?.()) ?? false;
-        done();
+        done(ran ? 'completed' : 'failed', ran ? 'Dungeon run executed' : 'No dungeon run could start');
         return ran;
       }
-      case 'errands':
+      case 'errands': {
+        const holdings = () =>
+          JSON.stringify([
+            workEvidence(ctx.session, ctx.checkpoint),
+            ctx.checkpoint.funds?.at,
+            ctx.checkpoint.bankSeen?.at
+          ]);
+        const before = holdings();
         await (ctx.errands ? ctx.errands() : bankVisit(ctx));
-        done();
-        return true;
-      case 'leisure':
-        await linger(ctx, ctx.city, life.until);
-        return true;
+        const changed = holdings() !== before;
+        done(
+          changed ? 'completed' : 'failed',
+          changed ? 'Observed a change from town errands' : 'Errands produced no observed result'
+        );
+        return changed;
+      }
+      case 'leisure': {
+        const stayed = await linger(ctx, ctx.city, life.until);
+        done(
+          stayed ? 'completed' : 'failed',
+          stayed ? 'Reached the leisure location and finished the stay' : 'Leisure location unavailable'
+        );
+        return stayed;
+      }
       case 'visit': {
         const town = life.city;
+        let visited = false;
         if (town) {
           ctx.phase('visit', `Travelling to ${town} for a while`);
           try {
-            await linger(ctx, town, life.until);
+            visited = await linger(ctx, town, life.until);
           } finally {
             // However the stay went, the visit ends at home.
             const home = pickLocation(ctx.city, 'banker');
             if (home && ctx.session.phase === 'ready') {
               ctx.phase('visit', `Heading home to ${ctx.city}`);
-              await goTo(ctx, home).catch((error) => ctx.log(`The way home failed: ${error}`));
-            }
+              await goTo(ctx, home).catch((error) => {
+                visited = false;
+                ctx.log(`The way home failed: ${error}`);
+              });
+              if (distance(ctx.position(), home) > 6) visited = false;
+            } else visited = false;
           }
         }
-        done();
-        return true;
+        done(
+          visited ? 'completed' : 'failed',
+          visited ? 'Visited the selected town and finished the stay' : 'Visit could not execute'
+        );
+        return visited;
       }
       case 'practice': {
         const started = Date.now();
+        const before = workEvidence(ctx.session, ctx.checkpoint);
         await ctx.practise(Math.min(5, Math.max(1, (life.until - Date.now()) / 60_000)));
         // Nothing to practise right now (no usable skill, tool or material): the rest of the phase
         // goes to the resident's own work, which trains its primary skills, so the time the skill
         // curve gave to training is not lost to a leisure or visit pick.
+        if (skillGrowth(before, workEvidence(ctx.session, ctx.checkpoint)) > 0)
+          finishLifeDecision(ctx, 'completed', 'Observed base skill growth during practice');
         if (Date.now() - started < 5000) {
+          finishLifeDecision(ctx, 'failed', 'No practice could execute; returning to work');
           life.phase = 'work';
           ctx.persist();
           return false;
@@ -438,9 +346,12 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
     }
   } catch (error) {
     // A phase the world prevents (no route, no banker) ends; the resident does something else.
-    if (!(error instanceof Blocked) || ctx.session.phase !== 'ready') throw error;
+    if (!(error instanceof Blocked) || ctx.session.phase !== 'ready') {
+      done('interrupted', error instanceof Error ? error.message : String(error));
+      throw error;
+    }
     ctx.log(`Life phase ${life.phase} ended early: ${error.message}`);
-    done();
+    done('failed', error.message);
     return false;
   }
 }

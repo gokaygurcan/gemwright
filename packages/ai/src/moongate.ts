@@ -1,4 +1,5 @@
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
+import { moongate } from '@gemwright/common/game/items';
 import { moongateDestination } from '@gemwright/network/gumps';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Position } from '@gemwright/network/world';
@@ -131,7 +132,7 @@ export async function travelByMoongate(
   if (lasting('gate-ban', session.world.serial ?? -1).active(`${from}>${to}`))
     throw new Blocked('unreachable', `The ${from} moongate failed to take me to ${to} lately`);
   const item = [...session.world.entities.values()].find(
-    (entity) => entity.graphic === 0x0f6c && entity.position && distance(position(), entity.position) <= 1
+    (entity) => entity.graphic === moongate && entity.position && distance(position(), entity.position) <= 1
   );
   if (!item?.position) throw new Blocked('unreachable', `The ${from} public moongate is not observed nearby`);
   const self = session.world.serial === null ? undefined : session.world.entities.get(session.world.serial);
@@ -169,7 +170,7 @@ export async function travelByMoongate(
   const waiting = threatsNear(session, position(), 10);
   if (waiting.length && !(self && ghosts.has(self.graphic)) && from !== to) {
     const back = [...session.world.entities.values()].find(
-      (entity) => entity.graphic === 0x0f6c && entity.position && distance(position(), entity.position) <= 2
+      (entity) => entity.graphic === moongate && entity.position && distance(position(), entity.position) <= 2
     );
     if (back) {
       phase('moongate-retreat', `Monsters at the ${to} moongate; going back through it`);

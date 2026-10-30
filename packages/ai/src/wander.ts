@@ -1,4 +1,5 @@
 import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
+import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { chaosOf } from './chaos';
@@ -24,7 +25,7 @@ export async function passingGreeting(session: PlayerSession) {
       m.kind === 'mobile' &&
       m.serial !== session.world.serial &&
       humans.has(m.graphic) &&
-      m.notoriety !== 7 &&
+      m.notoriety !== Notoriety.invulnerable &&
       !done.has(m.serial) &&
       !!m.position &&
       distance(here, m.position) <= 4

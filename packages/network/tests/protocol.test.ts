@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { characterList } from '@gemwright/network/characters';
 import { PacketFramer } from '@gemwright/network/framing';
+import { offersReply } from '@gemwright/network/gumps';
 import * as packets from '@gemwright/network/packets';
 import { WorldView } from '@gemwright/network/world';
 
@@ -157,4 +158,22 @@ test('StatLockInfo (0xBF 0x19) reports two bits per stat for the player', () => 
   const packet = Buffer.from([0xbf, 0, 12, 0x00, 0x19, 2, 0, 0, 0, 123, 0, (1 << 4) | (2 << 2) | 0]);
   world.apply(packet);
   expect(world.statLocks).toEqual([1, 2, 0]);
+});
+
+test('speech carries the emote message type for overhead emotes', () => {
+  expect(packets.speech('Walking to 100,200').readUInt8(3)).toBe(0);
+  expect(packets.speech('Walking to 100,200', 0x02).readUInt8(3)).toBe(0x02);
+});
+
+test('a gump reply must use the controls the gump offered, by id and not by type', () => {
+  const reward =
+    '{ xmfhtmlgump 0 0 0 0 1157082 } { button 35 110 2103 2104 200 0 0 } { button 300 335 1505 1509 0 1 2 }';
+  expect(offersReply(reward, 200, [], [])).toBe(true);
+  expect(offersReply(reward, 201, [], [])).toBe(false);
+  expect(offersReply(reward, 0, [], [])).toBe(true);
+  const points =
+    '{ xmfhtmlgump 0 0 0 0 1157076 } { radio 25 175 9720 9723 1 1 } { radio 25 210 9720 9723 0 2 } { button 265 220 247 248 1 0 0 }';
+  expect(offersReply(points, 1, [1], [])).toBe(true);
+  expect(offersReply(points, 1, [2], [])).toBe(true);
+  expect(offersReply(points, 1, [3], [])).toBe(false);
 });

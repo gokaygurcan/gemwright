@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { arrow } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';
 
@@ -404,6 +405,6 @@ async function fightEncounter(
   }
 }
 
-const ARROW = 0x0f3f;
+const ARROW = arrow;
 export const fightOpponent = (...args: Parameters<typeof fightEncounter>) =>
   urgentAction(args[0].session, 'combat', () => fightEncounter(...args));

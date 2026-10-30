@@ -1,4 +1,5 @@
 import { type IntentEvidence, intentEvidence, intentRationale } from './intent-evidence';
+import { LIFE_GOAL } from './life-goal';
 import type { PlanAssumption } from './plan-assumptions';
 import type { GoalKind, GoalSituation, GoalStep, ResidentGoal } from './resident-goal';
 
@@ -16,6 +17,7 @@ export interface PlanEstimate {
 }
 export interface ResidentIntent {
   id: string;
+  lifeGoal?: string;
   evidence: IntentEvidence[];
   assumptions: PlanAssumption[];
   budget: { maxSpend: number; spent: number; reserved: number; reserve: number; deadline: number };
@@ -35,6 +37,8 @@ export interface ResidentIntent {
 }
 export interface PlanningContext {
   condition: string;
+  // Where and as whom: the part of the condition that outlives a shopping trip (plan-memory.ts).
+  coarse: string;
   evidence?: IntentEvidence[];
   available: boolean;
   riskTolerance: number;
@@ -87,6 +91,7 @@ export function describeIntent(
   const rationale = intentRationale(goal, state);
   return {
     id: `intent:${crypto.randomUUID()}`,
+    lifeGoal: LIFE_GOAL,
     evidence: intentEvidence(goal, state),
     assumptions: [],
     budget: {
@@ -96,12 +101,20 @@ export function describeIntent(
       reserve: Math.min(150, state.evidence.funds),
       deadline: goal.until
     },
-    outcome: description.outcome,
-    why: rationale.why,
+    outcome: goal.step === 'wait' ? 'Reconcile blocked methods before resuming work' : description.outcome,
+    why: goal.step === 'wait' ? 'No productive method currently satisfies the plan prerequisites' : rationale.why,
     prerequisites: rationale.prerequisites,
-    steps: goal.step === 'income' ? ['income', 'equip', 'trade', 'settle'] : [...description.steps],
+    steps:
+      goal.step === 'wait'
+        ? ['wait']
+        : goal.step === 'income'
+          ? ['income', 'equip', 'trade', 'settle']
+          : [...description.steps],
     currentStep: goal.step,
-    completionEvidence: description.evidence,
+    completionEvidence:
+      goal.step === 'wait'
+        ? 'Changed observations or an expired failure cooldown permit replanning'
+        : description.evidence,
     interruption: rationale.interruption,
     recovery: rationale.recovery,
     condition: planningCondition(state),

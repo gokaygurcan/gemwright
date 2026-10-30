@@ -1,4 +1,5 @@
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
+import { ingot } from '@gemwright/common/game/items';
 import type { Entity } from '@gemwright/network/world';
 
 import { DangerInterrupt } from './action-purpose';
@@ -21,7 +22,7 @@ import { digSite, ore, oreIn } from './miner-dig';
 import { minerInventory } from './miner-inventory';
 import { createMinerPastimes } from './miner-pastimes';
 import { chooseMiningActivity, minerPlan, rememberForges } from './miner-plan';
-import { createMinerServices, ingot, tools } from './miner-services';
+import { createMinerServices, tools } from './miner-services';
 import { findMiningSite } from './miner-sites';
 import { travelMinerHome } from './miner-travel';
 import { createMountController, mountedNavigator } from './mounts';

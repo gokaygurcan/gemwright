@@ -1,10 +1,14 @@
 import { expect, spyOn, test } from 'bun:test';
 
+import type { PlayerSession } from '@gemwright/network/session';
+
 import { urgentAction } from '../src/action-purpose';
 import { Blocked, blockedReason } from '../src/blocked';
-import { checkLoop, forcedToWork, noteNavigationStep, Stuck, watchStep } from '../src/loop-watch';
-import { registerGoal } from '../src/resident-goal';
-import { tally } from '../src/work-evidence';
+import { coreStale, sideWorkAllowed } from '../src/day-plan';
+import { setDebug } from '../src/debug';
+import { checkLoop, forcedToWork, lastCoreProgressAt, noteNavigationStep, Stuck, watchStep } from '../src/loop-watch';
+import { chooseGoal, registerGoal } from '../src/resident-goal';
+import { tally, workEvidence } from '../src/work-evidence';
 import { behaviorFixture, required } from './behavior-fixture';
 
 function withClock(run: (advance: (ms: number) => void) => Promise<void> | void) {
@@ -18,6 +22,58 @@ function withClock(run: (advance: (ms: number) => void) => Promise<void> | void)
     )
     .finally(() => clock.mockRestore());
 }
+
+test('recovery and loop interruption never count as fresh productive work', () =>
+  withClock((advance) => {
+    const f = behaviorFixture();
+    watchStep(f.session, 'test', 'recovery-wait', 'Waiting on risk');
+    const initial = lastCoreProgressAt(f.session);
+    for (let i = 0; i < 14; i++) {
+      advance(60_000);
+      checkLoop(f.session);
+    }
+    expect(lastCoreProgressAt(f.session)).toBe(initial);
+    expect(coreStale(f.session)).toBe(true);
+    expect(sideWorkAllowed(f.session)).toBe(false);
+    for (let i = 0; i < 3; i++) {
+      watchStep(f.session, 'test', 'go', 'Going');
+      watchStep(f.session, 'test', 'back', 'Returning');
+    }
+    expect(lastCoreProgressAt(f.session)).toBe(initial);
+    expect(() => checkLoop(f.session)).toThrow(Stuck);
+    tally(f.session, 'mined');
+    watchStep(f.session, 'test', 'mining', 'Ore observed');
+    expect(coreStale(f.session)).toBe(false);
+  }));
+
+test('a planned wait honors its own deadline without counting as work or triggering a repetition loop', () =>
+  withClock((advance) => {
+    const f = behaviorFixture();
+    f.checkpoint.workGoal = {
+      failed: {
+        earn: { until: Date.now() + 600_000, reason: 'No market' },
+        income: { until: Date.now() + 600_000, reason: 'No alternative' }
+      }
+    };
+    registerGoal(f.session, f.checkpoint);
+    const goal = chooseGoal(f.checkpoint, {
+      safe: true,
+      ready: true,
+      learning: false,
+      earningNeeded: false,
+      evidence: workEvidence(f.session)
+    });
+    expect(goal.step).toBe('wait');
+    for (let i = 0; i < 50; i++) {
+      watchStep(f.session, 'test', 'plan-wait', 'Reconciling before retry');
+      advance(2000);
+      checkLoop(f.session);
+    }
+    expect(forcedToWork(f.session)).toBe(false);
+    advance(21_000);
+    expect(() => checkLoop(f.session)).toThrow(Stuck);
+    expect(f.checkpoint.workGoal?.outcomes).toBeUndefined();
+  }));
 
 test('repeated multi-step cycles normalize coordinates, interrupt once and force a changed plan', () =>
   withClock(() => {
@@ -213,4 +269,27 @@ test('a second loop soon after the first holds the goal off for ten minutes', ()
     arm();
     strike();
     expect(f.checkpoint.workGoal?.failed?.tailor?.until ?? 0).toBeGreaterThanOrEqual(Date.now() + 10 * 60_000);
+  }));
+
+test('ai.debug emotes the phase above the resident: once per change, never twice in a row', () =>
+  withClock((advance) => {
+    const f = behaviorFixture();
+    const emotes: string[] = [];
+    const session = { ...f.session, emote: (text: string) => emotes.push(text) } as unknown as PlayerSession;
+    watchStep(session, 'test', 'travel', 'Walking to 100,200');
+    expect(emotes).toEqual([]);
+    setDebug(true);
+    try {
+      watchStep(session, 'test', 'travel', 'Walking to 100,200');
+      expect(emotes).toEqual(['[travel] Walking to 100,200']);
+      watchStep(session, 'test', 'travel', 'Walking to 100,200');
+      expect(emotes.length).toBe(1);
+      watchStep(session, 'test', 'hunt', 'Hunting the zombie near 108,204');
+      expect(emotes.length).toBe(1);
+      advance(2500);
+      watchStep(session, 'test', 'hunt', 'Hunting the zombie near 108,204');
+      expect(emotes).toEqual(['[travel] Walking to 100,200', '[hunt] Hunting the zombie near 108,204']);
+    } finally {
+      setDebug(false);
+    }
   }));

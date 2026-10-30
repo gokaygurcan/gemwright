@@ -5,7 +5,8 @@ import type { PlayerSession } from '@gemwright/network/session';
 import { playerStatus } from '@gemwright/network/status';
 import { WorldView } from '@gemwright/network/world';
 
-import { canAffordMount, type MountContext } from '../src/mount-types';
+import { recoverMissingMount } from '../src/mount-care';
+import { canAffordMount, type MountContext, type MountMemory } from '../src/mount-types';
 import { createMountController } from '../src/mounts';
 
 function fixture(owner = true) {
@@ -37,6 +38,7 @@ function fixture(owner = true) {
     uses = 0,
     walks = 0,
     followTarget: number | undefined;
+  const says: string[] = [];
   const session = {
     world,
     phase: 'ready',
@@ -48,6 +50,10 @@ function fixture(owner = true) {
       buys++;
     },
     setWarMode: () => {},
+    refreshStatus: async () => {},
+    say: (message: string) => {
+      says.push(message);
+    },
     use: (serial: number) => {
       uses++;
       if (serial === 1) {
@@ -94,7 +100,7 @@ function fixture(owner = true) {
     persist: () => {},
     backpack: () => 4
   };
-  return { world, ctx, horse, equipment, counts: () => ({ buys, uses, walks, followTarget }) };
+  return { world, ctx, horse, equipment, counts: () => ({ buys, uses, walks, followTarget, says }) };
 }
 
 test('mount spending preserves the reserve and animal requests require a free follower slot and current vendor stock', () => {
@@ -124,7 +130,7 @@ test('a pending purchase without a visible owned horse never issues another purc
     pending: { vendor: 8, stock: 7, price: 550, at: Date.now(), map: 1, x: 100, y: 100, z: 0, before: [] }
   };
   await createMountController(ctx, 'Britain').acquire();
-  expect(counts()).toEqual({ buys: 0, uses: 0, walks: 0, followTarget: undefined });
+  expect(counts()).toEqual({ buys: 0, uses: 0, walks: 0, followTarget: undefined, says: [] });
   expect(ctx.checkpoint.mount.pending).toBeDefined();
 });
 
@@ -171,4 +177,32 @@ test('an unavailable horse context does not stop gathering after a confirmed dis
   await controller.dismountForGathering();
   expect(world.entities.has(equipment.serial)).toBe(false);
   expect(ctx.checkpoint.mount?.note).toContain('not confirmed');
+});
+
+test('a missing mount that was never stabled is lost, not waiting at a trainer', async () => {
+  const { world, ctx, counts } = fixture();
+  if (!world.status) throw new Error('No status');
+  world.status.followers = 0;
+  const memory: MountMemory = { schemaVersion: 1, state: 'missing', horse: 2 };
+  const recovered = await recoverMissingMount(ctx, 'Britain', memory, async () => undefined);
+  expect(recovered).toBe(false);
+  expect(counts().walks).toBe(0);
+  expect(counts().says).toEqual([]);
+  expect(memory.state).toBe('lost');
+  expect(memory.asked?.answer).toBe('none');
+  expect(memory.horse).toBeUndefined();
+});
+
+test('a stabled mount whose trainer stays silent is not asked again for an hour', async () => {
+  const { world, ctx, counts } = fixture();
+  if (!world.status) throw new Error('No status');
+  world.status.followers = 0;
+  const memory: MountMemory = { schemaVersion: 1, state: 'missing', stabled: { at: Date.now(), city: 'Britain' } };
+  const before = Date.now();
+  const recovered = await recoverMissingMount(ctx, 'Britain', memory, async () => undefined);
+  expect(recovered).toBe(false);
+  expect(counts().walks).toBeGreaterThan(0);
+  expect(counts().says).toContain('claim');
+  expect(memory.asked?.answer).toBe('silent');
+  expect((memory.claimAt ?? 0) - before).toBeGreaterThanOrEqual(60 * 60_000 - 1000);
 });

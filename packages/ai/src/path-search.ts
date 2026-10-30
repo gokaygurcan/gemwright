@@ -137,6 +137,10 @@ export class RouteSearch {
     this.count = 1;
     this.size = 0;
     const { start, goal, range, targetZ } = request;
+    // The shard walks one step when the ground changes by a little (stairs stay under this; a
+    // teleport is a link, not a step). Applied where routes are chosen, not only where steps are
+    // refused: a path that contains a step the shard will not take is not a path.
+    const MAX_STEP_Z = 8;
     const blocked = new Set(request.blocked);
     const penalties = new Set(request.penalties ?? []);
     const estimate = (x: number, y: number) => {
@@ -191,6 +195,7 @@ export class RouteSearch {
         const nextZ = height(x, y);
         if (
           nextZ === undefined ||
+          Math.abs(nextZ - current.z) > MAX_STEP_Z ||
           (dx && dy && (height(x, current.y) === undefined || height(current.x, y) === undefined))
         )
           continue;
