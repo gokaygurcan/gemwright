@@ -44,16 +44,26 @@ test('unknown schema, incompatible versions and malformed fields fail before dep
   }
 });
 test('discovery reports an exact compatible update; explicit selection preserves other settings and never deploys', async () => {
+  // Versions relative to the CLI's own: a release bump must not turn the fixture's "newer" into the current one.
+  const [major, minor, patch] = (
+    JSON.parse(await readFile(join(import.meta.dir, '../package.json'), 'utf8')).version as string
+  )
+    .split('.')
+    .map(Number);
+  const newer = `${major}.${minor}.${(patch ?? 0) + 1}`;
+  const unpublished = `${major}.${minor}.${(patch ?? 0) + 2}`;
   const dir = await fixture({ ...createConfig({ client: { version: '7.0.45.1' } }), packages: { client: '0.7.0' } });
   const messages: string[] = [];
-  const discover = async () => ['0.7.0', '0.8.2', '1.0.0'];
+  const discover = async () => ['0.7.0', newer, '1.0.0'];
   await updatePackages({ component: 'ai' }, dir, discover, (s) => messages.push(s));
-  expect(messages.join('\n')).toContain('gemwright update --ai --package-version 0.8.2');
+  expect(messages.join('\n')).toContain(`gemwright update --ai --package-version ${newer}`);
   expect(JSON.parse(await readFile(join(dir, 'gemwright.json'), 'utf8')).packages.ai).toBeUndefined();
-  await updatePackages({ component: 'ai', version: '0.8.2' }, dir, discover, () => {});
-  expect((await loadShard(dir)).packages).toEqual({ client: '0.7.0', ai: '0.8.2' });
+  await updatePackages({ component: 'ai', version: newer }, dir, discover, () => {});
+  expect((await loadShard(dir)).packages).toEqual({ client: '0.7.0', ai: newer });
   const saved = await readFile(join(dir, 'gemwright.json'), 'utf8');
-  await expect(updatePackages({ component: 'ai', version: '0.8.3' }, dir, discover)).rejects.toThrow('not published');
+  await expect(updatePackages({ component: 'ai', version: unpublished }, dir, discover)).rejects.toThrow(
+    'not published'
+  );
   await expect(updatePackages({ component: 'ai', version: '1.0.0' }, dir, discover)).rejects.toThrow('unsupported');
   await expect(
     updatePackages({ component: 'ai' }, dir, async () => {
