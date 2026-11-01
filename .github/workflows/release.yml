@@ -177,7 +177,8 @@ jobs:
     needs: [select-mode, publish]
     if: always() && !cancelled() && needs.select-mode.result == 'success' && (needs.select-mode.outputs.mode == 'none' || needs.publish.result == 'success')
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # Announcement waits up to 15 minutes for npm to show new versions (.changeset/release.ts).
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:

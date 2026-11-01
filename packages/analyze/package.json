@@ -20,7 +20,7 @@
     "build": "rm -rf dist && bun build src/index.ts src/serve.ts --outdir dist/src --target bun && bun build web/index.html --outdir dist/web --target browser --minify --entry-naming '[name].[ext]' --asset-naming '[name].[ext]' --chunk-naming '[name].[ext]' --public-path /"
   },
   "dependencies": {
-    "preact": "11.1.0"
+    "preact": "11.1.1"
   },
   "devDependencies": {
     "@gemwright/common": "workspace:*",

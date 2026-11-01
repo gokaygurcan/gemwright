@@ -6,6 +6,7 @@ import { canSpendOnTraining, chargedPurchase, recordTrainingSpend, refreshFunds 
 import type { CraftContext } from './craft-training';
 import { learnQuality, quality, shopSafe } from './item-quality';
 import type { ServiceType } from './locations';
+import { noteVendorKind } from './price-book';
 import { buyOffers, sellChosen, sellOffers } from './vendor-shop';
 import { atVendor } from './vendor-visit';
 import { reservedFor } from './work-orders';
@@ -26,6 +27,7 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
     async (vendor) => {
       const stock = await buyOffers(session, vendor, Actions.buy);
       if ('why' in stock) return false;
+      noteVendorKind(vendor, service);
       let bought = false;
       // Why each wanted offer was passed over, so a vendor that sold nothing says which it was.
       const passed = { unwanted: 0, funds: 0 };
@@ -87,6 +89,7 @@ export async function sellTo(
     async (vendor) => {
       const opened = await sellOffers(session, vendor, Actions.sell);
       if ('why' in opened) return false;
+      noteVendorKind(vendor, service);
       // Only plain goods go to a shop (item-quality.ts): special pieces are kept or traded.
       await learnQuality(
         session,

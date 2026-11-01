@@ -13,6 +13,7 @@ Usage: gemwright init [directory] [options]
        gemwright deploy --target vps --public-host <host> [--client --domain <host>] [--prepare]
        gemwright update [--server | --client | --ai] [--package-version <exact>]
        gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
+       gemwright logs [--server] [--client] [--ai] [--watch]
        gemwright restore [--from <pull>] [--server] [--ai] [--yes]
 
 Options:
@@ -20,6 +21,7 @@ Options:
   --name <name>         Shard name (default: Gemwright)
   --timezone <timezone> IANA timezone (default: local zone or Europe/London)
   --expansion <code>    Expansion (default: ej)
+  --client-version <v>  Classic client version players use, e.g. 7.0.45.1 (required with --yes)
   --emulator <name>     Server emulator: servuo, sphere, sphere-x, runuo or modernuo (default: servuo)
   --git                 Initialize Git if outside a repository
   --yes                 Accept defaults for unanswered questions
@@ -40,6 +42,7 @@ Options:
   --backups             Also pull the server's own Backups folder (pull)
   --output <dir>        Where pull saves (default: .gemwright/pulls/<time>)
   --cleanup             Keep only the newest pull after a complete pull (pull)
+  --watch               Keep following new log lines (logs)
   --from <pull>         Pull folder to restore (default: the newest pull)
   --help                Show this help
   --version             Show the installed version

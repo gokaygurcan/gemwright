@@ -31,6 +31,7 @@ import { learnQuality, quality, shopSafe } from './item-quality';
 import { pickLocation, type ServiceType, serviceLocations, townAt } from './locations';
 import { distance as nearDistance } from './navigation';
 import { lighten, putDown, recoverPile } from './overload';
+import { buyersOf } from './price-book';
 import { sellTo } from './vendor-trade';
 import { reachRegion } from './work-areas';
 import { reservedFor } from './work-orders';
@@ -77,9 +78,17 @@ export function shopsFor(ctx: Pick<Ctx, 'terrain'>, item: Entity): ServiceType[]
   const crafted = buyers.get(item.graphic);
   if (crafted?.length) return crafted;
   if (fish.has(item.graphic)) return ['fisherman'];
-  // Worn goods it is not wearing: armour and weapons to the smiths, clothing to the tailor.
-  if (ctx.terrain.tile(item.graphic, true).flags & TileFlag.Wearable) return ['blacksmith', 'weaponsmith', 'tailor'];
-  return [];
+  // Worn goods it is not wearing: first the shops residents have seen paying for the piece
+  // (price-book.ts), else by its kind: weapons to the weaponsmith and blacksmith, metal armour to
+  // the blacksmith, the rest (cloth, leather) to the tailor.
+  const tile = ctx.terrain.tile(item.graphic, true);
+  if (!(tile.flags & TileFlag.Wearable)) return [];
+  const known = buyersOf(item.graphic);
+  if (known.length) return known;
+  if ((tile.layer === 1 || tile.layer === 2) && !/shield|buckler/i.test(tile.name))
+    return ['weaponsmith', 'blacksmith'];
+  if (/plate|chain|ring|bone|helm|bascinet|gorget|shield|buckler/i.test(tile.name)) return ['blacksmith'];
+  return ['tailor'];
 }
 
 // The one answer to "will a shop buy this?": looting, town-trip planning and selling all ask it.

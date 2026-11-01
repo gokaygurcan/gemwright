@@ -7,6 +7,7 @@ import type { ServerWebSocket } from 'bun';
 import { Huffman } from '@gemwright/common/codecs/huffman';
 
 import { parseManifest } from './files';
+import { report, startExport, stopExport } from './telemetry';
 
 export interface ClientConfig {
   host: string;
@@ -68,6 +69,7 @@ interface Connection {
   huffman?: Huffman;
   ended?: boolean;
   closeTimer?: ReturnType<typeof setTimeout>;
+  opened?: number;
 }
 const isolation = {
   'Cross-Origin-Opener-Policy': 'same-origin',
@@ -207,12 +209,15 @@ export function startClient(config: ClientConfig) {
       perMessageDeflate: false,
       open(ws) {
         connections.add(ws);
+        ws.data.opened = Date.now();
+        report('info', 'Player session opened', { event: 'session-opened' });
         const tcp = createConnection({ host: config.host, port: config.port });
         ws.data.tcp = tcp;
         tcp.setNoDelay(true);
         tcp.setTimeout(15000);
         tcp.once('connect', () => tcp.setTimeout(0));
         tcp.on('timeout', () => {
+          report('error', 'Shard unreachable', { event: 'shard-unreachable', code: 'timeout' });
           tcp.destroy();
           ws.close(1011, 'Shard connection timed out');
         });
@@ -241,7 +246,10 @@ export function startClient(config: ClientConfig) {
           ws.data.ended = true;
           if (ws.getBufferedAmount() === 0) finish(ws);
         });
-        tcp.on('error', () => ws.close(1011, 'Shard connection failed'));
+        tcp.on('error', (error: NodeJS.ErrnoException) => {
+          report('error', 'Shard unreachable', { event: 'shard-unreachable', code: error.code ?? 'unknown' });
+          ws.close(1011, 'Shard connection failed');
+        });
         tcp.on('close', () => {
           if (!ws.data.ended) ws.close(1011, 'Shard connection closed');
         });
@@ -273,8 +281,16 @@ export function startClient(config: ClientConfig) {
         if (ws.data.ended) finish(ws);
         else ws.data.tcp?.resume();
       },
-      close(ws) {
+      close(ws, code, reason) {
         connections.delete(ws);
+        // A game login is two sessions: ClassicUO reconnects after the login server's relay.
+        report('info', 'Player session closed', {
+          event: 'session-closed',
+          seconds: Math.round((Date.now() - (ws.data.opened ?? Date.now())) / 1000),
+          code,
+          reason,
+          endedBy: ws.data.ended ? 'shard' : code === 1011 ? 'failure' : 'player'
+        });
         clearTimeout(ws.data.closeTimer);
         ws.data.tcp?.destroy();
       }
@@ -293,10 +309,11 @@ export function startClient(config: ClientConfig) {
 }
 
 if (import.meta.main) {
+  startExport();
   const app = startClient(loadConfig());
-  console.log(`ClassicUO web service listening on ${app.server.port}`);
+  report('info', `ClassicUO web service listening on ${app.server.port}`, { event: 'started' });
   for (const signal of ['SIGINT', 'SIGTERM'] as const)
     process.once(signal, () => {
-      void app.stop();
+      void app.stop().then(stopExport);
     });
 }

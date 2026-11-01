@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 import type { PlayerSession } from '@gemwright/network/session';
 
+import { exportEvent } from './otlp-export';
 import { runtimeMetrics } from './telemetry-metrics';
 import { redact, type TelemetryEvent, type TraceContext } from './telemetry-schema';
 
@@ -82,7 +83,10 @@ export function makeEvent(
 export function emitEvent(event: TelemetryEvent, options: { journal?: boolean; stdout?: boolean } = {}) {
   runtimeMetrics.observe(event);
   if (options.journal !== false) sink?.(event);
-  if (options.stdout) output?.(JSON.stringify(event), event.level);
+  if (options.stdout) {
+    output?.(JSON.stringify(event), event.level);
+    exportEvent(event);
+  }
 }
 export function operational(
   component: string,

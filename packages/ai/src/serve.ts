@@ -10,6 +10,7 @@ import { setDebug } from './debug';
 import { validateDecisionConfig } from './decision-provider';
 import { setWars } from './guild-wars';
 import { logger, logToStdout } from './log';
+import { startExport, stopExport } from './otlp-export';
 import { enablePhrasing } from './phrasing';
 import { runPopulation } from './run-population';
 import { checkProvisioning, loadShardProfile } from './shard-profile';
@@ -22,6 +23,7 @@ import { applyWorld, type Cohorts, world } from './world';
 // environment the deployment sets; all state lives on the /app/data volume.
 // A service: progress goes to stdout, so the host's error view shows only failures.
 logToStdout();
+startExport();
 
 const data = process.env.AI_DATA ?? '/app/data';
 const required = (name: string) => {
@@ -136,3 +138,4 @@ while (!stopping) {
   // A round that ends early (no residents, a failure) waits before the next one.
   while (!stopping && Date.now() - started < 60_000) await Bun.sleep(1000);
 }
+await stopExport();

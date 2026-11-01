@@ -1,5 +1,7 @@
 import type { PlayerSession } from '@gemwright/network/session';
 
+import type { ServiceType } from './locations';
+
 // What residents have seen vendors charge and pay, item by item. Every buy or sell list a resident
 // opens is written down here (vendor-shop.ts), and what one resident saw the others know, as players
 // tell each other prices. Nothing is known before someone has looked: a sell list names only what
@@ -16,6 +18,9 @@ export interface Sighting {
 type Side = 'charges' | 'pays';
 const WEEK = 7 * 24 * 3_600_000;
 const book: Record<Side, Map<number, Map<number, Sighting>>> = { charges: new Map(), pays: new Map() };
+// What kind of shop each vendor is, learned where a trade names the kind it went to (vendor-trade.ts).
+const kinds = new Map<number, ServiceType>();
+export const noteVendorKind = (vendor: number, kind: ServiceType) => kinds.set(vendor, kind);
 
 export function notePrices(
   session: PlayerSession,
@@ -34,6 +39,7 @@ export function notePrices(
 }
 
 export function forgetVendor(vendor: number) {
+  kinds.delete(vendor);
   for (const side of Object.values(book)) for (const vendors of side.values()) vendors.delete(vendor);
 }
 
@@ -48,3 +54,13 @@ export function bestPrice(side: Side, graphic: number, near: (s: Sighting) => bo
 }
 
 export const pricedGoods = (side: Side) => [...book[side].keys()];
+
+// The kinds of shop seen paying for `graphic` lately, best price first.
+export const buyersOf = (graphic: number): ServiceType[] => [
+  ...new Set(
+    [...(book.pays.get(graphic)?.values() ?? [])]
+      .filter((seen) => Date.now() - seen.at <= WEEK)
+      .sort((a, b) => b.price - a.price)
+      .flatMap((seen) => kinds.get(seen.vendor) ?? [])
+  )
+];
