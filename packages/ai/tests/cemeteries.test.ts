@@ -45,3 +45,24 @@ test('overland travel walks to the selected mainland cemetery without using a mo
   await travelToGround(ctx, true);
   expect(calls).toEqual(['travelling-to-graveyard', { point: { x: 722, y: 1119 }, range: 3 }]);
 });
+
+test('a novice standing by a cemetery of spellcasting undead does not choose to hunt there', async () => {
+  const { skillId } = await import('@gemwright/common/game/skills');
+  const novice = {
+    trip: { ground: 'Britain' },
+    serial: 1,
+    position: () => ({ x: 1290, y: 3725, z: 0 }),
+    status: () => ({ maxHits: 60, armor: 10, hits: 60 }),
+    template: { archetype: { primarySkills: ['Swordsmanship'], supportingSkills: [] }, behavior: {} },
+    session: {
+      world: {
+        childrenOf: () => [{ layer: 1, graphic: 0x13ff }],
+        skills: new Map([
+          [skillId('Swordsmanship'), { value: 30, base: 30 }],
+          [skillId('Tactics'), { value: 30, base: 30 }]
+        ])
+      }
+    }
+  } as unknown as FighterContext;
+  expect(nextGround(novice)).not.toBe('Jhelom');
+});

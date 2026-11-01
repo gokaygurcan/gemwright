@@ -17,6 +17,7 @@
   },
   "exports": {
     "./pull": "./src/pull.ts",
+    "./logs": "./src/logs.ts",
     "./process": "./src/process.ts",
     "./providers/railway": "./src/providers/railway.ts",
     "./state": "./src/state.ts",

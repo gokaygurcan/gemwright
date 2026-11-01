@@ -71,7 +71,10 @@ export function createNavigator(options: {
       if (far && session.phase === 'ready') await land(session).catch(() => {});
     }
   };
-  const go = async (goal: { x: number; y: number; z?: number }, range: number) => {
+  // `linksTried` is shared with the walk to a teleporter's entrance, so that walk never takes a
+  // teleporter this route is already taking: two links whose entrances each lead to the other
+  // otherwise call each other without end.
+  const go = async (goal: { x: number; y: number; z?: number }, range: number, linksTried = new Set<Link>()) => {
     // Always give the event loop a turn: a caller looping on an already-reached goal must not
     // starve timers, the shard lease and every other session.
     await Bun.sleep(0);
@@ -80,7 +83,6 @@ export function createNavigator(options: {
     let detouring = false;
     let seenThreats = new Set<number>();
     let waits = 0;
-    const linksTried = new Set<Link>();
     // Where this walk began: a teleporter back to it is no way forward (Jhelom's pair of links).
     const start = session.world.position ? { ...session.world.position } : undefined;
     const origins = new Map<string, number>();
@@ -195,7 +197,7 @@ export function createNavigator(options: {
         if (link) {
           linksTried.add(link);
           phase('teleporter', `Taking the teleporter at ${link.from.x},${link.from.y}`);
-          await go(link.from, 0).catch(() => {});
+          await go(link.from, 0, linksTried).catch(() => {});
           await session.waitFor(() => distance(position(), link.to) <= 3, 'teleport', 4000).catch(() => {});
           if (distance(position(), link.to) <= 3) continue;
         }

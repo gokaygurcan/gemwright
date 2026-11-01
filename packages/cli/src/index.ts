@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { logs } from '@gemwright/deployment/logs';
 import { pull } from '@gemwright/deployment/pull';
 
 import chalk from 'chalk';
@@ -26,6 +27,7 @@ const help = `Usage: gemwright init [directory] [options]
        gemwright deploy --target vps --public-host <host> [--client --domain <host>] [--prepare]
        gemwright update [--server | --client | --ai] [--package-version <exact>]
        gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
+       gemwright logs [--server] [--client] [--ai] [--watch]
        gemwright restore [--from <pull>] [--server] [--ai] [--yes]
 
 Options:
@@ -54,6 +56,7 @@ Options:
   --backups             Also pull the server's own Backups folder (pull)
   --output <dir>        Where pull saves (default: .gemwright/pulls/<time>)
   --cleanup             Keep only the newest pull after a complete pull (pull)
+  --watch               Keep following new log lines (logs)
   --from <pull>         Pull folder to restore (default: the newest pull)
   --help                Show this help
   --version             Show the installed version`;
@@ -89,6 +92,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       backups: { type: 'boolean' },
       output: { type: 'string' },
       cleanup: { type: 'boolean' },
+      watch: { type: 'boolean' },
       from: { type: 'string' },
       help: { type: 'boolean' },
       version: { type: 'boolean' }
@@ -131,6 +135,12 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       process.cwd(),
       console.log
     );
+    return;
+  }
+  if (command === 'logs') {
+    if (directory || Object.keys(values).some((key) => !['server', 'client', 'ai', 'watch'].includes(key)))
+      throw new Error('Usage: gemwright logs [--server] [--client] [--ai] [--watch]');
+    await logs({ server: values.server, client: values.client, ai: values.ai, watch: values.watch });
     return;
   }
   if (command === 'restore') {

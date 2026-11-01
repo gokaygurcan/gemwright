@@ -63,6 +63,12 @@ const ratio = (session: PlayerSession) => {
   return status ? status.hits / Math.max(1, status.maxHits) : 1;
 };
 
+// One heal on itself while hurt, with what it carries; false when it has nothing to heal with.
+export const healSelf = (ctx: Ctx) => {
+  const me = ctx.session.world.serial;
+  return me === null || ratio(ctx.session) >= 1 ? Promise.resolve(false) : healOnce(ctx, me);
+};
+
 // Badly hurt (as after a resurrection): heal to most of its health before anything else, four minutes at most.
 // With nothing to heal with it rests (natural regeneration), out of reach of monsters.
 export async function mendAfterDeath(ctx: Ctx, log: (message: string) => void, home = 'Britain') {

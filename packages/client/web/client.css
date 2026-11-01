@@ -35,7 +35,8 @@ canvas {
   touch-action: none;
 }
 canvas.game-ready {
-  cursor: none;
+  /* biome-ignore lint/complexity/noImportantStyles: the game draws its own cursor, and SDL sets the canvas cursor inline, which only !important outranks */
+  cursor: none !important;
   user-select: none;
   -webkit-user-select: none;
 }

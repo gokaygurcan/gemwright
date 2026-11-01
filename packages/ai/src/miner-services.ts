@@ -1,4 +1,4 @@
-import { gold, ingot, miningTools, ore } from '@gemwright/common/game/items';
+import { boards, gold, ingot, logs, miningTools, ore } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -40,6 +40,12 @@ const oreSkill = new Map([
   [0x89f, 95], // verite
   [0x8ab, 99] // valorite
 ]);
+
+// What a miner's bank trip takes from the pack, besides refused ore and kept pieces: its iron and
+// gold, and the wood its side trade left unsold (side-gathering.ts), which would otherwise keep the
+// pack over the weight it mines at.
+export const banked = (graphic: number) =>
+  graphic === ingot || graphic === gold || boards.has(graphic) || logs.has(graphic);
 
 export function createMinerServices(ctx: MinerServicesContext) {
   const {
@@ -137,11 +143,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
     for (const item of [...session.world.entities.values()]) {
       // Gold is deposited too: vendors charge the bank, and carried gold is lost on death.
       const kept = !!checkpoint.keep?.includes(item.serial);
-      if (
-        item.parent !== backpack ||
-        (item.graphic !== ingot && item.graphic !== gold && !retained.has(item.serial) && !kept)
-      )
-        continue;
+      if (item.parent !== backpack || !(banked(item.graphic) || retained.has(item.serial) || kept)) continue;
       if (retained.has(item.serial) && stash-- <= 0) {
         await putDown(session, item.serial).catch(() => {});
         continue;

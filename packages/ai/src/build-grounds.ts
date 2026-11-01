@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { cemeteries, HUNTING_RADIUS } from './cemeteries';
 import { monsters } from './monster-reference';
 
 // Offline build of catalogs/hunting-grounds.json: the overland places on Trammel where creatures
@@ -83,6 +84,29 @@ const grounds = [...cells.values()]
     };
   })
   .sort((a, b) => a.center.x - b.center.x || a.center.y - b.center.y);
+// The cemeteries (cemeteries.ts) lie in town regions, so they get their creatures here: every
+// huntable spawn within the hunting radius of each, whatever the region.
+const cemeteryCreatures: Record<string, Record<string, number>> = {};
+for (const [, point] of spawns.matchAll(/<Points>([\s\S]*?)<\/Points>/g)) {
+  const field = (name: string) => new RegExp(`<${name}>([^<]*)</${name}>`).exec(point ?? '')?.[1] ?? '';
+  if (field('Map') !== 'Trammel') continue;
+  const at = { x: Number(field('CentreX')), y: Number(field('CentreY')) };
+  const kinds = field('Objects2')
+    .split(':OBJ=')
+    .map((entry) => (entry.split(':')[0] ?? '').toLowerCase())
+    .filter(huntable);
+  const share = Math.max(1, Math.round((Number(field('MaxCount')) || kinds.length) / Math.max(1, kinds.length)));
+  for (const cemetery of cemeteries.filter(
+    (c) => Math.max(Math.abs(c.center.x - at.x), Math.abs(c.center.y - at.y)) <= HUNTING_RADIUS
+  )) {
+    cemeteryCreatures[cemetery.name] ??= {};
+    const creatures = cemeteryCreatures[cemetery.name] ?? {};
+    for (const kind of kinds) {
+      const type = byType.get(kind)?.type ?? kind;
+      creatures[type] = (creatures[type] ?? 0) + share;
+    }
+  }
+}
 const output = resolve(values.output ?? new URL('../catalogs/hunting-grounds.json', import.meta.url).pathname);
-writeFileSync(output, `${JSON.stringify({ schemaVersion: 1, grounds }, null, 1)}\n`);
+writeFileSync(output, `${JSON.stringify({ schemaVersion: 1, cemeteries: cemeteryCreatures, grounds }, null, 1)}\n`);
 console.log(`Wrote ${grounds.length} hunting grounds to ${output}`);

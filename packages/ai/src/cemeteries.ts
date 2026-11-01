@@ -28,7 +28,12 @@ export interface Ground {
   radius?: number;
   creatures?: Record<string, number>;
 }
-export const cemeteries: Ground[] = [
+// The overland catalog (build-grounds.ts), which also names what spawns at each cemetery.
+const catalog = JSON.parse(readFileSync(new URL('../catalogs/hunting-grounds.json', import.meta.url), 'utf8')) as {
+  cemeteries?: Record<string, Record<string, number>>;
+  grounds: { name: string; center: { x: number; y: number }; radius: number; creatures: Record<string, number> }[];
+};
+const cemeteryPlaces: Ground[] = [
   {
     name: 'Britain',
     center: { x: 1369, y: 1475 },
@@ -49,15 +54,15 @@ export const cemeteries: Ground[] = [
   // The undead of Old Haven on Haven Island, where New Haven's residents start (haven.ts).
   { name: 'New Haven', center: { x: 3650, y: 2510 }, gate: 'newhaven' }
 ];
-const HUNTING_RADIUS = 65;
+export const cemeteries: Ground[] = cemeteryPlaces.map((ground) => ({
+  ...ground,
+  creatures: catalog.cemeteries?.[ground.name]
+}));
+export const HUNTING_RADIUS = 65;
 // Beyond the cemeteries: every overland place where creatures that attack on sight spawn, outside
 // towns and dungeons (build-grounds.ts): orcs, harpies, trolls and lizardmen west of Britain, and
 // hundreds more. A fighter moves on to one its skills meet when its cemetery runs dry.
-const spawnGrounds: Ground[] = (
-  JSON.parse(readFileSync(new URL('../catalogs/hunting-grounds.json', import.meta.url), 'utf8')) as {
-    grounds: { name: string; center: { x: number; y: number }; radius: number; creatures: Record<string, number> }[];
-  }
-).grounds.map((g) => ({ ...g, gate: nearestGate(g.center) }));
+const spawnGrounds: Ground[] = catalog.grounds.map((g) => ({ ...g, gate: nearestGate(g.center) }));
 // Haven Island's monster grounds (locations/new-haven.json), left out of the overland catalog.
 const havenGrounds: Ground[] = haven.grounds.map((g) => ({ ...g, gate: 'newhaven' as const }));
 export const grounds: Ground[] = [...cemeteries, ...spawnGrounds, ...havenGrounds];

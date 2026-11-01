@@ -225,3 +225,26 @@ test('a cached no-path result still permits adjacent door interaction after acce
   expect(f.used).toEqual([20, 20]);
   expect(f.world.position.x).toBe(3521);
 });
+
+test('with no path on foot, walking to a teleporter does not take the teleporters back and forth', async () => {
+  const f = fixture();
+  f.world.position = { x: 1286, y: 3731, z: 0, direction: 2 };
+  f.terrain.pathAsync = async () => null;
+  f.session.walk = async () => false;
+  // Nothing carries it anywhere: every wait for the far end times out.
+  f.session.waitFor = async () => {
+    throw new Error('teleport timed out');
+  };
+  let teleporters = 0;
+  const navigate = createNavigator({
+    session: f.session,
+    terrain: f.terrain,
+    check: () => {},
+    phase: (name) => {
+      if (name === 'teleporter' && ++teleporters > 20) throw new Error('teleporters taken back and forth');
+    },
+    log: () => {}
+  });
+  await expect(navigate({ x: 1420, y: 3830 }, 2)).rejects.toThrow('No walkable route');
+  expect(teleporters).toBeLessThanOrEqual(2);
+}, 15_000);

@@ -4,6 +4,7 @@ import { takingUrgentAction } from './action-purpose';
 import { lifeEvent } from './life-events';
 import { logger } from './log';
 import { perceptionFor } from './perception-session';
+import { pricedGoods } from './price-book';
 import { workEvidence } from './work-evidence';
 
 // An hourly account per resident of how it spent its time, the measure of whether it plays like a
@@ -69,11 +70,14 @@ export function notePhase(session: PlayerSession, name: string, phase: string) {
     blocks: w.blocks,
     unanswered: w.unanswered,
     funds: evidence.funds - w.funds,
-    skills: Math.round((skills - w.skills) * 10) / 10
+    skills: Math.round((skills - w.skills) * 10) / 10,
+    // What residents know of prices so far (price-book.ts): what trading can be worked out from.
+    pricesCharged: pricedGoods('charges').length,
+    pricesPaid: pricedGoods('pays').length
   };
   lifeEvent(session, 'behavior', 'observed', report);
   logger('behavior').info(
-    `[${name}] hour: core ${report.core}% side ${report.side}% combat ${report.combat}% idle ${report.idle}%; switches ${report.switches}, blocks ${report.blocks}, unanswered attacks ${report.unanswered}; funds ${report.funds >= 0 ? '+' : ''}${report.funds}, skills +${report.skills}`
+    `[${name}] hour: core ${report.core}% side ${report.side}% combat ${report.combat}% idle ${report.idle}%; switches ${report.switches}, blocks ${report.blocks}, unanswered attacks ${report.unanswered}; funds ${report.funds >= 0 ? '+' : ''}${report.funds}, skills +${report.skills}; known prices ${report.pricesCharged} charged, ${report.pricesPaid} paid`
   );
   windows.delete(session);
 }

@@ -288,3 +288,22 @@ test('full health does not complete recovery while the personal corpse is still 
   await residentTurn(f.ctx, actions);
   expect(f.checkpoint.workGoal?.last).toMatchObject({ key: 'recover', result: 'completed' });
 });
+
+test('a hurt resident over its risk budget bandages itself rather than waiting for its health', async () => {
+  const f = fixture('miner');
+  f.template.behavior.riskTolerance = 0;
+  required(f.world.status).hits = 80;
+  required(f.world.status).maxHits = 100;
+  f.world.skills.set(skillId('Healing'), { base: 50, value: 50, cap: 100, lock: 0 });
+  f.world.entities.set(43, { serial: 43, kind: 'item', graphic: 0x0e21, parent: 10, amount: 20 });
+  const used: number[] = [];
+  f.session.use = (serial: number) => {
+    used.push(serial);
+    f.world.target = { id: 1, type: 0, flags: 0 } as never;
+  };
+  f.session.target = () => {
+    f.world.target = null;
+  };
+  await residentTurn(f.ctx, { trade: 'miner', keep: () => true, settle: async () => {} });
+  expect(used).toContain(43);
+}, 15_000);

@@ -14,6 +14,7 @@ import { packFull } from './inventory';
 import type { LifeContext } from './life';
 import { lifeEvent } from './life-events';
 import { pickLocation, townAt } from './locations';
+import { healSelf } from './mend';
 import { meetNeeds } from './need-planning';
 import { perceptionFor } from './perception-session';
 import { updatePersonalGoals } from './personal-goals';
@@ -226,6 +227,12 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
       if (state.recoveryPending && actions.recover) {
         await goalPermission(session, 'recover', actions.recover);
         return true;
+      }
+      // Lost health is most of a resident's risk, and no bank trip or wait lowers it as fast as a
+      // bandage or a heal spell: it heals with what it carries before anything else (mend.ts).
+      if (ctx.status().hits < ctx.status().maxHits) {
+        ctx.phase('mending', `Healing before resuming (${ctx.status().hits}/${ctx.status().maxHits})`);
+        if (await healSelf(ctx)) return true;
       }
       const budget = riskBudget(state);
       const risk = state.planning?.deathRisk ?? 1;
