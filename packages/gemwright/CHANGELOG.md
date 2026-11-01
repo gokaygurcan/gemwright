@@ -1,5 +1,13 @@
 # gemwright
 
+## 0.8.1
+
+### Patch Changes
+
+- [`c8c3d71`](https://github.com/gokaygurcan/gemwright/commit/c8c3d71ef607900bb3cfff332e9ca68840fb9c87) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - Wait for npm to show newly published versions before announcing a release, and give the packed AI check the client version it requires.
+- Updated dependencies []:
+  - @gemwright/cli@0.8.1
+
 ## 0.8.0
 
 ### Minor Changes
