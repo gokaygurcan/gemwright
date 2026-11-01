@@ -1,5 +1,13 @@
 # @gemwright/deployment
 
+## 0.8.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @gemwright/client@0.8.3
+  - @gemwright/common@0.8.3
+
 ## 0.8.2
 
 ### Patch Changes

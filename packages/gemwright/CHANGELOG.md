@@ -1,5 +1,13 @@
 # gemwright
 
+## 0.8.3
+
+### Patch Changes
+
+- [`3244394`](https://github.com/gokaygurcan/gemwright/commit/324439482c15b07dfd9e718fa8155e86f9e5a11f) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - Export AI and web client logs over OpenTelemetry when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, with player session and shard reachability events from the web client. Residents sell unfit gear to the shops seen paying for it. Release announcements wait long enough for npm to show new versions.
+- Updated dependencies []:
+  - @gemwright/cli@0.8.3
+
 ## 0.8.2
 
 ### Patch Changes
