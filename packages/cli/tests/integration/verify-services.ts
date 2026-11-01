@@ -90,7 +90,13 @@ try {
       ...env,
       AI_DATA: data,
       UO_HOST: '127.0.0.1',
-      GEMWRIGHT_SHARD: JSON.stringify({ id: 'standalone', emulator: 'servuo', expansion: 'ej', ai: { population: 0 } })
+      GEMWRIGHT_SHARD: JSON.stringify({
+        id: 'standalone',
+        emulator: 'servuo',
+        expansion: 'ej',
+        client: { version: '7.0.45.1' },
+        ai: { population: 0 }
+      })
     },
     stdout: 'ignore',
     stderr: 'pipe'
