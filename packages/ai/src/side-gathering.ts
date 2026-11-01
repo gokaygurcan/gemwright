@@ -15,6 +15,7 @@ import { findMiningSite } from './miner-sites';
 import { createSmelter } from './miner-smelting';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
+import { onItem, useOn } from './target-action';
 import { buyTool, sellTo } from './vendor-trade';
 import { workAreas } from './work-areas';
 
@@ -56,11 +57,7 @@ export async function woodTurn(ctx: ProfessionContext): Promise<boolean> {
     const pile = ctx.carried().find((i) => i.graphic === LOG && !i.hue);
     const blade = tool(ctx, hatchets);
     if (!pile || !blade) return;
-    session.use(blade.serial);
-    await session
-      .waitFor(() => session.world.target !== null, 'hatchet cursor', 4000, { resource: 'target' })
-      .catch(() => {});
-    if (session.world.target) session.target({ serial: pile.serial, x: 0, y: 0, z: 0, graphic: pile.graphic });
+    await useOn(session, () => session.use(blade.serial), onItem(pile), { label: 'hatchet cursor', ms: 4000 });
     await Bun.sleep(1500);
   };
   const chop = await chopTree(
@@ -92,7 +89,7 @@ export async function woodTurn(ctx: ProfessionContext): Promise<boolean> {
 export async function oreTurn(ctx: ProfessionContext): Promise<boolean> {
   const { session } = ctx;
   if (!tool(ctx, miningTools) && spendableGold(session, ctx.backpack(), ctx.checkpoint) >= 40)
-    await buyTool(ctx, 'mining-tools', [...miningTools], 40).catch(() => false);
+    await buyTool(ctx, 'mining-tools', [...miningTools]).catch(() => false);
   const pick = tool(ctx, miningTools);
   if (!pick) return false;
   const area = [...workAreas('mining')].sort((a, b) => distance(a, ctx.position()) - distance(b, ctx.position()))[0];

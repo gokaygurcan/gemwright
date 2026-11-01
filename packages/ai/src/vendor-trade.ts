@@ -1,57 +1,62 @@
-import { Opcode } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
-import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
-import { atVendor, type CraftContext } from './craft-training';
+import { canSpendOnTraining, chargedPurchase, recordTrainingSpend, refreshFunds } from './bank-gold';
+import type { CraftContext } from './craft-training';
 import { learnQuality, quality, shopSafe } from './item-quality';
 import type { ServiceType } from './locations';
+import { buyOffers, sellChosen, sellOffers } from './vendor-shop';
+import { atVendor } from './vendor-visit';
 import { reservedFor } from './work-orders';
 
 type TradeContext = CraftContext & { backpack: () => number };
 
-// Buys up to `wanted` amounts (graphic -> count) from one vendor of `service`, each unit at most
-// `maxPrice`, within the shared training budget. Returns whether anything was bought.
-export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: Map<number, number>, maxPrice: number) {
+// Buys up to `wanted` amounts (graphic -> count) from one vendor of `service` at whatever the shard
+// asks, as long as the resident can pay it (the spending limits it was given). True when it bought.
+export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: Map<number, number>) {
   const { session } = ctx;
+  // Gold lives in the bank: a balance it no longer knows is asked for, not counted as nothing — a
+  // fisher with thousands banked was turning down every pole as unaffordable.
+  await refreshFunds(ctx, ctx.city);
   return atVendor(
     ctx,
     service,
     Actions.buy,
     async (vendor) => {
-      const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-      session.world.buyOffers.clear();
-      const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.buy);
-      if (!entry) return false;
-      session.selectContext(vendor, entry.index);
-      await session
-        .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'vendor stock', 2500)
-        .catch(() => {});
+      const stock = await buyOffers(session, vendor, Actions.buy);
+      if ('why' in stock) return false;
       let bought = false;
-      for (const offer of [...session.world.buyOffers.values()].flat()) {
+      // Why each wanted offer was passed over, so a vendor that sold nothing says which it was.
+      const passed = { unwanted: 0, funds: 0 };
+      for (const offer of stock.offers) {
         const graphic = session.world.entities.get(offer.serial)?.graphic ?? 0;
         const amount = Math.min(wanted.get(graphic) ?? 0, session.world.entities.get(offer.serial)?.amount ?? 1);
         const cost = amount * offer.price;
-        if (
-          amount < 1 ||
-          offer.price > maxPrice ||
-          !canSpendOnTraining(session, ctx.backpack(), ctx.checkpoint, cost, ctx.limits)
-        )
-          continue;
-        await chargedPurchase(ctx, cost, () =>
-          session.purchaseItem(vendor, offer.serial, ctx.backpack(), amount, cost)
-        );
-        recordTrainingSpend(ctx.checkpoint, cost);
-        wanted.delete(graphic);
-        bought = true;
+        if (amount < 1) passed.unwanted++;
+        else if (!canSpendOnTraining(session, ctx.backpack(), ctx.checkpoint, cost, ctx.limits)) passed.funds++;
+        else {
+          await chargedPurchase(ctx, cost, () =>
+            session.purchaseItem(vendor, offer.serial, ctx.backpack(), amount, cost)
+          );
+          recordTrainingSpend(ctx.checkpoint, cost);
+          wanted.delete(graphic);
+          bought = true;
+        }
       }
+      if (!bought)
+        ctx.log(
+          `Bought nothing from vendor ${vendor}: ${stock.offers.length} offers (${passed.unwanted} not wanted, ${passed.funds} unaffordable; known funds ${(ctx.checkpoint.funds?.bank ?? 0) + (ctx.status().gold ?? 0)}); wanted ${[...wanted.keys()].map((g) => `0x${g.toString(16)}`).join(',')}; offered ${stock.offers
+            .slice(0, 8)
+            .map((o) => `${o.description}=0x${(session.world.entities.get(o.serial)?.graphic ?? 0).toString(16)}`)
+            .join(', ')}`
+        );
       return bought;
     },
     `buy:${[...wanted]
       .sort(([a], [b]) => a - b)
       .map(([graphic, count]) => `${graphic}=${count}`)
-      .join(',')}:${maxPrice}`
+      .join(',')}`
   );
 }
 
@@ -61,9 +66,9 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
 // A work tool that wears out (instruments 350-450 uses, ServUO BaseInstrument): a pair when
 // affordable, so the spare keeps the resident working when the first breaks, else one. Kinds are
 // tried in order and the first purchase ends it, so a vendor stocking several kinds sells one.
-export async function buyTool(ctx: TradeContext, service: ServiceType, kinds: readonly number[], maxPrice: number) {
+export async function buyTool(ctx: TradeContext, service: ServiceType, kinds: readonly number[]) {
   for (const count of [2, 1])
-    for (const graphic of kinds) if (await buyFrom(ctx, service, new Map([[graphic, count]]), maxPrice)) return true;
+    for (const graphic of kinds) if (await buyFrom(ctx, service, new Map([[graphic, count]]))) return true;
   return false;
 }
 
@@ -80,17 +85,14 @@ export async function sellTo(
     service,
     Actions.sell,
     async (vendor) => {
-      const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.sell);
-      if (!entry) return false;
-      session.world.sellOffers.delete(vendor);
-      session.selectContext(vendor, entry.index);
-      await session.waitFor(() => session.world.sellOffers.has(vendor), 'vendor buying list', 2500).catch(() => {});
+      const opened = await sellOffers(session, vendor, Actions.sell);
+      if ('why' in opened) return false;
       // Only plain goods go to a shop (item-quality.ts): special pieces are kept or traded.
       await learnQuality(
         session,
-        (session.world.sellOffers.get(vendor) ?? []).flatMap((offer) => session.world.entities.get(offer.serial) ?? [])
+        opened.offers.flatMap((offer) => session.world.entities.get(offer.serial) ?? [])
       );
-      const sale = (session.world.sellOffers.get(vendor) ?? []).filter((offer) => {
+      const sale = opened.offers.filter((offer) => {
         const item = session.world.entities.get(offer.serial);
         return (
           !!item &&
@@ -103,15 +105,9 @@ export async function sellTo(
         );
       });
       if (!sale.length) return false;
-      const gold = ctx.status().gold;
-      await session.sell(
-        vendor,
-        sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
-      );
-      await session.refreshStatus();
-      earned = ctx.status().gold - gold;
-      tally(session, 'goldFromShops', Math.max(0, earned));
-      return true;
+      earned = (await sellChosen(session, vendor, sale)).earned;
+      tally(session, 'goldFromShops', earned);
+      return earned > 0;
     },
     `sell:${ctx
       .carried(ctx.backpack())

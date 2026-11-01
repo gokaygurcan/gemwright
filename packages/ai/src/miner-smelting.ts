@@ -7,6 +7,7 @@ import { Blocked } from './blocked';
 import { forgeSites } from './locations';
 import type { MinerServicesContext } from './miner-types';
 import { distance } from './navigation';
+import { useOn } from './target-action';
 
 export const forges = new Set([0x0fb1, ...Array.from({ length: 48 }, (_, index) => 6522 + index)]);
 
@@ -141,17 +142,20 @@ export function createSmelter(ctx: MinerServicesContext) {
       const pile = smeltable(backpack)[0];
       if (!pile) break;
       const before = { amount: pile.amount ?? 1, graphic: pile.graphic, ingots: countIngots() };
-      session.use(pile.serial);
-      await session.waitFor(() => session.world.target !== null, 'ore smelting cursor', 4000, { resource: 'target' });
       const last = session.world.journal.at(-1);
       const tile = terrain.tile(forge.id, true);
-      session.target({
+      const onForge = {
         serial: forge.serial,
         x: forge.x,
         y: forge.y,
         z: forge.z + (!forge.serial && tile.flags & TileFlag.Surface ? tile.height : 0),
         graphic: forge.id
+      };
+      const smelt = await useOn(session, () => session.use(pile.serial), onForge, {
+        label: 'ore smelting cursor',
+        ms: 4000
       });
+      if ('why' in smelt) throw new Error(`The ore brought no smelting cursor (${smelt.why})`);
       const feedback = () =>
         (last ? session.world.journal.slice(session.world.journal.indexOf(last) + 1) : session.world.journal).find(
           (entry) =>

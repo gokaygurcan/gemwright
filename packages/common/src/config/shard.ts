@@ -89,6 +89,7 @@ export function createConfig(
     packages?: ShardConfig['packages'];
     railway?: ShardConfig['railway'];
     connection?: ShardConfig['connection'];
+    client?: ShardConfig['client'];
     name?: string;
     adminEmail?: string;
     url?: string;
@@ -205,12 +206,14 @@ export function createConfig(
     )
       throw new Error(`Invalid ${key} settings.`);
   }
+  if (input.client) clientVersion(input);
   return {
     ...(input.schemaVersion !== undefined ? { schemaVersion: input.schemaVersion } : {}),
     ...(input.$schema ? { $schema: input.$schema } : {}),
     ...(input.packages ? { packages: { ...input.packages } } : {}),
     ...(input.railway ? { railway: { ...input.railway } } : {}),
     ...(input.connection ? { connection: { ...input.connection } } : {}),
+    ...(input.client ? { client: { ...input.client } } : {}),
     ...(input.runuo ? { runuo: { ...input.runuo } } : {}),
     ...(input.modernuo ? { modernuo: { ...input.modernuo } } : {}),
     ...(input.servuo ? { servuo: { ...input.servuo } } : {}),
@@ -273,4 +276,13 @@ export async function loadShard(directory: string, validateRules: (rules: Sphere
   if (config.id !== input.id || !config.id)
     throw new Error('The recorded shard ID must be a non-empty slug derived from its name.');
   return config;
+}
+
+// The classic client players use (gemwright.json client.version): residents log in as it and the web
+// client is built for it. Required; there is no built-in version to fall back on.
+export function clientVersion(config: Pick<ShardConfig, 'client'>): string {
+  const version = config.client?.version;
+  if (!version || !/^\d+\.\d+\.\d+\.\d+$/.test(version))
+    throw new Error('Set client.version in gemwright.json (the classic client version players use, e.g. 7.0.45.1).');
+  return version;
 }

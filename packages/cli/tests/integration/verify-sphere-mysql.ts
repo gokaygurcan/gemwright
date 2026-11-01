@@ -126,7 +126,13 @@ try {
       mapSize: 'modern' as const,
       clientEncryption: 'both' as const
     };
-    const config = createConfig({ emulator, timezone: 'Europe/London', source: sources.server, sphere });
+    const config = createConfig({
+      client: { version: '7.0.45.1' },
+      emulator,
+      timezone: 'Europe/London',
+      source: sources.server,
+      sphere
+    });
     const files = prepareSphereFiles(await fetchSphereFiles(sources), config, sphere, 'test-password');
     files['scripts/gemwright_mysql_test.scp'] = await readFile(new URL('./sphere/mysql.scp', import.meta.url));
     files['scripts/spheretables.scp'] = Buffer.from(

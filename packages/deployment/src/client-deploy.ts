@@ -5,6 +5,7 @@ import { dirname, join, posix, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import type { GameFile } from '@gemwright/client/files';
+import { clientVersion } from '@gemwright/common/config/shard';
 import type { ShardConfig } from '@gemwright/common/config/types';
 
 import { createManifest } from './client-files';
@@ -101,7 +102,7 @@ export async function deployClient(
       'PORT=3000',
       `PUBLIC_ORIGIN=${origin}`,
       `SERVER_NAME=${shard.name}`,
-      `UO_CLIENT_VERSION=${process.env.UO_CLIENT_VERSION ?? '7.0.45.1'}`,
+      `UO_CLIENT_VERSION=${process.env.UO_CLIENT_VERSION ?? clientVersion(shard)}`,
       `UO_ENCRYPTION=${process.env.UO_ENCRYPTION ?? '0'}`,
       'RAILWAY_DOCKERFILE_PATH=Dockerfile',
       '--skip-deploys',

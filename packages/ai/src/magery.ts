@@ -1,11 +1,12 @@
 import { spellbook } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
-import { Opcode } from '@gemwright/network/opcodes';
 import { Actions, ShardMessage } from '@gemwright/network/replies';
 
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
-import { atVendor, type CraftContext } from './craft-training';
+import type { CraftContext } from './craft-training';
 import { packItems } from './inventory';
+import { buyOffers } from './vendor-shop';
+import { atVendor } from './vendor-visit';
 
 const [garlic, ginseng, mandrake, nightshade, silk, ash, moss] = [
   0x0f84, 0x0f85, 0x0f86, 0x0f88, 0x0f8d, 0x0f8c, 0x0f7b
@@ -43,19 +44,13 @@ export type MageryContext = CraftContext & { backpack: () => number };
 export async function shop(ctx: MageryContext, wanted: Map<number, number>, budget: number) {
   const { session } = ctx;
   return atVendor(ctx, 'mage', Actions.buy, async (vendor) => {
-    const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-    session.world.buyOffers.clear();
-    const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.buy);
-    if (!entry) return false;
-    session.selectContext(vendor, entry.index);
-    await session
-      .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'mage stock', 2500)
-      .catch(() => {});
+    const stock = await buyOffers(session, vendor, Actions.buy);
+    if ('why' in stock) return false;
     let bought = false;
-    for (const offer of [...session.world.buyOffers.values()].flat()) {
+    for (const offer of stock.offers) {
       const graphic = session.world.entities.get(offer.serial)?.graphic ?? 0;
       const amount = Math.min(wanted.get(graphic) ?? 0, Math.floor(budget / Math.max(1, offer.price)));
-      if (amount < 1 || offer.price > 25) continue;
+      if (amount < 1) continue;
       if (!canSpendOnTraining(session, ctx.backpack(), ctx.checkpoint, amount * offer.price)) continue;
       await chargedPurchase(ctx, amount * offer.price, () =>
         session.purchaseItem(vendor, offer.serial, ctx.backpack(), amount, amount * offer.price)

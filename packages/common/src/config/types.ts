@@ -60,6 +60,8 @@ export interface ShardConfig {
   timezone: string;
   expansion: Expansion;
   emulator: Emulator;
+  // The classic client players connect with (version string such as 7.0.45.1); residents speak it too.
+  client?: { version: string };
   source?: EmulatorSource;
   runuo?: DotnetSettings;
   modernuo?: DotnetSettings;

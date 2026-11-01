@@ -10,6 +10,7 @@ import { type ProfessionContext, type ProfessionOptions, runProfession } from '.
 import { postOffer, shopShare } from './resident-offers';
 import { sideTradeTurn } from './side-trade';
 import { woolToBolt } from './tailor-wool';
+import { onItem, useOn } from './target-action';
 import { buyFrom, sellTo } from './vendor-trade';
 import { orderDemand, reservedFor } from './work-orders';
 
@@ -21,7 +22,6 @@ export const tailoring: CraftSkill = {
   vendor: 'tailor',
   // The sewing kit; scissors open a cutting cursor, not the tailoring menu.
   tools: new Set([0x0f9d]),
-  toolPrice: 5,
   material: cloth,
   // SBTailor sells cloth in random dyed colours; the colour does not matter for sewing.
   anyHue: true,
@@ -31,7 +31,7 @@ export const tailoring: CraftSkill = {
 };
 
 // Cuts uncut cloth and bolts into cloth with scissors (ServUO IScissorable: an uncut piece gives one
-// cloth, a crossbowBolt fifty). Returns whether any cloth came of it.
+// cloth, a bolt fifty). Returns whether any cloth came of it.
 async function cutCloth(ctx: ProfessionContext) {
   const { session } = ctx;
   const blade = ctx.carried().find((item) => scissors.has(item.graphic));
@@ -40,12 +40,8 @@ async function cutCloth(ctx: ProfessionContext) {
   for (const piece of ctx.carried().filter((item) => item.graphic === uncutCloth || item.graphic === boltOfCloth)) {
     ctx.check();
     const before = ctx.count(cloth);
-    session.use(blade.serial);
-    await session
-      .waitFor(() => session.world.target !== null, 'scissors cursor', 3000, { resource: 'target' })
-      .catch(() => {});
-    if (!session.world.target) break;
-    session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
+    if ('why' in (await useOn(session, () => session.use(blade.serial), onItem(piece), { label: 'scissors cursor' })))
+      break;
     await session.waitFor(() => ctx.count(cloth) > before, 'cut cloth', 3000).catch(() => {});
     cut ||= ctx.count(cloth) > before;
   }
@@ -53,22 +49,21 @@ async function cutCloth(ctx: ProfessionContext) {
 }
 
 // Cloth from the tailor vendor (2 gold a yard); when the vendor's 20 yards are sold out, uncut cloth
-// or a crossbowBolt from the same vendor cut with scissors; failing both, wool from the sheep (tailor-wool.ts).
+// or a bolt from the same vendor cut with scissors; failing both, wool from the sheep (tailor-wool.ts).
 async function refill(ctx: ProfessionContext, least: number) {
-  if (await buyFrom(ctx, 'tailor', new Map([[cloth, Math.max(least, 60)]]), 3)) return true;
+  if (await buyFrom(ctx, 'tailor', new Map([[cloth, Math.max(least, 60)]]))) return true;
   if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-    await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
+    await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]));
   await buyFrom(
     ctx,
     'tailor',
     new Map([
       [uncutCloth, Math.max(least, 40)],
       [boltOfCloth, 1]
-    ]),
-    110
+    ])
   );
   if ((await cutCloth(ctx)) || ctx.count(cloth) >= least) return true;
-  // Nothing to buy at all: wool from the sheep, spun and woven into a crossbowBolt, then cut.
+  // Nothing to buy at all: wool from the sheep, spun and woven into a bolt, then cut.
   return (await woolToBolt(ctx)) && (await cutCloth(ctx));
 }
 
@@ -109,20 +104,18 @@ export const runTailor = (options: ProfessionOptions) =>
       const bandagesNeeded = orderDemand(ctx.session, 'bandages') - ctx.count(0x0e21);
       if (bandagesNeeded > 0) {
         if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
+          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]));
         await refill(ctx, bandagesNeeded + orderDemand(ctx.session, 'cloth'));
         const blade = ctx.carried().find((item) => scissors.has(item.graphic));
         const piece = ctx.carried().find((item) => item.graphic === cloth);
         if (blade && piece && !reservedFor(ctx.session, piece)) {
           const before = ctx.count(0x0e21);
           ctx.phase('gathering-bandages', 'Cutting cloth for an agreed bandage order');
-          ctx.session.use(blade.serial);
-          await ctx.session
-            .waitFor(() => ctx.session.world.target !== null, 'scissors cursor', 3000, { resource: 'target' })
-            .catch(() => {});
+          const cut = await useOn(ctx.session, () => ctx.session.use(blade.serial), onItem(piece), {
+            label: 'scissors cursor'
+          });
           ctx.check();
-          if (ctx.session.world.target) {
-            ctx.session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
+          if (!('why' in cut)) {
             await ctx.session.waitFor(() => ctx.count(0x0e21) > before, 'bandages cut', 3000).catch(() => {});
             ctx.persist();
           }
@@ -131,7 +124,7 @@ export const runTailor = (options: ProfessionOptions) =>
       }
       if (orderDemand(ctx.session, 'cloth') > ctx.count(cloth)) {
         if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]), 15);
+          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]));
         await woolToBolt(ctx);
         await cutCloth(ctx);
         return;

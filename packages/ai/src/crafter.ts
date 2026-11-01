@@ -7,7 +7,7 @@ import { type CraftSkill, craftRecipes, trainCraft } from './craft-training';
 import type { DecisionCoordinator } from './decisions';
 import { learnQuality } from './item-quality';
 import type { ServiceType } from './locations';
-import { buyAtMarket, carriedOf, type Good, goodRecipes, goods, sellAtMarket } from './market';
+import { carriedOf, type Good, goodRecipes, goods } from './market';
 import { earnBoards } from './material-income';
 import { playerDemand } from './player-insight';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
@@ -25,7 +25,6 @@ export const alchemy: CraftSkill = {
   skill: 'Alchemy',
   vendor: 'alchemist',
   tools: new Set([0x0e9b]),
-  toolPrice: 8,
   material: 0x0f85,
   recipes: craftRecipes('Alchemy'),
   unitCost: 3,
@@ -38,7 +37,6 @@ export const bowcraft: CraftSkill = {
   skill: 'Fletching',
   vendor: 'bowyer',
   tools: new Set([0x1022, 0x1023]),
-  toolPrice: 4,
   material: board,
   recipes: craftRecipes('Bowcraft'),
   unitCost: 3
@@ -57,13 +55,11 @@ function runCrafter(name: string, craft: CraftSkill) {
     ctx: ProfessionContext & { limits?: typeof BUSINESS },
     least: number,
     graphic: number,
-    decisions?: DecisionCoordinator
+    _decisions?: DecisionCoordinator
   ) => {
     // A trip to the market town is worth it only for a good lot.
     const want = Math.max(least * 3, source.batch, graphic === goods.boards.graphic ? 60 : 0);
-    if (graphic === goods.boards.graphic && (await buyAtMarket({ ...ctx, decisions }, 'boards', want, 4)) >= least)
-      return true;
-    return buyFrom(ctx, source.shop, new Map([[graphic, want]]), source.price);
+    return buyFrom(ctx, source.shop, new Map([[graphic, want]]));
   };
   const forMarketGoods = () => (Object.keys(goods) as Good[]).filter((g) => goods[g].shop === craft.vendor);
   return (options: ProfessionOptions) =>
@@ -84,16 +80,11 @@ function runCrafter(name: string, craft: CraftSkill) {
       const ordered = forMarketGoods().some((good) => orderDemand(ctx.session, good) > 0);
       if (name === 'alchemist' && savings < 2000 && !ordered && (await sideTradeTurn(ctx, name, true))) return;
       const until = Math.min(ctx.deadline, Date.now() + 5 * 60_000);
-      // Market goods this craft makes are kept from the shop for residents: plain ones by graphic
-      // (alchemists' potions), exceptional ones by quality (bowyers' bows; normal bows are sold).
       const forMarket = forMarketGoods();
       const plain = forMarket.filter((g) => !goods[g].exceptional);
-      const hold = new Set(plain.map((g) => goods[g].graphic as number));
       const made = await trainCraft(
         {
           ...ctx,
-          hold,
-          holdExceptional: plain.length < forMarket.length,
           limits: BUSINESS,
           refill: (_pack, least, graphic) => refill({ ...ctx, limits: BUSINESS }, least, graphic, options.decisions)
         },
@@ -128,13 +119,6 @@ function runCrafter(name: string, craft: CraftSkill) {
       );
       ctx.progress.crafted = (ctx.progress.crafted ?? 0) + made;
       await learnQuality(ctx.session, ctx.carried());
-      for (const good of forMarket)
-        await sellAtMarket(
-          { ...ctx, decisions: options.decisions },
-          good,
-          carriedOf(ctx.session, ctx.backpack(), good),
-          4
-        );
       if (!made && name === 'bowyer' && (await earnBoards(ctx))) return;
       if (!made) {
         ctx.phase(

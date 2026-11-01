@@ -52,13 +52,16 @@ test('a planned wait honors its own deadline without counting as work or trigger
     f.checkpoint.workGoal = {
       failed: {
         earn: { until: Date.now() + 600_000, reason: 'No market' },
-        income: { until: Date.now() + 600_000, reason: 'No alternative' }
+        income: { until: Date.now() + 600_000, reason: 'No alternative' },
+        equip: { until: Date.now() + 600_000, reason: 'No affordable tool' },
+        recover: { until: Date.now() + 600_000, reason: 'No way to recover' }
       }
     };
     registerGoal(f.session, f.checkpoint);
+    // A safe resident always has some way to earn; only an unsafe one with recovery cooling down waits.
     const goal = chooseGoal(f.checkpoint, {
-      safe: true,
-      ready: true,
+      safe: false,
+      ready: false,
       learning: false,
       earningNeeded: false,
       evidence: workEvidence(f.session)

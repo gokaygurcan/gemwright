@@ -27,7 +27,8 @@ export function failObjective(
   key: string,
   condition: string,
   reason: string,
-  now = Date.now()
+  now = Date.now(),
+  ms = BAN_MS
 ) {
   checkpoint.objectives ??= {};
   const entries = checkpoint.objectives;
@@ -37,7 +38,7 @@ export function failObjective(
   // the resident's means change enough to make it worth another try (suppliesCondition).
   entries[key] = {
     failures,
-    until: now + BAN_MS,
+    until: now + ms,
     condition,
     reason: reason.slice(0, 240)
   };

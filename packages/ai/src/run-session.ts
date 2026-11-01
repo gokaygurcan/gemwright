@@ -34,6 +34,7 @@ import { recordSkills } from './skill-snapshots';
 import { maintainLocks } from './stat-locks';
 import type { Resident, ResidentStore } from './store';
 import { emitEvent, inSession, makeEvent } from './telemetry';
+import { TownChanged } from './towns';
 
 export { withRuntime } from './runtime';
 
@@ -346,6 +347,8 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
               return await behave(session, seconds);
             } catch (error) {
               if (error instanceof SessionBreak) return SESSION_BREAK;
+              // Its town stopped supporting the work: the next run starts from one that does.
+              if (error instanceof TownChanged) return 'town-changed';
               throw error;
             } finally {
               releaseLocks();

@@ -40,10 +40,10 @@ export async function meetNeeds(ctx: LifeContext): Promise<'work' | 'handled' | 
     const condition = suppliesCondition(session, checkpoint);
     if (objectiveBlocked(checkpoint, key, condition)) continue;
     const funds = status.gold + knownBankGold(checkpoint);
-    // Unaffordable tools yield to the shared income plan.
-    if (need.kind === 'tool' && funds < purchase.maxPrice) continue;
+    // Without any money a tool yields to the shared income plan; the vendor's own price decides the rest.
+    if (need.kind === 'tool' && funds <= 0) continue;
     // Supplies are optional: bought only with money to spare, never a trip that keeps it from work.
-    if (need.kind === 'supply' && funds < purchase.maxPrice * Math.min(purchase.amount, 5) + 50) continue;
+    if (need.kind === 'supply' && funds < 50) continue;
     ctx.phase('supplies', `Looking for ${need.what}: ${need.why}`);
     const trade = {
       ...ctx,
@@ -55,12 +55,11 @@ export async function meetNeeds(ctx: LifeContext): Promise<'work' | 'handled' | 
     };
     const bought =
       need.kind === 'tool'
-        ? await buyTool(trade, purchase.service, purchase.graphics, purchase.maxPrice)
+        ? await buyTool(trade, purchase.service, purchase.graphics)
         : await buyFrom(
             trade,
             purchase.service,
-            new Map(purchase.graphics.map((graphic) => [graphic, purchase.wanted?.[graphic] ?? purchase.amount])),
-            purchase.maxPrice
+            new Map(purchase.graphics.map((graphic) => [graphic, purchase.wanted?.[graphic] ?? purchase.amount]))
           );
     const remaining = residentNeeds(session, checkpoint, ctx.template).some(
       (other) =>

@@ -3,28 +3,22 @@ import { readFileSync } from 'node:fs';
 import { board, ingot } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
-import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { Opcode } from '@gemwright/network/opcodes';
 import { Actions, ShardCraft } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
-import { withinReach } from './areas';
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend, refreshFunds, TOOLS } from './bank-gold';
-import { Blocked } from './blocked';
 import { bankKept } from './craft-banking';
 import { sellCrafted as sell } from './craft-sales';
-import { confinedToHaven } from './haven';
 import { learnQuality, quality } from './item-quality';
-import { allServiceLocations, type ServiceType, serviceLocations, townAt, vendorLocations } from './locations';
+import type { ServiceType } from './locations';
 import { buttonFor, CREATED, EXCEPTIONAL, FAILED, STOP } from './miner-crafting';
-import { approachVendor } from './mobile-approach';
-import { moongates, nearestGate, travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
-import { distance } from './navigation';
-import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { failResidentGoal } from './resident-goal';
 import { atSmithingStation, rejectSmithingStation } from './smithing-stations';
-import { reachableFrom } from './unreachable';
+import { buyOffers } from './vendor-shop';
+import { atVendor } from './vendor-visit';
 
 // One crafting skill: tools bought from and goods sold to `vendor`, recipes from the Def* craft
 // system (group cliloc, item label, minimum skill, material count).
@@ -32,7 +26,6 @@ export interface CraftSkill {
   skill: string;
   vendor: ServiceType;
   tools: Set<number>;
-  toolPrice: number;
   material: number;
   // Dyed material works the same (cloth). Coloured ingots and boards are other resources, so
   // crafts without this count only the plain material.
@@ -106,7 +99,6 @@ export const tinkering: CraftSkill = {
   skill: 'Tinkering',
   vendor: 'tinker',
   tools: new Set([0x1eb8, 0x1ebc]),
-  toolPrice: 15,
   material: ingot,
   recipes: craftRecipes('Tinkering'),
   unitCost: 5
@@ -116,7 +108,6 @@ export const carpentry: CraftSkill = {
   skill: 'Carpentry',
   vendor: 'carpenter',
   tools: new Set([0x1034, 0x1035, 0x1028, 0x1029]),
-  toolPrice: 20,
   material: board,
   recipes: craftRecipes('Carpentry'),
   unitCost: 3
@@ -140,154 +131,6 @@ export type CraftContext = Pick<
   done?: () => boolean;
   onBlocked?: (reason: 'materials' | 'tool' | 'station' | 'menu') => void;
 };
-
-// One vendor interaction (Actions.buy buy, Actions.sell sell) at the first stop where it succeeds.
-export async function atVendor(
-  ctx: CraftContext,
-  vendorType: ServiceType,
-  cliloc: number,
-  act: (vendor: number) => Promise<boolean>,
-  objective = 'service'
-) {
-  const { session, navigate, position } = ctx;
-  const town = townAt(position(), ctx.city);
-  // A town without this kind of shop (Yew has no tinker) sends the crafter to the nearest ones.
-  const own = serviceLocations(town, vendorType);
-  const alternatives = allServiceLocations(vendorType)
-    .filter((shop) => !own.some((point) => point.x === shop.x && point.y === shop.y))
-    .sort((a, b) => distance(position(), a) - distance(position(), b));
-  // Shops in walking reach only; a moongate trip to a far town's shop only for one who can pay
-  // for what it goes for, and only the nearest such town. Nobody crosses the land on a hunch.
-  const funds = (ctx.status().gold ?? 0) + (ctx.checkpoint.funds?.bank ?? 0);
-  const walkable = alternatives.filter((shop) => distance(position(), shop) <= 300);
-  const stops = [...own.filter((shop) => distance(position(), shop) <= 300 || funds >= 100), ...walkable.slice(0, 2)];
-  // When none of this town's shops serves the need, the nearest other towns' shops are still worth
-  // one trip: a fisher whose town's fishmonger cannot trade has nothing left to stay for. Selling
-  // always travels (it is how the resident earns); buying only when it can pay for more than the
-  // trip itself.
-  const elsewhere =
-    // A Young resident of Haven cannot take a gate (haven.ts): other towns' shops are not trips it
-    // can make, so they are not tried at all (the block used to repeat every turn).
-    !confinedToHaven(session) && (cliloc === Actions.sell || funds >= 100)
-      ? alternatives.filter((shop) => !stops.some((stop) => stop.x === shop.x && stop.y === shop.y)).slice(0, 3)
-      : [];
-  // The shop landmark is the door; the vendor stands somewhere inside or beside it. The spawner data
-  // (locations/vendors.json) lists where each kind of vendor actually appears in this town. A town
-  // whose shops all failed this objective lately teaches nothing new: its spawn points wait too.
-  const objectiveKey = (x: number, y: number) =>
-    `shop:${session.world.map}:${vendorType}:${cliloc}:${x},${y}:${objective}`;
-  const townBlocked =
-    own.length > 0 &&
-    own.every((shop) =>
-      objectiveBlocked(ctx.checkpoint, objectiveKey(shop.x, shop.y), suppliesCondition(session, ctx.checkpoint))
-    );
-  const spawns = townBlocked
-    ? []
-    : vendorLocations(town, vendorType)
-        .filter((point) => !stops.some((stop) => distance(stop, point) <= 3))
-        .sort((a, b) => distance(position(), a) - distance(position(), b));
-  // A vendor that answered before is the surest place to look again (kept for a day).
-  const vendorKey = `${session.world.map ?? -1}:${town.toLowerCase()}:${vendorType}`;
-  const remembered = ctx.checkpoint.landmarks?.vendors?.[vendorKey];
-  const learn = (at: { x: number; y: number; z: number }) => {
-    ctx.checkpoint.landmarks ??= { forges: [] };
-    ctx.checkpoint.landmarks.vendors ??= {};
-    ctx.checkpoint.landmarks.vendors[vendorKey] = { x: at.x, y: at.y, z: at.z, at: Date.now() };
-    ctx.persist?.();
-  };
-  const planned = [
-    ...(remembered && !townBlocked && Date.now() - remembered.at < 86_400_000
-      ? [{ point: remembered, inTown: true }]
-      : []),
-    ...stops.map((point) => ({ point, inTown: own.some((shop) => shop.x === point.x && shop.y === point.y) })),
-    ...spawns.map((point) => ({ point, inTown: true }))
-  ];
-  // What is standing within sight that sells or buys this: a vendor the catalogue never knew about —
-  // a shop somebody added to the docks — is found by its menu, not by its address, and then
-  // remembered (learn) for the next visit. Tried in town, before any trip to another town.
-  const observed = [...session.world.entities.values()]
-    .filter(
-      (mobile) =>
-        mobile.kind === 'mobile' &&
-        mobile.notoriety === Notoriety.invulnerable &&
-        mobile.position &&
-        distance(position(), mobile.position) <= 60 &&
-        !planned.some((visit) => distance(visit.point, mobile.position as { x: number; y: number }) <= 3)
-    )
-    .sort(
-      (a, b) =>
-        distance(position(), a.position as { x: number; y: number }) -
-        distance(position(), b.position as { x: number; y: number })
-    )
-    .slice(0, 4)
-    .map((mobile) => ({ point: mobile.position as { x: number; y: number; z: number }, inTown: true }));
-  const visits = [...planned, ...observed, ...elsewhere.map((point) => ({ point, inTown: false }))];
-  // Once this town's vendor answers with nothing for this objective, its other spawn points teach
-  // nothing more on this visit; other towns are still tried.
-  let townSettled = false;
-  for (const { point: shop, inTown } of visits) {
-    if (inTown && townSettled) continue;
-    ctx.check();
-    const key = objectiveKey(shop.x, shop.y);
-    const condition = suppliesCondition(session, ctx.checkpoint);
-    if (
-      objectiveBlocked(ctx.checkpoint, key, condition) &&
-      !ctx.checkpoint.objectives?.[key]?.reason?.startsWith('Too heavy')
-    ) {
-      ctx.log(`Trying another ${vendorType}: ${ctx.checkpoint.objectives?.[key]?.reason}`);
-      continue;
-    }
-    if ((distance(position(), shop) < 300 && !reachableFrom(shop, position())) || !withinReach(position(), shop))
-      continue;
-    try {
-      const gate = nearestGate(shop);
-      if (distance(position(), shop) > 300 && distance(position(), moongates[gate]) > 2)
-        await travelByMoongate(ctx, gate);
-      await navigate(shop, 4);
-      let heard = false;
-      for (const mobile of [...session.world.entities.values()]) {
-        if (mobile.kind !== 'mobile' || mobile.notoriety !== Notoriety.invulnerable || !mobile.position) continue;
-        if (distance(position(), mobile.position) > 18) continue;
-        const menu = async () =>
-          (await session.context(mobile.serial)).find((entry) => entry.cliloc === cliloc && !(entry.flags & 1));
-        // The shard answers a menu only within its update range and vendors wander: a request that
-        // goes unanswered is retried from close range before another vendor is tried.
-        let entry = await menu().catch(() => undefined);
-        if (entry === undefined) {
-          await approachVendor(ctx, mobile.serial).catch(() => {});
-          entry = await menu().catch(() => undefined);
-        }
-        if (entry === undefined) continue;
-        heard = true;
-        await approachVendor(ctx, mobile.serial);
-        if (await act(mobile.serial)) {
-          completeObjective(ctx.checkpoint, key);
-          learn(mobile.position);
-          return true;
-        }
-      }
-      if (!heard) {
-        // No menu came back at all: nothing was learned about stock, so no shop ban is recorded.
-        ctx.log(`No ${vendorType} answered near ${shop.x},${shop.y}`);
-        continue;
-      }
-      townSettled ||= inTown;
-      failObjective(
-        ctx.checkpoint,
-        key,
-        suppliesCondition(session, ctx.checkpoint),
-        'No usable stock, affordable offer or matching service'
-      );
-    } catch (error) {
-      ctx.check();
-      // Too heavy to walk is about the pack, not the shop: the resident lightens it first.
-      if (!(error instanceof Blocked) || error.reason === 'overweight') throw error;
-      failObjective(ctx.checkpoint, key, condition, error.message);
-      ctx.log(`Trying another ${vendorType}: ${error.message}`);
-    }
-  }
-  return false;
-}
 
 // Practises a crafting skill until `until` with the recipe `chooseRecipe` picks, output sold to the
 // skill's vendor. Returns the number of craft attempts.
@@ -319,25 +162,15 @@ export async function trainCraft(
       craft.vendor,
       Actions.buy,
       async (vendor) => {
-        const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-        session.world.buyOffers.clear();
-        const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.buy);
-        if (!entry) return false;
-        session.selectContext(vendor, entry.index);
-        await session
-          .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'tool stock', 2500)
-          .catch(() => {});
-        const offer = [...session.world.buyOffers.values()]
-          .flat()
-          .find(
-            (o) => craft.tools.has(session.world.entities.get(o.serial)?.graphic ?? 0) && o.price <= craft.toolPrice
-          );
-        if (!offer) why = 'no tool in stock within the price';
+        const stock = await buyOffers(session, vendor, Actions.buy);
+        if ('why' in stock) return false;
+        const offer = stock.offers.find((o) => craft.tools.has(session.world.entities.get(o.serial)?.graphic ?? 0));
+        if (!offer) why = 'no tool in stock';
         else if (!canSpendOnTraining(session, backpack, ctx.checkpoint, offer.price, TOOLS))
           why = 'funds held in reserve';
         if (!offer || why) return false;
         await chargedPurchase({ ...ctx, backpack: () => backpack }, offer.price, () =>
-          session.purchaseItem(vendor, offer.serial, backpack, 1, craft.toolPrice)
+          session.purchaseItem(vendor, offer.serial, backpack, 1, offer.price)
         );
         recordTrainingSpend(ctx.checkpoint, offer.price);
         return true;

@@ -41,6 +41,7 @@ export interface InitOptions {
   name?: string;
   timezone?: string;
   expansion?: string;
+  'client-version'?: string;
   emulator?: string;
   git?: boolean;
   yes?: boolean;
@@ -129,6 +130,17 @@ export async function initialize(
             }))
           })
         ));
+  // The classic client players connect with; residents speak the same version. No default: it is
+  // whatever the shard's players actually run.
+  const validVersion = (value?: string) =>
+    value && /^\d+\.\d+\.\d+\.\d+$/.test(value) ? undefined : 'Enter a classic client version such as 7.0.45.1.';
+  if ((options.yes || options['client-version'] !== undefined) && validVersion(options['client-version']))
+    throw new Error('--client-version must be the classic client version players use, e.g. 7.0.45.1.');
+  const client = {
+    version:
+      options['client-version'] ??
+      answer(await prompts.text({ message: 'Classic client version', placeholder: '7.0.45.1', validate: validVersion }))
+  };
   const adminEmail = options.yes
     ? defaultAdminEmail
     : answer(
@@ -165,7 +177,7 @@ export async function initialize(
         : sphereSources?.server;
   let files: InstanceFiles = {};
   let generatedPassword: string | undefined;
-  let config = createConfig({ schemaVersion: 1, name, emulator, timezone, expansion, source, adminEmail, url });
+  let config = createConfig({ schemaVersion: 1, name, emulator, client, timezone, expansion, source, adminEmail, url });
   if (emulator === 'servuo') {
     const result = await initializeServuo(config, options.yes, loadServuoConfig);
     config = createConfig({ ...config, servuo: result.settings });

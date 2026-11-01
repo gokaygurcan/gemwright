@@ -7,7 +7,7 @@ import { nameHash } from '@gemwright/common/assets/uop';
 
 import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';
-import { RouteSearch } from './path-search';
+import { RouteSearch, routeSeed } from './path-search';
 import { troubleCells } from './trouble';
 import { tuning } from './tuning';
 
@@ -332,7 +332,8 @@ export class Terrain {
           penaltyCost: tuning.trouble.stepCost,
           targetZ,
           partial,
-          wide
+          wide,
+          seed: routeSeed(goal)
         },
         signal
       );

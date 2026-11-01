@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { atVendor } from '../src/craft-training';
+import { ActionBusy } from '../src/action-errors';
 import { allServiceLocations, serviceLocations } from '../src/locations';
 import { meetNeeds, needPriority } from '../src/need-planning';
 import { residentNeeds } from '../src/needs';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from '../src/objective-memory';
+import { atVendor } from '../src/vendor-visit';
 import { behaviorFixture, required } from './behavior-fixture';
 
 test('a failed objective waits two hours, reopens on changed means, and stays bounded', () => {
@@ -126,4 +127,23 @@ test('supplies left in a bank box do not satisfy a carried work-tool need', () =
   world.entities.set(31, { serial: 31, kind: 'item', graphic: 0xf9d, parent: 10 });
   expect(residentNeeds(session, checkpoint, template).some((need) => need.kind === 'tool')).toBe(false);
   expect(suppliesCondition(session, checkpoint)).not.toBe(condition);
+});
+
+test('a vendor menu that fails for our own reasons (resource busy) never writes the shop off as empty', async () => {
+  const { ctx, world, session, checkpoint } = behaviorFixture();
+  checkpoint.funds = { bank: 0, at: Date.now() };
+  const shop = required(serviceLocations('Vesper', 'cobbler')[0]);
+  world.position = { ...shop, z: 0, direction: 0 };
+  world.entities.set(2, { serial: 2, kind: 'mobile', graphic: 400, notoriety: 7, position: { ...world.position } });
+  session.context = async () => {
+    throw new ActionBusy('Command resources remained busy');
+  };
+  const craft = {
+    ...ctx,
+    serial: 1,
+    status: () => required(world.status),
+    carried: (p: number) => world.childrenOf(p)
+  };
+  await atVendor(craft, 'cobbler', 3006104, async () => true);
+  expect(checkpoint.objectives?.[`vendor-absent:1:cobbler:${shop.x},${shop.y}`]).toBeUndefined();
 });

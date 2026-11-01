@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { clientVersion } from '@gemwright/common/config/shard';
 import { validateConnection } from '@gemwright/network/connection';
-import { CLIENT_VERSION } from '@gemwright/network/packets';
 
 import { setPopulationChaos } from './chaos';
 import { type PopulationConfig, validateConfig } from './config';
@@ -32,6 +32,7 @@ const required = (name: string) => {
 
 const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
   id: string;
+  client?: { version: string };
   ai?: {
     population?: number;
     decisions?: string;
@@ -72,7 +73,7 @@ const connection = validateConnection({
   schemaVersion: 1,
   shardId: shard.id,
   emulator: 'servuo',
-  profile: `classic-${CLIENT_VERSION}`,
+  profile: `classic-${clientVersion(shard)}`,
   host: required('UO_HOST'),
   port: Number(process.env.UO_PORT ?? 2593),
   serverIndex: 0,

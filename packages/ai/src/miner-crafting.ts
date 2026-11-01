@@ -15,6 +15,8 @@ import type { createMinerServices } from './miner-services';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 import { atSmithingStation, rejectSmithingStation } from './smithing-stations';
+import { onItem, useOn } from './target-action';
+import { buyOffers } from './vendor-shop';
 // Iron ingots are a vendor "economy" item on the pinned shard: 75% of the 5-gold sale price.
 export const RAW_INGOT_VALUE = 3;
 const tongs = new Set([0x0fbb, 0x0fbc]);
@@ -39,7 +41,6 @@ export const blacksmithing: CraftSkill = {
   skill: 'Blacksmith',
   vendor: 'blacksmith',
   tools: smithTools,
-  toolPrice: 30,
   material: ingot,
   recipes: craftRecipes('Blacksmith'),
   unitCost: 5
@@ -89,18 +90,12 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
         );
         if (!buy) continue;
         await approachMobile(ctx, mobile.serial);
-        const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-        session.world.buyOffers.clear();
-        session.selectContext(mobile.serial, buy.index);
-        await session
-          .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'smith stock', 2500)
-          .catch(() => {});
-        const offer = [...session.world.buyOffers.values()]
-          .flat()
-          .find((entry) => tongs.has(session.world.entities.get(entry.serial)?.graphic ?? 0) && entry.price <= 30);
+        const stock = await buyOffers(session, mobile.serial, Actions.buy);
+        if ('why' in stock) continue;
+        const offer = stock.offers.find((entry) => tongs.has(session.world.entities.get(entry.serial)?.graphic ?? 0));
         if (!offer) continue;
         await chargedPurchase({ ...ctx, backpack: () => backpack }, offer.price, () =>
-          session.purchaseItem(mobile.serial, offer.serial, backpack, 1, 30)
+          session.purchaseItem(mobile.serial, offer.serial, backpack, 1, offer.price)
         );
         log(`Bought smithing tongs for ${offer.price} gold`);
         return true;
@@ -120,12 +115,8 @@ export function createSmithing(ctx: Parameters<typeof createMinerServices>[0]) {
     const gump = craftGump();
     if (!gump) return false;
     const seen = new Set(session.world.journal);
-    session.replyGump(gump.serial, gump.id, SMELT_BUTTON, []);
-    await session
-      .waitFor(() => session.world.target !== null, 'smelt cursor', 4000, { resource: 'target' })
-      .catch(() => {});
-    if (!session.world.target) return false;
-    session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
+    const smelt = () => session.replyGump(gump.serial, gump.id, SMELT_BUTTON, []);
+    if ('why' in (await useOn(session, smelt, onItem(piece), { label: 'smelt cursor', ms: 4000 }))) return false;
     const reply = () =>
       session.world.journal.find((e) => !seen.has(e) && [...SMELTED, ...NOT_SMELTED].includes(e.cliloc ?? 0))?.cliloc;
     await session.waitFor(() => reply() !== undefined, 'smelt result', 6000).catch(() => {});

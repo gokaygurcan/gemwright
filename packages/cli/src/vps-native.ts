@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { cp, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { clientVersion } from '@gemwright/common/config/shard';
 import { assetPath } from '@gemwright/server/assets';
 import type { ShardConfig } from '@gemwright/server/config';
 
@@ -41,7 +42,7 @@ export async function writeNativeBundle(root: string, config: ShardConfig, optio
     GEMWRIGHT_PUBLIC_HOST: options.publicHost ?? '',
     TZ: config.timezone,
     SERVER_NAME: config.name,
-    UO_CLIENT_VERSION: process.env.UO_CLIENT_VERSION ?? '7.0.45.1',
+    UO_CLIENT_VERSION: process.env.UO_CLIENT_VERSION ?? (options.client ? clientVersion(config) : ''),
     UO_ENCRYPTION: process.env.UO_ENCRYPTION ?? '0',
     PUBLIC_ORIGIN: options.client ? `https://${options.domain}` : '',
     GEMWRIGHT_WEB: options.client ? '1' : '0',

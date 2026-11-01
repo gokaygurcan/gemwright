@@ -144,6 +144,17 @@ export function selectGoal(checkpoint: Checkpoint, state: GoalSituation, now = D
   const selected = proposals.filter((candidate) => candidate.allowed).sort((a, b) => b.utility - a.utility)[0];
   const recovery = proposals[0];
   if (!recovery) throw new Error('Planner requires a recovery proposal');
+  // Every plan cooling down is no reason to stand still: safe, it keeps at its own trade, or without
+  // its tools earns any way it can (side trade, escort, scrapping), as a bounded probe under a plan
+  // that permits the work — never work under a wait, which the arbiter rightly refuses.
+  const work = proposals.find((candidate) => candidate.kind === 'earn');
+  if (!selected && work && state.safe)
+    return {
+      ...work,
+      allowed: true,
+      step: state.ready ? 'trade' : 'income',
+      reason: 'Every plan is cooling down; earning the way it can meanwhile'
+    };
   return (
     selected ?? {
       ...recovery,

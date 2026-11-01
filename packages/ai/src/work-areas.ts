@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
-import { moongates, nearestGate, travelByMoongate } from './moongate';
+import { moongates, nearestGate } from './gates';
+import { travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import { recallFor } from './recall';
@@ -29,13 +30,20 @@ export function workArea(
   kind: 'mining' | 'woods',
   key: string,
   home?: string,
-  usable?: (area: WorkArea) => boolean
+  usable?: (area: WorkArea) => boolean,
+  near?: { x: number; y: number }
 ): WorkArea {
-  // An area kept for its own town (weight 0: New Haven's mountains and woods) is worked only by
-  // residents of that town; everyone else keeps the weighted pick below.
-  const own = home && catalog[kind].find((a) => a.weight === 0 && a.city.toLowerCase() === home.toLowerCase());
-  if (own && (!usable || usable(own))) return own;
-  const qualified = usable ? catalog[kind].filter((area) => usable(area)) : catalog[kind];
+  // The areas of the town it works from (towns.ts) come first, its own reserved ones (weight 0:
+  // New Haven's mountains and woods) included; the weighted pick spreads residents among them.
+  const usableAreas = usable ? catalog[kind].filter((area) => usable(area)) : catalog[kind];
+  const local = home ? usableAreas.filter((a) => a.city.toLowerCase() === home.toLowerCase()) : [];
+  const own = local.find((a) => a.weight === 0);
+  if (own) return own;
+  // A town without such an area: the nearest one elsewhere, never a random trip across the land.
+  const open = usableAreas.filter((a) => a.weight !== 0);
+  if (!local.length && near && open.length)
+    return open.reduce((best, a) => (distance(near, a) < distance(near, best) ? a : best));
+  const qualified = local.length ? local : open;
   let hash = 0;
   for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   const areas = qualified.length ? qualified : catalog[kind];

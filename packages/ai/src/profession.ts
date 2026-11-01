@@ -6,7 +6,6 @@ import { DangerInterrupt, urgentAction } from './action-purpose';
 import type { CharacterTemplate } from './config';
 import { converse } from './conversation';
 import { threatsNear } from './danger';
-import { escapeDanger } from './danger-response';
 import type { DecisionCoordinator } from './decisions';
 import type { RunRecord } from './dungeon-context';
 import { actionScope, checkAction, yieldForInteraction } from './execution-session';
@@ -21,11 +20,14 @@ import { type DungeonRole, professionDungeonTurn } from './profession-dungeon';
 import { readyForDungeons } from './progression';
 import { noticePeers } from './relationships';
 import { runnerCheck } from './runner-check';
+import { SessionBreak } from './session-habits';
 import { isSetback, passSetback } from './setback';
 import { trainSupportingSkill } from './skill-training';
+import { answerDanger } from './skirmish';
 import type { Checkpoint } from './store';
 import { learnWork } from './strategy-learning';
 import { Terrain } from './terrain';
+import { TownChanged, townFor } from './towns';
 
 // Shared runtime for the newer professions (fisher, tailor, bard, tamer, thief): context, the main
 // loop, setbacks, resurrection and idle supporting-skill training. A profession supplies one bounded
@@ -80,7 +82,7 @@ export async function runProfession(
   const terrain = Terrain.shared(options.assets, 1);
   const deadline = Date.now() + options.seconds * 1000;
   const checkpoint = structuredClone(options.checkpoint);
-  const city = template.creation.city.toLowerCase();
+  const city = townFor(session, checkpoint, name);
   const progress: Record<string, number> = {};
   const tag = options.label ? `${name}:${options.label}` : name;
   const log = (message: string) => logger('profession').info(`[${tag}] ${message}`);
@@ -206,7 +208,7 @@ export async function runProfession(
         if (await yieldForInteraction(session, error)) continue;
         if (error instanceof DangerInterrupt) {
           const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker');
-          await escapeDanger(ctx, bank);
+          await answerDanger(ctx, bank);
           continue;
         }
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;
@@ -217,6 +219,7 @@ export async function runProfession(
       }
     }
   } catch (error) {
+    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
     stopped = options.stopping?.()
       ? `${name} stopped by shutdown signal`
       : error instanceof Error

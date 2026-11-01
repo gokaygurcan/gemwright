@@ -15,7 +15,7 @@ afterEach(async () => {
 async function shardWithPull() {
   const directory = await mkdtemp(join(tmpdir(), 'gemwright-restore-'));
   folders.push(directory);
-  await writeFile(join(directory, configFilename), JSON.stringify(createConfig({})));
+  await writeFile(join(directory, configFilename), JSON.stringify(createConfig({ client: { version: '7.0.45.1' } })));
   await mkdir(join(directory, '.gemwright'), { recursive: true });
   await writeFile(
     join(directory, '.gemwright/railway.json'),

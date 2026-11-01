@@ -8,6 +8,7 @@ import { guildmates } from './guilds';
 import { bindParty, unbindParty } from './hunting-party';
 import { distance } from './navigation';
 import { readyForDungeons } from './progression';
+import { onItem, useOn } from './target-action';
 
 // Dungeon parties for residents between 80.0 and 100.0 primaries. A leader shouts LFG for a home
 // dungeon in town; ready residents nearby answer, walk over, and accept a real party invitation.
@@ -114,9 +115,10 @@ async function lead(ctx: DungeonContext, random: () => number): Promise<boolean>
       const other = session.world.entities.get(serial);
       if (m.invited.has(serial) || !other?.position || distance(other.position, position()) > 10) continue;
       try {
-        session.party('add');
-        await session.waitFor(() => session.world.target !== null, 'party member cursor', 3000, { resource: 'target' });
-        session.target({ serial, x: 0, y: 0, z: 0, graphic: other.graphic });
+        const asked = await useOn(session, () => session.party('add'), onItem({ serial, graphic: other.graphic }), {
+          label: 'party member cursor'
+        });
+        if ('why' in asked) continue;
         m.invited.add(serial);
       } catch (error) {
         if (session.phase !== 'ready') throw error;

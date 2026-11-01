@@ -6,12 +6,13 @@ import { failObjective, suppliesCondition } from './objective-memory';
 import { SessionBreak } from './session-habits';
 import { trainSupportingSkill } from './skill-training';
 import type { Checkpoint } from './store';
+import { TownChanged } from './towns';
 
 // Residents never quit over a world condition (sold-out vendor, low health, an unreachable spot).
 // Returns false when the error must still end the run: shutdown, deadline, lost connection or
 // lost shard ownership, which the supervisor handles without replaying anything.
 export function isSetback(session: PlayerSession, error: unknown, stopping: boolean, deadline: number): boolean {
-  if (error instanceof SessionBreak) return false;
+  if (error instanceof SessionBreak || error instanceof TownChanged) return false;
   if (stopping || Date.now() >= deadline || session.phase !== 'ready') return false;
   const message = error instanceof Error ? error.message : String(error);
   return !/no longer owns this shard|outcome is uncertain|disconnected/i.test(message);

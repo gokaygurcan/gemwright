@@ -106,7 +106,8 @@ function fixture(owner = true) {
 test('mount spending preserves the reserve and animal requests require a free follower slot and current vendor stock', () => {
   expect(canAffordMount(550, 799, 250)).toBe(false);
   expect(canAffordMount(550, 800, 250)).toBe(true);
-  expect(canAffordMount(751, 2000, 250)).toBe(false);
+  // No price ceiling: an expensive horse is fine when the funds and the reserve allow it.
+  expect(canAffordMount(1500, 2000, 250)).toBe(true);
   const { world, ctx } = fixture();
   world.entities.set(5, { serial: 5, kind: 'item', graphic: 0x2af8, parent: 6 });
   world.entities.set(7, { serial: 7, kind: 'item', graphic: 0xcc, parent: 5, amount: 10 });

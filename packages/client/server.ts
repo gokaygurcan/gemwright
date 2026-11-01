@@ -35,7 +35,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   if (!/^\d{1,2}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(version))
     throw new Error('UO_CLIENT_VERSION must have four numeric parts.');
   const encryption = Number(env.UO_ENCRYPTION ?? '0');
-  if (!Number.isInteger(encryption) || encryption < 0 || encryption > 5) throw new Error('UO_ENCRYPTION must be 0–5.');
+  if (!Number.isInteger(encryption) || encryption < 0 || encryption > 5) throw new Error('UO_ENCRYPTION must be 0-5.');
   let publicOrigin: string | undefined;
   if (env.PUBLIC_ORIGIN) {
     const url = new URL(env.PUBLIC_ORIGIN);

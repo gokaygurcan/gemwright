@@ -28,6 +28,7 @@ export interface ShardMessageReplies {
   bandagesApplied: number;
   corpseDenied: number;
   tooSoon: number;
+  mustWait: number;
 }
 export const ShardMessage: ShardMessageReplies = {
   tooFar: 500446, // a container, corpse or vendor target out of reach
@@ -35,7 +36,8 @@ export const ShardMessage: ShardMessageReplies = {
   noSuchSpell: 500015,
   bandagesApplied: 500969,
   corpseDenied: 1005035, // Corpse.CheckLoot refuses a shared kill
-  tooSoon: 500118 // "You must wait a few moments to use another skill."
+  tooSoon: 500118, // "You must wait a few moments to use another skill."
+  mustWait: 500119 // Mobile.SendActionMessage: an action inside the action delay
 };
 
 // ServUO Mining.cs / HarvestSystem replies.

@@ -7,6 +7,7 @@ import { pickLocation, townAt } from './locations';
 import { forcedToWork } from './loop-watch';
 import { distance } from './navigation';
 import { errand, objectiveBlocked, suppliesCondition } from './objective-memory';
+import { bestOpportunity, opportunityTurn } from './opportunity';
 import type { ProfessionContext } from './profession';
 import { goalAllows, goalControlled } from './resident-goal';
 import { oreNear, oreTurn, woodNear, woodTurn } from './side-gathering';
@@ -57,7 +58,9 @@ export async function sideTradeTurn(ctx: ProfessionContext, profession: string, 
   const choices = [
     fishing ? 'fish' : '',
     profession !== 'lumberjack' && woodNear(ctx) ? 'wood' : '',
-    profession !== 'miner' && oreNear(ctx) ? 'ore' : ''
+    profession !== 'miner' && oreNear(ctx) ? 'ore' : '',
+    // Buying, making and selling on what the resident knows of prices (opportunity.ts).
+    bestOpportunity(ctx, funds(ctx)) ? 'trade' : ''
   ].filter(
     (kind) => kind && !objectiveBlocked(ctx.checkpoint, `side:${kind}`, suppliesCondition(ctx.session, ctx.checkpoint))
   );
@@ -100,6 +103,14 @@ export async function sideTradeTurn(ctx: ProfessionContext, profession: string, 
       record();
       return true;
     }
+  }
+  if (pick === 'trade') {
+    let earned = false;
+    await errand(ctx, 'side:trade', 'trading on what it knows of prices', async () => {
+      earned = await opportunityTurn(ctx);
+    });
+    record();
+    if (earned) return true;
   }
   if (!shop || !fishing) return false;
   const local = { ...ctx, city: town };

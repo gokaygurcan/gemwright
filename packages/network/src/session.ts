@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events';
 import { characterList, serverList } from './characters';
 import { purchaseItem, requestAnimalPurchase } from './commerce';
 import type { ConnectionConfig } from './connection';
+import { clientVersion } from './connection';
 import { timed } from './diagnostics';
 import { ExecutionBoundary } from './execution-boundary';
 import { offersReply } from './gumps';
@@ -132,7 +133,7 @@ export class PlayerSession {
       this.roster = characterList(packet);
       this.phase = 'characters';
     } else if (opcode === 0xbd) {
-      this.send(packets.variable(0xbd, Buffer.from(`${packets.CLIENT_VERSION}\0`, 'ascii')));
+      this.send(packets.variable(0xbd, Buffer.from(`${clientVersion(this.config)}\0`, 'ascii')));
     } else if (opcode === 0x22 || opcode === 0x21) {
       const sequence = packet.readUInt8(1);
       const pending = this.movement;
@@ -184,7 +185,7 @@ export class PlayerSession {
       this.world.connected = true;
       this.send(
         Buffer.concat([
-          packets.loginSeed(randomInt(1, 0xffffffff)),
+          packets.loginSeed(randomInt(1, 0xffffffff), clientVersion(this.config)),
           packets.accountLogin(credentials.username, credentials.password)
         ])
       );

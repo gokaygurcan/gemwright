@@ -4,7 +4,7 @@ import { ConnectionAdmission } from '../src/connection-admission';
 import { directRoute } from '../src/direct-route';
 import { RouteCorridors } from '../src/path-corridors';
 import { PathPool } from '../src/path-pool';
-import { RouteSearch } from '../src/path-search';
+import { RouteSearch, routeSeed } from '../src/path-search';
 import { RouteWaypoints } from '../src/route-waypoints';
 import type { Terrain, TerrainBuffers } from '../src/terrain';
 
@@ -163,4 +163,11 @@ test('waypoints permit a necessary detour away from a goal using verified local 
   );
   expect(result?.path?.at(-1)).toEqual({ x: 10, y: 110, z: 0 });
   expect(result?.path?.some((p) => p.x === 10 && p.y === 11)).toBe(false);
+});
+
+test('one walk keeps one route variation through its re-plans; a later trip gets another', () => {
+  const goal = { x: 2560, y: 500 };
+  const at = 1_800_000_000_000;
+  expect(routeSeed(goal, at + 1_000)).toBe(routeSeed(goal, at + 60_000));
+  expect(routeSeed(goal, at)).not.toBe(routeSeed(goal, at + 600_000));
 });

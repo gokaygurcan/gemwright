@@ -11,6 +11,7 @@ import { awaitGump, awaitMessage, dismiss, findGump, mark, press } from './gump-
 import { craftContext, ownerOf, ownsHouse } from './housing';
 import { type LifeContext, skillProgress } from './life';
 import { distance } from './navigation';
+import { onItem, useOn } from './target-action';
 
 // Guilds in ServUO's newer guild system (EJ): founded from the paperdoll's Guild button with a
 // name, an abbreviation and the 25,000 gold fee from the bank (CreateGuildGump), members invited
@@ -164,11 +165,18 @@ async function recruit(ctx: LifeContext, guild: string, side: Side) {
   ctx.phase('guild', `Inviting ${name} into ${guild}`);
   const info = await openGuildMenu(session, MENU.info);
   press(session, info, 2);
-  press(session, await awaitGump(session, MENU.roster, 'guild roster'), 8);
-  await session.waitFor(() => session.world.target !== null, 'invitation cursor', 4000, { resource: 'target' });
+  const roster = await awaitGump(session, MENU.roster, 'guild roster');
   pending.set(candidate.serial, { guild, side, at: Date.now() });
   const from = mark(session);
-  session.target({ serial: candidate.serial, x: 0, y: 0, z: 0, graphic: candidate.graphic });
+  const invited = await useOn(session, () => press(session, roster, 8), onItem(candidate), {
+    label: 'invitation cursor',
+    ms: 4000
+  });
+  if ('why' in invited) {
+    pending.delete(candidate.serial);
+    closeGuildMenus(session);
+    return false;
+  }
   const answer = await awaitMessage(session, from, [ACCEPTED, ...REFUSED], 'invitation answer', 20_000);
   closeGuildMenus(session);
   if (answer === ACCEPTED) joinGuild(name, guild);

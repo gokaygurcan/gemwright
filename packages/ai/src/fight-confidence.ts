@@ -20,6 +20,8 @@ const JOIN_RANGE = 8;
 // casters that join from farther off than melee creatures.
 const CASTERS = new Set(['Mage', 'NecroMage', 'Spellbinder', 'Spellweaving', 'Mystic', 'Necro']);
 const RANGED = new Set([...CASTERS, 'Archer', 'OrcScout']);
+// Hurts from beyond melee reach (spells, arrows): damage from it comes with no swing nearby.
+export const strikesFromAfar = (mobile: Entity) => RANGED.has(statsOf(mobile)?.ai ?? '');
 const casts = (stats?: { ai?: string | null; magery: number }) =>
   !!stats && (CASTERS.has(stats.ai ?? '') || stats.magery >= 50);
 
@@ -32,7 +34,9 @@ const statsOf = (mobile: Entity) =>
       m.bodies.includes(mobile.graphic) && (!mobile.name || (m.name ?? '').toLowerCase() === mobile.name.toLowerCase())
   ) ?? monsters.find((m) => m.bodies.includes(mobile.graphic));
 
-export function fightConfidence(ctx: FighterContext, target: Entity): { ok: boolean; reason: string } {
+// `engaged`: the target is already hitting the fighter. Turning its back on a melee creature costs
+// more than finishing it, so only critical health stops it, not the 60% bar for starting a fight.
+export function fightConfidence(ctx: FighterContext, target: Entity, engaged = false): { ok: boolean; reason: string } {
   const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
   const status = ctx.status();
   const at = target.position ?? ctx.position();
@@ -67,7 +71,7 @@ export function fightConfidence(ctx: FighterContext, target: Entity): { ok: bool
   // Dying is the worst outcome (it loses everything carried), so the line rises with each death
   // in the last hour (kept across restarts) and with what a death would cost now: carried gold
   // and loot. No new fight is started below 60% health at all.
-  if (status.hits < status.maxHits * 0.6)
+  if (status.hits < status.maxHits * (engaged ? 0.25 : 0.6))
     return { ok: false, reason: `only ${Math.round((status.hits / Math.max(1, status.maxHits)) * 100)}% health` };
   const recentDeath = Math.min(0.3, lasting('deaths', ctx.serial).count() * 0.1);
   // What it knows of itself (self.ts): what it would lose (gear worn, gold and goods carried,

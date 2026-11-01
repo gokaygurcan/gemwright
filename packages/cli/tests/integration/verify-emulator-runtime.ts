@@ -152,7 +152,13 @@ try {
         mapSize: 'modern' as const,
         clientEncryption: 'both' as const
       };
-      const config = createConfig({ emulator, timezone: 'Europe/London', source: pair.server, sphere });
+      const config = createConfig({
+        client: { version: '7.0.45.1' },
+        emulator,
+        timezone: 'Europe/London',
+        source: pair.server,
+        sphere
+      });
       await saveInstance(
         directory,
         config,
@@ -161,7 +167,12 @@ try {
       );
       await stageSphere(directory, config);
     } else {
-      const config = createConfig({ emulator, source: await resolveDotnetSource(emulator), [emulator]: settings });
+      const config = createConfig({
+        client: { version: '7.0.45.1' },
+        emulator,
+        source: await resolveDotnetSource(emulator),
+        [emulator]: settings
+      });
       await saveInstance(
         directory,
         config,

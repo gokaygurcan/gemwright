@@ -1,5 +1,11 @@
 # <img src="https://cdn.jsdelivr.net/npm/gemwright@latest/.github/small-forge.png" align="left" alt="Forge your own shard" width="50" height="50" /> Gemwright — Forge your own shard
 
+## The loop
+
+```txt
+perception → goal/planning → profession loops → action arbiter → network
+```
+
 ## Usage
 
 Requires Bun 1.4.3 or newer.

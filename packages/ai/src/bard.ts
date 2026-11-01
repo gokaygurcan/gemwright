@@ -80,11 +80,11 @@ export const runBard = (options: ProfessionOptions) =>
         )[0];
         if (!shop) throw new Blocked('no-vendor', 'No bard vendor is known');
         await reachRegion(ctx, shop);
-        await buyTool({ ...ctx, city: shop.city, limits: TOOLS }, 'bard', [...instruments], 30);
+        await buyTool({ ...ctx, city: shop.city, limits: TOOLS }, 'bard', [...instruments]);
         // Penniless: beg townsfolk for the price of an instrument (ServUO Begging.cs), as a broke
         // player does, then try the shop again.
         if (!ctx.carried().some((i) => instruments.has(i.graphic)) && (await begForTool(ctx, 30)))
-          await buyTool({ ...ctx, city: shop.city, limits: TOOLS }, 'bard', [...instruments], 30);
+          await buyTool({ ...ctx, city: shop.city, limits: TOOLS }, 'bard', [...instruments]);
         if (!ctx.carried().some((i) => instruments.has(i.graphic)))
           throw new Blocked('missing-tool', 'No instrument bought');
       }

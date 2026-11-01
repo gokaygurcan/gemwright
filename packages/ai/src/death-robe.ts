@@ -89,6 +89,6 @@ export async function replaceDeathRobe(ctx: CraftContext & { backpack: () => num
   lastTry.set(session, Date.now());
   ctx.phase('buying-clothes', 'Buying a robe to wear instead of the death robe');
   for (const graphic of [ROBE, SHIRT])
-    if (await buyFrom({ ...ctx, limits: CLOTHES }, 'tailor', new Map([[graphic, 1]]), 25)) break;
+    if (await buyFrom({ ...ctx, limits: CLOTHES }, 'tailor', new Map([[graphic, 1]]))) break;
   return shedDeathRobe(session, ctx.terrain, ctx.carried(ctx.backpack()));
 }

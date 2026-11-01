@@ -72,7 +72,6 @@ export const inscriptionCraft = (allowed: CraftSkill['recipes']): CraftSkill => 
   skill: 'Inscription',
   vendor: 'mage',
   tools: PENS,
-  toolPrice: 8,
   material: 0x0e34,
   unitCost: 5,
   recipes: allowed

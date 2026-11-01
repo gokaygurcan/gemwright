@@ -1,11 +1,8 @@
 import { EntityMap } from './entity-map';
-import { applyHealthBar, applyParty } from './group-observations';
-import { gumpLayout } from './gumps';
-import { Opcode } from './opcodes';
+import { decoders } from './incoming';
 import type { TargetCursor } from './packets';
-import { speechEntry } from './speech';
-import { type PlayerStatus, playerStatus, recordHealth } from './status';
-import { applyTrade, type TradeWindow } from './trade';
+import type { PlayerStatus } from './status';
+import type { TradeWindow } from './trade';
 import { WorldObservations } from './world-observations';
 import { worldSnapshot } from './world-snapshot';
 import type { Entity, HealthChange, JournalEntry, Position } from './world-types';
@@ -68,7 +65,7 @@ export class WorldView {
   readonly swings = new Map<number, { target: number; at: number }>();
   readonly damage = new Map<number, { at: number; amount: number }>();
   readonly deaths = new Map<number, { corpse: number; position?: Position }>();
-  private lastContainerContents: number[] = [];
+  lastContainerContents: number[] = [];
   readonly entities = new EntityMap((serial, removed) => this.observations.entity(serial, removed));
   readonly journal: JournalEntry[] = [];
   readonly gumps = new Map<string, { serial: number; id: number; packed: boolean; layout: string }>();
@@ -79,11 +76,11 @@ export class WorldView {
     return this.entities.childrenOf(parent);
   }
 
-  private remove(serial: number): void {
+  remove(serial: number): void {
     this.entities.delete(serial);
   }
 
-  private put(entity: Entity): void {
+  put(entity: Entity): void {
     if (!this.entities.has(entity.serial) && this.entities.size >= 20000)
       throw new Error('Observed entity limit exceeded');
     const previous = this.entities.get(entity.serial);
@@ -102,7 +99,7 @@ export class WorldView {
     if (this.journal.length > 200) this.journal.shift();
   }
 
-  private containerEntry(packet: Buffer, offset: number): void {
+  containerEntry(packet: Buffer, offset: number): void {
     if (offset + 20 > packet.length) throw new Error('Truncated container entry');
     this.put({
       serial: packet.readUInt32BE(offset),
@@ -131,393 +128,7 @@ export class WorldView {
     const opcode = packet.readUInt8(0);
     this.received.set(opcode, (this.received.get(opcode) ?? 0) + 1);
     this.revision++;
-    switch (opcode) {
-      case 0x21:
-      case 0x22: {
-        const self = this.serial === null ? undefined : this.entities.get(this.serial);
-        if (self && this.position) this.put({ ...self, position: { ...this.position } });
-        break;
-      }
-      case 0x17:
-        applyHealthBar(this, packet);
-        break;
-      case 0x3a: {
-        const format = packet.readUInt8(3);
-        if (format !== 2 && format !== 0xdf) throw new Error('Unsupported skill observation format');
-        if (format === 0xdf && packet.length !== 13) throw new Error('Invalid skill delta');
-        let offset = 4;
-        while (offset < packet.length) {
-          const wireId = packet.readUInt16BE(offset);
-          offset += 2;
-          if (format === 2 && wireId === 0) {
-            if (offset !== packet.length) throw new Error('Invalid skill terminator');
-            break;
-          }
-          const id = format === 2 ? wireId - 1 : wireId;
-          if (id < 0 || id > 57 || offset + 7 > packet.length) throw new Error('Invalid observed skill');
-          this.skills.set(id, {
-            value: packet.readUInt16BE(offset) / 10,
-            base: packet.readUInt16BE(offset + 2) / 10,
-            lock: packet.readUInt8(offset + 4),
-            cap: packet.readUInt16BE(offset + 5) / 10
-          });
-          this.observations.skill(id);
-          offset += 7;
-        }
-        break;
-      }
-      case 0x2f: {
-        if (packet.length !== 10) throw new Error('Invalid swing observation length');
-        const now = Date.now();
-        for (const [serial, swing] of this.swings) if (now - swing.at > 8000) this.swings.delete(serial);
-        if (this.swings.size >= 1000) this.swings.delete(this.swings.keys().next().value as number);
-        this.swings.set(packet.readUInt32BE(2), { target: packet.readUInt32BE(6), at: now });
-        this.observations.entity(packet.readUInt32BE(2));
-        break;
-      }
-      case 0x0b: {
-        const serial = packet.readUInt32BE(1);
-        if (this.damage.size > 1000) this.damage.clear();
-        this.damage.set(serial, { at: Date.now(), amount: packet.readUInt16BE(5) });
-        break;
-      }
-      case 0x2c:
-        if (packet.readUInt8(1) === 0 && this.position) this.deathSite = { ...this.position };
-        break;
-      case 0xaa:
-        this.combatant = packet.readUInt32BE(1) || null;
-        break;
-      case 0x72:
-        this.warMode = packet.readUInt8(1) !== 0;
-        break;
-      case 0xaf: {
-        const killed = packet.readUInt32BE(1);
-        this.observations.entity(killed);
-        if (this.deaths.size > 500) this.deaths.clear();
-        this.deaths.set(killed, { corpse: packet.readUInt32BE(5), position: this.entities.get(killed)?.position });
-        break;
-      }
-      case 0x9e: {
-        const vendor = packet.readUInt32BE(3),
-          count = packet.readUInt16BE(7);
-        let offset = 9;
-        const offers = [];
-        for (let i = 0; i < count; i++) {
-          const length = packet.readUInt16BE(offset + 12);
-          offers.push({
-            serial: packet.readUInt32BE(offset),
-            graphic: packet.readUInt16BE(offset + 4),
-            hue: packet.readUInt16BE(offset + 6),
-            amount: packet.readUInt16BE(offset + 8),
-            price: packet.readUInt16BE(offset + 10),
-            name: text(packet, offset + 14, length)
-          });
-          offset += 14 + length;
-        }
-        if (offset !== packet.length) throw new Error('Invalid vendor sale list');
-        this.sellOffers.set(vendor, offers);
-        break;
-      }
-      case 0xd6: {
-        const serial = packet.readUInt32BE(5),
-          properties = [];
-        let offset = 15;
-        while (offset + 4 <= packet.length) {
-          const cliloc = packet.readUInt32BE(offset);
-          offset += 4;
-          if (!cliloc) break;
-          const length = packet.readUInt16BE(offset);
-          offset += 2;
-          if (length % 2 || offset + length > packet.length) throw new Error('Invalid object property text');
-          properties.push({ cliloc, arguments: packet.subarray(offset, offset + length).toString('utf16le') });
-          offset += length;
-        }
-        const entity = this.entities.get(serial);
-        if (entity) this.put({ ...entity, properties });
-        break;
-      }
-      case 0xa2:
-        if (packet.readUInt32BE(1) === this.serial && this.status) {
-          this.status.maxMana = packet.readUInt16BE(5);
-          this.status.mana = packet.readUInt16BE(7);
-        }
-        break;
-      case 0xc8:
-        this.viewRange = packet.readUInt8(1);
-        break;
-      case 0xa3:
-        if (packet.readUInt32BE(1) === this.serial && this.status) {
-          this.status.maxStamina = packet.readUInt16BE(5);
-          this.status.stamina = packet.readUInt16BE(7);
-        }
-        break;
-      case 0x2d:
-        if (packet.readUInt32BE(1) === this.serial && this.status) {
-          recordHealth(this, packet.readUInt16BE(7), packet.readUInt16BE(5));
-          this.status.maxHits = packet.readUInt16BE(5);
-          this.status.hits = packet.readUInt16BE(7);
-          this.status.maxMana = packet.readUInt16BE(9);
-          this.status.mana = packet.readUInt16BE(11);
-          this.status.maxStamina = packet.readUInt16BE(13);
-          this.status.stamina = packet.readUInt16BE(15);
-        }
-        break;
-      case 0xa1:
-        {
-          const entity = this.entities.get(packet.readUInt32BE(1));
-          if (entity)
-            this.put({
-              ...entity,
-              maxHits: packet.readUInt16BE(5),
-              hits: packet.readUInt16BE(7),
-              healthAt: Date.now()
-            });
-        }
-        if (packet.readUInt32BE(1) === this.serial && this.status) {
-          recordHealth(this, packet.readUInt16BE(7), packet.readUInt16BE(5));
-          this.status.maxHits = packet.readUInt16BE(5);
-          this.status.hits = packet.readUInt16BE(7);
-        }
-        break;
-      case Opcode.vendorBuyList: {
-        const container = packet.readUInt32BE(3);
-        const count = packet.readUInt8(7);
-        const vendor = this.entities.get(container)?.parent;
-        const items = this.lastContainerContents
-          .flatMap((serial) => {
-            const item = this.entities.get(serial);
-            const pack = item?.parent === undefined ? undefined : this.entities.get(item.parent);
-            return item && (item.parent === container || (vendor !== undefined && pack?.parent === vendor))
-              ? [item]
-              : [];
-          })
-          .sort((a, b) => (a.containerX ?? 0) - (b.containerX ?? 0));
-        if (items.length !== count) throw new Error('Vendor price list does not match observed stock');
-        const offers = [];
-        let offset = 8;
-        for (const item of items) {
-          const price = packet.readUInt32BE(offset);
-          const length = packet.readUInt8(offset + 4);
-          offers.push({ serial: item.serial, price, description: text(packet, offset + 5, length) });
-          offset += 5 + length;
-        }
-        if (offset !== packet.length) throw new Error('Invalid vendor price list');
-        this.buyOffers.set(container, offers);
-        break;
-      }
-      case 0x1b:
-        this.serial = packet.readUInt32BE(1);
-        this.position = {
-          x: packet.readUInt16BE(11),
-          y: packet.readUInt16BE(13),
-          z: packet.readInt16BE(15),
-          direction: packet.readUInt8(17) & 7
-        };
-        break;
-      case 0x55:
-        this.ready = true;
-        break;
-      case 0x20:
-        this.put({
-          serial: packet.readUInt32BE(1),
-          kind: 'mobile',
-          graphic: packet.readUInt16BE(5),
-          flags: packet.readUInt8(10),
-          position: {
-            x: packet.readUInt16BE(11),
-            y: packet.readUInt16BE(13),
-            z: packet.readInt8(18),
-            direction: packet.readUInt8(17) & 7
-          }
-        });
-        break;
-      case 0x77:
-        this.put({
-          serial: packet.readUInt32BE(1),
-          kind: 'mobile',
-          graphic: packet.readUInt16BE(5),
-          flags: packet.readUInt8(15),
-          notoriety: packet.readUInt8(16),
-          position: {
-            x: packet.readUInt16BE(7),
-            y: packet.readUInt16BE(9),
-            z: packet.readInt8(11),
-            direction: packet.readUInt8(12) & 7
-          }
-        });
-        break;
-      case 0x78: {
-        const serial = packet.readUInt32BE(3);
-        this.put({
-          serial,
-          kind: 'mobile',
-          graphic: packet.readUInt16BE(7),
-          flags: packet.readUInt8(17),
-          notoriety: packet.readUInt8(18),
-          position: {
-            x: packet.readUInt16BE(9),
-            y: packet.readUInt16BE(11),
-            z: packet.readInt8(13),
-            direction: packet.readUInt8(14) & 7
-          }
-        });
-        let offset = 19;
-        while (true) {
-          const equipped = packet.readUInt32BE(offset);
-          if (equipped === 0) break;
-          if (offset + 9 > packet.length) throw new Error('Truncated mobile equipment');
-          this.put({
-            serial: equipped,
-            kind: 'item',
-            graphic: packet.readUInt16BE(offset + 4),
-            layer: packet.readUInt8(offset + 6),
-            parent: serial
-          });
-          offset += 9;
-        }
-        break;
-      }
-      case 0xf3:
-        this.put({
-          serial: packet.readUInt32BE(4),
-          kind: 'item',
-          graphic: packet.readUInt16BE(8),
-          amount: packet.readUInt16BE(11),
-          position: { x: packet.readUInt16BE(15), y: packet.readUInt16BE(17), z: packet.readInt8(19), direction: 0 },
-          flags: packet.readUInt8(23),
-          hue: packet.readUInt16BE(21)
-        });
-        break;
-      case 0x1d: {
-        const pending = [packet.readUInt32BE(1)];
-        for (let serial = pending.pop(); serial !== undefined; serial = pending.pop()) {
-          pending.push(...this.entities.childSerials(serial));
-          this.remove(serial);
-        }
-        break;
-      }
-      case 0x2e:
-        this.put({
-          serial: packet.readUInt32BE(1),
-          kind: 'item',
-          graphic: packet.readUInt16BE(5),
-          layer: packet.readUInt8(8),
-          parent: packet.readUInt32BE(9)
-        });
-        break;
-      case 0x25:
-        this.containerEntry(packet, 1);
-        break;
-      case Opcode.containerContents: {
-        const count = packet.readUInt16BE(3);
-        if (packet.length !== 5 + count * 20) throw new Error('Invalid grid-container content length');
-        const parents = new Set<number>();
-        const present = new Set<number>();
-        for (let i = 0; i < count; i++) {
-          present.add(packet.readUInt32BE(5 + i * 20));
-          parents.add(packet.readUInt32BE(19 + i * 20));
-        }
-        this.lastContainerContents = [...present];
-        for (const parent of parents)
-          for (const serial of [...this.entities.childSerials(parent)]) if (!present.has(serial)) this.remove(serial);
-        for (let i = 0; i < count; i++) this.containerEntry(packet, 5 + i * 20);
-        break;
-      }
-      case 0x11: {
-        const serial = packet.readUInt32BE(3);
-        const entity = this.entities.get(serial);
-        if (entity)
-          this.put({
-            ...entity,
-            name: text(packet, 7, 30),
-            hits: packet.readUInt16BE(37),
-            maxHits: packet.readUInt16BE(39),
-            healthAt: Date.now()
-          });
-        if (serial === this.serial && packet.length >= 69 && packet.readUInt8(42) >= 5) {
-          recordHealth(this, packet.readUInt16BE(37), packet.readUInt16BE(39));
-          this.status = playerStatus(packet);
-        }
-        break;
-      }
-      case 0x98: {
-        const serial = packet.readUInt32BE(3);
-        const entity = this.entities.get(serial);
-        if (entity) this.put({ ...entity, name: text(packet, 7, 30) });
-        break;
-      }
-      case 0x1c:
-      case 0xae:
-      case 0xc1:
-      case 0xcc:
-        this.addJournal(speechEntry(opcode, packet));
-        break;
-      case 0x6f:
-        applyTrade(this, packet);
-        break;
-      case 0x6c:
-        this.target =
-          packet.readUInt8(6) === 3
-            ? null
-            : { id: packet.readUInt32BE(2), ground: packet.readUInt8(1) === 1, flags: packet.readUInt8(6) };
-        break;
-      case 0x99:
-        this.target = {
-          id: packet.readUInt32BE(2),
-          ground: packet.readUInt8(1) === 1,
-          flags: packet.readUInt8(6),
-          multi: packet.readUInt16BE(18)
-        };
-        break;
-      case 0xc2:
-        this.prompt = { serial: packet.readUInt32BE(3), id: packet.readUInt32BE(7) };
-        break;
-      case 0xbf:
-        applyParty(this, packet);
-        if (packet.readUInt16BE(3) === 0x14) {
-          if (packet.readUInt16BE(5) !== 2) throw new Error('Unsupported context menu format');
-          const serial = packet.readUInt32BE(7);
-          const count = packet.readUInt8(11);
-          if (packet.length !== 12 + count * 8) throw new Error('Invalid context menu length');
-          const entries = [];
-          for (let i = 0; i < count; i++)
-            entries.push({
-              cliloc: packet.readUInt32BE(12 + i * 8),
-              index: packet.readUInt16BE(16 + i * 8),
-              flags: packet.readUInt16BE(18 + i * 8)
-            });
-          if (this.contextMenus.size > 1000) {
-            this.contextMenus.clear();
-            this.observations.contextAt.clear();
-          }
-          this.contextMenus.set(serial, entries);
-          this.observations.context(serial);
-        }
-        if (packet.readUInt16BE(3) === 8) this.map = packet.readUInt8(5);
-        // StatLockInfo: two bits per stat (str, dex, int); 0 up, 1 down, 2 locked.
-        if (packet.readUInt16BE(3) === 0x19 && packet.length >= 12 && packet.readUInt32BE(6) === this.serial) {
-          const bits = packet.readUInt8(11);
-          this.statLocks = [(bits >> 4) & 3, (bits >> 2) & 3, bits & 3];
-        }
-        if (packet.readUInt16BE(3) === 4) {
-          const id = packet.readUInt32BE(5);
-          for (const [key, gump] of this.gumps) if (gump.id === id) this.gumps.delete(key);
-        }
-        break;
-      case Opcode.gump:
-      case Opcode.compressedGump: {
-        if (this.gumps.size >= 100) throw new Error('Open gump limit exceeded');
-        const serial = packet.readUInt32BE(3);
-        const id = packet.readUInt32BE(7);
-        this.gumps.set(`${serial}:${id}`, {
-          serial,
-          id,
-          packed: opcode === Opcode.compressedGump,
-          layout: gumpLayout(packet)
-        });
-        break;
-      }
-    }
+    decoders.get(opcode)?.(this, packet, opcode);
   }
 
   snapshot() {

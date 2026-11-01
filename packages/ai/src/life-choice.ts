@@ -1,10 +1,13 @@
 import { skillId } from '@gemwright/common/game/skills';
+import { Layer } from '@gemwright/network/layers';
 
 import { chaosOf } from './chaos';
 import { type DecisionPick, decisionGuard, decisionState, requireDecision } from './decisions';
 import { driveBias } from './drives';
-import { confinedToHaven } from './haven';
+import { prefersHaven } from './haven';
+import { packFull } from './inventory';
 import type { LifeContext } from './life';
+import { residentNeeds } from './needs';
 import { goalPhaseBias } from './personal-goals';
 import { shardProfile } from './shard-profile';
 import { trainable } from './skill-training';
@@ -78,7 +81,27 @@ function season(phase: LifePhase, now = new Date()) {
   return weight;
 }
 
+// A need the resident cannot bluster through decides the phase before any weighting: an empty
+// purse, a missing tool or a pack full of unsold goods is not a preference. Without these gates the
+// weights below could happily roll leisure on a broke resident with a broken pickaxe. Everything
+// else — skill curve, season, learned drives, temperament — still decides as it did.
+export function needPhase(ctx: LifeContext, valid: LifePhase[]): LifePhase | undefined {
+  const want = (phase: LifePhase) => (valid.includes(phase) ? phase : undefined);
+  const needs = residentNeeds(ctx.session, ctx.checkpoint, ctx.template);
+  if (needs.some((need) => need.kind === 'tool' || need.kind === 'supply')) return want('errands');
+  const serial = ctx.session.world.serial;
+  const pack =
+    serial === null || serial === undefined
+      ? undefined
+      : ctx.session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
+  if (pack && packFull(ctx.session, pack.serial, 0.85)) return want('errands');
+  if (needs.some((need) => need.kind === 'income')) return want('work');
+  return undefined;
+}
+
 function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
+  const need = needPhase(ctx, valid);
+  if (need) return need;
   const { sociability, riskTolerance } = ctx.template.behavior;
   const curve = skillCurve(skillProgress(ctx));
   // Traits (temperament.ts): a homebody seldom visits other towns; a restless one goes out more.
@@ -108,10 +131,11 @@ function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
 
 export async function chooseLifePhase(ctx: LifeContext): Promise<{ phase: LifePhase; pick: DecisionPick | null }> {
   // Practice only while a supporting skill can still rise (skill-training.ts): maxed ones are done.
-  // A Young resident of New Haven neither visits other towns nor goes below (haven.ts).
-  const confined = confinedToHaven(ctx.session);
+  // A Young resident of New Haven stays out of dungeons until it outgrows Young (haven.ts); visiting
+  // other towns is its own choice.
+  const young = prefersHaven(ctx.session);
   const valid = phases.filter((p) =>
-    confined && (p === 'visit' || p === 'dungeon')
+    young && p === 'dungeon'
       ? false
       : p === 'dungeon'
         ? !!ctx.dungeon && !!ctx.dungeonReady?.()

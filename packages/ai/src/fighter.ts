@@ -27,7 +27,7 @@ import { fightOpponent } from './fighter-encounter';
 import { createFighterEquipment } from './fighter-equipment';
 import { createFighterErrands } from './fighter-errands';
 import { chooseOpponent } from './fighter-hunt';
-import { createCorpseLooter } from './fighter-loot';
+import { createCorpseLooter, fellAlongside } from './fighter-loot';
 import { createFighterRecovery } from './fighter-recovery';
 import { checkFighter } from './fighter-safety';
 import { registerFighterSocial } from './fighter-social';
@@ -43,15 +43,17 @@ import { createNavigator, distance } from './navigation';
 import { playerPartyTurn } from './player-party';
 import { observeResident } from './resident-observation';
 import type { ResidentOptions } from './resident-options';
+import { SessionBreak } from './session-habits';
 import { isSetback, passSetback } from './setback';
 import { trainSupportingSkill } from './skill-training';
 import { Terrain } from './terrain';
+import { TownChanged, townFor } from './towns';
 
 export async function runFighter(options: ResidentOptions) {
   const { session, template } = options;
   const serial = session.world.serial;
   if (serial === null || session.world.map !== 1) throw new Error('Fighter needs Trammel');
-  const home = homeOf(template.creation.city, () => session.world.position ?? { x: 0, y: 0 });
+  const home = homeOf(townFor(session, options.checkpoint, 'fighter'), () => session.world.position ?? { x: 0, y: 0 });
   const checkpoint = structuredClone(options.checkpoint);
   reconcileExperience(checkpoint);
   options.decisions?.reconcile(checkpoint);
@@ -231,6 +233,7 @@ export async function runFighter(options: ResidentOptions) {
     acquireMount: () => mounts.acquire()
   });
   const defeat = async (opponent: Parameters<typeof fightOpponent>[2]) => {
+    const before = new Set(session.world.deaths.keys());
     const defeated = await actionScope(session, 'combat', 'Defeat observed opponent', () =>
       fightOpponent(ctx, combat, opponent, options.decisions, options.stopping)
     );
@@ -248,6 +251,7 @@ export async function runFighter(options: ResidentOptions) {
     // The corpse serial can arrive as 0 (or not at all): the looter finds the fresh corpse where
     // the opponent fell instead of walking away from a kill with the gold still on it.
     await lootCorpse(death);
+    for (const other of fellAlongside(ctx, before, defeated.serial)) await lootCorpse(other);
     delete trip.encounter;
     persist();
   };
@@ -473,6 +477,7 @@ export async function runFighter(options: ResidentOptions) {
       }
     }
   } catch (error) {
+    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
     outcome = error instanceof Error ? error.message : String(error);
     blocked = blockedReason(error);
     options.decisions?.finish(checkpoint, activeDecision, options.stopping?.() ? 'interrupted' : 'failed', outcome);

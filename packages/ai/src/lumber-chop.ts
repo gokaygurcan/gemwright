@@ -4,6 +4,7 @@ import type { Entity } from '@gemwright/network/world';
 
 import { checkedDelay } from './action-purpose';
 import { tally } from './activity';
+import { onTile, useOn } from './target-action';
 
 // Lumberjacking.cs replies: AOS resource messages 1072540-1072546 or the classic 500498 on
 // success, 500495 on a failed chop, 500493 depleted tree, ShardMessage.tooFar too far, 500497 pack full,
@@ -39,21 +40,20 @@ export async function chopTree(ctx: ChopContext, tree: { x: number; y: number; z
     const axe = ctx.tool();
     if (!axe) break;
     const seen = new Set(session.world.journal);
-    session.use(axe.serial);
-    try {
-      await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000, { resource: 'target' });
-    } catch (error) {
-      if (session.phase !== 'ready') throw error;
-      // No target asked for: a spent axe says so (ShardCraft.toolWornOut) and never asks. It is dropped here and
+    const swing = await useOn(session, () => session.use(axe.serial), onTile(tree, tree.id), {
+      label: 'hatchet cursor',
+      ms: 4000,
+      refusals: [WORN_OUT]
+    });
+    if ('why' in swing) {
+      // A spent axe says so (ShardCraft.toolWornOut) and never asks for a target. It is dropped here and
       // the next turn buys a replacement (lumberjack.ts) instead of swinging a dead tool forever.
-      const answers = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);
-      if (!answers.some((entry) => entry.cliloc === WORN_OUT)) throw error;
+      if (swing.why !== 'refused') throw new Error(`The hatchet brought no cursor (${swing.why})`);
       ctx.say('The hatchet is worn out; it goes and a new one is bought');
       await session.dropAtFeet(axe.serial).catch(() => {});
       result.answered = true;
       break;
     }
-    session.target({ serial: 0, x: tree.x, y: tree.y, z: tree.z, graphic: tree.id });
     await checkedDelay(2500, ctx.check);
     const replies = session.world.journal.filter((entry) => !seen.has(entry) && entry.cliloc !== undefined);
     const has = (clilocs: number[]) => replies.some((entry) => clilocs.includes(entry.cliloc ?? 0));

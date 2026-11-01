@@ -6,7 +6,6 @@ import { perceptionFor } from './perception-session';
 
 export type ActionPurpose = 'combat' | 'escape';
 export const takingUrgentAction = (session: PlayerSession) => ['combat', 'escape'].includes(actionKind(session) ?? '');
-export const escapingDanger = (session: PlayerSession) => actionKind(session) === 'escape';
 export const recentlyHurt = (session: PlayerSession, now = Date.now()) => perceptionFor(session).damagedRecently(now);
 export const canPause = (session: PlayerSession) => !urgentActive(session) && !recentlyHurt(session);
 export const urgentAction = async <T>(

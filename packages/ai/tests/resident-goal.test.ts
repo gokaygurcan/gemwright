@@ -217,7 +217,8 @@ test('stale core work remains admissible while side income waits', () => {
   const work = chooseGoal(cp, state, 1000);
   expect(work).toMatchObject({ kind: 'earn', step: 'trade' });
   blockGoal(cp, 'Primary method unavailable', 2000, state);
-  expect(chooseGoal(cp, state, 3000).step).toBe('wait');
+  // Every plan cooling down still leaves the trade itself: it keeps working rather than waiting.
+  expect(chooseGoal(cp, state, 3000).step).toBe('trade');
   // Losing a required tool still allows an income method that can restore the prerequisite.
   state.ready = false;
   state.evidence.funds = 0;
@@ -228,20 +229,26 @@ test('stale core work remains admissible while side income waits', () => {
 
 test('a wait does not fabricate recovery success or teach that recovery failed', () => {
   const cp = checkpoint();
-  const state = { ...situation(), learning: false };
+  // A safe resident always has some way to earn; only an unsafe one with recovery cooling down waits.
+  const state = { ...situation(), learning: false, ready: false, safe: false };
   cp.workGoal = {
     failed: {
       earn: { until: 500_000, reason: 'Blocked trade' },
-      income: { until: 500_000, reason: 'Blocked income' }
+      income: { until: 500_000, reason: 'Blocked income' },
+      equip: { until: 500_000, reason: 'No affordable tool' },
+      recover: { until: 500_000, reason: 'No way to recover' }
     }
   };
   const wait = chooseGoal(cp, state, 1000);
   expect(wait.step).toBe('wait');
   expect(chooseGoal(cp, state, 2000)).toBe(wait);
+  const seeded = structuredClone(cp.workGoal?.failed?.recover);
   blockGoal(cp, 'Wait deadline reached', 130_000, state);
-  expect(cp.workGoal?.failed?.recover).toBeUndefined();
+  expect(cp.workGoal?.failed?.recover).toEqual(seeded);
   expect(cp.workGoal?.outcomes).toBeUndefined();
   expect(cp.workGoal?.assumptions).toBeUndefined();
+  state.ready = true;
+  state.safe = true;
   const next = chooseGoal(cp, state, 501_000);
   expect(next).toMatchObject({ kind: 'earn', step: 'trade' });
   expect(cp.workGoal?.last?.result).not.toBe('completed');

@@ -11,6 +11,7 @@ import { packItems } from './inventory';
 import { lasting } from './lasting';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
+import { onItem, useOn } from './target-action';
 
 // Mending, as players do it. A resident just back from the dead has a handful of hit points and
 // dies to the first blow, so it heals before going back to work: bandages with Healing, Heal or
@@ -49,15 +50,10 @@ async function healOnce(ctx: Ctx, who: number): Promise<boolean> {
   if (session.world.target) return false;
   const cloth = skill(session, 'Healing') >= 10 ? pack(ctx).find((item) => item.graphic === bandage) : undefined;
   const spell = spellFor(ctx);
-  if (cloth) session.use(cloth.serial);
-  else if (spell) session.useSkill(spell.id, true);
-  else return false;
-  await session
-    .waitFor(() => session.world.target !== null, 'heal cursor', 3000, { resource: 'target' })
-    .catch(() => {});
-  if (!session.world.target) return false;
-  const mobile = session.world.entities.get(who);
-  session.target({ serial: who, x: 0, y: 0, z: 0, graphic: mobile?.graphic ?? 0 });
+  if (!cloth && !spell) return false;
+  const heal = () => (cloth ? session.use(cloth.serial) : spell && session.useSkill(spell.id, true));
+  const aim = onItem({ serial: who, graphic: session.world.entities.get(who)?.graphic ?? 0 });
+  if ('why' in (await useOn(session, heal, aim, { label: 'heal cursor' }))) return false;
   await Bun.sleep(cloth ? BANDAGE_MS : 2500);
   return true;
 }

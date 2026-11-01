@@ -1,5 +1,5 @@
 // Wire lengths for the 7.0.45.1 classic-client profile, checked against ServUO pub57.
-// Zero denotes a variable packet with a big-endian length at bytes 1–2.
+// Zero denotes a variable packet with a big-endian length at bytes 1-2.
 export const packetLengths: Readonly<Record<number, number>> = {
   11: 7,
   17: 0,

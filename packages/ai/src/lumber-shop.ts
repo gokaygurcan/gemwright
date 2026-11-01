@@ -1,5 +1,5 @@
 import { hatchets } from '@gemwright/common/game/items';
-import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
@@ -10,6 +10,7 @@ import { approachVendor } from './mobile-approach';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import type { Checkpoint } from './store';
+import { buyOffers } from './vendor-shop';
 
 // The lumberjack's shop errands: the vendor menu entry check shared with board sales, and buying a
 // replacement hatchet from the town blacksmith.
@@ -51,7 +52,8 @@ export async function buyHatchetFrom(
     // A town with no smith at all (Skara Brae, Magincia) sends the lumberjack through the moongate
     // to one, the way any resident travels to a shop it needs.
     if (distance(position(), smith) > 300) {
-      const { nearestGate, travelByMoongate } = await import('./moongate');
+      const { travelByMoongate } = await import('./moongate');
+      const { nearestGate } = await import('./gates');
       await travelByMoongate({ session, position, navigate, phase }, nearestGate(smith)).catch(() => {});
     }
     if (
@@ -66,22 +68,14 @@ export async function buyHatchetFrom(
       const entry = await vendorMenu(session, mobile, Actions.buy);
       if (!entry) continue;
       await approachVendor({ session, terrain, position, navigate, check, serial }, mobile.serial);
-      const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-      session.world.buyOffers.clear();
-      const current = await vendorMenu(session, mobile, Actions.buy);
-      if (!current) continue;
-      session.selectContext(mobile.serial, current.index);
-      await session
-        .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'smith stock', 2500)
-        .catch(() => {});
-      const offer = [...session.world.buyOffers.values()]
-        .flat()
-        .find((item) => hatchets.has(session.world.entities.get(item.serial)?.graphic ?? 0) && item.price <= 60);
+      const stock = await buyOffers(session, mobile.serial, Actions.buy);
+      if ('why' in stock) continue;
+      const offer = stock.offers.find((item) => hatchets.has(session.world.entities.get(item.serial)?.graphic ?? 0));
       if (!offer) continue;
       await chargedPurchase(
         { session, checkpoint, backpack },
         offer.price,
-        () => session.purchaseItem(mobile.serial, offer.serial, backpack(), 1, 60),
+        () => session.purchaseItem(mobile.serial, offer.serial, backpack(), 1, offer.price),
         true
       );
       return;

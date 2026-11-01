@@ -1,5 +1,4 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
-import { Opcode } from '@gemwright/network/opcodes';
 import { Actions, Commerce, ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
@@ -10,6 +9,7 @@ import { canAffordMount, horseBodies, type MountContext, type MountMemory } from
 import { distance } from './navigation';
 import { createServiceExperience } from './service-experience';
 import { flushSession } from './session-durability';
+import { buyOffers } from './vendor-shop';
 import { reachRegion } from './work-areas';
 
 // `animal` picks what the trainer sells: riding horses by default, pack animals for gatherers
@@ -132,19 +132,12 @@ export function createMountServices(
           why = `could not get next to the trainer ${vendor.name ?? vendor.serial}`;
           continue;
         }
-        menu = await session.context(vendor.serial);
-        const buy = menu.find((entry) => entry.cliloc === Actions.buy && !(entry.flags & 1));
-        if (!buy) continue;
-        session.world.buyOffers.clear();
-        const beforeStock = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-        session.selectContext(vendor.serial, buy.index);
-        await session.waitFor(
-          () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > beforeStock,
-          'trainer stock',
-          3000
-        );
-        const offers = [...session.world.buyOffers.values()]
-          .flat()
+        const stock = await buyOffers(session, vendor.serial, Actions.buy);
+        if ('why' in stock) {
+          why = `the trainer ${vendor.name ?? vendor.serial} did not show its stock (${stock.why})`;
+          continue;
+        }
+        const offers = stock.offers
           .filter((offer) => {
             const item = session.world.entities.get(offer.serial);
             const pack = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);

@@ -151,7 +151,7 @@ ${text(m.name ?? '', 90, 50, 320)}${locks}
 ${text(m.str, 80, 77)}${text(m.dex, 80, 105)}${text(m.int, 80, 133)}
 ${pair(m.hits, Math.max(m.hits, 50 + Math.floor(m.str / 2)), 145, 70)}${pair(m.stamina, Math.max(m.stamina, m.dex), 145, 98)}${pair(m.mana, Math.max(m.mana, m.int), 145, 126)}
 ${text(m.statCap, 240, 77)}${pair(weight, 40 + Math.floor(3.5 * m.str), 230, 126)}
-${text(`–/${m.followersMax}`, 320, 133)}${text(gold, 480, 161)}</section>`;
+${text(`-/${m.followersMax}`, 320, 133)}${text(gold, 480, 161)}</section>`;
 }
 
 function skills({ client, m }: View) {

@@ -1,6 +1,5 @@
 import { arrow, crossbowBolt, curePotion, poisonPotion } from '@gemwright/common/game/items';
-import { Layer } from '@gemwright/network/layers';
-import { Opcode } from '@gemwright/network/opcodes';
+import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
@@ -10,16 +9,13 @@ import { travelNear } from './cemeteries';
 import { actionScope } from './execution-session';
 import { ammoFor, bandage, type FighterContext, healPotion, weaponSkill, weaponsFor } from './fighter-context';
 import { poisons } from './fighter-poison';
-import { saving } from './housing';
-import { learnQuality } from './item-quality';
 import { forcedToWork } from './loop-watch';
 import { combatReagents } from './mage-combat';
-import { buyAtMarket, goodMatch, goods } from './market';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
 import { errand, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
-import { goalAllows } from './resident-goal';
 import type { createServiceExperience } from './service-experience';
+import { buyOffers } from './vendor-shop';
 
 export const fighterSupplyName = (ctx: Pick<FighterContext, 'terrain'>, graphic: number) =>
   new Map([
@@ -34,60 +30,32 @@ export const fighterSupplyName = (ctx: Pick<FighterContext, 'terrain'>, graphic:
 
 export function createFighterRestock(
   ctx: FighterContext,
-  contextAction: (mobile: Entity, action: number, needs?: readonly number[]) => Promise<boolean>,
+  _contextAction: (mobile: Entity, action: number, needs?: readonly number[]) => Promise<boolean>,
   learning: ReturnType<typeof createServiceExperience>
 ) {
-  const { session, position, status, contents, count, nearby, check, phase, log, checkpoint } = ctx;
+  const { session, position, status, count, nearby, check, phase, log, checkpoint } = ctx;
   const supplyName = (graphic: number) => fighterSupplyName(ctx, graphic);
   const casts = () =>
     !!ctx.template.archetype &&
     [...ctx.template.archetype.primarySkills, ...ctx.template.archetype.supportingSkills].includes('Magery');
-  // Graphic: [target quantity, minimum on hand, maximum unit price]. Targets are kept well above
+  // Graphic: [target quantity, minimum on hand]. Targets are kept well above
   // the minimum so a fighter spends its time fighting rather than walking back for supplies.
   const supplies = () => {
     const table = new Map([
-      [bandage, [80, 20, 8]],
-      [healPotion, [8, 3, 60]],
-      [curePotion, [6, 2, 60]]
+      [bandage, [80, 20]],
+      [healPotion, [8, 3]],
+      [curePotion, [6, 2]]
     ]);
     const weapon = [...session.world.entities.values()].find(
       (item) => item.parent === ctx.serial && weaponsFor(ctx.template).has(item.graphic)
     )?.graphic;
     const ammo = weaponSkill(ctx.template) === 'Archery' ? ammoFor(weapon ?? 0x13b2) : undefined;
-    if (ammo) table.set(ammo, [150, 50, 4]);
-    // Casters keep every reagent their combat spells use (SBMage sells them for 3-5 gold).
-    // Casters carry 150 of each reagent so they rarely walk back to the mage.
-    if (casts()) for (const reagent of combatReagents) table.set(reagent, [150, 30, 7]);
+    if (ammo) table.set(ammo, [150, 50]);
+    // Casters keep every reagent their combat spells use, 150 of each so they rarely walk back to the mage.
+    if (casts()) for (const reagent of combatReagents) table.set(reagent, [150, 30]);
     // Poisoners coat their blade before each fight (fighter-poison.ts); alchemists sell the potions.
-    if (poisons(ctx)) table.set(poisonPotion, [16, 3, 40]);
+    if (poisons(ctx)) table.set(poisonPotion, [16, 3]);
     return table;
-  };
-  const upgradeBow = async () => {
-    const exceptionalBow = goodMatch('exceptional bows');
-    const wielded = [...session.world.entities.values()].find(
-      (item) => item.parent === ctx.serial && (item.layer === Layer.OneHanded || item.layer === Layer.TwoHanded)
-    );
-    if (wielded) await learnQuality(session, [wielded]);
-    // A better bow is a luxury while saving for a house (housing.ts).
-    if ((wielded && exceptionalBow(wielded)) || saving(ctx)) return;
-    if (!(await buyAtMarket({ ...ctx, city: ctx.home.city }, 'exceptional bows', 1, 3).catch(() => 0))) return;
-    await learnQuality(session, contents());
-    const bow = contents().find(exceptionalBow);
-    if (!bow) return;
-    if (wielded) await session.moveItem(wielded.serial, ctx.backpack()).catch(() => {});
-    await session.equipItem(bow.serial, ctx.terrain.tile(bow.graphic, true).layer || Layer.TwoHanded).catch(() => {});
-    log('Wielding an exceptional bow bought from a bowyer');
-  };
-  // Savings to spare and no exceptional body armour: one from a resident smith (market.ts).
-  const upgradeArmour = async () => {
-    const exceptional = goodMatch('exceptional armour');
-    const worn = session.world.childrenOf(ctx.serial);
-    await learnQuality(session, worn);
-    if (worn.some(exceptional) || saving(ctx) || ctx.status().gold + knownBankGold(ctx.checkpoint) < 2000) return;
-    if (!(await buyAtMarket({ ...ctx, city: ctx.home.city }, 'exceptional armour', 1, 3).catch(() => 0))) return;
-    await learnQuality(session, contents());
-    // Worn by the inventory pass when it beats what is on (inventory-use.ts).
-    log('Bought exceptional armour from a resident smith');
   };
   const restockNearby = async () => {
     if (forcedToWork(session)) return;
@@ -95,22 +63,6 @@ export function createFighterRestock(
     const localShops = ctx.home.shops.filter((shop) => distance(position(), shop) <= 18);
     if (!localShops.length || status().gold + knownBankGold(checkpoint) < 150) return;
     const table = supplies();
-    // Fighters living in a potion market town try fellow residents first (market.ts).
-    for (const good of ['heal potions', 'cure potions', 'poison potions'] as const) {
-      const [want = 0, enough = 0] = table.get(goods[good].graphic) ?? [];
-      if (
-        !goalAllows(session, 'optional') ||
-        goods[good].market !== ctx.home.city.toLowerCase() ||
-        count(goods[good].graphic) >= enough
-      )
-        continue;
-      await buyAtMarket({ ...ctx, city: ctx.home.city }, good, want - count(goods[good].graphic), 3).catch(() => 0);
-    }
-    // Now and then an archer looks for an exceptional bow at the bow market (market.ts).
-    if (goalAllows(session, 'optional')) {
-      if (weaponSkill(ctx.template) === 'Archery' && Math.random() < 0.25) await upgradeBow();
-      else if (weaponSkill(ctx.template) !== 'Archery' && Math.random() < 0.15) await upgradeArmour();
-    }
     // Nothing to buy with: no shopping walk at all.
     if (status().gold + knownBankGold(checkpoint) < 50 && !fundsStale(checkpoint)) return;
     const requested = () =>
@@ -146,24 +98,20 @@ export function createFighterRestock(
           .filter(([graphic, [want]]) => count(graphic) < (want ?? 0))
           .map(([graphic]) => graphic);
         for (const mobile of learning.order(nearby(), Actions.buy, needs)) {
-          const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-          if (!(await contextAction(mobile, Actions.buy, needs))) continue;
-          try {
-            await session.waitFor(
-              () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before,
-              'vendor stock',
-              2500
-            );
-          } catch {
-            check();
+          if (mobile.notoriety !== Notoriety.invulnerable || learning.blocked(mobile, Actions.buy, needs)) continue;
+          const stock = await buyOffers(session, mobile.serial, Actions.buy);
+          if ('why' in stock) {
+            if (stock.why === 'no-entry') learning.record(mobile, Actions.buy, 'no-service', needs);
             // The entry was offered and the click went out, but no stock list came: name it and let
             // the memory keep the resident away for half an hour instead of walking back in five
-            // minutes (what it did all evening).
-            learning.record(mobile, Actions.buy, 'no-answer', needs);
-            log(`Vendor offered to sell but did not answer: ${needs.map(supplyName).join(', ')} (${mobile.serial})`);
+            // minutes (what it did all evening). Busy is ours, not the vendor's: nothing is recorded.
+            if (stock.why === 'no-list') {
+              learning.record(mobile, Actions.buy, 'no-answer', needs);
+              log(`Vendor offered to sell but did not answer: ${needs.map(supplyName).join(', ')} (${mobile.serial})`);
+            }
             continue;
           }
-          const offers = [...session.world.buyOffers.values()].flat();
+          const offers = stock.offers;
           if (
             !offers.some((offer) => {
               const item = session.world.entities.get(offer.serial);
@@ -180,19 +128,12 @@ export function createFighterRestock(
             await session.refreshStatus();
             // Vendors charge carried gold, then the bank; keep 150 of the combined funds untouched.
             const funds = status().gold + knownBankGold(checkpoint) - 150;
-            // A reagent stock of ninety costs more than ordinary supplies; other purchases stay small.
-            const cap = combatReagents.includes(item.graphic) ? 600 : 200;
             const wanted = (limits[0] ?? 0) - count(item.graphic);
-            const amount = Math.min(
-              wanted,
-              item.amount ?? 1,
-              Math.floor(Math.max(0, funds) / offer.price),
-              Math.floor(cap / offer.price)
-            );
-            if (amount < 1 || amount * offer.price > cap || offer.price > (limits[2] ?? 0)) continue;
+            const amount = Math.min(wanted, item.amount ?? 1, Math.floor(Math.max(0, funds) / offer.price));
+            if (amount < 1) continue;
             await approachVendor(ctx, mobile.serial);
             await chargedPurchase(ctx, amount * offer.price, () =>
-              session.purchaseItem(mobile.serial, item.serial, ctx.backpack(), amount, Math.min(cap, funds))
+              session.purchaseItem(mobile.serial, item.serial, ctx.backpack(), amount, amount * offer.price)
             );
             learning.record(mobile, Actions.buy, 'success', needs);
             log(`Bought ${amount} ${supplyName(item.graphic)}`);

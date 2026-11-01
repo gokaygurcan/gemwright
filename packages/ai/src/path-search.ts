@@ -12,6 +12,9 @@ export interface RouteRequest {
   wide?: boolean;
   targetZ?: number;
   partial?: boolean;
+  // Per-trip variation: 4-tile cells cost a little more or less, so two walks between the same places
+  // need not take the same line, as a person's do not.
+  seed?: number;
 }
 export interface RouteResult {
   path: Point[] | null;
@@ -40,6 +43,11 @@ const isRoad = (terrain: Pick<Terrain, 'tile'>, id: number) => {
   }
   return road;
 };
+
+// The same line for every re-plan of one walk (a fresh seed per request made each re-plan prefer
+// another way and the walk circled); a different one for a trip there ten minutes later.
+export const routeSeed = (goal: { x: number; y: number }, now = Date.now()) =>
+  ((goal.x * 73856093) ^ (goal.y * 19349663) ^ Math.imul(Math.floor(now / 600_000), 83492791)) | 1;
 
 // One reusable workspace per worker. Both the discovered set and heap have a hard bound.
 export class RouteSearch {
@@ -208,8 +216,9 @@ export class RouteSearch {
           parent >= 0 &&
           (Math.sign(current.x - this.x[parent]!) !== dx || Math.sign(current.y - this.y[parent]!) !== dy);
         const trouble = penalties.size && penalties.has((x >> 3) * 1024 + (y >> 3)) ? (request.penaltyCost ?? 4) : 0;
+        const vary = request.seed ? ((((x >> 2) * 73856093) ^ ((y >> 2) * 19349663) ^ request.seed) & 1023) / 3000 : 0;
         const cost =
-          this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : this.offRoad) + (turn ? 0.08 : 0) + trouble;
+          this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : this.offRoad) + (turn ? 0.08 : 0) + trouble + vary;
         if (other >= 0 && this.costs[other]! <= cost) continue;
         if (other < 0) {
           if (this.count === this.capacity) {

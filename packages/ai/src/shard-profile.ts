@@ -1,17 +1,15 @@
-import { CLIENT_VERSION } from '@gemwright/network/packets';
-
 import type { Race } from './appearance';
 import { logger } from './log';
 
 // The shard the runtime plays on, from the shard's own gemwright.json. Only ServUO is supported:
-// classic protocol 7.0.45.1, accounts made by ordinary login when the shard auto-creates them, and
+// the classic protocol (its client version comes with the connection), accounts made by ordinary
+// login when the shard auto-creates them, and
 // characters made at the creation screen. The expansion sets the rules that differ between eras.
 const eras = ['base', 't2a', 'uor', 'td', 'lbr', 'aos', 'se', 'ml', 'sa', 'hs', 'tol', 'ej'] as const;
 export type Expansion = (typeof eras)[number];
 
 export interface ShardProfile {
   emulator: 'servuo';
-  protocol: string;
   expansion: Expansion;
   // Races new residents are created as (gemwright.json `ai.races`).
   races: Race[];
@@ -29,7 +27,6 @@ export interface ShardProfile {
 // assumed to match.
 const defaults: ShardProfile = {
   emulator: 'servuo',
-  protocol: `classic-${CLIENT_VERSION}`,
   expansion: 'ej',
   races: ['human', 'elf'],
   timezone: 'UTC',

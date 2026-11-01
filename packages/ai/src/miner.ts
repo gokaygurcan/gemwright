@@ -5,7 +5,6 @@ import type { Entity } from '@gemwright/network/world';
 import { DangerInterrupt } from './action-purpose';
 import { openOwnBackpack } from './backpack';
 import { Blocked, blockedReason } from './blocked';
-import { escapeDanger } from './danger-response';
 import { shedDeathRobe, wearsDeathRobe } from './death-robe';
 import type { DecisionPick } from './decisions';
 import { actionScope, checkAction, yieldForInteraction } from './execution-session';
@@ -13,10 +12,8 @@ import { reconcileExperience } from './experience';
 import { residentTurn } from './goal-turn';
 import { leavesEarly, packFull, packItems, tidyPack, workGear } from './inventory';
 import { lifeTurn } from './life';
-import { forgeSites, pickLocation, serviceLocations } from './locations';
 import { logger } from './log';
 import { watchStep } from './loop-watch';
-import { sellCarried } from './market';
 import { minerBulkOrder } from './miner-bulk-orders';
 import { digSite, ore, oreIn } from './miner-dig';
 import { minerInventory } from './miner-inventory';
@@ -24,7 +21,7 @@ import { createMinerPastimes } from './miner-pastimes';
 import { chooseMiningActivity, minerPlan, rememberForges } from './miner-plan';
 import { createMinerServices, tools } from './miner-services';
 import { findMiningSite } from './miner-sites';
-import { travelMinerHome } from './miner-travel';
+import { minerDistrict, reachMinerHome } from './miner-travel';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator } from './navigation';
 import { lighten } from './overload';
@@ -33,30 +30,20 @@ import { observeResident } from './resident-observation';
 import type { ResidentOptions } from './resident-options';
 import { resurrectGhost } from './resurrection';
 import { runnerCheck } from './runner-check';
+import { SessionBreak } from './session-habits';
 import { isSetback } from './setback';
 import { asProfession } from './shared-turn';
+import { answerDanger } from './skirmish';
 import { type Point, Terrain } from './terrain';
-import { reachRegion, workArea } from './work-areas';
+import { TownChanged } from './towns';
+import { reachRegion } from './work-areas';
 
 const distance = (a: Point, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 export async function runMiner(options: ResidentOptions) {
   const { session, template } = options;
-  // Each miner works one of the districts whose town can support it — a bank and a public forge
-  // (work-areas.ts) — and that town's bank is home. Cove has no forge, so no miner is based there.
-  const usableMiningArea = (candidate: { city: string }) =>
-    serviceLocations(candidate.city, 'banker').length > 0 &&
-    forgeSites.some((forge) => forge.city.toLowerCase() === candidate.city.toLowerCase());
-  const area = workArea('mining', options.label ?? template.id, template.creation.city, usableMiningArea);
-  const city = area.city.toLowerCase();
   if (session.world.map !== 1) throw new Error('The miner supports Trammel');
-  const home = pickLocation(city, 'banker') ?? { x: area.x, y: area.y };
-  const miningArea = { x: area.x, y: area.y, z: 0 };
-  // Each miner favours its own part of the district.
-  const offset = template.behavior.temperament?.miningAnchor;
-  const anchor = miningArea && offset ? { x: miningArea.x + offset.dx, y: miningArea.y + offset.dy } : miningArea;
-  const banks = serviceLocations(city, 'banker');
-  const shops = serviceLocations(area.toolCity ?? city, 'mining-tools');
+  const { area, city, home, miningArea, anchor, banks, shops } = minerDistrict(options);
   const serial = session.world.serial;
   if (serial === null) throw new Error('Miner character is unknown');
   const position = () => {
@@ -228,22 +215,10 @@ export async function runMiner(options: ResidentOptions) {
     mounts = createMountController(animals, city, 1000);
     packs = createPackAnimal(animals, city);
     // The way home can be long: hurt on it, it gets clear and goes on, instead of giving up the run.
-    for (let tries = 0; tries < 5; tries++) {
-      try {
-        await reachRegion({ session, position, navigate, phase }, home);
-        await travelMinerHome({ session, position, navigate, phase, checkpoint, city, home, newTrip });
-        break;
-      } catch (error) {
-        // No way home yet: the work loop and its setbacks take it from here.
-        if (error instanceof Blocked) {
-          log(`Could not reach home yet: ${error.message}`);
-          break;
-        }
-        if (!(error instanceof DangerInterrupt)) throw error;
-        await escapeDanger({ session, check, phase, navigate }, undefined);
-        if (ghost()) await revive();
-      }
-    }
+    await reachMinerHome({ session, position, navigate, phase, checkpoint, city, home, newTrip, log }, async () => {
+      await answerDanger(professional, undefined);
+      if (ghost()) await revive();
+    });
     if (distance(position(), home) < 180) await mounts.acquire().then(() => packs?.acquire());
     rememberObservedForges();
     if (plan().pending === 'smelt' && !smeltable(backpack).length) {
@@ -321,24 +296,6 @@ export async function runMiner(options: ResidentOptions) {
             if (!(await minerBulkOrder(professional, withdrawIngots, true))) {
               // A healthy banked iron stock: sometimes smith a batch for profit.
               if ((checkpoint.stock?.ingots ?? 0) >= 200 && Math.random() < 0.4) await smithFromBank(backpack);
-              // Spare iron goes to fellow residents at the Minoc market (market.ts); unsold iron is banked again.
-              else if (
-                (checkpoint.stock?.ingots ?? 0) >= 150 &&
-                Math.random() < 0.3 &&
-                (await withdrawIngots(backpack, 50, 100))
-              ) {
-                const market = {
-                  session,
-                  template,
-                  checkpoint,
-                  city,
-                  position,
-                  navigate,
-                  phase,
-                  backpack: () => backpack
-                };
-                await sellCarried({ ...market, decisions: options.decisions }, 'iron ingots', 5);
-              }
             }
             await resupplyOrPass(backpack);
             await activeMounts.acquire().then(() => packs?.acquire());
@@ -460,7 +417,7 @@ export async function runMiner(options: ResidentOptions) {
         if (await yieldForInteraction(session, error)) continue;
         if (error instanceof DangerInterrupt) {
           try {
-            await escapeDanger({ session, check, phase, navigate }, home);
+            await answerDanger(professional, home);
           } catch (error) {
             if (ghost() && session.phase === 'ready') await revive();
             else throw error;
@@ -476,6 +433,7 @@ export async function runMiner(options: ResidentOptions) {
       }
     }
   } catch (error) {
+    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
     const reason = options.stopping?.()
       ? 'Miner stopped by shutdown signal'
       : error instanceof Error

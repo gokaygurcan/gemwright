@@ -13,6 +13,7 @@ import { serviceLocations } from './locations';
 import { distance } from './navigation';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { rememberPartner } from './resident-memory';
+import { onItem, useOn } from './target-action';
 import { sellByTrade } from './trade-deal';
 
 export function durability(item: Entity): { current: number; maximum: number } | undefined {
@@ -78,14 +79,19 @@ export async function guildRepairTurn(ctx: LifeContext): Promise<boolean> {
       ctx.check();
       if (!canPause(session)) return false;
       ctx.phase('repairing-equipment', 'Using a smith repair contract near the workshop');
-      if (session.world.target) return false;
-      ownsCursor = true;
-      session.use(contract.serial);
-      await session.waitFor(() => session.world.target !== null, 'repair contract cursor', 3000, {
-        resource: 'target'
-      });
+      const used = await useOn(
+        session,
+        () => {
+          ownsCursor = true;
+          session.use(contract.serial);
+        },
+        onItem(damaged),
+        {
+          label: 'repair contract cursor'
+        }
+      );
+      if ('why' in used) return false;
       ctx.check();
-      session.target({ serial: damaged.serial, x: 0, y: 0, z: 0, graphic: damaged.graphic });
       await session
         .waitFor(() => !session.world.entities.has(contract.serial), 'repair contract consumed', 3000)
         .catch(() => {});
@@ -135,12 +141,11 @@ export async function guildRepairTurn(ctx: LifeContext): Promise<boolean> {
       const gump = await awaitGump(session, 1044010, 'smith craft menu', 3000);
       const button = buttonFor(gump.layout, 1044260);
       if (button === undefined) return false;
-      press(session, gump, button);
-      await session.waitFor(() => session.world.target !== null, 'repair creation cursor', 3000, {
-        resource: 'target'
+      const used = await useOn(session, () => press(session, gump, button), onItem(scroll), {
+        label: 'repair creation cursor'
       });
+      if ('why' in used) return false;
       ctx.check();
-      session.target({ serial: scroll.serial, x: 0, y: 0, z: 0, graphic: scroll.graphic });
       await session.waitFor(
         () => packItems(session, pack.serial).some((e) => !before.has(e.serial) && e.graphic === 0x14f0),
         'created repair contract',

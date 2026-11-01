@@ -29,11 +29,12 @@ const inside = (x: number, y: number) =>
   blocked.some((r) => x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
 
 const byType = new Map(monsters.map((m) => [m.type.toLowerCase(), m]));
-// Creatures worth hunting: they attack on sight, have known stats and are not human-bodied (a
-// brigand looks like a player).
+// Creatures worth hunting: known stats and not human-bodied (a brigand looks like a player). Ones
+// that leave a passer-by alone count too: rats, rabbits and mongbats are where a resident with
+// nothing starts, and a ground of only those is the first rung (skirmish.ts scrapTurn).
 const huntable = (type: string) => {
   const m = byType.get(type);
-  return !!m?.aggressive && !!m.hits && !m.bodies.some((b) => b === 0x190 || b === 0x191) && m.fame < 15000;
+  return !!m?.hits && !m.bodies.some((b) => b === 0x190 || b === 0x191) && m.fame < 15000;
 };
 
 const cells = new Map<string, { xs: number[]; ys: number[]; kinds: Map<string, number> }>();

@@ -15,6 +15,7 @@ import { allServiceLocations, pickLocation } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import { sellingTurn } from './selling';
+import { onItem, onTile, useOn } from './target-action';
 import { buyFrom, buyTool } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
@@ -59,7 +60,6 @@ const cooking: CraftSkill = {
   skill: 'Cooking',
   vendor: 'cook',
   tools: new Set([0x1043, 0x103e]),
-  toolPrice: 5,
   material: rawSteak,
   recipes: [
     { group: 1044498, label: 1022427, min: 0, amount: 1 } // fish steak
@@ -72,18 +72,14 @@ async function carve(ctx: ProfessionContext) {
   const { session } = ctx;
   let blade = ctx.carried().find((i) => blades.has(i.graphic));
   if (!blade) {
-    await buyFrom({ ...ctx, limits: TOOLS }, 'blacksmith', new Map([[0x0f52, 1]]), 25);
+    await buyFrom({ ...ctx, limits: TOOLS }, 'blacksmith', new Map([[0x0f52, 1]]));
     blade = ctx.carried().find((i) => blades.has(i.graphic));
     if (!blade) return;
   }
   for (const pile of ctx.carried().filter((i) => fish.has(i.graphic) && i.graphic !== rawSteak)) {
     ctx.check();
-    session.use(blade.serial);
-    await session
-      .waitFor(() => session.world.target !== null, 'carving cursor', 3000, { resource: 'target' })
-      .catch(() => {});
-    if (!session.world.target) break;
-    session.target({ serial: pile.serial, x: 0, y: 0, z: 0, graphic: pile.graphic });
+    if ('why' in (await useOn(session, () => session.use(blade.serial), onItem(pile), { label: 'carving cursor' })))
+      break;
     await Bun.sleep(900);
   }
 }
@@ -127,7 +123,7 @@ export const fishingTurn =
       session.world.childrenOf(ctx.serial).find((i) => poles.has(i.graphic));
     if (!pole) {
       phase('fishing-gear', 'Buying a fishing pole from a fisherman');
-      await buyTool({ ...ctx, limits: TOOLS }, 'fisherman', [0x0dc0, 0x0dbf], 20);
+      await buyTool({ ...ctx, limits: TOOLS }, 'fisherman', [0x0dc0, 0x0dbf]);
       pole = ctx.carried().find((i) => poles.has(i.graphic));
       if (!pole) throw new Blocked('missing-tool', 'No fisherman sold a fishing pole');
     }
@@ -162,9 +158,14 @@ export const fishingTurn =
       if (ctx.status().weight > ctx.status().maxWeight * 0.6 && fishCount()) await carve(ctx);
       if (packFull(session, ctx.backpack(), 0.85)) break;
       const seen = new Set(session.world.journal);
-      session.use(pole.serial);
-      await session.waitFor(() => session.world.target !== null, 'fishing cursor', 4000, { resource: 'target' });
-      session.target({ serial: 0, ...spot.water });
+      const cast = await useOn(session, () => session.use(pole.serial), onTile(spot.water, spot.water.graphic), {
+        label: 'fishing cursor',
+        ms: 4000
+      });
+      if ('why' in cast) {
+        log(`The pole did not cast (${cast.why}${'heard' in cast && cast.heard ? `: ${cast.heard}` : ''})`);
+        break;
+      }
       // The harvest takes a few seconds (cast, wait, reel in) before its reply.
       await Bun.sleep(8000 + Math.random() * 1500);
       const replies = session.world.journal.filter((e) => !seen.has(e)).map((e) => e.cliloc);

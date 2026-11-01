@@ -1,15 +1,16 @@
 import { ingot } from '@gemwright/common/game/items';
 import { Actions } from '@gemwright/network/replies';
-import type { PlayerSession } from '@gemwright/network/session';
 
 import { fundsStale, spendableGold } from './bank-gold';
 import { craftRecipes } from './craft-training';
 import { serviceLocations } from './locations';
+import { vendorMenu } from './lumber-shop';
 import { createSmithing } from './miner-crafting';
 import type { createMinerServices } from './miner-services';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
 import type { createServiceExperience } from './service-experience';
+import { sellChosen, sellOffers } from './vendor-shop';
 
 // Everything a smith makes from iron (catalogs/crafts/blacksmith.json; a label is 1020000 + graphic).
 export const smithed = new Set(craftRecipes('Blacksmith').map((recipe) => recipe.label - 1020000));
@@ -18,7 +19,7 @@ export function createIngotSeller(
   ctx: Parameters<typeof createMinerServices>[0],
   learning: ReturnType<typeof createServiceExperience>
 ) {
-  const { session, checkpoint, city, shops, navigate, position, check, status, phase, log, carried, progress } = ctx;
+  const { session, checkpoint, city, shops, navigate, position, check, phase, log, carried, progress } = ctx;
   const smithing = createSmithing(ctx);
   // A miner turns surplus into working funds: sell iron ingots to a smith when the bank already
   // holds a reserve or the character is short of gold for tools and a horse.
@@ -58,13 +59,7 @@ export function createIngotSeller(
         if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
         if (mobile.serial === session.world.serial || learning.blocked(mobile, Actions.sell, [ingot])) continue;
         check();
-        let entry: Awaited<ReturnType<PlayerSession['context']>>[number] | undefined;
-        try {
-          entry = (await session.context(mobile.serial)).find((e) => e.cliloc === Actions.sell && !(e.flags & 1));
-        } catch (error) {
-          if (session.phase !== 'ready') throw error;
-        }
-        if (!entry) continue;
+        if (!(await vendorMenu(session, mobile, Actions.sell))) continue;
         try {
           await approachVendor(ctx, mobile.serial);
         } catch {
@@ -72,16 +67,10 @@ export function createIngotSeller(
           learning.record(mobile, Actions.sell, 'unreachable', [ingot]);
           continue;
         }
-        session.world.sellOffers.delete(mobile.serial);
-        session.selectContext(mobile.serial, entry.index);
-        try {
-          await session.waitFor(() => session.world.sellOffers.has(mobile.serial), 'smith buying list', 2500);
-        } catch {
-          check();
-          continue;
-        }
+        const opened = await sellOffers(session, mobile.serial, Actions.sell);
+        if ('why' in opened) continue;
         // Whole stacks only: a partial sale leaves the serial behind and cannot be confirmed.
-        const sale = (session.world.sellOffers.get(mobile.serial) ?? []).filter((offer) => {
+        const sale = opened.offers.filter((offer) => {
           const item = session.world.entities.get(offer.serial);
           return (
             item?.parent === backpack &&
@@ -94,18 +83,14 @@ export function createIngotSeller(
           learning.record(mobile, Actions.sell, 'no-service', [ingot]);
           continue;
         }
-        const before = status().gold;
-        await session.sell(
-          mobile.serial,
-          sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
-        );
-        await session.refreshStatus();
-        learning.record(mobile, Actions.sell, 'success', [ingot]);
+        const { earned } = await sellChosen(session, mobile.serial, sale);
+        learning.record(mobile, Actions.sell, earned ? 'success' : 'no-service', [ingot]);
+        if (!earned) continue;
         progress.sold += sale.reduce((sum, offer) => sum + offer.amount, 0);
         const items = sale.filter((offer) => crafted.has(offer.serial)).length;
         phase(
           'sold',
-          `Sold ${items} crafted items and ${sale.reduce((sum, o) => sum + (crafted.has(o.serial) ? 0 : o.amount), 0)} ingots for ${status().gold - before} gold`
+          `Sold ${items} crafted items and ${sale.reduce((sum, o) => sum + (crafted.has(o.serial) ? 0 : o.amount), 0)} ingots for ${earned} gold`
         );
         return;
       }

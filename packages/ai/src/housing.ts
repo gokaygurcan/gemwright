@@ -1,16 +1,18 @@
 import { Layer } from '@gemwright/network/layers';
-import { Opcode } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 
 import { tally } from './activity';
 import { chargedPurchase, fundsStale, refreshFunds } from './bank-gold';
-import { atVendor, type CraftContext } from './craft-training';
+import type { CraftContext } from './craft-training';
+import { moongates, nearestGate } from './gates';
 import { awaitGump, awaitMessage, dismiss, heardSince, mark, press } from './gump-flow';
 import { claimLot, dropClaim, type HouseRecord, houseOf, housingOpen, refuseLot, updateHouse } from './house-lots';
 import type { LifeContext } from './life';
 import { pickLocation } from './locations';
-import { moongates, nearestGate, travelByMoongate } from './moongate';
+import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
+import { buyOffers } from './vendor-shop';
+import { atVendor } from './vendor-visit';
 import { world } from './world';
 
 // Buying a house, as a player does: a House Placement Tool from an architect (627 gold), the
@@ -85,22 +87,14 @@ export async function travelTo(ctx: LifeContext, point: { x: number; y: number }
   await ctx.navigate(point, within);
 }
 
-// One vendor item bought by graphic from a shop of `service`, at most `price` gold.
-export async function buyOne(ctx: LifeContext, service: 'architect' | 'provisioner', graphic: number, price: number) {
+// One vendor item bought by graphic from a shop of `service`, at whatever it asks.
+export async function buyOne(ctx: LifeContext, service: 'architect' | 'provisioner', graphic: number) {
   const trade = craftContext(ctx);
   const { session } = ctx;
   return atVendor(trade, service, Actions.buy, async (vendor) => {
-    const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-    session.world.buyOffers.clear();
-    const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.buy);
-    if (!entry) return false;
-    session.selectContext(vendor, entry.index);
-    await session
-      .waitFor(() => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before, 'vendor stock', 2500)
-      .catch(() => {});
-    const offer = [...session.world.buyOffers.values()]
-      .flat()
-      .find((o) => session.world.entities.get(o.serial)?.graphic === graphic && o.price <= price);
+    const stock = await buyOffers(session, vendor, Actions.buy);
+    if ('why' in stock) return false;
+    const offer = stock.offers.find((o) => session.world.entities.get(o.serial)?.graphic === graphic);
     if (!offer) return false;
     await chargedPurchase(trade, offer.price, () =>
       session.purchaseItem(vendor, offer.serial, trade.backpack(), 1, offer.price)
@@ -140,7 +134,7 @@ export async function buyHouse(ctx: LifeContext): Promise<Purchase> {
   if (!lot) return 'no-lot';
   ctx.phase('housing', `Buying a ${house.name} on lot ${lot.lot}`);
   const tool = () => session.world.childrenOf(backpackOf(ctx)).find((i) => i.graphic === TOOL);
-  if (!tool() && !(await buyOne(ctx, 'architect', TOOL, TOOL_PRICE + 100).catch(() => false))) {
+  if (!tool() && !(await buyOne(ctx, 'architect', TOOL).catch(() => false))) {
     ctx.log('Could not buy a house placement tool');
     return 'failed';
   }

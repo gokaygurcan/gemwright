@@ -28,19 +28,6 @@ function cached<T>(key: string, read: (database: Database) => T): T | undefined 
 
 const WEEK = 7 * 24 * 3_600_000;
 
-// The median unit price players named for a good this week, from at least five market lines.
-export function playerUnitPrice(good: string): number | undefined {
-  return cached(`price:${good}`, (database) => {
-    const rows = database
-      .query<{ unit: number }, [string, number]>(
-        `SELECT CAST(price AS REAL) / amount AS unit FROM player_signals
-         WHERE kind = 'market' AND good = ? AND price > 0 AND amount > 0 AND at > ? ORDER BY unit`
-      )
-      .all(good, Date.now() - WEEK);
-    return rows.length >= 5 ? rows[Math.floor(rows.length / 2)]?.unit : undefined;
-  });
-}
-
 // How often players asked to buy each good this week (three asks or more count).
 export function playerDemand(): Map<string, number> {
   return (

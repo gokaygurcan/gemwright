@@ -33,6 +33,7 @@ Options:
   --name <name>         Shard name (default: Gemwright)
   --timezone <timezone> IANA timezone (default: local zone or Europe/London)
   --expansion <code>    Expansion (default: ej)
+  --client-version <v>  Classic client version players use, e.g. 7.0.45.1 (required with --yes)
   --emulator <name>     Server emulator: servuo, sphere, sphere-x, runuo or modernuo (default: servuo)
   --git                 Initialize Git if outside a repository
   --yes                 Accept defaults for unanswered questions
@@ -79,6 +80,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       name: { type: 'string' },
       timezone: { type: 'string' },
       expansion: { type: 'string' },
+      'client-version': { type: 'string' },
       emulator: { type: 'string' },
       git: { type: 'boolean' },
       yes: { type: 'boolean' },

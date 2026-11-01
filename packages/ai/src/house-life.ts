@@ -6,6 +6,7 @@ import { backpackOf, buyHouse, buyOne, houseGoal, ownerOf, ownsHouse, type Purch
 import { quality } from './item-quality';
 import type { LifeContext } from './life';
 import { distance } from './navigation';
+import { useOn } from './target-action';
 
 // A resident with a house lives with it: it goes to buy one once its savings reach the goal
 // (housing.ts), visits it about once a day (opening its door refreshes ServUO's decay timer for
@@ -78,7 +79,7 @@ async function visitHouse(ctx: LifeContext, house: HouseRecord, stay: number) {
   ctx.phase('home', `Going home to my ${house.house ?? 'house'}`);
   // A box for the house, bought on the way while there is none yet.
   const box = () => session.world.childrenOf(backpackOf(ctx)).find((i) => i.graphic === BOX);
-  if (!house.storage && !box()) await buyOne(ctx, 'provisioner', BOX, 30).catch(() => false);
+  if (!house.storage && !box()) await buyOne(ctx, 'provisioner', BOX).catch(() => false);
   await travelTo(ctx, { x: house.x, y: house.y + 6 }, 1);
   const door = [...session.world.entities.values()].find(
     (i) => i.kind === 'item' && i.position && i.position.x === house.x && i.position.y === house.y + 3
@@ -111,12 +112,9 @@ async function furnish(ctx: LifeContext, house: HouseRecord, carriedBox?: number
   if (storage && !session.world.entities.has(storage)) storage = undefined;
   if (!storage && carriedBox) {
     await session.dropAtFeet(carriedBox).catch(() => {});
-    session.say('i wish to secure this');
-    await session
-      .waitFor(() => session.world.target !== null, 'secure cursor', 4000, { resource: 'target' })
-      .catch(() => {});
-    if (session.world.target) {
-      session.target({ serial: carriedBox, ...ctx.position(), graphic: BOX });
+    const box = { serial: carriedBox, ...ctx.position(), graphic: BOX };
+    const secure = () => session.say('i wish to secure this');
+    if (!('why' in (await useOn(session, secure, box, { label: 'secure cursor', ms: 4000 })))) {
       await Bun.sleep(1500);
       updateHouse(house.owner, { storage: carriedBox });
       storage = carriedBox;

@@ -6,6 +6,7 @@ import type { Entity } from '@gemwright/network/world';
 import { canPause } from './action-purpose';
 import { tally } from './activity';
 import { actionScope, checkAction } from './execution-session';
+import { onItem, useOn } from './target-action';
 import { endTrade, expectTrade } from './trade-guard';
 
 // One agreed deal carried out in the secure trade window (@gemwright/network/trade), from either side.
@@ -215,12 +216,12 @@ export const sellPetByTrade = (session: PlayerSession, backpack: number, buyer: 
     const coins = amountIn(session, backpack, isGold);
     const entry = (await session.context(pet).catch(() => [])).find((e) => e.cliloc === TRANSFER && !(e.flags & 1));
     if (!entry) return fail(session, 'pet cannot be transferred');
-    session.selectContext(pet, entry.index);
-    await session
-      .waitFor(() => session.world.target !== null, 'transfer cursor', 4000, { resource: 'target' })
-      .catch(() => {});
-    if (!session.world.target) return fail(session, 'no transfer cursor');
-    session.target({ serial: buyer, x: 0, y: 0, z: 0, graphic: session.world.entities.get(buyer)?.graphic ?? 0 });
+    const toBuyer = onItem({ serial: buyer, graphic: session.world.entities.get(buyer)?.graphic ?? 0 });
+    const handed = await useOn(session, () => session.selectContext(pet, entry.index), toBuyer, {
+      label: 'transfer cursor',
+      ms: 4000
+    });
+    if ('why' in handed) return fail(session, `no transfer cursor (${handed.why})`);
     await session.waitFor(() => opened(session, buyer), 'trade window', 8000).catch(() => {});
     const trade = session.world.trade;
     if (!trade || !opened(session, buyer)) return fail(session, 'window did not open');

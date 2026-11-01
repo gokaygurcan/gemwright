@@ -3,6 +3,7 @@ import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 
 import { type FighterContext, weaponsFor } from './fighter-context';
+import { answerCursor, onItem, useOn } from './target-action';
 
 const APPLIED = 1010517; // You apply the poison
 const FAILED = [1010516, 1010518, 502148];
@@ -27,19 +28,19 @@ export async function poisonWeapon(ctx: FighterContext) {
   const seen = new Set(session.world.journal);
   const reply = () =>
     session.world.journal.find((e) => !seen.has(e) && [APPLIED, ...FAILED, ...REFUSED].includes(e.cliloc ?? 0))?.cliloc;
-  try {
-    session.useSkill(skillId('Poisoning'));
-    await session.waitFor(() => session.world.target !== null, 'poison cursor', 3000, { resource: 'target' });
-    session.target({ serial: potion.serial, x: 0, y: 0, z: 0, graphic: potion.graphic });
-    await session.waitFor(() => session.world.target !== null || reply() !== undefined, 'blade cursor', 3000, {
-      resource: 'target'
+  const refusals = [...FAILED, ...REFUSED];
+  // The skill's cursor takes the potion; the shard then asks for the blade with a cursor of its own.
+  const onPotion = await useOn(session, () => session.useSkill(skillId('Poisoning')), onItem(potion), {
+    label: 'poison cursor',
+    refusals
+  });
+  if ('why' in onPotion) return ctx.log(`Poisoning did not start (${onPotion.why} ${onPotion.cliloc ?? ''})`);
+  const onBlade = await answerCursor(session, onItem(weapon), { label: 'blade cursor', refusals });
+  if ('why' in onBlade) return ctx.log(`Poisoning stopped before the blade (${onBlade.why} ${onBlade.cliloc ?? ''})`);
+  await session
+    .waitFor(() => reply() !== undefined, 'poisoning result', 5000)
+    .catch((error) => {
+      if (session.phase !== 'ready') throw error;
     });
-    if (!session.world.target) return;
-    session.target({ serial: weapon.serial, x: 0, y: 0, z: 0, graphic: weapon.graphic });
-    await session.waitFor(() => reply() !== undefined, 'poisoning result', 5000);
-  } catch {
-    if (session.world.target) session.target(null);
-    return;
-  }
   ctx.log(reply() === APPLIED ? 'Poisoned the blade' : `Poisoning the blade failed (${reply()})`);
 }

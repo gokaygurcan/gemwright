@@ -7,8 +7,6 @@ import { DangerInterrupt } from './action-purpose';
 import { openOwnBackpack } from './backpack';
 import { Blocked } from './blocked';
 import { threatsNear, unsafeCheck } from './danger';
-import { escapeDanger } from './danger-response';
-import { replaceDeathRobe } from './death-robe';
 import { actionScope, checkAction, yieldForInteraction } from './execution-session';
 import { residentTurn } from './goal-turn';
 import { leavesEarly, packFull, packItems, packSummary } from './inventory';
@@ -17,10 +15,9 @@ import { pickLocation, townAt } from './locations';
 import { logger } from './log';
 import { watchStep } from './loop-watch';
 import { chopTree } from './lumber-chop';
-import { sellBoards, storeAtBank } from './lumber-sell';
-import { buyHatchetFrom, hatchets } from './lumber-shop';
+import { hatchets } from './lumber-shop';
+import { createLumberTown } from './lumber-town';
 import { treeStatics } from './lumber-trees';
-import { sellAtMarket } from './market';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
 import { createPackAnimal } from './pack-animal';
@@ -30,11 +27,14 @@ import type { ResidentOptions } from './resident-options';
 import { isGhost } from './resurrection';
 import { runnerCheck } from './runner-check';
 import { sellingTurn } from './selling';
+import { SessionBreak } from './session-habits';
 import { isSetback, passSetback } from './setback';
 import { asProfession } from './shared-turn';
 import { trainSupportingSkill } from './skill-training';
+import { answerDanger } from './skirmish';
 import { learnedPlaceCost } from './strategy-learning';
 import { Terrain } from './terrain';
+import { TownChanged, townFor } from './towns';
 import { reachRegion, workArea } from './work-areas';
 
 const log = logPile;
@@ -48,7 +48,13 @@ const noToolUntil = new WeakMap<import('@gemwright/network/session').PlayerSessi
 export async function runLumberjack(options: ResidentOptions) {
   const { session, template } = options;
   // Each lumberjack works its own woods (work-areas.json) and sells in that city.
-  const woods = workArea('woods', options.label ?? template.id, template.creation.city);
+  const woods = workArea(
+    'woods',
+    options.label ?? template.id,
+    townFor(session, options.checkpoint, 'lumberjack'),
+    undefined,
+    session.world.position ?? undefined
+  );
   const city = woods.city.toLowerCase();
   const serial = session.world.serial;
   if (serial === null || session.world.map !== 1) throw new Error('The lumberjack supports Trammel Britain');
@@ -175,91 +181,27 @@ export async function runLumberjack(options: ResidentOptions) {
     );
 
   // Uses the hatchet on carried logs: the whole stack becomes boards (Log.Axe, no skill required).
-  const cutBoards = async () => {
-    const pile = carried().find((item) => item.graphic === log && !item.hue);
-    const axe = tool();
-    if (!pile || !axe) return;
-    phase('cutting-boards', `Cutting ${pile.amount ?? 1} logs into boards`);
-    const before = count(board);
-    session.use(axe.serial);
-    await session.waitFor(() => session.world.target !== null, 'hatchet cursor', 4000, { resource: 'target' });
-    session.target({ serial: pile.serial, x: 0, y: 0, z: 0, graphic: pile.graphic });
-    await session.waitFor(() => count(board) > before || !session.world.entities.has(pile.serial), 'boards', 5000);
-    progress.boards += count(board) - before;
-  };
-
-  // Town trip: sell boards to the carpenter, bank the gold, replace a broken hatchet.
-  const town = async () => {
-    await cutBoards();
-    await replaceDeathRobe({
-      ...{ session, serial, terrain, position, navigate, check, phase, log: say, checkpoint, status, city },
-      carried: (pack: number) => session.world.childrenOf(pack),
-      backpack: backpackSerial
-    });
-    // Occasionally craft furniture before selling the boards.
-    if (checkpoint.workGoal?.active?.kind === 'learn' && count(board) >= 50 && Math.random() < 0.25)
-      await practise('Carpentry');
-    // Boards go to fellow residents at the bank first (market.ts); the carpenter takes the rest.
-    const market = { session, template, checkpoint, city, position, navigate, phase, backpack: backpackSerial };
-    await sellAtMarket(
-      { ...market, decisions: options.decisions },
-      'boards',
-      count(board),
-      count(board) >= 100 ? 8 : 4
-    );
-    const carpenter = pickLocation(city, 'carpenter');
-    // Pack animal boards sell a load at a time.
-    const room = () => status().maxWeight - 20 - status().weight;
-    for (let load = 0; load < 20; load++) {
-      if (carpenter && count(board) > 0) {
-        phase('selling', `Taking ${count(board)} boards to the carpenter`);
-        await navigate(carpenter, 4);
-        const sold = await sellBoards({
-          session,
-          terrain,
-          position,
-          navigate,
-          check,
-          serial,
-          status,
-          backpack: backpackSerial
-        });
-        if (sold) {
-          progress.sold += sold.amount;
-          progress.earned += sold.earned;
-          phase('sold', `Sold boards for ${sold.earned} gold`);
-        }
-      }
-      if (!(await packs?.unload(woodSet, 1, room))) break;
-    }
-    const bank = pickLocation(city, 'banker');
-    // Boards no carpenter bought would keep the pack at its limit; a player stores them in the bank.
-    if (bank && (status().gold > 0 || heavy())) {
-      phase('bank-travel', heavy() ? 'Storing unsold wood and banking the earnings' : 'Banking the earnings');
-      await navigate(bank, 4);
-      await storeAtBank(
-        { session, serial, position, terrain, navigate, check, checkpoint, carried },
-        heavy() ? [board, log] : []
-      );
-    }
-    if (!tool()) await buyHatchet();
-    await packs?.acquire();
-    progress.trips++;
-  };
-
-  const buyHatchet = () =>
-    buyHatchetFrom({
-      session,
-      terrain,
-      position,
-      navigate,
-      check,
-      serial,
-      phase,
-      checkpoint,
-      city,
-      backpack: backpackSerial
-    });
+  const { cutBoards, town, buyHatchet } = createLumberTown({
+    session,
+    serial,
+    terrain,
+    city,
+    checkpoint,
+    progress,
+    position,
+    status,
+    navigate,
+    check,
+    phase,
+    say,
+    carried,
+    count,
+    tool,
+    heavy,
+    practise,
+    backpackSerial,
+    packs: () => packs
+  });
 
   const professional = asProfession({
     session,
@@ -311,7 +253,7 @@ export async function runLumberjack(options: ResidentOptions) {
       // No way to the woods yet (Blocked): the work loop and its setbacks deal with it.
       if (error instanceof Blocked) say(`Could not reach the woods yet: ${error.message}`);
       else if (!(error instanceof DangerInterrupt)) throw error;
-      else await escapeDanger({ session, check, phase, navigate }, pickLocation(townAt(position(), city), 'banker'));
+      else await answerDanger(professional, pickLocation(townAt(position(), city), 'banker'));
     }
     // Each lumberjack favours its own stand of trees in its woods.
     const offset = template.behavior.temperament?.miningAnchor;
@@ -395,7 +337,7 @@ export async function runLumberjack(options: ResidentOptions) {
           // Never work, or practise, within reach of monsters (danger.ts): leave for town instead.
           if (distance(position(), anchor) < 80 && threatsNear(session, position(), 8).length) {
             phase('avoiding', 'Monsters about; leaving the woods for town');
-            await escapeDanger({ session, check, phase, navigate }, pickLocation(townAt(position(), city), 'banker'));
+            await answerDanger(professional, pickLocation(townAt(position(), city), 'banker'));
             return;
           }
           const risky = unsafeCheck(session);
@@ -466,7 +408,7 @@ export async function runLumberjack(options: ResidentOptions) {
       } catch (error) {
         if (await yieldForInteraction(session, error)) continue;
         if (error instanceof DangerInterrupt) {
-          await escapeDanger({ session, check, phase, navigate }, pickLocation(townAt(position(), city), 'banker'));
+          await answerDanger(professional, pickLocation(townAt(position(), city), 'banker'));
           continue;
         }
         if (!isSetback(session, error, !!options.stopping?.(), deadline)) throw error;
@@ -474,6 +416,7 @@ export async function runLumberjack(options: ResidentOptions) {
       }
     }
   } catch (error) {
+    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
     stopped = options.stopping?.()
       ? 'Lumberjack stopped by shutdown signal'
       : error instanceof Error

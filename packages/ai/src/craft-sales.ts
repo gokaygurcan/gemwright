@@ -1,16 +1,15 @@
 import { Actions } from '@gemwright/network/replies';
 
-import { atVendor, type CraftContext, type CraftSkill } from './craft-training';
+import type { CraftContext, CraftSkill } from './craft-training';
+import { sellChosen, sellOffers } from './vendor-shop';
+import { atVendor } from './vendor-visit';
 import { reservedFor } from './work-orders';
 
 export async function sellCrafted(ctx: CraftContext, craft: CraftSkill, made: Set<number>, backpack: number) {
   const { session } = ctx;
   await atVendor(ctx, craft.vendor, Actions.sell, async (vendor) => {
-    const entry = (await session.context(vendor)).find((e) => e.cliloc === Actions.sell);
-    if (!entry) return false;
-    session.world.sellOffers.delete(vendor);
-    session.selectContext(vendor, entry.index);
-    await session.waitFor(() => session.world.sellOffers.has(vendor), 'craft buying list', 2500).catch(() => {});
+    const opened = await sellOffers(session, vendor, Actions.sell);
+    if ('why' in opened) return false;
     // Up to 20 of each held graphic stay in the pack (already held ones count); the rest are sold.
     const kept = new Map<number, number>();
     const held = (serial: number) => {
@@ -24,7 +23,7 @@ export async function sellCrafted(ctx: CraftContext, craft: CraftSkill, made: Se
       made.delete(serial);
       return true;
     };
-    const sale = (session.world.sellOffers.get(vendor) ?? []).filter(
+    const sale = opened.offers.filter(
       (offer) =>
         made.has(offer.serial) &&
         offer.price > 0 &&
@@ -35,10 +34,8 @@ export async function sellCrafted(ctx: CraftContext, craft: CraftSkill, made: Se
         ) === 0
     );
     if (!sale.length) return false;
-    await session.sell(
-      vendor,
-      sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
-    );
+    // Only a sale the gold confirms leaves the list; one that brought nothing is offered again.
+    if (!(await sellChosen(session, vendor, sale)).earned) return false;
     for (const offer of sale) made.delete(offer.serial);
     return true;
   });

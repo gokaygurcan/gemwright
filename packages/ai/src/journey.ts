@@ -3,7 +3,8 @@ import type { Position } from '@gemwright/network/world';
 
 import { areaHere, areaOfPlace, gateArea, locate } from './areas';
 import { Blocked } from './blocked';
-import { type Gate, moongates, nearestGate, travelByMoongate } from './moongate';
+import { type Gate, moongates, nearestGate } from './gates';
+import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import { recallFor } from './recall';
 import type { Terrain } from './terrain';

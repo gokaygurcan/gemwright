@@ -1,6 +1,6 @@
 import { fishingPoles, hatchets, instruments, miningTools, sewingKit } from '@gemwright/common/game/items';
 
-import { offersBank, openBankBox } from './bank-gold';
+import { deposit, openBank, withdraw } from './bank-box';
 import { weaponsFor } from './fighter-context';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
@@ -29,16 +29,11 @@ const toolsOf = (ctx: Pick<ProfessionContext, 'template'>) => {
 };
 
 async function bankBox(ctx: ProfessionContext) {
-  const { session } = ctx;
   const town = townAt(ctx.position(), ctx.city);
   const bank = pickLocation(town, 'banker', ctx.position());
   if (!bank) return undefined;
   if (distance(ctx.position(), bank) > 8) await ctx.navigate(bank, 3).catch(() => {});
-  for (const mobile of session.world.entities.values()) {
-    if (mobile.kind !== 'mobile' || !mobile.position || distance(ctx.position(), mobile.position) > 11) continue;
-    if (await offersBank(session, mobile.serial)) return openBankBox(ctx, mobile.serial).catch(() => undefined);
-  }
-  return undefined;
+  return openBank(ctx);
 }
 
 // True when it spent the turn on its insurance (a deposit, or fetching the spare).
@@ -52,13 +47,17 @@ export async function insuranceTurn(ctx: ProfessionContext): Promise<boolean> {
   if (!carried.length && insured) {
     ctx.phase('insurance', 'Fetching the spare tool I keep in the bank');
     const box = await bankBox(ctx);
-    const spare = box === undefined ? undefined : session.world.childrenOf(box).find((i) => i.serial === insured.tool);
+    const spare = box && session.world.childrenOf(box.box).find((i) => i.serial === insured.tool);
     if (!spare) {
-      if (box !== undefined) delete checkpoint.insurance;
+      if (box) delete checkpoint.insurance;
       ctx.persist();
-      return box !== undefined;
+      return !!box;
     }
-    await session.moveItem(spare.serial, ctx.backpack()).catch(() => {});
+    const taken = await withdraw(ctx, [spare], ctx.backpack());
+    if (!taken.moved.length) {
+      ctx.log(`The bank would not hand back my spare tool: ${taken.refused[0]?.reason}`);
+      return true;
+    }
     delete checkpoint.insurance;
     ctx.persist();
     ctx.log('Took my spare tool out of the bank');
@@ -71,10 +70,9 @@ export async function insuranceTurn(ctx: ProfessionContext): Promise<boolean> {
   const bank = pickLocation(town, 'banker', ctx.position());
   if (!bank || distance(ctx.position(), bank) > 12) return false;
   const box = await bankBox(ctx);
-  if (box === undefined) return false;
+  if (!box) return false;
   const tool = spare.at(-1) ?? spare[0];
-  await session.moveItem(tool.serial, box).catch(() => {});
-  if (session.world.entities.get(tool.serial)?.parent !== box) return false;
+  if (!(await deposit(ctx, box, [tool])).moved.length) return false;
   checkpoint.insurance = { tool: tool.serial, graphic: tool.graphic };
   ctx.persist();
   ctx.log('Put a spare tool in the bank, in case I die');

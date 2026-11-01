@@ -9,8 +9,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -21,8 +22,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 12,
-    "WaterElemental": 6
+    "SeaSerpent": 10,
+    "WaterElemental": 5,
+    "Dolphin": 5
    }
   },
   {
@@ -54,8 +56,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -87,8 +90,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -99,8 +103,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -132,8 +137,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -165,8 +171,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -177,8 +184,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -189,8 +197,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -201,8 +210,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -234,8 +244,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 210,1447",
+   "center": {
+    "x": 210,
+    "y": 1447
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -323,6 +362,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 398,1305",
+   "center": {
+    "x": 398,
+    "y": 1305
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "corpser and dire wolf spawn near 418,1665",
    "center": {
     "x": 418,
@@ -367,6 +434,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 464,2059",
+   "center": {
+    "x": 464,
+    "y": 2059
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "air elemental and ettin spawn near 480,1641",
    "center": {
     "x": 480,
@@ -396,8 +491,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 485,1398",
+   "center": {
+    "x": 485,
+    "y": 1398
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -408,8 +532,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -420,8 +545,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -432,8 +558,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -444,8 +571,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -500,8 +628,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 559,2081",
+   "center": {
+    "x": 559,
+    "y": 2081
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -522,7 +679,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -533,8 +691,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -545,8 +704,51 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "wisp spawn near 608,1702",
+   "center": {
+    "x": 608,
+    "y": 1702
+   },
+   "radius": 40,
+   "creatures": {
+    "Wisp": 8
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 620,1327",
+   "center": {
+    "x": 620,
+    "y": 1327
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1,
+    "AirElemental": 1,
+    "Gargoyle": 1,
+    "Gazer": 1
    }
   },
   {
@@ -595,7 +797,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -616,7 +819,36 @@
     "Lizardman": 1,
     "Orc": 1,
     "Ratman": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 689,753",
+   "center": {
+    "x": 689,
+    "y": 753
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -628,6 +860,62 @@
    "radius": 40,
    "creatures": {
     "Skeleton": 10
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 725,1483",
+   "center": {
+    "x": 725,
+    "y": 1483
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 727,1394",
+   "center": {
+    "x": 727,
+    "y": 1394
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -648,7 +936,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -659,8 +948,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -681,18 +971,69 @@
     "Lizardman": 1,
     "Orc": 1,
     "Ratman": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
-   "name": "dire wolf spawn near 747,765",
+   "name": "timber wolf and grey wolf spawn near 747,765",
    "center": {
     "x": 747,
     "y": 765
    },
    "radius": 40,
    "creatures": {
-    "DireWolf": 260
+    "TimberWolf": 11,
+    "GreyWolf": 11,
+    "DireWolf": 11,
+    "Cow": 11,
+    "Bull": 11,
+    "GreatHart": 11,
+    "Llama": 11,
+    "Sheep": 11,
+    "Hind": 11,
+    "Boar": 11,
+    "Pig": 11,
+    "Goat": 11,
+    "MountainGoat": 11,
+    "Chicken": 11,
+    "BlackBear": 11,
+    "BrownBear": 11,
+    "GrizzlyBear": 11,
+    "Bird": 11,
+    "Panther": 11,
+    "RidableLlama": 11,
+    "Horse": 11,
+    "Eagle": 11,
+    "Cougar": 11
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 748,669",
+   "center": {
+    "x": 748,
+    "y": 669
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -713,7 +1054,8 @@
     "Lizardman": 1,
     "Orc": 1,
     "Ratman": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -725,6 +1067,90 @@
    "radius": 40,
    "creatures": {
     "Lich": 8
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 764,822",
+   "center": {
+    "x": 764,
+    "y": 822
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 771,1013",
+   "center": {
+    "x": 771,
+    "y": 1013
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 782,1156",
+   "center": {
+    "x": 782,
+    "y": 1156
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -745,7 +1171,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -760,6 +1187,34 @@
     "Harpy": 2,
     "Ogre": 2,
     "Troll": 2
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 802,1280",
+   "center": {
+    "x": 802,
+    "y": 1280
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -778,6 +1233,62 @@
     "Orc": 1,
     "Ratman": 1,
     "Reaper": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 805,576",
+   "center": {
+    "x": 805,
+    "y": 576
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 805,1570",
+   "center": {
+    "x": 805,
+    "y": 1570
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -825,7 +1336,8 @@
     "Lizardman": 1,
     "Orc": 1,
     "Ratman": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -846,7 +1358,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -857,8 +1370,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 834,751",
+   "center": {
+    "x": 834,
+    "y": 751
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -887,8 +1429,40 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 843,1067",
+   "center": {
+    "x": 843,
+    "y": 1067
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1,
+    "AirElemental": 1,
+    "Gargoyle": 1,
+    "Gazer": 1
    }
   },
   {
@@ -909,7 +1483,64 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 851,1770",
+   "center": {
+    "x": 851,
+    "y": 1770
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 855,934",
+   "center": {
+    "x": 855,
+    "y": 934
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -933,6 +1564,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 876,1639",
+   "center": {
+    "x": 876,
+    "y": 1639
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "ettin and harpy spawn near 879,1956",
    "center": {
     "x": 879,
@@ -944,6 +1603,90 @@
     "Harpy": 2,
     "Ogre": 2,
     "Troll": 2
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 883,2129",
+   "center": {
+    "x": 883,
+    "y": 2129
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 887,1223",
+   "center": {
+    "x": 887,
+    "y": 1223
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 890,657",
+   "center": {
+    "x": 890,
+    "y": 657
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -960,7 +1703,36 @@
     "Lizardman": 1,
     "Orc": 1,
     "Ratman": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 895,830",
+   "center": {
+    "x": 895,
+    "y": 830
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -981,7 +1753,8 @@
     "Lizardman": 1,
     "Orc": 1,
     "Ratman": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -992,8 +1765,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -1014,7 +1788,64 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 916,1159",
+   "center": {
+    "x": 916,
+    "y": 1159
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 919,1718",
+   "center": {
+    "x": 919,
+    "y": 1718
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1025,8 +1856,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 12,
-    "WaterElemental": 6
+    "SeaSerpent": 10,
+    "WaterElemental": 5,
+    "Dolphin": 5
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 937,743",
+   "center": {
+    "x": 937,
+    "y": 743
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 940,1028",
+   "center": {
+    "x": 940,
+    "y": 1028
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1049,6 +1937,34 @@
     "Orc": 1,
     "Ratman": 1,
     "Reaper": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 951,542",
+   "center": {
+    "x": 951,
+    "y": 542
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1088,6 +2004,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 958,2074",
+   "center": {
+    "x": 958,
+    "y": 2074
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "corpser and ettin spawn near 960,910",
    "center": {
     "x": 960,
@@ -1105,17 +2049,92 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
-   "name": "air elemental and water elemental spawn near 964,365",
+   "name": "boar and cougar spawn near 964,2214",
    "center": {
     "x": 964,
-    "y": 365
+    "y": 2214
    },
    "radius": 40,
    "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 968,2476",
+   "center": {
+    "x": 968,
+    "y": 2476
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 969,370",
+   "center": {
+    "x": 969,
+    "y": 370
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1,
     "AirElemental": 1,
     "WaterElemental": 1,
     "Corpser": 1,
@@ -1166,7 +2185,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1184,6 +2204,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 977,1638",
+   "center": {
+    "x": 977,
+    "y": 1638
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 979,3997",
    "center": {
     "x": 979,
@@ -1191,8 +2239,93 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 993,1130",
+   "center": {
+    "x": 993,
+    "y": 1130
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 994,2361",
+   "center": {
+    "x": 994,
+    "y": 2361
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 999,1839",
+   "center": {
+    "x": 999,
+    "y": 1839
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1232,21 +2365,179 @@
    }
   },
   {
-   "name": "orc and ratman spawn near 1004,1369",
+   "name": "boar and cougar spawn near 1005,2647",
    "center": {
-    "x": 1004,
-    "y": 1369
+    "x": 1005,
+    "y": 2647
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "orc and ratman spawn near 1009,1366",
+   "center": {
+    "x": 1009,
+    "y": 1366
    },
    "radius": 40,
    "creatures": {
     "Orc": 3,
     "Ratman": 3,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1,
     "Ettin": 1,
     "Gazer": 1,
     "Harpy": 1,
     "HeadlessOne": 1,
     "Ogre": 1,
     "Troll": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1011,896",
+   "center": {
+    "x": 1011,
+    "y": 896
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1011,1945",
+   "center": {
+    "x": 1011,
+    "y": 1945
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1017,1726",
+   "center": {
+    "x": 1017,
+    "y": 1726
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1018,629",
+   "center": {
+    "x": 1018,
+    "y": 629
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1265,6 +2556,34 @@
     "HeadlessOne": 1,
     "Ogre": 1,
     "Troll": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1024,1244",
+   "center": {
+    "x": 1024,
+    "y": 1244
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1322,7 +2641,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1345,6 +2665,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1047,1071",
+   "center": {
+    "x": 1047,
+    "y": 1071
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "orc and ratman spawn near 1055,1442",
    "center": {
     "x": 1055,
@@ -1360,6 +2708,34 @@
     "HeadlessOne": 1,
     "Ogre": 1,
     "Troll": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1057,765",
+   "center": {
+    "x": 1057,
+    "y": 765
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1380,7 +2756,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1417,6 +2794,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1063,541",
+   "center": {
+    "x": 1063,
+    "y": 541
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "ettin and giant spider spawn near 1067,2117",
    "center": {
     "x": 1067,
@@ -1426,9 +2831,38 @@
    "creatures": {
     "Ettin": 2,
     "GiantSpider": 2,
+    "Wisp": 2,
     "Mongbat": 2,
     "Orc": 2,
     "Troll": 2
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1070,2069",
+   "center": {
+    "x": 1070,
+    "y": 2069
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1468,7 +2902,36 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1087,2401",
+   "center": {
+    "x": 1087,
+    "y": 2401
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1481,9 +2944,38 @@
    "creatures": {
     "Ettin": 2,
     "GiantSpider": 2,
+    "Wisp": 2,
     "Mongbat": 2,
     "Orc": 2,
     "Troll": 2
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1092,1010",
+   "center": {
+    "x": 1092,
+    "y": 1010
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1516,7 +3008,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1552,7 +3045,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1577,9 +3071,41 @@
    "creatures": {
     "Ettin": 2,
     "GiantSpider": 2,
+    "Wisp": 2,
     "Mongbat": 2,
     "Orc": 2,
     "Troll": 2
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1141,821",
+   "center": {
+    "x": 1141,
+    "y": 821
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1,
+    "AirElemental": 1,
+    "Gargoyle": 1,
+    "Gazer": 1
    }
   },
   {
@@ -1600,7 +3126,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1621,7 +3148,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1644,20 +3172,21 @@
    },
    "radius": 40,
    "creatures": {
-    "ToxicElemental": 4,
-    "Alligator": 4,
-    "BogThing": 4,
-    "Bogling": 4,
-    "Corpser": 4,
-    "GiantRat": 4,
-    "GiantSerpent": 4,
-    "Lizardman": 4,
-    "StrongMongbat": 4,
-    "PlagueBeast": 4,
-    "PlagueSpawn": 4,
-    "Ratman": 4,
-    "Sewerrat": 4,
-    "Snake": 4
+    "ToxicElemental": 3,
+    "Alligator": 3,
+    "BogThing": 3,
+    "Bogling": 3,
+    "Corpser": 3,
+    "GiantRat": 3,
+    "GiantSerpent": 3,
+    "Lizardman": 3,
+    "StrongMongbat": 3,
+    "PlagueBeast": 3,
+    "PlagueSpawn": 3,
+    "Ratman": 3,
+    "Sewerrat": 3,
+    "Snake": 3,
+    "Wisp": 3
    }
   },
   {
@@ -1690,7 +3219,64 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1172,974",
+   "center": {
+    "x": 1172,
+    "y": 974
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1173,2103",
+   "center": {
+    "x": 1173,
+    "y": 2103
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1711,7 +3297,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1722,8 +3309,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -1744,7 +3332,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1765,7 +3354,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1787,9 +3377,66 @@
     "Skeleton": 1,
     "Troll": 1,
     "Zombie": 1,
+    "Wisp": 1,
     "AirElemental": 1,
     "Gargoyle": 1,
     "Gazer": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1222,2378",
+   "center": {
+    "x": 1222,
+    "y": 2378
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1222,2499",
+   "center": {
+    "x": 1222,
+    "y": 2499
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1810,7 +3457,41 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1228,1470",
+   "center": {
+    "x": 1228,
+    "y": 1470
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1,
+    "Harpy": 1,
+    "Lizardman": 1,
+    "Orc": 1,
+    "Ratman": 1,
+    "Troll": 1
    }
   },
   {
@@ -1831,7 +3512,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1844,6 +3526,7 @@
    "creatures": {
     "Ettin": 2,
     "GiantSpider": 2,
+    "Wisp": 2,
     "Mongbat": 2,
     "Orc": 2,
     "Troll": 2
@@ -1865,18 +3548,37 @@
    }
   },
   {
-   "name": "ettin and giant spider spawn near 1249,2030",
+   "name": "ettin and giant spider spawn near 1259,2024",
    "center": {
-    "x": 1249,
-    "y": 2030
+    "x": 1259,
+    "y": 2024
    },
    "radius": 40,
    "creatures": {
     "Ettin": 2,
     "GiantSpider": 2,
+    "Wisp": 2,
     "Mongbat": 2,
     "Orc": 2,
-    "Troll": 2
+    "Troll": 2,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1889,6 +3591,7 @@
    "creatures": {
     "Ettin": 2,
     "GiantSpider": 2,
+    "Wisp": 2,
     "Mongbat": 2,
     "Orc": 2,
     "Troll": 2
@@ -1912,7 +3615,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1933,7 +3637,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1954,7 +3659,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -1978,7 +3684,36 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1315,2192",
+   "center": {
+    "x": 1315,
+    "y": 2192
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -1993,6 +3728,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1334,2311",
+   "center": {
+    "x": 1334,
+    "y": 2311
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 1336,79",
    "center": {
     "x": 1336,
@@ -2000,8 +3763,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1351,1359",
+   "center": {
+    "x": 1351,
+    "y": 1359
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2022,7 +3814,8 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -2043,7 +3836,64 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1377,1911",
+   "center": {
+    "x": 1377,
+    "y": 1911
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1387,2023",
+   "center": {
+    "x": 1387,
+    "y": 2023
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2054,10 +3904,40 @@
    },
    "radius": 40,
    "creatures": {
-    "Orc": 15,
-    "GiantSpider": 15,
-    "GiantSerpent": 15,
-    "Corpser": 15
+    "Orc": 10,
+    "GiantSpider": 10,
+    "GiantSerpent": 10,
+    "Gorilla": 10,
+    "TropicalBird": 10,
+    "Corpser": 10
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1388,784",
+   "center": {
+    "x": 1388,
+    "y": 784
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2081,8 +3961,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1426,2615",
+   "center": {
+    "x": 1426,
+    "y": 2615
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2116,6 +4025,90 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1439,2104",
+   "center": {
+    "x": 1439,
+    "y": 2104
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1459,1963",
+   "center": {
+    "x": 1459,
+    "y": 1963
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1486,1301",
+   "center": {
+    "x": 1486,
+    "y": 1301
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "corpser and ettin spawn near 1491,238",
    "center": {
     "x": 1491,
@@ -2133,7 +4126,232 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1498,2040",
+   "center": {
+    "x": 1498,
+    "y": 2040
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1503,2207",
+   "center": {
+    "x": 1503,
+    "y": 2207
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1505,2445",
+   "center": {
+    "x": 1505,
+    "y": 2445
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1526,960",
+   "center": {
+    "x": 1526,
+    "y": 960
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1527,2609",
+   "center": {
+    "x": 1527,
+    "y": 2609
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1531,2351",
+   "center": {
+    "x": 1531,
+    "y": 2351
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1545,813",
+   "center": {
+    "x": 1545,
+    "y": 813
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1563,2277",
+   "center": {
+    "x": 1563,
+    "y": 2277
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2144,8 +4362,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1582,2722",
+   "center": {
+    "x": 1582,
+    "y": 2722
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2156,10 +4403,68 @@
    },
    "radius": 40,
    "creatures": {
-    "Orc": 8,
-    "GiantSpider": 8,
-    "GiantSerpent": 8,
-    "Corpser": 8
+    "Orc": 5,
+    "GiantSpider": 5,
+    "GiantSerpent": 5,
+    "Gorilla": 5,
+    "TropicalBird": 5,
+    "Corpser": 5
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1602,2426",
+   "center": {
+    "x": 1602,
+    "y": 2426
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1612,2526",
+   "center": {
+    "x": 1612,
+    "y": 2526
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2199,17 +4504,91 @@
    }
   },
   {
-   "name": "air elemental and ettin spawn near 1631,650",
+   "name": "boar and cougar spawn near 1628,2334",
+   "center": {
+    "x": 1628,
+    "y": 2334
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1631,645",
    "center": {
     "x": 1631,
-    "y": 650
+    "y": 645
    },
    "radius": 40,
    "creatures": {
     "AirElemental": 2,
     "Ettin": 2,
     "Harpy": 2,
-    "Orc": 2
+    "Orc": 2,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1634,2645",
+   "center": {
+    "x": 1634,
+    "y": 2645
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2220,10 +4599,12 @@
    },
    "radius": 40,
    "creatures": {
-    "Orc": 15,
-    "GiantSpider": 15,
-    "GiantSerpent": 15,
-    "Corpser": 15
+    "Orc": 10,
+    "GiantSpider": 10,
+    "GiantSerpent": 10,
+    "Gorilla": 10,
+    "TropicalBird": 10,
+    "Corpser": 10
    }
   },
   {
@@ -2262,6 +4643,45 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1650,2796",
+   "center": {
+    "x": 1650,
+    "y": 2796
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "timber wolf spawn near 1651,612",
+   "center": {
+    "x": 1651,
+    "y": 612
+   },
+   "radius": 40,
+   "creatures": {
+    "TimberWolf": 6
+   }
+  },
+  {
    "name": "orc and ettin spawn near 1651,2413",
    "center": {
     "x": 1651,
@@ -2274,6 +4694,34 @@
     "Ratman": 10,
     "GiantSpider": 10,
     "Reaper": 10
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1666,1290",
+   "center": {
+    "x": 1666,
+    "y": 1290
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2317,6 +4765,118 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1695,809",
+   "center": {
+    "x": 1695,
+    "y": 809
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1699,2560",
+   "center": {
+    "x": 1699,
+    "y": 2560
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1709,1992",
+   "center": {
+    "x": 1709,
+    "y": 1992
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1715,2307",
+   "center": {
+    "x": 1715,
+    "y": 2307
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 1720,3879",
    "center": {
     "x": 1720,
@@ -2324,22 +4884,97 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
-   "name": "air elemental and ettin spawn near 1723,683",
+   "name": "boar and cougar spawn near 1722,2435",
    "center": {
-    "x": 1723,
-    "y": 683
+    "x": 1722,
+    "y": 2435
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1724,2781",
+   "center": {
+    "x": 1724,
+    "y": 2781
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "air elemental and ettin spawn near 1726,687",
+   "center": {
+    "x": 1726,
+    "y": 687
    },
    "radius": 40,
    "creatures": {
     "AirElemental": 2,
     "Ettin": 2,
     "Harpy": 2,
-    "Orc": 2
+    "Orc": 2,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2359,6 +4994,64 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Zombie": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1727,2702",
+   "center": {
+    "x": 1727,
+    "y": 2702
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "gargoyle and gazer spawn near 1740,1461",
+   "center": {
+    "x": 1740,
+    "y": 1461
+   },
+   "radius": 40,
+   "creatures": {
+    "Gargoyle": 2,
+    "Gazer": 2,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2411,6 +5104,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1769,1330",
+   "center": {
+    "x": 1769,
+    "y": 1330
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 1792,79",
    "center": {
     "x": 1792,
@@ -2418,8 +5139,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -2441,6 +5163,34 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Zombie": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1798,1471",
+   "center": {
+    "x": 1798,
+    "y": 1471
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2517,6 +5267,71 @@
    }
   },
   {
+   "name": "air elemental and ettin spawn near 1817,506",
+   "center": {
+    "x": 1817,
+    "y": 506
+   },
+   "radius": 40,
+   "creatures": {
+    "AirElemental": 2,
+    "Ettin": 2,
+    "Harpy": 2,
+    "Orc": 2,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 1818,3032",
+   "center": {
+    "x": 1818,
+    "y": 3032
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Wisp": 1,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "alligator and giant serpent spawn near 1826,2250",
    "center": {
     "x": 1826,
@@ -2540,10 +5355,12 @@
    },
    "radius": 40,
    "creatures": {
-    "Orc": 15,
-    "GiantSpider": 15,
-    "GiantSerpent": 15,
-    "Corpser": 15
+    "Orc": 10,
+    "GiantSpider": 10,
+    "GiantSerpent": 10,
+    "Gorilla": 10,
+    "TropicalBird": 10,
+    "Corpser": 10
    }
   },
   {
@@ -2551,20 +5368,6 @@
    "center": {
     "x": 1831,
     "y": 449
-   },
-   "radius": 40,
-   "creatures": {
-    "AirElemental": 2,
-    "Ettin": 2,
-    "Harpy": 2,
-    "Orc": 2
-   }
-  },
-  {
-   "name": "air elemental and ettin spawn near 1832,517",
-   "center": {
-    "x": 1832,
-    "y": 517
    },
    "radius": 40,
    "creatures": {
@@ -2624,6 +5427,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1857,600",
+   "center": {
+    "x": 1857,
+    "y": 600
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "mongbat and orc spawn near 1862,1434",
    "center": {
     "x": 1862,
@@ -2643,6 +5474,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1865,1379",
+   "center": {
+    "x": 1865,
+    "y": 1379
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 1866,1798",
    "center": {
     "x": 1866,
@@ -2650,8 +5509,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1867,1244",
+   "center": {
+    "x": 1867,
+    "y": 1244
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2709,6 +5597,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 1884,735",
+   "center": {
+    "x": 1884,
+    "y": 735
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "air elemental and ettin spawn near 1887,591",
    "center": {
     "x": 1887,
@@ -2762,8 +5678,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -2783,6 +5700,39 @@
     "Reaper": 1,
     "Skeleton": 1,
     "Zombie": 1
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 1903,2938",
+   "center": {
+    "x": 1903,
+    "y": 2938
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "Wisp": 1,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2842,10 +5792,40 @@
    },
    "radius": 40,
    "creatures": {
-    "Orc": 15,
-    "GiantSpider": 15,
-    "GiantSerpent": 15,
-    "Corpser": 15
+    "Orc": 10,
+    "GiantSpider": 10,
+    "GiantSerpent": 10,
+    "Gorilla": 10,
+    "TropicalBird": 10,
+    "Corpser": 10
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1932,3125",
+   "center": {
+    "x": 1932,
+    "y": 3125
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2874,6 +5854,34 @@
    "creatures": {
     "GiantSpider": 3,
     "Scorpion": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1958,1305",
+   "center": {
+    "x": 1958,
+    "y": 1305
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -2926,6 +5934,34 @@
     "Orc": 1,
     "Troll": 1,
     "WaterElemental": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 1973,751",
+   "center": {
+    "x": 1973,
+    "y": 751
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3003,6 +6039,7 @@
     "Corpser": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
+    "Wisp": 1,
     "StrongMongbat": 1,
     "PlagueBeast": 1,
     "PlagueSpawn": 1,
@@ -3027,6 +6064,7 @@
     "Corpser": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
+    "Wisp": 1,
     "StrongMongbat": 1,
     "PlagueBeast": 1,
     "PlagueSpawn": 1,
@@ -3044,8 +6082,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -3091,6 +6130,7 @@
     "Corpser": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
+    "Wisp": 1,
     "StrongMongbat": 1,
     "PlagueBeast": 1,
     "PlagueSpawn": 1,
@@ -3115,6 +6155,7 @@
     "Corpser": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
+    "Wisp": 1,
     "StrongMongbat": 1,
     "PlagueBeast": 1,
     "PlagueSpawn": 1,
@@ -3139,6 +6180,7 @@
     "Corpser": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
+    "Wisp": 1,
     "StrongMongbat": 1,
     "PlagueBeast": 1,
     "PlagueSpawn": 1,
@@ -3163,6 +6205,7 @@
     "Corpser": 2,
     "GiantSerpent": 2,
     "Lizardman": 2,
+    "Wisp": 2,
     "StrongMongbat": 2,
     "PlagueBeast": 2,
     "PlagueSpawn": 2,
@@ -3180,8 +6223,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -3199,6 +6243,7 @@
     "Corpser": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
+    "Wisp": 1,
     "StrongMongbat": 1,
     "PlagueBeast": 1,
     "PlagueSpawn": 1,
@@ -3223,6 +6268,7 @@
     "Corpser": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
+    "Wisp": 1,
     "StrongMongbat": 1,
     "PlagueBeast": 1,
     "PlagueSpawn": 1,
@@ -3240,8 +6286,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -3259,6 +6306,7 @@
     "Corpser": 2,
     "GiantSerpent": 2,
     "Lizardman": 2,
+    "Wisp": 2,
     "StrongMongbat": 2,
     "PlagueBeast": 2,
     "PlagueSpawn": 2,
@@ -3266,6 +6314,34 @@
     "Sewerrat": 2,
     "Slime": 2,
     "Snake": 2
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2074,1972",
+   "center": {
+    "x": 2074,
+    "y": 1972
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3298,6 +6374,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 2085,658",
+   "center": {
+    "x": 2085,
+    "y": 658
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "orc and giant spider spawn near 2091,3413",
    "center": {
     "x": 2091,
@@ -3305,10 +6409,12 @@
    },
    "radius": 40,
    "creatures": {
-    "Orc": 15,
-    "GiantSpider": 15,
-    "GiantSerpent": 15,
-    "Corpser": 15
+    "Orc": 10,
+    "GiantSpider": 10,
+    "GiantSerpent": 10,
+    "Gorilla": 10,
+    "TropicalBird": 10,
+    "Corpser": 10
    }
   },
   {
@@ -3325,6 +6431,51 @@
     "Ratman": 1,
     "Slime": 1,
     "Snake": 1
+   }
+  },
+  {
+   "name": "cow and bull spawn near 2111,2699",
+   "center": {
+    "x": 2111,
+    "y": 2699
+   },
+   "radius": 40,
+   "creatures": {
+    "Cow": 10,
+    "Bull": 10,
+    "GreatHart": 10,
+    "Llama": 10,
+    "Sheep": 10,
+    "Hind": 10,
+    "Chicken": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2122,2108",
+   "center": {
+    "x": 2122,
+    "y": 2108
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3352,10 +6503,11 @@
    },
    "radius": 40,
    "creatures": {
-    "Alligator": 3,
-    "Lizardman": 3,
-    "SilverSerpent": 3,
-    "Snake": 3
+    "Alligator": 2,
+    "Lizardman": 2,
+    "SilverSerpent": 2,
+    "Snake": 2,
+    "Wisp": 2
    }
   },
   {
@@ -3410,6 +6562,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 2188,1986",
+   "center": {
+    "x": 2188,
+    "y": 1986
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 2208,1703",
    "center": {
     "x": 2208,
@@ -3417,8 +6597,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -3429,8 +6610,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -3441,8 +6623,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2289,917",
+   "center": {
+    "x": 2289,
+    "y": 917
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3453,8 +6664,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -3483,8 +6695,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -3503,7 +6716,8 @@
     "Orc": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3525,6 +6739,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 2338,989",
+   "center": {
+    "x": 2338,
+    "y": 989
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "ettin and harpy spawn near 2345,112",
    "center": {
     "x": 2345,
@@ -3540,7 +6782,8 @@
     "Orc": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3559,7 +6802,8 @@
     "Orc": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3570,10 +6814,11 @@
    },
    "radius": 40,
    "creatures": {
-    "Alligator": 3,
-    "Lizardman": 3,
-    "SilverSerpent": 3,
-    "Snake": 3
+    "Alligator": 2,
+    "Lizardman": 2,
+    "SilverSerpent": 2,
+    "Snake": 2,
+    "Wisp": 2
    }
   },
   {
@@ -3592,7 +6837,8 @@
     "Orc": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3603,8 +6849,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -3615,10 +6862,47 @@
    },
    "radius": 40,
    "creatures": {
-    "Alligator": 3,
-    "Lizardman": 3,
-    "SilverSerpent": 3,
-    "Snake": 3
+    "Alligator": 2,
+    "Lizardman": 2,
+    "SilverSerpent": 2,
+    "Snake": 2,
+    "Wisp": 2
+   }
+  },
+  {
+   "name": "ettin and ghoul spawn near 2371,737",
+   "center": {
+    "x": 2371,
+    "y": 737
+   },
+   "radius": 40,
+   "creatures": {
+    "Ettin": 1,
+    "Ghoul": 1,
+    "HeadlessOne": 1,
+    "Ogre": 1,
+    "Orc": 1,
+    "OrcishMage": 1,
+    "Skeleton": 1,
+    "Troll": 1,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3637,25 +6921,8 @@
     "Orc": 1,
     "Skeleton": 1,
     "Troll": 1,
-    "Zombie": 1
-   }
-  },
-  {
-   "name": "ettin and ghoul spawn near 2375,725",
-   "center": {
-    "x": 2375,
-    "y": 725
-   },
-   "radius": 40,
-   "creatures": {
-    "Ettin": 1,
-    "Ghoul": 1,
-    "HeadlessOne": 1,
-    "Ogre": 1,
-    "Orc": 1,
-    "OrcishMage": 1,
-    "Skeleton": 1,
-    "Troll": 1
+    "Zombie": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3684,8 +6951,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -3696,8 +6964,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 12,
-    "WaterElemental": 6
+    "SeaSerpent": 10,
+    "WaterElemental": 5,
+    "Dolphin": 5
    }
   },
   {
@@ -3708,8 +6977,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2416,1172",
+   "center": {
+    "x": 2416,
+    "y": 1172
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2418,999",
+   "center": {
+    "x": 2418,
+    "y": 999
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3772,10 +7098,11 @@
    },
    "radius": 40,
    "creatures": {
-    "Alligator": 3,
-    "Lizardman": 3,
-    "SilverSerpent": 3,
-    "Snake": 3
+    "Alligator": 2,
+    "Lizardman": 2,
+    "SilverSerpent": 2,
+    "Snake": 2,
+    "Wisp": 2
    }
   },
   {
@@ -3792,7 +7119,8 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3827,7 +7155,8 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3844,7 +7173,8 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3861,7 +7191,36 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2495,978",
+   "center": {
+    "x": 2495,
+    "y": 978
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3872,10 +7231,79 @@
    },
    "radius": 40,
    "creatures": {
-    "Alligator": 3,
-    "Lizardman": 3,
-    "SilverSerpent": 3,
-    "Snake": 3
+    "Alligator": 2,
+    "Lizardman": 2,
+    "SilverSerpent": 2,
+    "Snake": 2,
+    "Wisp": 2
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2512,1066",
+   "center": {
+    "x": 2512,
+    "y": 1066
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2513,782",
+   "center": {
+    "x": 2513,
+    "y": 782
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "chicken and hind spawn near 2519,152",
+   "center": {
+    "x": 2519,
+    "y": 152
+   },
+   "radius": 40,
+   "creatures": {
+    "Chicken": 3,
+    "Hind": 3
    }
   },
   {
@@ -3886,10 +7314,11 @@
    },
    "radius": 40,
    "creatures": {
-    "Alligator": 3,
-    "Lizardman": 3,
-    "SilverSerpent": 3,
-    "Snake": 3
+    "Alligator": 2,
+    "Lizardman": 2,
+    "SilverSerpent": 2,
+    "Snake": 2,
+    "Wisp": 2
    }
   },
   {
@@ -3906,7 +7335,8 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3923,7 +7353,8 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3940,7 +7371,64 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2554,1142",
+   "center": {
+    "x": 2554,
+    "y": 1142
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2583,993",
+   "center": {
+    "x": 2583,
+    "y": 993
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -3957,7 +7445,8 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3968,8 +7457,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -3986,7 +7476,8 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
    }
   },
   {
@@ -3997,8 +7488,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2643,728",
+   "center": {
+    "x": 2643,
+    "y": 728
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2654,2286",
+   "center": {
+    "x": 2654,
+    "y": 2286
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4015,7 +7563,176 @@
     "Ogre": 1,
     "Orc": 1,
     "Troll": 1,
-    "WaterElemental": 1
+    "WaterElemental": 1,
+    "Wisp": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2668,1020",
+   "center": {
+    "x": 2668,
+    "y": 1020
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2669,922",
+   "center": {
+    "x": 2669,
+    "y": 922
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2672,814",
+   "center": {
+    "x": 2672,
+    "y": 814
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2688,524",
+   "center": {
+    "x": 2688,
+    "y": 524
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2735,417",
+   "center": {
+    "x": 2735,
+    "y": 417
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2744,2014",
+   "center": {
+    "x": 2744,
+    "y": 2014
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4026,8 +7743,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2748,660",
+   "center": {
+    "x": 2748,
+    "y": 660
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4038,8 +7784,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4057,6 +7804,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 2765,754",
+   "center": {
+    "x": 2765,
+    "y": 754
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 2768,3847",
    "center": {
     "x": 2768,
@@ -4064,8 +7839,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2786,2282",
+   "center": {
+    "x": 2786,
+    "y": 2282
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4076,8 +7880,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2814,492",
+   "center": {
+    "x": 2814,
+    "y": 492
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2814,3500",
+   "center": {
+    "x": 2814,
+    "y": 3500
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4105,6 +7966,90 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 2864,150",
+   "center": {
+    "x": 2864,
+    "y": 150
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2888,391",
+   "center": {
+    "x": 2888,
+    "y": 391
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2914,547",
+   "center": {
+    "x": 2914,
+    "y": 547
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 2931,3245",
    "center": {
     "x": 2931,
@@ -4112,8 +8057,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4129,6 +8075,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 2946,2168",
+   "center": {
+    "x": 2946,
+    "y": 2168
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 2952,1239",
    "center": {
     "x": 2952,
@@ -4136,8 +8110,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4169,13 +8144,44 @@
    }
   },
   {
-   "name": "alligator and giant serpent spawn near 2966,3591",
+   "name": "sea serpent and water elemental spawn near 2971,1605",
    "center": {
-    "x": 2966,
+    "x": 2971,
+    "y": 1605
+   },
+   "radius": 40,
+   "creatures": {
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 2982,3591",
+   "center": {
+    "x": 2982,
     "y": 3591
    },
    "radius": 40,
    "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1,
     "Alligator": 1,
     "GiantSerpent": 1,
     "Lizardman": 1,
@@ -4186,18 +8192,6 @@
    }
   },
   {
-   "name": "sea serpent and water elemental spawn near 2971,1605",
-   "center": {
-    "x": 2971,
-    "y": 1605
-   },
-   "radius": 40,
-   "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
-   }
-  },
-  {
    "name": "sea serpent and water elemental spawn near 3008,1895",
    "center": {
     "x": 3008,
@@ -4205,8 +8199,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4244,6 +8239,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 3076,150",
+   "center": {
+    "x": 3076,
+    "y": 150
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 3088,2759",
    "center": {
     "x": 3088,
@@ -4251,8 +8274,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3092,542",
+   "center": {
+    "x": 3092,
+    "y": 542
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4263,8 +8315,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4292,8 +8345,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3172,664",
+   "center": {
+    "x": 3172,
+    "y": 664
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4338,8 +8420,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3206,366",
+   "center": {
+    "x": 3206,
+    "y": 366
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3232,510",
+   "center": {
+    "x": 3232,
+    "y": 510
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4350,8 +8489,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4362,8 +8502,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4374,8 +8515,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 12,
-    "WaterElemental": 6
+    "SeaSerpent": 10,
+    "WaterElemental": 5,
+    "Dolphin": 5
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3292,570",
+   "center": {
+    "x": 3292,
+    "y": 570
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4386,8 +8556,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4398,8 +8569,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3392,424",
+   "center": {
+    "x": 3392,
+    "y": 424
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3394,628",
+   "center": {
+    "x": 3394,
+    "y": 628
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4410,8 +8638,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4422,8 +8651,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4434,8 +8664,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4446,8 +8677,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4458,8 +8690,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4470,8 +8703,20 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "sheep spawn near 3608,2140",
+   "center": {
+    "x": 3608,
+    "y": 2140
+   },
+   "radius": 40,
+   "creatures": {
+    "Sheep": 20
    }
   },
   {
@@ -4482,8 +8727,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 3650,2080",
+   "center": {
+    "x": 3650,
+    "y": 2080
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4494,8 +8768,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4506,8 +8781,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4518,8 +8794,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4530,8 +8807,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4542,8 +8820,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4554,8 +8833,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4566,8 +8846,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4578,8 +8859,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4590,8 +8872,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4602,8 +8885,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4614,8 +8898,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4626,8 +8911,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4638,8 +8924,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4650,8 +8937,51 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "polar bear and snow leopard spawn near 4054,574",
+   "center": {
+    "x": 4054,
+    "y": 574
+   },
+   "radius": 40,
+   "creatures": {
+    "PolarBear": 42,
+    "SnowLeopard": 42,
+    "Walrus": 42,
+    "WhiteWolf": 42
+   }
+  },
+  {
+   "name": "polar bear and snow leopard spawn near 4057,300",
+   "center": {
+    "x": 4057,
+    "y": 300
+   },
+   "radius": 40,
+   "creatures": {
+    "PolarBear": 2,
+    "SnowLeopard": 2,
+    "Walrus": 2,
+    "WhiteWolf": 2
+   }
+  },
+  {
+   "name": "white wolf and snow leopard spawn near 4080,570",
+   "center": {
+    "x": 4080,
+    "y": 570
+   },
+   "radius": 40,
+   "creatures": {
+    "WhiteWolf": 30,
+    "SnowLeopard": 30,
+    "Walrus": 30,
+    "PolarBear": 30
    }
   },
   {
@@ -4662,8 +8992,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4674,8 +9005,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4686,8 +9018,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4698,8 +9031,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4710,8 +9044,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4722,8 +9057,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4734,8 +9070,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4326,1046",
+   "center": {
+    "x": 4326,
+    "y": 1046
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4336,1130",
+   "center": {
+    "x": 4336,
+    "y": 1130
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4746,8 +9139,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4758,8 +9152,37 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4384,1218",
+   "center": {
+    "x": 4384,
+    "y": 1218
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4770,8 +9193,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4782,8 +9206,211 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4446,3706",
+   "center": {
+    "x": 4446,
+    "y": 3706
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "eagle and crow spawn near 4450,1270",
+   "center": {
+    "x": 4450,
+    "y": 1270
+   },
+   "radius": 40,
+   "creatures": {
+    "Eagle": 13,
+    "Bird": 13
+   }
+  },
+  {
+   "name": "timber wolf and boar spawn near 4452,1346",
+   "center": {
+    "x": 4452,
+    "y": 1346
+   },
+   "radius": 40,
+   "creatures": {
+    "TimberWolf": 8,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "timber wolf and boar spawn near 4460,1423",
+   "center": {
+    "x": 4460,
+    "y": 1423
+   },
+   "radius": 40,
+   "creatures": {
+    "TimberWolf": 15,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4468,1006",
+   "center": {
+    "x": 4468,
+    "y": 1006
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4478,3218",
+   "center": {
+    "x": 4478,
+    "y": 3218
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "timber wolf spawn near 4494,1426",
+   "center": {
+    "x": 4494,
+    "y": 1426
+   },
+   "radius": 40,
+   "creatures": {
+    "TimberWolf": 7
+   }
+  },
+  {
+   "name": "timber wolf spawn near 4504,1458",
+   "center": {
+    "x": 4504,
+    "y": 1458
+   },
+   "radius": 40,
+   "creatures": {
+    "TimberWolf": 7
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4510,1262",
+   "center": {
+    "x": 4510,
+    "y": 1262
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4794,8 +9421,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4810,6 +9438,34 @@
    }
   },
   {
+   "name": "boar and cougar spawn near 4526,986",
+   "center": {
+    "x": 4526,
+    "y": 986
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 4536,2847",
    "center": {
     "x": 4536,
@@ -4817,8 +9473,105 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4544,1128",
+   "center": {
+    "x": 4544,
+    "y": 1128
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "great hart and hind spawn near 4546,1451",
+   "center": {
+    "x": 4546,
+    "y": 1451
+   },
+   "radius": 40,
+   "creatures": {
+    "GreatHart": 5,
+    "Hind": 5,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "great hart and hind spawn near 4550,1409",
+   "center": {
+    "x": 4550,
+    "y": 1409
+   },
+   "radius": 40,
+   "creatures": {
+    "GreatHart": 4,
+    "Hind": 4
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4560,3504",
+   "center": {
+    "x": 4560,
+    "y": 3504
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4833,6 +9586,62 @@
    }
   },
   {
+   "name": "great hart and hind spawn near 4578,1343",
+   "center": {
+    "x": 4578,
+    "y": 1343
+   },
+   "radius": 40,
+   "creatures": {
+    "GreatHart": 5,
+    "Hind": 5,
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4592,1424",
+   "center": {
+    "x": 4592,
+    "y": 1424
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 4600,1751",
    "center": {
     "x": 4600,
@@ -4840,8 +9649,21 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "great hart and hind spawn near 4605,1365",
+   "center": {
+    "x": 4605,
+    "y": 1365
+   },
+   "radius": 40,
+   "creatures": {
+    "GreatHart": 4,
+    "Hind": 4
    }
   },
   {
@@ -4856,6 +9678,46 @@
    }
   },
   {
+   "name": "great hart and hind spawn near 4612,1418",
+   "center": {
+    "x": 4612,
+    "y": 1418
+   },
+   "radius": 40,
+   "creatures": {
+    "GreatHart": 4,
+    "Hind": 4
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4612,3424",
+   "center": {
+    "x": 4612,
+    "y": 3424
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
    "name": "orc spawn near 4613,3272",
    "center": {
     "x": 4613,
@@ -4867,6 +9729,18 @@
    }
   },
   {
+   "name": "great hart and hind spawn near 4615,1469",
+   "center": {
+    "x": 4615,
+    "y": 1469
+   },
+   "radius": 40,
+   "creatures": {
+    "GreatHart": 4,
+    "Hind": 4
+   }
+  },
+  {
    "name": "sea serpent and water elemental spawn near 4624,2199",
    "center": {
     "x": 4624,
@@ -4874,8 +9748,50 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4632,1164",
+   "center": {
+    "x": 4632,
+    "y": 1164
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "chicken and cow spawn near 4634,1302",
+   "center": {
+    "x": 4634,
+    "y": 1302
+   },
+   "radius": 40,
+   "creatures": {
+    "Chicken": 2,
+    "Cow": 2,
+    "Sheep": 2
    }
   },
   {
@@ -4897,8 +9813,65 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4682,3662",
+   "center": {
+    "x": 4682,
+    "y": 3662
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
+   }
+  },
+  {
+   "name": "boar and cougar spawn near 4692,3494",
+   "center": {
+    "x": 4692,
+    "y": 3494
+   },
+   "radius": 40,
+   "creatures": {
+    "Boar": 1,
+    "Cougar": 1,
+    "Goat": 1,
+    "Horse": 1,
+    "Panther": 1,
+    "Pig": 1,
+    "Sheep": 1,
+    "BlackBear": 1,
+    "GrizzlyBear": 1,
+    "BrownBear": 1,
+    "TimberWolf": 1,
+    "GreyWolf": 1,
+    "Bird": 1,
+    "Eagle": 1,
+    "GreatHart": 1,
+    "Hind": 1,
+    "Bull": 1,
+    "Cow": 1
    }
   },
   {
@@ -4920,8 +9893,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -4932,8 +9906,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4944,8 +9919,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4956,8 +9932,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4968,8 +9945,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4980,8 +9958,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -4992,8 +9971,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -5004,8 +9984,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -5016,8 +9997,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 14,
-    "WaterElemental": 7
+    "SeaSerpent": 12,
+    "WaterElemental": 6,
+    "Dolphin": 6
    }
   },
   {
@@ -5028,8 +10010,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -5040,8 +10023,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -5052,8 +10036,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -5064,8 +10049,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   },
   {
@@ -5076,8 +10062,9 @@
    },
    "radius": 40,
    "creatures": {
-    "SeaSerpent": 8,
-    "WaterElemental": 4
+    "SeaSerpent": 6,
+    "WaterElemental": 3,
+    "Dolphin": 3
    }
   }
  ]

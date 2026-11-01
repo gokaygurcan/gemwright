@@ -6,10 +6,11 @@ import { Layer } from '@gemwright/network/layers';
 
 import { ActionInterrupted } from '../src/action-errors';
 import { Blocked } from '../src/blocked';
+import { hurtOnTheWay } from '../src/cemeteries';
 import { decisionContext } from '../src/decision-context';
 import { validateDecisionConfig } from '../src/decision-provider';
 import { DecisionCoordinator } from '../src/decisions';
-import { type FighterContext, homeOf, newFighterStats } from '../src/fighter-context';
+import { Ambushed, type FighterContext, homeOf, newFighterStats } from '../src/fighter-context';
 import { engageable } from '../src/fighter-prey';
 import { createFighterRecovery } from '../src/fighter-recovery';
 import { checkFighter } from '../src/fighter-safety';
@@ -216,4 +217,20 @@ test('startup only reconciles observations and every decision context carries th
   expect(f.counts()).toEqual({ clicks: 0, shopping: 0, rests: 0 });
   expect(f.ctx.trip.recovery?.stage).toBe('corpse');
   expect(decisionContext(f.checkpoint).lifeGoal).toBe(LIFE_GOAL);
+});
+
+test('hurt by a caster it cannot see swinging, a healthy fighter turns on the caster instead of going home', () => {
+  const { world, ctx } = fixture();
+  world.entities.set(60, { serial: 60, kind: 'item', graphic: 0x13ff, parent: 1, layer: Layer.OneHanded });
+  // A gazer casting from twelve tiles: no swing packet names it, only the damage arrives.
+  world.entities.set(70, {
+    serial: 70,
+    kind: 'mobile',
+    graphic: 22,
+    name: 'a gazer',
+    notoriety: 3,
+    position: { x: 112, y: 100, z: 0, direction: 0 }
+  });
+  world.healthChanges.push({ at: Date.now(), hits: 90, maxHits: 100, damage: 10, healed: 0 });
+  expect(() => hurtOnTheWay(ctx)).toThrow(Ambushed);
 });

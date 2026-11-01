@@ -10,6 +10,7 @@ import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
 import { buyOffer, findOffer } from './resident-offers';
 import { RUNEBOOK } from './scribe';
+import { onItem, useOn } from './target-action';
 
 // Recall, as players travelled: a caster marks a blank rune where it wants to return (Mark, sixth
 // circle) and later recalls to it (Recall, fourth circle), each cast taking black pearl, blood moss
@@ -36,15 +37,17 @@ const reagentsFor = (ctx: ProfessionContext) => reagents().every((graphic) => ct
 // One cast at a carried rune; true when the server did not refuse it within a few seconds.
 async function castAt(ctx: ProfessionContext, spell: { id: number }, rune: number, done: () => boolean) {
   const { session } = ctx;
-  if (session.world.target) return false;
   const seen = new Set(session.world.journal);
   const refused = () => session.world.journal.some((e) => !seen.has(e) && REFUSED.has(e.cliloc ?? 0));
-  session.useSkill(spell.id, true);
-  await session
-    .waitFor(() => session.world.target !== null || refused(), 'spell cursor', 4000, { resource: 'target' })
-    .catch(() => {});
-  if (!session.world.target) return false;
-  session.target({ serial: rune, x: 0, y: 0, z: 0, graphic: RUNE });
+  const cast = await useOn(session, () => session.useSkill(spell.id, true), onItem({ serial: rune, graphic: RUNE }), {
+    label: 'spell cursor',
+    ms: 4000,
+    refusals: [...REFUSED]
+  });
+  if ('why' in cast) {
+    ctx.log(`The spell did not take (${cast.why}${cast.cliloc ? ` ${cast.cliloc}` : ''})`);
+    return false;
+  }
   await session.waitFor(() => done() || refused(), 'spell effect', 6000).catch(() => {});
   return done() && !refused();
 }

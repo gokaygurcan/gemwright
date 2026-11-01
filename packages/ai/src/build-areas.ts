@@ -3,9 +3,10 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import './run-session';
+
 import { grounds } from './cemeteries';
+import { moongates } from './gates';
 import { allServiceLocations, type ServiceType } from './locations';
-import { moongates } from './moongate';
 import { Terrain } from './terrain';
 
 // Offline build of locations/areas.json: which places can be walked to from which (the

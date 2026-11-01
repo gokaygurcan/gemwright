@@ -25,8 +25,8 @@ export function gumpCommands(layout: string): string[][] {
 }
 
 // Whether a gump reply uses the controls that gump actually offered: a reply button is { button x y
-// normal pressed id type param } with type 0 (type 1 turns a page), a switch belongs to a radio and
-// a text to a textentry. Button 0 always closes, as the client's own close box does.
+// normal pressed type param id } with type 1 (type 0 turns a page; ServUO GumpButton.Compile), a
+// switch belongs to a radio and a text to a textentry. Button 0 always closes, as the close box does.
 export function offersReply(
   layout: string,
   button: number,
@@ -38,7 +38,7 @@ export function offersReply(
     commands.some((command) => command[0] === kind && Number(command[at]) === value);
   return (
     (button === 0 ||
-      commands.some((command) => command[0] === 'button' && command[6] === '0' && Number(command[5]) === button)) &&
+      commands.some((command) => command[0] === 'button' && command[5] === '1' && Number(command[7]) === button)) &&
     switches.every((value) => offered('radio', 6, value)) &&
     texts.every((entry) => offered('textentry', 6, entry.id))
   );

@@ -1,8 +1,8 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
-import { arrow, corpse as corpseGraphic, crossbowBolt, gold } from '@gemwright/common/game/items';
-import { Opcode } from '@gemwright/network/opcodes';
-import { ShardMessage } from '@gemwright/network/replies';
+import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
+import { arrow, crossbowBolt, gold } from '@gemwright/common/game/items';
 
+import { type Death, openCorpse } from './corpse-open';
 import { type FighterContext, huntable, valuable } from './fighter-context';
 import { packFull } from './inventory';
 import { quality } from './item-quality';
@@ -14,28 +14,9 @@ import { distance } from './navigation';
 // close. Gold is taken even when the pack is otherwise full (a few coins weigh almost nothing), and
 // a death whose corpse serial arrived as 0 is found by looking for a fresh corpse where it fell.
 export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<void>) {
-  const { session, navigate, contents, terrain, check, trip, persist, stats, nearby, position, log } = ctx;
+  const { session, contents, terrain, check, trip, persist, stats, nearby, position, log } = ctx;
   // Corpses already emptied this run, so the fallback search does not open the same one twice.
   const emptied = new Set<number>();
-  const corpseNear = (at: { x: number; y: number } | undefined) => {
-    const here = at ?? position();
-    return [...session.world.entities.values()]
-      .filter(
-        (entity) =>
-          entity.kind === 'item' &&
-          entity.graphic === corpseGraphic &&
-          entity.serial !== 0 &&
-          !!entity.position &&
-          !emptied.has(entity.serial) &&
-          // A kill that drifted is still looted: without a death position the search reaches further.
-          distance(here, entity.position) <= (at ? 4 : 8)
-      )
-      .sort(
-        (a, b) =>
-          distance(here, a.position as { x: number; y: number }) -
-          distance(here, b.position as { x: number; y: number })
-      )[0];
-  };
   // Heavy pieces — armour and shields/weapons — are worth the stones only when the slot is bare or
   // the piece is worth more than scrap: a fighter does not haul bone armour off every skeleton, fill
   // its pack with it and walk to town for the privilege. Coins and light things always come.
@@ -43,57 +24,20 @@ export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<voi
     (graphic >= 0x144e && graphic <= 0x1457) || (graphic >= 0x1b72 && graphic <= 0x1b7b);
 
   // Every corpse left behind says why in the log, so a kill that brings nothing can be traced.
-  return async (death?: { corpse: number; position?: { x: number; y: number; z?: number } }) => {
-    const declared = death?.corpse;
-    const body =
-      declared !== undefined && declared !== 0 && session.world.entities.get(declared)?.graphic === corpseGraphic
-        ? session.world.entities.get(declared)
-        : corpseNear(death?.position);
-    if (!body?.position) {
+  return async (death?: Death) => {
+    const opened = await openCorpse(ctx, death, emptied);
+    if ('why' in opened) {
       log(
-        `Loot: no corpse in sight for this death (serial ${declared ?? 'none'}; ${
-          death?.position ? `fell at ${death.position.x},${death.position.y}` : 'no death position'
-        })`
+        opened.why === 'not-found'
+          ? `Loot: no corpse in sight for this death (serial ${death?.corpse ?? 'none'}; ${
+              death?.position ? `fell at ${death.position.x},${death.position.y}` : 'no death position'
+            })`
+          : `Loot: corpse ${death?.corpse ?? '?'} ${opened.why === 'denied' ? "belongs to another player's kill" : 'stayed out of reach'}; leaving it`
       );
       return;
     }
-    const corpse = body.serial;
+    const { corpse } = opened;
     emptied.add(corpse);
-    const at = body.position;
-    await navigate(at, 1);
-    const before = session.world.received.get(Opcode.containerContents) ?? 0;
-    const last = session.world.journal.at(-1);
-    const since = () =>
-      last ? session.world.journal.slice(session.world.journal.indexOf(last) + 1) : session.world.journal;
-    // Corpse.CheckLoot denies a shared kill (ShardMessage.corpseDenied) without contents.
-    const denied = () => since().some((entry) => entry.cliloc === ShardMessage.corpseDenied);
-    // The shard answers an out-of-range double-click with ShardMessage.tooFar ("too far away") and no contents.
-    const tooFar = () => since().some((entry) => entry.cliloc === ShardMessage.tooFar);
-    const lookInside = async () => {
-      if (distance(position(), at) > 1) await navigate(at, 0).catch(() => {});
-      session.use(corpse);
-      await session.waitFor(
-        () => (session.world.received.get(Opcode.containerContents) ?? 0) > before || denied() || tooFar(),
-        'container contents',
-        4000
-      );
-    };
-    try {
-      await lookInside();
-    } catch (error) {
-      if (session.phase !== 'ready') throw error;
-      // One more look from the corpse's own tile before giving up on it.
-      await navigate(at, 0).catch(() => {});
-      await lookInside();
-    }
-    if (tooFar()) {
-      log(`corpse ${corpse} stayed out of reach; leaving it`);
-      return;
-    }
-    if (denied()) {
-      log(`corpse ${corpse} belongs to another player's kill; leaving it`);
-      return;
-    }
     const inside = contents(corpse);
     const insideGold = inside
       .filter((item) => item.graphic === gold)
@@ -169,3 +113,16 @@ export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<voi
       await dress();
   };
 }
+
+// Whatever else attacked it and fell in the same fight is its kill too: deaths since `before`, near
+// it, that are not people.
+export const fellAlongside = (ctx: FighterContext, before: Set<number>, defeated: number) =>
+  [...ctx.session.world.deaths].flatMap(([killed, death]) =>
+    !before.has(killed) &&
+    killed !== defeated &&
+    death.position &&
+    distance(ctx.position(), death.position) <= 6 &&
+    !HUMAN_ELF_BODIES.has(ctx.session.world.entities.get(killed)?.graphic ?? 0)
+      ? [death]
+      : []
+  );

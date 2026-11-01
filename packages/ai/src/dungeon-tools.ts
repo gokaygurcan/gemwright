@@ -4,7 +4,8 @@ import type { DungeonContext, DungeonRun, RunRecord } from './dungeon-context';
 import { type Dungeon, dungeonAt, exitStair, floorAt, nearestEntry, type Stair, stairRoute } from './dungeons';
 import { observedThreat } from './fighter-context';
 import { recognised } from './fighter-prey';
-import { moongates, travelByMoongate } from './moongate';
+import { moongates } from './gates';
+import { travelByMoongate } from './moongate';
 import { createNavigator, distance } from './navigation';
 import { WALKING_LIMIT } from './tuning';
 

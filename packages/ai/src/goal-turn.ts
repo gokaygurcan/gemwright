@@ -38,6 +38,8 @@ import { sessionBreakTurn } from './session-habits';
 import { passSetback } from './setback';
 import { housekeeping, optionalTurn } from './shared-turn';
 import { sideTradeTurn } from './side-trade';
+import { scrapTurn } from './skirmish';
+import { townTurn } from './towns';
 import { rememberBalance, workEvidence } from './work-evidence';
 
 // Status refreshes spent on observations that stayed unavailable (see the recover step below).
@@ -123,6 +125,7 @@ export function goalSituation(ctx: ProfessionContext): GoalSituation {
 export async function residentTurn(ctx: ProfessionContext, actions: GoalActions): Promise<boolean> {
   const { session, checkpoint } = ctx;
   assertNotHalted(session);
+  townTurn(session, checkpoint, actions.trade, ctx.city);
   let savedGoal = JSON.stringify(checkpoint.workGoal);
   const persist = () => {
     const current = JSON.stringify(checkpoint.workGoal);
@@ -163,22 +166,32 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
   if (last !== previous) {
     ctx.log(`[goal] ${last?.result}: ${last?.key}: ${last?.reason}`);
     persist();
-    if (
-      last?.result === 'completed' &&
-      !['recover', 'equip'].includes(last.key) &&
-      actions.optional &&
-      state.ready &&
-      !state.earningNeeded &&
-      !state.order &&
-      !state.commitment &&
-      !checkpoint.workGoal?.settle
-    ) {
-      if (checkpoint.workGoal) delete checkpoint.workGoal.active;
-      bindIntent(session);
-      persist();
-      await goalPermission(session, 'optional', async () => (await actions.optional?.()) || (await optionalTurn(ctx)));
-      return true;
-    }
+  }
+  // The agenda (life.ts phases) owns the day: goals are the steps of the work phase, and a completed
+  // goal is a few coins, not the end of it. Only when the work phase has run its time does the
+  // turn go to the agenda, which picks what comes next — more work, errands, a break.
+  const life = checkpoint.life;
+  if (
+    (life?.phase !== 'work' || Date.now() >= life.until) &&
+    goal.step === 'trade' &&
+    actions.optional &&
+    state.ready &&
+    !state.earningNeeded &&
+    !state.order &&
+    !state.commitment &&
+    !checkpoint.workGoal?.settle
+  ) {
+    const handed = checkpoint.workGoal?.active;
+    if (checkpoint.workGoal) delete checkpoint.workGoal.active;
+    bindIntent(session);
+    persist();
+    const ran = await goalPermission(
+      session,
+      'optional',
+      async () => (await actions.optional?.()) || (await optionalTurn(ctx))
+    );
+    if (ran) return true;
+    if (handed && checkpoint.workGoal && !checkpoint.workGoal.active) checkpoint.workGoal.active = handed;
   }
   if (goal !== previousGoal)
     lifeEvent(
@@ -200,9 +213,13 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
   persist();
   try {
     if (goal.step === 'wait') {
-      ctx.phase('plan-wait', 'Productive methods are blocked; reconciling observations before a bounded retry');
+      ctx.phase(
+        'plan-wait',
+        `Productive methods are blocked (safe ${state.safe}, ready ${state.ready}, ${ctx.status().hits}/${ctx.status().maxHits} hp); reconciling observations before a bounded retry`
+      );
       await session.refreshStatus();
-      await checkedDelay(1500, ctx.check);
+      // A wait, not a spin: the goal's own deadline bounds the retry.
+      await checkedDelay(10_000, ctx.check);
       return true;
     }
     if (goal.step === 'recover') {
@@ -354,7 +371,10 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
         session,
         'income',
         async () =>
-          (await sideTradeTurn(ctx, actions.trade, true)) || (await escortOpportunity(ctx, state.evidence.funds))
+          (await sideTradeTurn(ctx, actions.trade, true)) ||
+          (await escortOpportunity(ctx, state.evidence.funds)) ||
+          // With no tool and no trade, a player scraps: weak creatures outside town, for gold and gear.
+          (await scrapTurn(ctx))
       );
       if (!ran) {
         blockGoal(

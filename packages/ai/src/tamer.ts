@@ -8,7 +8,7 @@ import type { Entity } from '@gemwright/network/world';
 import { tally } from './activity';
 import { Blocked } from './blocked';
 import { recognised } from './fighter-prey';
-import { confinedToHaven } from './haven';
+import { prefersHaven } from './haven';
 import { mountEquipment } from './mount-types';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
@@ -16,6 +16,7 @@ import type { DungeonRole } from './profession-dungeon';
 import { foundAtGround, tamingSpot, unreachableGround } from './tamer-grounds';
 import { companion, fightWithPet, readyBow, shoots, veterinary } from './tamer-pet';
 import { keepOffers, offerPet } from './tamer-sales';
+import { onItem, useOn } from './target-action';
 
 interface Tamable {
   name: string;
@@ -95,7 +96,7 @@ export const runTamer = (options: ProfessionOptions) => {
         // Nothing to tame here: go where animals of its level live (tamer-grounds.ts), else
         // search the countryside around where the search began. The walk steers around monsters
         // (navigation.ts) and leaves when attacked (danger-response.ts).
-        const ground = free >= 1 ? tamingSpot(ctx.serial, ctx.position(), skill, confinedToHaven(session)) : undefined;
+        const ground = free >= 1 ? tamingSpot(ctx.serial, ctx.position(), skill, prefersHaven(session)) : undefined;
         if (!searchFrom.has(session) || distance(ctx.position(), searchFrom.get(session) ?? ctx.position()) > 300)
           searchFrom.set(session, ctx.position());
         const from = searchFrom.get(session) ?? ctx.position();
@@ -122,9 +123,13 @@ export const runTamer = (options: ProfessionOptions) => {
       phase('taming', `Taming ${mobile.name ?? kind.name} (needs ${kind.minTame})`);
       if (mobile.position && distance(ctx.position(), mobile.position) > 3) await ctx.navigate(mobile.position, 2);
       const seen = new Set(session.world.journal);
-      session.useSkill(skillId('AnimalTaming'));
-      await session.waitFor(() => session.world.target !== null, 'taming cursor', 3000, { resource: 'target' });
-      session.target({ serial: mobile.serial, x: 0, y: 0, z: 0, graphic: mobile.graphic });
+      const tame = await useOn(session, () => session.useSkill(skillId('AnimalTaming')), onItem(mobile), {
+        label: 'taming cursor'
+      });
+      if ('why' in tame) {
+        log(`Taming ${kind.name} did not start (${tame.why})`);
+        return;
+      }
       const reply = () =>
         session.world.journal.find((e) => !seen.has(e) && [TAMED, FAILED, ...CANNOT].includes(e.cliloc ?? 0))?.cliloc;
       // Taming runs in several three-second rounds; keep close so the animal does not slip away.

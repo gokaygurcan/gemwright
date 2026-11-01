@@ -96,7 +96,7 @@ function orderFixture() {
         serial: 100,
         id: 4,
         packed: false,
-        layout: '{ xmfhtmlgump 0 0 0 0 1157082 } { button 35 110 2103 2104 200 0 0 }'
+        layout: '{ xmfhtmlgump 0 0 0 0 1157082 } { button 35 110 2103 2104 1 0 200 }'
       });
       return;
     }

@@ -10,7 +10,6 @@ import { createDoorOpener, isDoor, openNearbyDoors } from './doors';
 import { holdWhileEngaged, noteStep } from './engagement';
 import { land, takeOff } from './flight';
 import { assertNotHalted } from './gm';
-import { confinedToHaven, onHaven } from './haven';
 import { pauseFor, slip, walkingPace } from './human-pace';
 import { recordLifeAction } from './life-events';
 import { type Link, linkToward } from './links';
@@ -64,9 +63,6 @@ export function createNavigator(options: {
   // Walking goes straight to the goal: no detours by way of places it has no business at.
   // Gargoyles take wing for a long walk and land at its end (flight.ts).
   const walk = async (goal: { x: number; y: number; z?: number }, range: number) => {
-    // A Young resident of New Haven does not leave Haven Island (haven.ts).
-    if (confinedToHaven(session) && onHaven(position()) && !onHaven(goal))
-      throw new Blocked('unreachable', `Staying on Haven Island while Young (not walking to ${goal.x},${goal.y})`);
     const far = distance(position(), goal) > 40 && options.purpose !== 'escape' && options.purpose !== 'combat';
     if (far) await takeOff(session);
     try {

@@ -30,7 +30,7 @@ const worth = (ground: Ground, skill: number) =>
   );
 
 // The point to search next, or undefined when no ground in the catalog suits this skill.
-export function tamingSpot(me: number, at: { x: number; y: number }, skill: number, confined = false) {
+export function tamingSpot(me: number, at: { x: number; y: number }, skill: number, young = false) {
   const given = lasting('taming-ground', me);
   const key = (g: Ground) => `${g.center.x},${g.center.y}`;
   let stay = current.get(me);
@@ -44,15 +44,12 @@ export function tamingSpot(me: number, at: { x: number; y: number }, skill: numb
   }
   if (!stay) {
     const options = grounds
-      // A Young resident of New Haven tames only on Haven Island (haven.ts).
-      .filter(
-        (g) =>
-          worth(g, skill) > 0 &&
-          !given.active(key(g)) &&
-          reachableFrom(g.center, at) &&
-          (!confined || onHaven(g.center))
-      )
-      .map((g) => ({ g, cost: distance(at, g.center) / Math.sqrt(worth(g, skill)) }))
+      .filter((g) => worth(g, skill) > 0 && !given.active(key(g)) && reachableFrom(g.center, at))
+      // A Young resident of New Haven prefers Haven Island's grounds (haven.ts), free to go further.
+      .map((g) => ({
+        g,
+        cost: distance(at, g.center) / Math.sqrt(worth(g, skill)) + (young && !onHaven(g.center) ? 300 : 0)
+      }))
       .sort((a, b) => a.cost - b.cost)
       .slice(0, 5);
     const pick = options[Math.floor(Math.random() * options.length)];

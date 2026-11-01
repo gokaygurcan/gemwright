@@ -166,6 +166,7 @@ try {
       timezone: 'Europe/London',
       emulator: 'servuo',
       expansion: 'ej',
+      client: { version: '7.0.45.1' },
       schemaVersion: 1,
       packages: { ai: candidate }
     },

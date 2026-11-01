@@ -10,11 +10,10 @@ import { checkedDelay } from './action-purpose';
 import type { CharacterArchetype } from './archetypes';
 import { supportingOf } from './archetypes';
 import { type CraftContext, type CraftSkill, carpentry, tinkering, trainCraft } from './craft-training';
-import { pickLocation } from './locations';
 import { trainMagery } from './magery';
-import { buyAtMarket, goods } from './market';
-import { distance } from './navigation';
+import { goods } from './market';
 import { practiseInscription, practiseNecromancy } from './spell-practice';
+import { onItem, onTile, useOn } from './target-action';
 import { buyFrom } from './vendor-trade';
 
 // Pickaxes are BaseAxe weapons in ServUO, so a miner always carries a valid Arms Lore target.
@@ -104,25 +103,20 @@ export async function practiseSkill(ctx: PracticeContext, practice: Practice) {
       session.useSkill(skillId(practice.before));
       await Bun.sleep(1500);
     }
-    session.useSkill(id);
     try {
       if (practice.target === 'none') {
+        session.useSkill(id);
         await session.waitFor(() => feedback() !== undefined, `${practice.skill} result`, 3000).catch(() => {});
         if (feedback()?.cliloc !== ShardMessage.tooSoon) uses++;
       } else {
-        await session.waitFor(
-          () => session.world.target !== null || feedback()?.cliloc === ShardMessage.tooSoon,
-          'skill cursor',
-          3000,
-          { resource: 'target' }
-        );
         const here = session.world.position;
-        if (session.world.target && target) {
-          session.target({ serial: target.serial, x: 0, y: 0, z: 0, graphic: target.graphic });
-          uses++;
-        } else if (session.world.target && here) {
-          session.target({ serial: 0, x: here.x, y: here.y, z: here.z, graphic: 0 });
-          uses++;
+        const aim = target ? onItem(target) : here ? onTile(here) : undefined;
+        if (aim) {
+          const used = await useOn(session, () => session.useSkill(id), aim, {
+            label: 'skill cursor',
+            refusals: [ShardMessage.tooSoon]
+          });
+          if (!('why' in used)) uses++;
         }
         await Bun.sleep(400);
         const reply = feedback()?.cliloc;
@@ -149,15 +143,12 @@ type TrainingContext = PracticeContext & {
 };
 
 // Iron for Tinkering, when the resident brings no refill of its own (miners withdraw theirs): the
-// Minoc market when already near it (market.ts), else the tinker's 16-ingot stock.
+// Iron for tinkering practice: the tinker's 16-ingot stock.
 const ironRefill =
   (shop: NonNullable<TrainingContext['shop']>) =>
   async (_backpack: number, least: number): Promise<boolean> => {
-    const minoc = pickLocation('minoc', 'banker');
     const want = Math.max(least * 3, 30);
-    if (minoc && distance(shop.position(), minoc) < 300 && (await buyAtMarket(shop, 'iron ingots', want, 3)) >= least)
-      return true;
-    return buyFrom(shop, 'tinker', new Map([[goods['iron ingots'].graphic, Math.min(want, 16)]]), 6);
+    return buyFrom(shop, 'tinker', new Map([[goods['iron ingots'].graphic, Math.min(want, 16)]]));
   };
 
 const craftTrainer =

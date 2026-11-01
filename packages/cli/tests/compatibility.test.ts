@@ -20,7 +20,7 @@ async function fixture(value: unknown) {
   return dir;
 }
 test('schema 1 adopts old files and accepts newer compatible selections without a CLI bump', async () => {
-  const config = createConfig({});
+  const config = createConfig({ client: { version: '7.0.45.1' } });
   const dir = await fixture(config);
   expect((await loadShard(dir)).id).toBe('gemwright');
   const newer = { ...config, schemaVersion: 1, packages: { ai: '0.8.12', client: '0.9.0' } };
@@ -38,13 +38,13 @@ test('unknown schema, incompatible versions and malformed fields fail before dep
     { ai: { population: '10' } },
     { connection: { host: 'server', port: 0 } }
   ]) {
-    const dir = await fixture({ ...createConfig({}), ...input });
+    const dir = await fixture({ ...createConfig({ client: { version: '7.0.45.1' } }), ...input });
     await expect(deploy({ ai: true }, dir)).rejects.toThrow();
     expect(await Bun.file(join(dir, '.gemwright/railway.json')).exists()).toBe(false);
   }
 });
 test('discovery reports an exact compatible update; explicit selection preserves other settings and never deploys', async () => {
-  const dir = await fixture({ ...createConfig({}), packages: { client: '0.7.0' } });
+  const dir = await fixture({ ...createConfig({ client: { version: '7.0.45.1' } }), packages: { client: '0.7.0' } });
   const messages: string[] = [];
   const discover = async () => ['0.7.0', '0.8.2', '1.0.0'];
   await updatePackages({ component: 'ai' }, dir, discover, (s) => messages.push(s));
@@ -62,4 +62,16 @@ test('discovery reports an exact compatible update; explicit selection preserves
   ).rejects.toThrow('offline');
   expect(await readFile(join(dir, 'gemwright.json'), 'utf8')).toBe(saved);
   expect(await Bun.file(join(dir, '.gemwright/railway.json')).exists()).toBe(false);
+});
+
+test('a gemwright.json from before client.version names the field to add', () => {
+  const config = {
+    schemaVersion: 1,
+    name: 'Gemwright',
+    id: 'gemwright',
+    timezone: 'UTC',
+    expansion: 'ej',
+    emulator: 'servuo'
+  };
+  expect(() => validateSchema(config)).toThrow('"client": { "version": "7.0.45.1" }');
 });

@@ -54,7 +54,7 @@ export const mountEquipment = (world: WorldView) =>
     ? undefined
     : world.childrenOf(world.serial).find((item) => item.kind === 'item' && item.layer === Layer.Mount);
 export function canAffordMount(price: number, gold: number, reserve: number): boolean {
-  return Number.isSafeInteger(price) && price > 0 && price <= 750 && gold >= price + reserve;
+  return Number.isSafeInteger(price) && price > 0 && gold >= price + reserve;
 }
 
 // Kept for the mount code: the rideable bodies live with the other body sets.

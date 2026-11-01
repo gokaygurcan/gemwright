@@ -64,6 +64,7 @@ for (const trade of ['miner', 'lumberjack', 'fighter', 'tamer', 'thief'])
         return false;
       }
     };
+    f.checkpoint.life = { phase: 'work', until: Date.now() + 60 * 60_000 };
     expect(await residentTurn(f.ctx, actions)).toBe(false);
     expect(goalControlled(f.session)).toBe(true);
     expect(goalAllows(f.session, 'optional')).toBe(false);
@@ -76,8 +77,11 @@ for (const trade of ['miner', 'lumberjack', 'fighter', 'tamer', 'thief'])
     expect(optional).toBe(0);
     await residentTurn(f.ctx, actions);
     expect(f.checkpoint.workGoal?.last).toMatchObject({ key: 'earn', result: 'completed' });
+    // A completed goal is a step of the work phase; the agenda is consulted only when it ends.
+    expect(optional).toBe(0);
+    f.checkpoint.life.until = 0;
+    await residentTurn(f.ctx, actions);
     expect(optional).toBe(1);
-    expect(f.checkpoint.workGoal?.active).toBeUndefined();
   });
 
 test('recovery takes priority over an accepted order, then returns to it without taking a break', async () => {
@@ -206,7 +210,7 @@ test('unavailable income still yields when supporting skills have nothing left t
   expect((failure as Error).message).toContain('shutdown interrupts income retry delay');
 });
 
-test('blocked methods wait for replanning instead of silently falling through to ordinary work', async () => {
+test('blocked methods keep a safe, equipped resident at its own work while the planner waits', async () => {
   const f = fixture('miner');
   // No admissible trade goal: earning and side income are cooling down, nothing else applies.
   f.checkpoint.workGoal = {
@@ -223,11 +227,11 @@ test('blocked methods wait for replanning instead of silently falling through to
       recovered++;
     }
   };
-  expect(await residentTurn(f.ctx, actions)).toBe(true);
-  expect(f.checkpoint.workGoal?.active?.step).toBe('wait');
+  expect(await residentTurn(f.ctx, actions)).toBe(false);
+  expect(f.checkpoint.workGoal?.active?.step).toBe('trade');
   expect(f.checkpoint.workGoal?.last).toBeUndefined();
   expect(recovered).toBe(0);
-});
+}, 20_000);
 
 test('healthy risk recovery secures carried assets instead of invoking health setbacks or training', async () => {
   const f = fixture('miner');

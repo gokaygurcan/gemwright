@@ -30,7 +30,6 @@ export interface Need {
     service: ServiceType;
     graphics: number[];
     amount: number;
-    maxPrice: number;
     wanted?: Record<number, number>;
   };
 }
@@ -61,33 +60,26 @@ export function residentNeeds(session: PlayerSession, checkpoint: Checkpoint, te
       : [...graphics].reduce((n, graphic) => n + (counts.get(graphic) ?? 0), 0);
   const profession = professionOf(template.id)?.[0] ?? template.archetype?.id ?? '';
   const needs: Need[] = [];
-  const tool = (graphics: ReadonlySet<number> | number, what: string, service: ServiceType, maxPrice: number) => {
+  const tool = (graphics: ReadonlySet<number> | number, what: string, service: ServiceType) => {
     if (!has(graphics))
       needs.push({
         what,
         why: 'I cannot work without one',
         kind: 'tool',
-        purchase: { service, graphics: typeof graphics === 'number' ? [graphics] : [...graphics], amount: 1, maxPrice }
+        purchase: { service, graphics: typeof graphics === 'number' ? [graphics] : [...graphics], amount: 1 }
       });
   };
-  if (profession === 'bard') tool(instruments, 'an instrument, a lute or drums', 'bard', 35);
-  if (profession === 'fisherman' || profession === 'fisher') tool(fishingPoles, 'a fishing pole', 'fisherman', 20);
-  if (profession === 'lumberjack') tool(hatchets, 'a hatchet', 'blacksmith', 30);
-  if (profession === 'miner') tool(miningTools, 'a pickaxe or a shovel', 'tinker', 40);
-  if (profession === 'tailor') tool(sewingKit, 'a sewing kit', 'tailor', 5);
-  if (profession === 'bowyer') tool(new Set([0x1022, 0x1023]), 'fletching tools', 'bowyer', 4);
-  if (profession === 'alchemist') tool(0x0e9b, 'a mortar and pestle', 'alchemist', 8);
-  const supply = (
-    graphic: number,
-    amount: number,
-    what: string,
-    why: string,
-    service: ServiceType,
-    maxPrice: number
-  ) => {
+  if (profession === 'bard') tool(instruments, 'an instrument, a lute or drums', 'bard');
+  if (profession === 'fisherman' || profession === 'fisher') tool(fishingPoles, 'a fishing pole', 'fisherman');
+  if (profession === 'lumberjack') tool(hatchets, 'a hatchet', 'blacksmith');
+  if (profession === 'miner') tool(miningTools, 'a pickaxe or a shovel', 'tinker');
+  if (profession === 'tailor') tool(sewingKit, 'a sewing kit', 'tailor');
+  if (profession === 'bowyer') tool(new Set([0x1022, 0x1023]), 'fletching tools', 'bowyer');
+  if (profession === 'alchemist') tool(0x0e9b, 'a mortar and pestle', 'alchemist');
+  const supply = (graphic: number, amount: number, what: string, why: string, service: ServiceType) => {
     const missing = amount - has(graphic);
     if (missing > 0)
-      needs.push({ what, why, kind: 'supply', purchase: { service, graphics: [graphic], amount: missing, maxPrice } });
+      needs.push({ what, why, kind: 'supply', purchase: { service, graphics: [graphic], amount: missing } });
   };
   const fighter = [
     'swordsman',
@@ -99,11 +91,11 @@ export function residentNeeds(session: PlayerSession, checkpoint: Checkpoint, te
     'pure-mage',
     'tamer'
   ].includes(profession);
-  if (fighter) supply(bandage, 10, 'bandages', 'to bind my wounds between fights', 'healer', 5);
-  if (fighter) supply(healPotion, 2, 'heal potions', 'for when a fight goes badly', 'alchemist', 30);
+  if (fighter) supply(bandage, 10, 'bandages', 'to bind my wounds between fights', 'healer');
+  if (fighter) supply(healPotion, 2, 'heal potions', 'for when a fight goes badly', 'alchemist');
   if (profession.startsWith('archer')) {
     const ammo = rangedWeapon(equippedRanged(session)?.graphic)?.ammo ?? arrow;
-    supply(ammo, 50, ammo === arrow ? 'arrows' : 'bolts', 'my quiver is nearly empty', 'bowyer', 3);
+    supply(ammo, 50, ammo === arrow ? 'arrows' : 'bolts', 'my quiver is nearly empty', 'bowyer');
   }
   if (profession.endsWith('mage') && [...reagents].some((graphic) => (counts.get(graphic) ?? 0) < 10))
     needs.push({
@@ -114,7 +106,6 @@ export function residentNeeds(session: PlayerSession, checkpoint: Checkpoint, te
         service: 'mage',
         graphics: [...reagents],
         amount: 10,
-        maxPrice: 6,
         wanted: Object.fromEntries(
           [...reagents].map((graphic) => [graphic, Math.max(0, 10 - (counts.get(graphic) ?? 0))])
         )

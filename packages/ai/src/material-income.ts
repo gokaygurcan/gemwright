@@ -8,6 +8,7 @@ import { treeStatics } from './lumber-trees';
 import { distance } from './navigation';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import type { ProfessionContext } from './profession';
+import { onItem, useOn } from './target-action';
 import { buyTool, sellTo } from './vendor-trade';
 
 // A bowyer whose finished goods have no buyer can still earn by supplying raw wood.
@@ -22,7 +23,7 @@ export async function earnBoards(ctx: ProfessionContext): Promise<boolean> {
   }
   const tool = () =>
     [...session.world.childrenOf(ctx.serial), ...ctx.carried()].find((item) => hatchets.has(item.graphic));
-  if (!tool()) await buyTool({ ...ctx, limits: TOOLS }, 'blacksmith', [0x0f43, 0x0f44], 30);
+  if (!tool()) await buyTool({ ...ctx, limits: TOOLS }, 'blacksmith', [0x0f43, 0x0f44]);
   const unsafe = unsafeCheck(session);
   const trees = ctx.terrain
     .findStatics(treeStatics, ctx.position(), 60)
@@ -55,11 +56,7 @@ export async function earnBoards(ctx: ProfessionContext): Promise<boolean> {
         const log = ctx.carried().find((item) => item.graphic === logPile && !item.hue);
         const axe = tool();
         if (log && axe) {
-          session.use(axe.serial);
-          await session.waitFor(() => session.world.target !== null, 'cutting wood cursor', 3000, {
-            resource: 'target'
-          });
-          session.target({ serial: log.serial, x: 0, y: 0, z: 0, graphic: log.graphic });
+          await useOn(session, () => session.use(axe.serial), onItem(log), { label: 'cutting wood cursor' });
           await session
             .waitFor(() => !session.world.entities.has(log.serial) || ctx.count(board) > 0, 'boards observed', 4000)
             .catch(() => {});

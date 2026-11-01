@@ -82,3 +82,28 @@ test('a drop the shard accepts without a ground observation resolves by re-obser
     session.close();
   }
 });
+test('a lift refused only for the action delay is lifted again once the server allows it', async () => {
+  const { session, send } = fixture();
+  let lifts = 0;
+  try {
+    await moveItem(
+      session,
+      (packet) => {
+        if (packet[0] === 7 && ++lifts === 1) {
+          // ServUO Mobile.Lift inside the action delay: SendActionMessage, then a lift rejection.
+          session.world.journal.push({ serial: 0, cliloc: 500119, at: new Date().toISOString() } as never);
+          session.world.apply(Buffer.from([0x27, 5]));
+          return;
+        }
+        if (packet[0] === 7) return send(packet);
+        session.world.entities.set(42, { serial: 42, kind: 'item', graphic: 0xf43, parent: 20, amount: 1 });
+      },
+      42,
+      20
+    );
+    expect(lifts).toBe(2);
+    expect(session.world.entities.get(42)?.parent).toBe(20);
+  } finally {
+    session.close();
+  }
+});

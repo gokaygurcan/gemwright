@@ -2,7 +2,8 @@ import { corpse as corpseGraphic } from '@gemwright/common/game/items';
 
 import { nearAnyGround } from './cemeteries';
 import { threatsNear } from './danger';
-import { moongates, nearestGate, travelByMoongate } from './moongate';
+import { moongates, nearestGate } from './gates';
+import { travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import { WALKING_LIMIT } from './tuning';

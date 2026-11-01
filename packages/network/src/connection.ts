@@ -1,10 +1,9 @@
-import { CLIENT_VERSION } from './packets';
-
 export interface ConnectionConfig {
   schemaVersion: 1;
   shardId: string;
   emulator: 'servuo';
-  profile: 'classic-7.0.45.1';
+  // The classic client this session speaks as (gemwright.json client.version), e.g. classic-7.0.45.1.
+  profile: `classic-${string}`;
   host: string;
   port: number;
   serverIndex: number;
@@ -18,8 +17,8 @@ export function validateConnection(value: unknown): ConnectionConfig {
   const keys = ['schemaVersion', 'shardId', 'emulator', 'profile', 'host', 'port', 'serverIndex', 'timeoutMs'];
   if (Object.keys(c).some((k) => !keys.includes(k)) || keys.some((k) => !Object.hasOwn(c, k)))
     throw new Error('Connection configuration contains missing or unknown fields');
-  if (c.schemaVersion !== 1 || c.emulator !== 'servuo' || c.profile !== `classic-${CLIENT_VERSION}`)
-    throw new Error('Unsupported emulator/profile; only the tested unencrypted ServUO classic profile is available');
+  if (c.schemaVersion !== 1 || c.emulator !== 'servuo' || !/^classic-\d+\.\d+\.\d+\.\d+$/.test(String(c.profile)))
+    throw new Error('Unsupported emulator/profile; only the unencrypted ServUO classic profile is available');
   if (typeof c.shardId !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(c.shardId))
     throw new Error('Invalid connection shard ID');
   if (typeof c.host !== 'string' || !/^[a-zA-Z0-9.-]+$/.test(c.host) || c.host.length > 253)
@@ -34,3 +33,6 @@ export function validateConnection(value: unknown): ConnectionConfig {
   }
   return c as unknown as ConnectionConfig;
 }
+
+// The client version the profile names, as the login seed and the version reply (0xBD) send it.
+export const clientVersion = (config: Pick<ConnectionConfig, 'profile'>) => config.profile.slice('classic-'.length);

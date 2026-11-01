@@ -36,6 +36,11 @@ export function assertCompatible(schemaVersion: number, component: Component, ve
 export function validateSchema(input: unknown): asserts input is ShardConfig {
   const version = (input as ShardConfig | null)?.schemaVersion ?? 1;
   if (version !== 1) assertCompatible(version, 'server', '0.7.0');
+  // Configurations written before the client version was recorded lack it; say what to add.
+  if (input && typeof input === 'object' && !('client' in input))
+    throw new Error(
+      'gemwright.json needs the classic client version players use, e.g. "client": { "version": "7.0.45.1" }'
+    );
   if (!validate(input))
     throw new Error(
       `Invalid gemwright.json: ${validate.errors?.map((error) => `${error.instancePath || '/'} ${error.message}`).join('; ')}`

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import { clientVersion } from '@gemwright/common/config/shard';
 import type { ShardConfig } from '@gemwright/common/config/types';
 
 import { packageClientFiles } from './client-files';
@@ -51,6 +52,7 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
       timezone: shard.timezone,
       emulator: shard.emulator,
       expansion: shard.expansion,
+      client: { version: clientVersion(shard) },
       servuo: { autoCreateAccounts: shard.servuo?.autoCreateAccounts, accountsPerIp: shard.servuo?.accountsPerIp },
       ai: shard.ai ?? {}
     };

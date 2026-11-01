@@ -32,9 +32,13 @@ test('VPS options reject endpoint injection and require a DNS hostname for HTTPS
   for (const domain of [undefined, '127.0.0.1', 'https://example.com', 'foo.com {', 'localhost'])
     expect(() => validateVpsOptions({ publicHost: '203.0.113.1', client: true, domain })).toThrow();
   expect(() => validateVpsOptions({ publicHost: '203.0.113.1' })).not.toThrow();
-  expect(() => validateVpsPackageSelection(createConfig({ packages: { server: '0.8.0' } }))).toThrow('Railway');
-  expect(() => validateVpsPackageSelection(createConfig({ packages: { client: '0.8.0' } }), true)).toThrow('Railway');
-  expect(() => validateVpsPackageSelection(createConfig({}))).not.toThrow();
+  expect(() =>
+    validateVpsPackageSelection(createConfig({ client: { version: '7.0.45.1' }, packages: { server: '0.8.0' } }))
+  ).toThrow('Railway');
+  expect(() =>
+    validateVpsPackageSelection(createConfig({ client: { version: '7.0.45.1' }, packages: { client: '0.8.0' } }), true)
+  ).toThrow('Railway');
+  expect(() => validateVpsPackageSelection(createConfig({ client: { version: '7.0.45.1' } }))).not.toThrow();
   expect(() =>
     validateVpsOptions({ publicHost: 'login.example.com', client: true, domain: 'play.example.com' })
   ).not.toThrow();
@@ -42,7 +46,7 @@ test('VPS options reject endpoint injection and require a DNS hostname for HTTPS
 
 test('rebuilding a VPS bundle preserves the live world and consumed client archive', async () => {
   const { directory, staged, client } = await fixture();
-  const config = createConfig({ name: 'VPS test' });
+  const config = createConfig({ client: { version: '7.0.45.1' }, name: 'VPS test' });
   const options = { publicHost: '203.0.113.1' };
   const root = await writeVpsBundle(directory, config, options, staged, client);
   expect(await readFile(join(root, 'data/client.tar.gz'), 'utf8')).toBe('client fixture');
@@ -69,7 +73,13 @@ test('rebuilding a VPS bundle preserves the live world and consumed client archi
 
 test('a fresh SSH destination receives cached client data without copying the workstation world', async () => {
   const { directory, staged, client } = await fixture();
-  const root = await writeVpsBundle(directory, createConfig({}), { publicHost: '203.0.113.1' }, staged, client);
+  const root = await writeVpsBundle(
+    directory,
+    createConfig({ client: { version: '7.0.45.1' } }),
+    { publicHost: '203.0.113.1' },
+    staged,
+    client
+  );
   await rm(join(root, 'data/client.tar.gz'));
   await writeFile(join(root, 'data/.client-ready'), '');
   await writeFile(join(root, 'data/world.bin'), 'workstation world');
@@ -105,7 +115,9 @@ test('interrupted first uploads can resume while unrelated destination contents 
 
 test('MySQL credentials persist across deployments and its port stays private', async () => {
   const { directory, staged, client } = await fixture();
-  const config = { ...createConfig({}), sphere: { mysql: true } } as ReturnType<typeof createConfig>;
+  const config = { ...createConfig({ client: { version: '7.0.45.1' } }), sphere: { mysql: true } } as ReturnType<
+    typeof createConfig
+  >;
   const options = { publicHost: '203.0.113.1' };
   const root = await writeVpsBundle(directory, config, options, staged, client);
   const secrets = await readFile(join(root, '.env'), 'utf8');
@@ -126,7 +138,7 @@ test('web deployment publishes only manifested assets and keeps relay ports priv
   await mkdir(assets);
   await writeFile(join(assets, 'tiledata.mul'), 'map fixture');
   await writeFile(join(assets, 'client.exe'), 'private executable');
-  const config = createConfig({ name: 'Test $shard' });
+  const config = createConfig({ client: { version: '7.0.45.1' }, name: 'Test $shard' });
   const options = { publicHost: '203.0.113.1', client: true, domain: 'play.example.com' };
   const root = await writeVpsBundle(directory, config, options, staged, client, assets);
   const compose = JSON.parse(await readFile(join(root, 'compose.json'), 'utf8'));
@@ -152,7 +164,7 @@ test('native bundle uses systemd wrappers and a loopback web relay without Docke
   const assets = join(directory, 'assets');
   await mkdir(assets);
   await writeFile(join(assets, 'tiledata.mul'), 'map fixture');
-  const config = createConfig({ name: "Owner's shard" });
+  const config = createConfig({ client: { version: '7.0.45.1' }, name: "Owner's shard" });
   const root = await writeVpsBundle(
     directory,
     config,

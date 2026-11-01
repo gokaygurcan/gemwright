@@ -131,7 +131,7 @@ async function main(): Promise<void> {
     if (values.speech && values.speech !== 'claude' && values.speech !== 'authored')
       throw new Error('--speech must be claude or authored');
     enablePhrasing(values.speech === 'claude');
-    console.error(`[profile] ServUO ${profile.protocol}, expansion ${profile.expansion}`);
+    console.error(`[profile] ServUO, expansion ${profile.expansion}`);
     // New accounts come only from ordinary login; check the shard can make them before trying.
     if (values['create-character'] && (await Bun.file(path).exists())) {
       const store = new ResidentStore(path, config.shardId);

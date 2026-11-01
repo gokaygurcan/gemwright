@@ -5,11 +5,11 @@ import { ShardAction } from '@gemwright/network/replies';
 
 import { tally } from './activity';
 import { nearAnyGround } from './cemeteries';
-import { confinedToHaven } from './haven';
+import { type Gate, moongates, nearestGate } from './gates';
 import { setEscorting } from './human-pace';
 import { lasting } from './lasting';
 import { pickLocation } from './locations';
-import { type Gate, moongates, nearestGate, travelByMoongate } from './moongate';
+import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
 import { tuning } from './tuning';
@@ -59,8 +59,6 @@ const _lastTry = new WeakMap<object, number>();
 // twenty, and never next to a penniless one; one short of money also walks to where escorts
 // spawn. True when it was paid.
 export async function escortOpportunity(ctx: Ctx, funds: number): Promise<boolean> {
-  // Escorts lead to other towns: not for a Young resident of New Haven (haven.ts).
-  if (confinedToHaven(ctx.session)) return false;
   const here = ctx.position();
   if (funds <= 0) broke.set(ctx.serial, { ...here, at: Date.now() });
   else broke.delete(ctx.serial);

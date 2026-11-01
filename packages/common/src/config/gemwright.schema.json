@@ -3,7 +3,7 @@
   "title": "Gemwright shard configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "id", "timezone", "expansion", "emulator"],
+  "required": ["name", "id", "timezone", "expansion", "emulator", "client"],
   "properties": {
     "$schema": {
       "type": "string"
@@ -46,6 +46,17 @@
     },
     "emulator": {
       "enum": ["servuo", "sphere", "sphere-x", "runuo", "modernuo"]
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      },
+      "required": ["version"]
     },
     "source": {
       "$ref": "#/definitions/source"

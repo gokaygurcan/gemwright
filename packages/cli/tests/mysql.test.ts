@@ -30,7 +30,7 @@ const state = (): RailwayState => ({
 
 test('MySQL is opt-in and generated Sphere files contain no database credentials', async () => {
   const pair = { server: { ...sphereSources.server, revision: 'a'.repeat(40) }, scripts: sphereSettings.scriptsSource };
-  const config = createConfig({ emulator: 'sphere', source: pair.server });
+  const config = createConfig({ client: { version: '7.0.45.1' }, emulator: 'sphere', source: pair.server });
   const normal = await initializeSphere(config, pair, true, async () => sphereFixture());
   expect(normal.settings.mysql).toBeUndefined();
   const mysql = await initializeSphere(config, pair, true, async () => sphereFixture(), true);
@@ -39,9 +39,13 @@ test('MySQL is opt-in and generated Sphere files contain no database credentials
   expect(sphereConfigValue(ini, 'MySQL')).toBe('1');
   for (const key of ['MySQLHost', 'MySQLUser', 'MySQLPassword', 'MySQLDatabase'])
     expect(sphereConfigValue(ini, key)).toBeUndefined();
-  expect(() => createConfig({ ...config, sphere: { ...sphereSettings, mysql: 'yes' as unknown as boolean } })).toThrow(
-    'Invalid Sphere settings'
-  );
+  expect(() =>
+    createConfig({
+      client: { version: '7.0.45.1' },
+      ...config,
+      sphere: { ...sphereSettings, mysql: 'yes' as unknown as boolean }
+    })
+  ).toThrow('Invalid Sphere settings');
   const plain = prepareSphereFiles(sphereFixture(), config, sphereSettings, 'test-password');
   expect(sphereConfigValue(Buffer.from(required(plain['sphere.ini'], 'sphere.ini')).toString(), 'MySQL')).toBe('0');
 });

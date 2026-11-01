@@ -2,7 +2,7 @@ import { gold, reagents } from '@gemwright/common/game/items';
 import { Notoriety } from '@gemwright/network/opcodes';
 import type { Entity } from '@gemwright/network/world';
 
-import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
+import { deposit, openBank, withdraw } from './bank-box';
 import { Blocked } from './blocked';
 import { recognised } from './fighter-prey';
 import { pickLocation, type ServiceType } from './locations';
@@ -116,39 +116,22 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
         await reachRegion(ctx, home);
         await ctx.navigate(home, 4);
       }
-      for (const mobile of session.world.entities.values()) {
-        if (mobile.kind !== 'mobile' || mobile.notoriety !== Notoriety.invulnerable || !mobile.position) continue;
-        if (distance(ctx.position(), mobile.position) > 12) continue;
-        if (!(await offersBank(session, mobile.serial))) continue;
-        let box: number;
-        try {
-          box = await openBankBox(ctx, mobile.serial);
-        } catch (error) {
-          if (session.phase !== 'ready') throw error;
-          ctx.log(`Banker unavailable: ${error instanceof Error ? error.message : error}`);
-          continue;
-        }
+      const box = await openBank(ctx, 12);
+      if (box) {
         // A box near ServUO's 125-item limit gives up some stored takings to sell on the next trip.
-        const boxed = session.world.childrenOf(box).filter((item) => item.graphic !== gold);
-        if (boxed.length >= BOX_FULL)
-          for (const item of boxed.slice(0, 20)) {
-            ctx.check();
-            await session.moveItem(item.serial, ctx.backpack());
-            await Bun.sleep(700);
-          }
-        let banked = 0;
-        let stored = 0;
-        for (const item of loot(ctx)) {
-          ctx.check();
-          await session.moveItem(item.serial, box);
-          if (item.graphic === gold) banked += item.amount ?? 1;
-          else stored++;
-          await Bun.sleep(700);
-        }
-        await queryBankBalance(ctx, mobile.serial);
+        const boxed = session.world.childrenOf(box.box).filter((item) => item.graphic !== gold);
+        if (boxed.length >= BOX_FULL) await withdraw(ctx, boxed.slice(0, 20), ctx.backpack());
+        const takings = loot(ctx);
+        const result = await deposit(ctx, box, takings);
+        const went = takings.filter((item) => result.moved.includes(item.serial));
+        const banked = went.filter((item) => item.graphic === gold).reduce((n, item) => n + (item.amount ?? 1), 0);
+        const stored = went.filter((item) => item.graphic !== gold).length;
         ctx.progress.banked = (ctx.progress.banked ?? 0) + banked;
         ctx.progress.stored = (ctx.progress.stored ?? 0) + stored;
-        ctx.phase('thief-bank', `Banked ${banked} gold and ${stored} item(s) with the ${ctx.city} banker`);
+        ctx.phase(
+          'thief-bank',
+          `Banked ${banked} gold and ${stored} item(s) with the ${ctx.city} banker${result.refused.length ? `; refused: ${result.refused[0]?.reason}` : ''}`
+        );
         return;
       }
       ctx.log('No banker offered an open bank box');

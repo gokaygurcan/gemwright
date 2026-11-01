@@ -15,6 +15,7 @@ import { petFightReadiness } from './pet-risk';
 import { petSource } from './pets';
 import type { ProfessionContext } from './profession';
 import { rangedGraphics, rangedWeapon } from './ranged-weapons';
+import { onItem, useOn } from './target-action';
 import { buyFrom } from './vendor-trade';
 
 const bows = rangedGraphics;
@@ -32,7 +33,7 @@ export async function veterinary(ctx: ProfessionContext, pet: Entity) {
   const { session } = ctx;
   if ((healingUntil.get(ctx) ?? 0) > Date.now()) return;
   if (ctx.count(bandage) < 5 && !takingUrgentAction(session))
-    await buyFrom({ ...ctx, limits: TOOLS }, 'healer', new Map([[bandage, 10]]), 8).catch(() => false);
+    await buyFrom({ ...ctx, limits: TOOLS }, 'healer', new Map([[bandage, 10]])).catch(() => false);
   const roll = ctx.carried().find((item) => item.graphic === bandage);
   const now = session.world.entities.get(pet.serial);
   if (!roll || !now?.position) return;
@@ -40,13 +41,9 @@ export async function veterinary(ctx: ProfessionContext, pet: Entity) {
   if (distance(ctx.position(), now.position) > 1) await ctx.navigate(now.position, 1);
   const seen = new Set(session.world.journal);
   const before = now.hits;
-  session.use(roll.serial);
-  await session
-    .waitFor(() => session.world.target !== null, 'bandage cursor', 3000, { resource: 'target' })
-    .catch(() => {});
+  const applied = await useOn(session, () => session.use(roll.serial), onItem(pet), { label: 'bandage cursor' });
   ctx.check();
-  if (!session.world.target) return;
-  session.target({ serial: pet.serial, x: 0, y: 0, z: 0, graphic: pet.graphic });
+  if ('why' in applied) return;
   healingUntil.set(ctx, Date.now() + 8000);
   const until = Date.now() + 6000;
   while (Date.now() < until) {
@@ -95,7 +92,7 @@ export async function readyBow(ctx: ProfessionContext) {
       ctx.phase('bow-restock', 'Buying a bow and arrows from a bowyer');
       const wanted = new Map([[ammo(), 150]]);
       if (!held() && !ctx.carried().some((i) => bows.has(i.graphic))) wanted.set(0x13b2, 1);
-      await buyFrom({ ...ctx, limits: TOOLS }, 'bowyer', wanted, 60).catch(() => false);
+      await buyFrom({ ...ctx, limits: TOOLS }, 'bowyer', wanted).catch(() => false);
     }
   }
   const bow = held() ?? ctx.carried().find((i) => bows.has(i.graphic));

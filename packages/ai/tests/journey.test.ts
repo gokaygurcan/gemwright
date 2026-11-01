@@ -5,8 +5,8 @@ import type { Position } from '@gemwright/network/world';
 import { areaOfPlace } from '../src/areas';
 import { Blocked } from '../src/blocked';
 import { type Dungeon, dungeonAt, dungeons, exitStair, floorAt } from '../src/dungeons';
+import { type Gate, moongates } from '../src/gates';
 import { destinationGate, travelJourney } from '../src/journey';
-import { type Gate, moongates } from '../src/moongate';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

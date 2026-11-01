@@ -4,7 +4,8 @@ import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
-import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
+import { deposit } from './bank-box';
+import { offersBank, openBankBox } from './bank-gold';
 import { nearAnyGround, travelNear } from './cemeteries';
 import { replaceDeathRobe } from './death-robe';
 import { actionScope } from './execution-session';
@@ -21,6 +22,7 @@ import { errand } from './objective-memory';
 import { travelScrolls } from './scribe';
 import { shopsFor } from './selling';
 import { createServiceExperience } from './service-experience';
+import { sellChosen, sellOffers } from './vendor-shop';
 
 export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>) {
   const {
@@ -120,16 +122,13 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
       await errand(ctx, `sell:${shop.x},${shop.y}`, `selling at ${shop.x},${shop.y}`, async () => {
         await travelNear(ctx, shop, 5);
         for (const mobile of learning.order(nearby(), Actions.sell)) {
-          session.world.sellOffers.delete(mobile.serial);
-          if (!(await contextAction(mobile, Actions.sell))) continue;
-          try {
-            await session.waitFor(() => session.world.sellOffers.has(mobile.serial), 'vendor buying list', 2200);
-          } catch {
-            check();
+          if (learning.blocked(mobile, Actions.sell)) continue;
+          const opened = await sellOffers(session, mobile.serial, Actions.sell);
+          if ('why' in opened) {
+            if (opened.why === 'no-entry') learning.record(mobile, Actions.sell, 'no-service');
             continue;
           }
-          const offers = session.world.sellOffers.get(mobile.serial) ?? [];
-          const sale = offers
+          const sale = opened.offers
             .filter(
               (item) =>
                 item.price > 0 &&
@@ -147,24 +146,15 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
             .slice(0, 99);
           if (!sale.length) continue;
           await approachVendor(ctx, mobile.serial);
-          const coinsBefore = contents()
-            .filter((item) => item.graphic === gold)
-            .reduce((n, item) => n + (item.amount ?? 1), 0);
           const stockBefore = new Map(contents().map((item) => [item.serial, item.amount ?? 1]));
-          await session.sell(
-            mobile.serial,
-            sale.map((item) => ({ serial: item.serial, amount: item.amount }))
-          );
-          const coinsAfter = contents()
-            .filter((item) => item.graphic === gold)
-            .reduce((n, item) => n + (item.amount ?? 1), 0);
+          const { earned } = await sellChosen(session, mobile.serial, sale);
           const sold = sale.filter(
             (item) =>
               (contents().find((owned) => owned.serial === item.serial)?.amount ?? 0) <
               (stockBefore.get(item.serial) ?? 0)
           );
-          if (!sold.length || coinsAfter <= coinsBefore) continue;
-          recordIncome(checkpoint, 'soldGold', coinsAfter - coinsBefore);
+          if (!sold.length || !earned) continue;
+          recordIncome(checkpoint, 'soldGold', earned);
           learning.record(mobile, Actions.sell, 'success');
           stats.sold += sold.length;
           trip.loot = trip.loot.filter((id) => contents().some((item) => item.serial === id));
@@ -203,28 +193,23 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
         for (const mobile of bankers) {
           const opened = await openBank(mobile, pass > 0);
           if (opened === undefined) continue;
-          const box = { serial: opened };
-          await Bun.sleep(500);
-          for (const item of contents()) {
-            check();
+          // The bank box holds 125 items; past 100 unsold loot stays out of it (inventory.ts).
+          const room = Math.max(0, 100 - packItems(session, opened).length);
+          const coins = contents().filter((item) => item.graphic === gold && (item.amount ?? 1) > 0);
+          const valuables = contents()
+            .filter((item) => trip.loot.includes(item.serial))
+            .slice(0, room);
+          const result = await deposit(ctx, { banker: mobile.serial, box: opened }, [...coins, ...valuables]);
+          for (const item of [...coins, ...valuables].filter((i) => result.moved.includes(i.serial))) {
             if (item.graphic === gold) {
-              const deposit = item.amount ?? 1;
-              if (deposit <= 0) continue;
-              await session.moveItem(item.serial, box.serial, deposit);
-              stats.bankedGold += deposit;
-              recordIncome(checkpoint, 'bankedGold', deposit);
-            } else if (trip.loot.includes(item.serial) && packItems(session, box.serial).length < 100) {
-              // The bank box holds 125 items; past 100 unsold loot stays out of it (inventory.ts).
-              await session.moveItem(item.serial, box.serial);
-              stats.bankedItems++;
-            } else continue;
-            trip.loot = trip.loot.filter((id) => id !== item.serial);
-            persist();
-            await Bun.sleep(700);
+              stats.bankedGold += item.amount ?? 1;
+              recordIncome(checkpoint, 'bankedGold', item.amount ?? 1);
+            } else stats.bankedItems++;
           }
+          for (const refused of result.refused) log(`The bank refused an item: ${refused.reason}`);
           trip.loot = trip.loot.filter((id) => contents().some((item) => item.serial === id));
+          persist();
           learning.record(mobile, Actions.bank, 'success');
-          await queryBankBalance(ctx, mobile.serial);
           trip.killsSinceBank = 0;
           trip.pending = 'hunt';
           delete trip.encounter;

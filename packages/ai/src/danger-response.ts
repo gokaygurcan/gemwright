@@ -1,7 +1,7 @@
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { DangerInterrupt, escapingDanger, recentlyHurt, urgentAction } from './action-purpose';
+import { DangerInterrupt, recentlyHurt, takingUrgentAction, urgentAction } from './action-purpose';
 import { shelterNearHelper } from './aid';
 import { Blocked } from './blocked';
 import { rememberAttack, threatsNear } from './danger';
@@ -23,7 +23,10 @@ export function beingAttacked(session: PlayerSession) {
 export function interruptForDanger(session: PlayerSession, sighted = true) {
   if (!perceptionFor(session).available && session.phase === 'ready')
     throw new Error('Perception unavailable; reconcile before acting');
-  if (escapingDanger(session) || GHOST_BODIES.has(session.world.entities.get(session.world.serial ?? -1)?.graphic ?? 0))
+  if (
+    takingUrgentAction(session) ||
+    GHOST_BODIES.has(session.world.entities.get(session.world.serial ?? -1)?.graphic ?? 0)
+  )
     return;
   if (recentlyHurt(session) || beingAttacked(session)) {
     if (session.world.position) rememberAttack(session, session.world.position);

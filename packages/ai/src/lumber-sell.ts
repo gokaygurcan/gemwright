@@ -1,44 +1,32 @@
 import { board, gold } from '@gemwright/common/game/items';
 import { Actions } from '@gemwright/network/replies';
+import type { Entity } from '@gemwright/network/world';
 
-import { offersBank, openBankBox, queryBankBalance } from './bank-gold';
+import { deposit, type Moved, openBank } from './bank-box';
 import { vendorMenu } from './lumber-shop';
 import { approachVendor } from './mobile-approach';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
+import { sellChosen, sellOffers } from './vendor-shop';
 
 // At the carpenter's: the first nearby vendor whose buy list takes the carried plain boards buys
 // them all. Returns what sold and the gold it brought, or undefined when nobody bought.
 export async function sellBoards(
   ctx: Pick<MountContext, 'session' | 'terrain' | 'position' | 'navigate' | 'check' | 'serial' | 'status' | 'backpack'>
 ) {
-  const { session, position, status } = ctx;
+  const { session, position } = ctx;
   for (const mobile of [...session.world.entities.values()]) {
     if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
-    const entry = await vendorMenu(session, mobile, Actions.sell);
-    if (!entry) continue;
+    if (!(await vendorMenu(session, mobile, Actions.sell))) continue;
     await approachVendor(ctx, mobile.serial);
-    session.world.sellOffers.delete(mobile.serial);
-    const current = await vendorMenu(session, mobile, Actions.sell);
-    if (!current) continue;
-    session.selectContext(mobile.serial, current.index);
-    const offered = await session
-      .waitFor(() => session.world.sellOffers.has(mobile.serial), 'carpenter buying list', 2500)
-      .then(() => true)
-      .catch(() => false);
-    if (!offered) continue;
-    const sale = (session.world.sellOffers.get(mobile.serial) ?? []).filter((offer) => {
+    const opened = await sellOffers(session, mobile.serial, Actions.sell);
+    if ('why' in opened) continue;
+    const sale = opened.offers.filter((offer) => {
       const item = session.world.entities.get(offer.serial);
       return item?.parent === ctx.backpack() && item.graphic === board && !item.hue && offer.amount === item.amount;
     });
     if (!sale.length) continue;
-    const before = status().gold;
-    await session.sell(
-      mobile.serial,
-      sale.map((offer) => ({ serial: offer.serial, amount: offer.amount }))
-    );
-    await session.refreshStatus();
-    return { amount: sale.reduce((sum, offer) => sum + offer.amount, 0), earned: status().gold - before };
+    return sellChosen(session, mobile.serial, sale);
   }
   return undefined;
 }
@@ -46,20 +34,23 @@ export async function sellBoards(
 // At the bank: gold goes into the box, and so does wood (`stored` graphics) no carpenter bought.
 export async function storeAtBank(
   ctx: Pick<MountContext, 'session' | 'terrain' | 'position' | 'navigate' | 'check' | 'serial' | 'checkpoint'> & {
-    carried: () => { serial: number; graphic: number }[];
+    carried: () => Entity[];
+    phase: (phase: string, note: string) => void;
   },
   stored: number[]
-) {
-  const { session, position, checkpoint, carried } = ctx;
-  const banker = [...session.world.entities.values()].find(
-    (mobile) => mobile.kind === 'mobile' && mobile.position && distance(position(), mobile.position) <= 11
-  );
-  if (banker && (await offersBank(session, banker.serial))) {
-    const box = await openBankBox(ctx, banker.serial);
-    for (const item of carried().filter((entry) => entry.graphic === gold || stored.includes(entry.graphic))) {
-      await session.moveItem(item.serial, box);
-      await Bun.sleep(600);
-    }
-    await queryBankBalance({ ...ctx, checkpoint }, banker.serial);
+): Promise<Moved | undefined> {
+  const bank = await openBank(ctx);
+  // The shard's own reason, not a silent "still full": the loop guard and the log see why.
+  if (!bank) {
+    ctx.phase('bank-refused', 'No banker here opened a bank box');
+    return;
   }
+  const result = await deposit(
+    ctx,
+    bank,
+    ctx.carried().filter((entry) => entry.graphic === gold || stored.includes(entry.graphic))
+  );
+  if (result.refused.length)
+    ctx.phase('bank-refused', `The bank took ${result.moved.length}, refused: ${result.refused[0]?.reason}`);
+  return result;
 }

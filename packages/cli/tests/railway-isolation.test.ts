@@ -23,6 +23,7 @@ async function fixture(external = false) {
   for (const name of ['tiledata.mul', 'map1.mul', 'map0.mul']) await writeFile(join(dir, 'files', name), name);
   const config = createConfig({
     name: 'Shard',
+    client: { version: '7.0.45.1' },
     railway: { project: 'project', environment: 'production', ...(external ? {} : { server: 'server' }) },
     ...(external ? { connection: { host: 'external.example.com', port: 2593, aiReady: true } } : {})
   });

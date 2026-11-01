@@ -10,6 +10,7 @@ import { lifeEvent } from './life-events';
 import { pickLocation } from './locations';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
+import { answerCursor, onItem } from './target-action';
 
 // Bulk orders, a crafter's steady income (ServUO BulkOrderSystem, the new system from Time of
 // Legends): a shopkeeper of the trade offers one through "Bulk Order Info" (6152) when its timer
@@ -131,8 +132,8 @@ async function claimReward(ctx: Ctx, vendor: { mobile: Entity; entry: { index: n
     .catch(() => undefined);
   if (!rewards) return !!points;
   const pick = gumpCommands(rewards.layout)
-    .filter((command) => command[0] === 'button' && Number(command[5]) >= AFFORDABLE)
-    .map((command) => Number(command[5]))
+    .filter((command) => command[0] === 'button' && command[5] === '1' && Number(command[7]) >= AFFORDABLE)
+    .map((command) => Number(command[7]))
     .sort((a, b) => a - b)[0];
   // Nothing this resident can afford yet: the points stay banked for the next turn-in.
   if (pick === undefined) {
@@ -172,11 +173,8 @@ async function combine(ctx: Ctx, order: Order, graphic: number) {
   session.replyGump(gump.serial, gump.id, 2, []);
   for (const piece of pieces) {
     ctx.check();
-    await session
-      .waitFor(() => session.world.target !== null, 'combine cursor', 3000, { resource: 'target' })
-      .catch(() => {});
-    if (!session.world.target) break;
-    session.target({ serial: piece.serial, x: 0, y: 0, z: 0, graphic: piece.graphic });
+    // The deed's gump asks for each piece with a cursor of its own.
+    if ('why' in (await answerCursor(session, onItem(piece), { label: 'combine cursor' }))) break;
     await session.waitFor(() => !session.world.entities.has(piece.serial), 'piece combined', 3000).catch(() => {});
   }
   if (session.world.target) session.target(null);

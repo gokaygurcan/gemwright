@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { type Gate, moongates } from './moongate';
+import { type Gate, moongates } from './gates';
 import { distance } from './navigation';
 import { RouteSearch } from './path-search';
 import { type Point, Terrain } from './terrain';

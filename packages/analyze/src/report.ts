@@ -191,9 +191,9 @@ function banks(residents: CharacterRecord[]) {
       ['Items in box', 'Residents'],
       [
         ['none', sizes.filter((s) => s === 0).length],
-        ['1–49', sizes.filter((s) => s > 0 && s < 50).length],
-        ['50–109', sizes.filter((s) => s >= 50 && s < 110).length],
-        ['110–125 (nearly full)', sizes.filter((s) => s >= 110).length]
+        ['1-49', sizes.filter((s) => s > 0 && s < 50).length],
+        ['50-109', sizes.filter((s) => s >= 50 && s < 110).length],
+        ['110-125 (nearly full)', sizes.filter((s) => s >= 110).length]
       ]
     ),
     '',

@@ -21,7 +21,7 @@ const aliases: Record<string, Good> = {
   boards: 'boards',
   arrow: 'arrows',
   arrows: 'arrows',
-  crossbowBolt: 'bolts',
+  bolt: 'bolts',
   bolts: 'bolts',
   cloth: 'cloth',
   bandage: 'bandages',
@@ -212,8 +212,7 @@ export async function orderTurn(ctx: LifeContext): Promise<boolean> {
           limits: BUSINESS
         },
         def.shop,
-        new Map([[def.graphic, order.amount - held]]),
-        Math.floor(order.price / order.amount)
+        new Map([[def.graphic, order.amount - held]])
       );
       if (bought) {
         ctx.persist();

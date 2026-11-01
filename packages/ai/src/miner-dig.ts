@@ -8,6 +8,7 @@ import { urgentAction } from './action-purpose';
 import { tally } from './activity';
 import { threatsNear } from './danger';
 import type { MinerServicesContext } from './miner-types';
+import { onTile, useOn } from './target-action';
 import type { Point, Terrain } from './terrain';
 
 export { ore };
@@ -57,16 +58,14 @@ export async function digSite(
     // the site before using the tool instead of hitting it from across the room.
     if (Math.max(Math.abs(position().x - dig.site.x), Math.abs(position().y - dig.site.y)) > 2)
       await navigate({ x: dig.site.x, y: dig.site.y, z: dig.site.z }, 1).catch(() => {});
-    session.use(dig.tool);
-    await session.waitFor(() => session.world.target !== null, 'mining tool cursor', 4000, { resource: 'target' });
     const tile = dig.site.graphic ? terrain.tile(dig.site.graphic, true) : null;
-    session.target({
-      serial: 0,
-      x: dig.site.x,
-      y: dig.site.y,
-      z: dig.site.z + (tile && tile.flags & TileFlag.Surface ? tile.height : 0),
-      graphic: dig.site.graphic
-    });
+    const rock = onTile(
+      { ...dig.site, z: dig.site.z + (tile && tile.flags & TileFlag.Surface ? tile.height : 0) },
+      dig.site.graphic
+    );
+    const swing = await useOn(session, () => session.use(dig.tool), rock, { label: 'mining tool cursor', ms: 4000 });
+    if ('why' in swing)
+      throw new Error(`The mining tool brought no cursor (${swing.why}${swing.heard ? `: ${swing.heard}` : ''})`);
     attempts++;
     await Bun.sleep(2500);
     if (oreIn(dig.carried(dig.backpack)) > oreBefore) tally(session, 'mined');

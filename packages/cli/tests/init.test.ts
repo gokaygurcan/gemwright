@@ -45,7 +45,7 @@ async function run(args: string[], cwd: string) {
 
 test('--yes uses defaults, writes ServUO config and initializes Git', async () => {
   const directory = await temporaryFolder();
-  await initialize({ directory, yes: true }, async () => source, loadConfig);
+  await initialize({ directory, yes: true, 'client-version': '7.0.45.1' }, async () => source, loadConfig);
   const config = JSON.parse(await readFile(join(directory, 'gemwright.json'), 'utf8'));
   expect(config.name).toBe('Gemwright');
   expect(config.adminEmail).toBe('gemwright@example.com');
@@ -63,18 +63,27 @@ test('--yes uses defaults, writes ServUO config and initializes Git', async () =
   expect(accounts).not.toContain('<password>');
   expect((await stat(join(directory, 'Saves/Accounts/accounts.xml'))).mode & 0o777).toBe(0o600);
   if (Bun.which('git')) expect((await stat(join(directory, '.git'))).isDirectory()).toBe(true);
-  expect((await run(['init', '--yes'], directory)).stderr).toContain('Refusing to overwrite');
+  expect((await run(['init', '--yes', '--client-version', '7.0.45.1'], directory)).stderr).toContain(
+    'Refusing to overwrite'
+  );
 });
 
 test('flags override defaults and invalid input leaves the target untouched', async () => {
   const directory = await temporaryFolder();
   const target = join(directory, 'shard');
-  const invalid = await run(['init', target, '--yes', '--timezone', 'UTC'], directory);
+  const invalid = await run(['init', target, '--yes', '--client-version', '7.0.45.1', '--timezone', 'UTC'], directory);
   expect(invalid.code).toBe(1);
   expect(invalid.stderr).toContain('Unsupported timezone');
   expect(await Bun.file(join(target, 'gemwright.json')).exists()).toBe(false);
   await initialize(
-    { directory: target, yes: true, name: "British's Realm", timezone: 'Europe/London', expansion: 'uor' },
+    {
+      directory: target,
+      yes: true,
+      'client-version': '7.0.45.1',
+      name: "British's Realm",
+      timezone: 'Europe/London',
+      expansion: 'uor'
+    },
     async () => source,
     loadConfig
   );
@@ -87,6 +96,7 @@ test('flags override defaults and invalid input leaves the target untouched', as
     timezone: 'Europe/London',
     expansion: 'uor',
     emulator: 'servuo',
+    client: { version: '7.0.45.1' },
     source,
     servuo: {
       owner: 'admin',
@@ -110,13 +120,17 @@ test('initialization resolves a fresh revision per shard and leaves no files on 
   const directory = await temporaryFolder();
   const first = join(directory, 'first');
   const second = join(directory, 'second');
-  await initialize({ directory: first, yes: true }, async () => source, loadConfig);
-  await initialize({ directory: second, yes: true }, async () => ({ ...source, revision: 'b'.repeat(40) }), loadConfig);
+  await initialize({ directory: first, yes: true, 'client-version': '7.0.45.1' }, async () => source, loadConfig);
+  await initialize(
+    { directory: second, yes: true, 'client-version': '7.0.45.1' },
+    async () => ({ ...source, revision: 'b'.repeat(40) }),
+    loadConfig
+  );
   expect(JSON.parse(await readFile(join(first, 'gemwright.json'), 'utf8')).source.revision).toBe('a'.repeat(40));
   expect(JSON.parse(await readFile(join(second, 'gemwright.json'), 'utf8')).source.revision).toBe('b'.repeat(40));
   const failed = join(directory, 'failed');
   await expect(
-    initialize({ directory: failed, yes: true }, async () => {
+    initialize({ directory: failed, yes: true, 'client-version': '7.0.45.1' }, async () => {
       throw new Error('offline');
     })
   ).rejects.toThrow('offline');
@@ -127,7 +141,7 @@ test('Sphere initialization records both sources and writes config, binary scrip
   const directory = await temporaryFolder();
   const pair = { server: { ...sphereSources.server, revision: 'c'.repeat(40) }, scripts: sphereSettings.scriptsSource };
   await initialize(
-    { directory, emulator: 'sphere', yes: true },
+    { directory, emulator: 'sphere', yes: true, 'client-version': '7.0.45.1' },
     async () => {
       throw new Error('Unexpected ServUO lookup');
     },
@@ -155,7 +169,9 @@ test('Sphere initialization records both sources and writes config, binary scrip
   expect(password.length).toBe(16);
   expect(seed).not.toContain(password);
   expect(JSON.stringify(config)).not.toContain(password);
-  expect((await run(['init', '--emulator', 'sphere', '--yes'], directory)).stderr).toContain('Refusing to overwrite');
+  expect(
+    (await run(['init', '--emulator', 'sphere', '--yes', '--client-version', '7.0.45.1'], directory)).stderr
+  ).toContain('Refusing to overwrite');
 });
 
 test('Sphere source or preparation failures leave the target untouched', async () => {
@@ -165,7 +181,7 @@ test('Sphere source or preparation failures leave the target untouched', async (
     const target = join(directory, stage);
     await expect(
       initialize(
-        { directory: target, emulator: 'sphere', yes: true },
+        { directory: target, emulator: 'sphere', yes: true, 'client-version': '7.0.45.1' },
         async () => source,
         loadConfig,
         async () => {
@@ -187,7 +203,7 @@ test('--client is only accepted by deploy and requires game files', async () => 
   const init = await run(['init', '--client'], directory);
   expect(init.code).toBe(1);
   expect(init.stderr).toContain('only supported by deploy');
-  await initialize({ directory, yes: true }, async () => source, loadConfig);
+  await initialize({ directory, yes: true, 'client-version': '7.0.45.1' }, async () => source, loadConfig);
   const deploy = await run(['deploy', '--client'], directory);
   expect(deploy.code).toBe(1);
   expect(deploy.stderr).toContain('requires --files');
@@ -195,13 +211,16 @@ test('--client is only accepted by deploy and requires game files', async () => 
 
 test('--mysql is accepted for Sphere and rejected for other emulators without writing files', async () => {
   const directory = await temporaryFolder();
-  const rejected = await run(['init', '--emulator', 'servuo', '--mysql', '--yes'], directory);
+  const rejected = await run(
+    ['init', '--emulator', 'servuo', '--mysql', '--yes', '--client-version', '7.0.45.1'],
+    directory
+  );
   expect(rejected.code).toBe(1);
   expect(rejected.stderr).toContain('--mysql is only supported by Sphere and Sphere-X');
   await expect(stat(join(directory, 'gemwright.json'))).rejects.toThrow();
   const pair = { server: { ...sphereSources.server, revision: 'a'.repeat(40) }, scripts: sphereSettings.scriptsSource };
   await initialize(
-    { directory, emulator: 'sphere', mysql: true, yes: true },
+    { directory, emulator: 'sphere', mysql: true, yes: true, 'client-version': '7.0.45.1' },
     async () => source,
     loadConfig,
     async () => pair,

@@ -1,7 +1,7 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { ItemProperty, isDeathRobe } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
-import { Opcode } from '@gemwright/network/opcodes';
+import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
@@ -9,6 +9,7 @@ import { chargedPurchase, fundsStale, spendableGold } from './bank-gold';
 import { travelNear } from './cemeteries';
 import { type FighterContext, weaponsFor } from './fighter-context';
 import { approachVendor } from './mobile-approach';
+import { buyOffers } from './vendor-shop';
 
 // Hair, backpack, mount and bank layers are never dressed from the backpack.
 const reserved = new Set<number>([0, Layer.Hair, Layer.FacialHair, Layer.Backpack, Layer.Mount, Layer.Bank]);
@@ -50,7 +51,6 @@ const armorLayers = new Set<number>([
   Layer.Arms
 ]);
 const ARMOR_RESERVE = 750;
-const ARMOR_PIECE_LIMIT = 150;
 // Below this share of its maximum durability a piece is retired and replaced (no NPC repairs on
 // ServUO pub57; repair needs Blacksmithy at a forge and anvil).
 const WORN_SHARE = 0.25;
@@ -58,7 +58,7 @@ const REPLACEMENT_RESERVE = 200;
 
 export function createFighterGear(
   ctx: FighterContext,
-  contextAction: (mobile: Entity, cliloc: number) => Promise<boolean>
+  _contextAction: (mobile: Entity, cliloc: number) => Promise<boolean>
 ) {
   const { session, terrain, serial, contents, nearby, phase, check, log, trip, status } = ctx;
   const worn = (layer: number) =>
@@ -288,22 +288,13 @@ export function createFighterGear(
     await travelNear(ctx, ctx.home.one('blacksmith'), 5);
     for (const mobile of nearby()) {
       check();
-      const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-      if (!(await contextAction(mobile, Actions.buy))) continue;
-      try {
-        await session.waitFor(
-          () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before,
-          'armor vendor stock',
-          2500
-        );
-      } catch {
-        check();
-        continue;
-      }
+      if (mobile.notoriety !== Notoriety.invulnerable) continue;
+      const stock = await buyOffers(session, mobile.serial, Actions.buy);
+      if ('why' in stock) continue;
       // The shield comes first: it enables Parry training and blocks melee outright. A slot is
       // upgraded only when the offer's specs clearly beat the worn piece.
       for (const layer of [...armorLayers].sort((a, b) => Number(b === 2) - Number(a === 2))) {
-        const offers = [...session.world.buyOffers.values()].flat().filter((entry) => {
+        const offers = stock.offers.filter((entry) => {
           const item = session.world.entities.get(entry.serial);
           const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
           return (
@@ -314,7 +305,6 @@ export function createFighterGear(
             suits(item, layer) &&
             !refused.has(item.graphic) &&
             entry.price > 0 &&
-            entry.price <= ARMOR_PIECE_LIMIT &&
             entry.price <= spendable() - ARMOR_RESERVE
           );
         });
@@ -335,7 +325,7 @@ export function createFighterGear(
         const owned = new Set(contents().map((item) => item.serial));
         await approachVendor(ctx, mobile.serial);
         await chargedPurchase(ctx, offer.price, () =>
-          session.purchaseItem(mobile.serial, offer.serial, ctx.backpack(), 1, ARMOR_PIECE_LIMIT)
+          session.purchaseItem(mobile.serial, offer.serial, ctx.backpack(), 1, offer.price)
         );
         const bought = contents().find((item) => !owned.has(item.serial));
         phase(

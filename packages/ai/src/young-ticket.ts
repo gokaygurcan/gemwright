@@ -1,11 +1,12 @@
 import { gumpCommands } from '@gemwright/network/gumps';
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { BANKER_SPEECH_RANGE, offersBank, openBankBox } from './bank-gold';
+import { openBank, withdraw } from './bank-box';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
 import { residentContext } from './resident-context';
+import { onItem, useOn } from './target-action';
 import { sellTo } from './vendor-trade';
 
 // The young player ticket every new character gets (ServUO NewPlayerTicket, 0x14EF): two players
@@ -98,12 +99,11 @@ export async function ticketTurn(ctx: ProfessionContext): Promise<boolean> {
       offers.delete(owner);
       return true;
     }
-    session.use(ticket.serial);
-    await session
-      .waitFor(() => session.world.target !== null, 'ticket cursor', 4000, { resource: 'target' })
-      .catch(() => {});
-    if (!session.world.target) return true;
-    session.target({ serial: lying.serial, x: 0, y: 0, z: 0, graphic: lying.graphic });
+    const used = await useOn(session, () => session.use(ticket.serial), onItem(lying), {
+      label: 'ticket cursor',
+      ms: 4000
+    });
+    if ('why' in used) return true;
     offers.delete(owner);
     await session.waitFor(() => !!prizeGump(session), 'ticket prize', 6000).catch(() => {});
     if (await choosePrize(session, ctx.backpack())) ctx.log('Chose the spellbook for my young player ticket');
@@ -131,22 +131,18 @@ async function fetchTicket(ctx: ProfessionContext): Promise<boolean> {
   const bank = pickLocation(townAt(ctx.position(), ctx.city), 'banker', ctx.position());
   if (!bank || distance(bank, ctx.position()) > 6) return false;
   tried.set(session, Date.now() + 30 * 60_000);
-  for (const mobile of [...session.world.entities.values()]) {
-    if (mobile.kind !== 'mobile' || !mobile.position || distance(ctx.position(), mobile.position) > BANKER_SPEECH_RANGE)
-      continue;
-    if (!(await offersBank(session, mobile.serial))) continue;
-    const box = await openBankBox(ctx, mobile.serial).catch(() => undefined);
-    if (box === undefined) continue;
-    const ticket = session.world.childrenOf(box).find((i) => i.graphic === TICKET);
-    if (ticket) {
-      await session.moveItem(ticket.serial, ctx.backpack()).catch(() => {});
+  const box = await openBank(ctx);
+  if (!box) return false;
+  const ticket = session.world.childrenOf(box.box).find((i) => i.graphic === TICKET);
+  if (ticket) {
+    const taken = await withdraw(ctx, [ticket], ctx.backpack());
+    if (taken.moved.length) {
       ctx.log('Took my young player ticket out of the bank');
       tried.delete(session);
-    } else ctx.checkpoint.ticketPrize = 'done';
-    ctx.persist();
-    return true;
-  }
-  return false;
+    } else ctx.log(`The bank kept my young player ticket: ${taken.refused[0]?.reason}`);
+  } else ctx.checkpoint.ticketPrize = 'done';
+  ctx.persist();
+  return true;
 }
 
 // After the prize: anyone but a caster sells it to a mage.

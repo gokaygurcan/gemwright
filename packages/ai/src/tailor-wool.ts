@@ -6,12 +6,13 @@ import { Blocked } from './blocked';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
+import { onItem, useOn as useTool } from './target-action';
 import { buyFrom } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
 // Cloth the long way, when the tailor vendor has none: shear sheep with a blade (ServUO Sheep.Carve,
 // one wool per sheep on Trammel, regrown after two hours), spin each wool into three balls of yarn
-// on a public spinning wheel, weave five balls into a crossbowBolt on a public loom, and cut the crossbowBolt into
+// on a public spinning wheel, weave five balls into a bolt on a public loom, and cut the bolt into
 // fifty cloth with scissors (tailor.ts).
 const wool = 0x0df8;
 const yarn = new Set([0x0e1d, 0x0e1e, 0x0e1f]);
@@ -48,12 +49,8 @@ const near = (ctx: ProfessionContext, graphics: Set<number>, point: { x: number;
 // Uses `item` on `target` and waits for one of `replies` (or the expected item count to rise).
 async function useOn(ctx: ProfessionContext, item: Entity, target: Entity, done: () => boolean, label: string) {
   const { session } = ctx;
-  session.use(item.serial);
-  await session
-    .waitFor(() => session.world.target !== null, `${label} cursor`, 3000, { resource: 'target' })
-    .catch(() => {});
-  if (!session.world.target) return false;
-  session.target({ serial: target.serial, x: 0, y: 0, z: 0, graphic: target.graphic });
+  if ('why' in (await useTool(session, () => session.use(item.serial), onItem(target), { label: `${label} cursor` })))
+    return false;
   await session.waitFor(done, label, 6000).catch(() => {});
   return done();
 }
@@ -64,9 +61,7 @@ const replied = (ctx: ProfessionContext, seen: Set<unknown>, clilocs: number[]) 
 async function shear(ctx: ProfessionContext) {
   const { session, phase } = ctx;
   if (!ctx.carried().some((i) => blades.has(i.graphic)))
-    await buyFrom({ ...ctx, city: 'Britain', limits: TOOLS }, 'weaponsmith', new Map([[0x13f6, 1]]), 25).catch(
-      () => false
-    );
+    await buyFrom({ ...ctx, city: 'Britain', limits: TOOLS }, 'weaponsmith', new Map([[0x13f6, 1]])).catch(() => false);
   const blade = ctx.carried().find((i) => blades.has(i.graphic));
   if (!blade) return 0;
   let sheared = 0;
@@ -120,7 +115,7 @@ async function weave(ctx: ProfessionContext) {
       .reduce((n, i) => n + (i.amount ?? 1), 0);
   for (const spot of looms) {
     if (balls() < 5) return;
-    phase('tailor-weave', 'Weaving yarn into a crossbowBolt of cloth');
+    phase('tailor-weave', 'Weaving yarn into a bolt of cloth');
     try {
       await ctx.navigate(spot, 1);
     } catch (error) {
@@ -129,7 +124,7 @@ async function weave(ctx: ProfessionContext) {
     }
     const loom = near(ctx, loomGraphics, spot);
     if (!loom) continue;
-    // The loom counts five balls per crossbowBolt; another weaver's balls count toward the same crossbowBolt.
+    // The loom counts five balls per bolt; another weaver's balls count toward the same bolt.
     while (balls() >= 1) {
       ctx.check();
       const ball = ctx.carried().find((i) => yarn.has(i.graphic));
@@ -142,7 +137,7 @@ async function weave(ctx: ProfessionContext) {
   }
 }
 
-// Shears, spins and weaves; returns whether a crossbowBolt of cloth came of it. Sheep regrow for two hours,
+// Shears, spins and weaves; returns whether a bolt of cloth came of it. Sheep regrow for two hours,
 // so a tailor tries this at most every two hours.
 const lastTrip = new WeakMap<ProfessionContext['checkpoint'], number>();
 export async function woolToBolt(ctx: ProfessionContext) {

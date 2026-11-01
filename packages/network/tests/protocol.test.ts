@@ -166,13 +166,16 @@ test('speech carries the emote message type for overhead emotes', () => {
 });
 
 test('a gump reply must use the controls the gump offered, by id and not by type', () => {
-  const reward =
-    '{ xmfhtmlgump 0 0 0 0 1157082 } { button 35 110 2103 2104 200 0 0 } { button 300 335 1505 1509 0 1 2 }';
-  expect(offersReply(reward, 200, [], [])).toBe(true);
-  expect(offersReply(reward, 201, [], [])).toBe(false);
-  expect(offersReply(reward, 0, [], [])).toBe(true);
+  // ServUO GumpButton.Compile: { button x y normal pressed type param buttonID }, type 1 replies, 0 turns a page.
+  const craft =
+    '{ xmfhtmlgump 0 0 0 0 1044002 } { button 15 60 4005 4007 1 0 8 } { button 15 80 4005 4007 1 0 200 } { button 30 20 4005 4007 0 2 0 }';
+  expect(offersReply(craft, 8, [], [])).toBe(true);
+  expect(offersReply(craft, 200, [], [])).toBe(true);
+  expect(offersReply(craft, 201, [], [])).toBe(false);
+  expect(offersReply(craft, 2, [], [])).toBe(false);
+  expect(offersReply(craft, 0, [], [])).toBe(true);
   const points =
-    '{ xmfhtmlgump 0 0 0 0 1157076 } { radio 25 175 9720 9723 1 1 } { radio 25 210 9720 9723 0 2 } { button 265 220 247 248 1 0 0 }';
+    '{ xmfhtmlgump 0 0 0 0 1157076 } { radio 25 175 9720 9723 1 1 } { radio 25 210 9720 9723 0 2 } { button 265 220 247 248 1 0 1 }';
   expect(offersReply(points, 1, [1], [])).toBe(true);
   expect(offersReply(points, 1, [2], [])).toBe(true);
   expect(offersReply(points, 1, [3], [])).toBe(false);

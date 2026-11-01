@@ -44,5 +44,5 @@ export function registerHaven(session: PlayerSession, template: CharacterTemplat
   if (isHavenTemplate(template)) members.set(session, template.archetype);
 }
 export const havenResident = (session: PlayerSession) => members.has(session);
-// Still Young, so bound to the island.
-export const confinedToHaven = (session: PlayerSession) => members.has(session) && !outgrewYoung(session);
+// Still Young: it prefers the island (grounds, taming, outings), as new players do, but is free to leave.
+export const prefersHaven = (session: PlayerSession) => members.has(session) && !outgrewYoung(session);

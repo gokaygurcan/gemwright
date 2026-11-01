@@ -1,6 +1,7 @@
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { canPause, takingUrgentAction } from './action-purpose';
+import { notePhase } from './behavior-metrics';
 import { Blocked } from './blocked';
 import { debugEnabled } from './debug';
 import { lasting } from './lasting';
@@ -47,9 +48,10 @@ export const forcedToWork = (session: PlayerSession) => (forced.get(session) ?? 
 
 // Numbers and coordinates do not make a step different.
 const kindOf = (phase: string, note: string) => `${phase}: ${note.replace(/-?\d+/g, '#')}`.slice(0, 120);
-// Recovery and planned waits use the goal deadline rather than the repeated-step detector.
+// Recovery and planned waits use the goal deadline rather than the repeated-step detector, and a
+// hunter sweeping its ground for prey is hunting (its own patrol count moves it to another ground).
 const recovering = (phase: string) =>
-  /^(recovering|recovering-health|recovery-wait|securing-assets|plan-wait)$/.test(phase);
+  /^(recovering|recovering-health|recovery-wait|securing-assets|plan-wait|patrolling|choosing-opponent)$/.test(phase);
 
 function trigger(session: PlayerSession, watch: Watch, reason: string) {
   const now = Date.now();
@@ -131,8 +133,12 @@ export function lastCoreProgressAt(session: PlayerSession) {
 
 export function watchStep(session: PlayerSession, name: string, phase: string, note: string) {
   lifeEvent(session, 'activity', 'observed', { phase, note });
+  notePhase(session, name, phase);
   if (debugEnabled()) emotePhase(session, phase, note);
   if (/^(setback|loop|blocked|retreating|death)$/.test(phase)) {
+    // The journal keeps these (activity itself is trace-only): what went wrong for whom, kept with
+    // the life history so a resident can be judged without the rolling diagnostic window.
+    lifeEvent(session, 'trouble', 'observed', { phase, note });
     if (phase === 'setback' || phase === 'loop') interruptGoal(session, note);
     else failResidentGoal(session, note);
   }

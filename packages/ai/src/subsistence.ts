@@ -8,6 +8,7 @@ import { isResident } from './activity';
 import { escortForPay } from './escort';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
+import { onItem, useOn } from './target-action';
 
 type SubsistenceContext = Pick<
   ProfessionContext,
@@ -48,13 +49,11 @@ export async function begForTool(ctx: SubsistenceContext, want: number) {
     asked.add(npc.serial);
     ctx.phase('begging', 'Begging for a few coins');
     await ctx.navigate(npc.position, 1).catch(() => {});
-    session.useSkill(skillId('Begging'));
-    await session
-      .waitFor(() => session.world.target !== null, 'begging cursor', 3000, { resource: 'target' })
-      .catch(() => {});
+    const begged = await useOn(session, () => session.useSkill(skillId('Begging')), onItem(npc), {
+      label: 'begging cursor'
+    });
     ctx.check();
-    if (!session.world.target) continue;
-    session.target({ serial: npc.serial, x: 0, y: 0, z: 0, graphic: npc.graphic });
+    if ('why' in begged) continue;
     await checkedDelay(4000, ctx.check);
   }
   return carriedGold() >= want;

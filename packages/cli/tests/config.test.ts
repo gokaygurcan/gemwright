@@ -20,7 +20,7 @@ describe('shard identity', () => {
       expect(validateName(name)).toBeDefined();
     }
     expect(validateName('a'.repeat(32))).toBeUndefined();
-    expect(createConfig({ name: ' My Realm ' }).name).toBe(' My Realm ');
+    expect(createConfig({ client: { version: '7.0.45.1' }, name: ' My Realm ' }).name).toBe(' My Realm ');
   });
 
   test('defaults empty or omitted names before deriving the slug', () => {
@@ -42,19 +42,20 @@ describe('shard identity', () => {
 describe('shard settings', () => {
   test('accepts enabled emulators and rejects unavailable ones', () => {
     for (const emulator of ['servuo', 'sphere', 'sphere-x', 'runuo', 'modernuo'] as const) {
-      expect(createConfig({ emulator }).emulator).toBe(emulator);
+      expect(createConfig({ client: { version: '7.0.45.1' }, emulator }).emulator).toBe(emulator);
     }
     for (const emulator of ['pol', 'unknown']) {
-      expect(() => createConfig({ emulator })).toThrow('Unsupported emulator');
+      expect(() => createConfig({ client: { version: '7.0.45.1' }, emulator })).toThrow('Unsupported emulator');
     }
   });
 
   test('defaults to Endless Journey and an accepted local or fallback zone', () => {
-    expect(createConfig({ name: 'Britannia' })).toEqual({
+    expect(createConfig({ client: { version: '7.0.45.1' }, name: 'Britannia' })).toEqual({
       name: 'Britannia',
       id: 'britannia',
       timezone: defaultTimezone(),
       expansion: 'ej',
+      client: { version: '7.0.45.1' },
       emulator: 'servuo'
     });
     expect(isAcceptedTimezone(defaultTimezone())).toBe(true);
@@ -63,9 +64,11 @@ describe('shard settings', () => {
   test('accepts all twelve expansion codes and rejects unknown values', () => {
     expect(expansions).toHaveLength(12);
     for (const { value } of expansions) {
-      expect(createConfig({ name: 'Realm', expansion: value }).expansion).toBe(value);
+      expect(createConfig({ client: { version: '7.0.45.1' }, name: 'Realm', expansion: value }).expansion).toBe(value);
     }
-    expect(() => createConfig({ name: 'Realm', expansion: 'latest' })).toThrow('Unknown expansion');
+    expect(() => createConfig({ client: { version: '7.0.45.1' }, name: 'Realm', expansion: 'latest' })).toThrow(
+      'Unknown expansion'
+    );
   });
 
   test('allows only valid zones in the server regions', () => {
@@ -73,7 +76,9 @@ describe('shard settings', () => {
     for (const zone of ['UTC', 'Etc/GMT', 'US/Eastern', 'Europe/Invalid', 'invalid']) {
       expect(isAcceptedTimezone(zone)).toBe(false);
     }
-    expect(() => createConfig({ name: 'Realm', timezone: 'UTC' })).toThrow('Unsupported timezone');
+    expect(() => createConfig({ client: { version: '7.0.45.1' }, name: 'Realm', timezone: 'UTC' })).toThrow(
+      'Unsupported timezone'
+    );
   });
 
   test('provides a sorted, unique autocomplete list containing the default', () => {
@@ -87,22 +92,34 @@ describe('shard settings', () => {
 
 test('contact answers reject malformed values and config-line injection', () => {
   for (const adminEmail of ['invalid', 'owner@example.com\nServName=changed', 'owner//comment@example.com'])
-    expect(() => createConfig({ adminEmail })).toThrow();
+    expect(() => createConfig({ client: { version: '7.0.45.1' }, adminEmail })).toThrow();
   for (const url of [
     'invalid',
     'https://example.com\nName=changed',
     'ftp://example.com',
     'https://user:pass@example.com'
   ])
-    expect(() => createConfig({ url })).toThrow();
-  expect(() => createConfig({ emulator: 'sphere', url: 'https://example.com' })).toThrow('omit');
-  expect(createConfig({ adminEmail: 'gemwright@example.com', url: 'www.example.com' }).url).toBe('www.example.com');
+    expect(() => createConfig({ client: { version: '7.0.45.1' }, url })).toThrow();
+  expect(() =>
+    createConfig({ client: { version: '7.0.45.1' }, emulator: 'sphere', url: 'https://example.com' })
+  ).toThrow('omit');
+  expect(
+    createConfig({ client: { version: '7.0.45.1' }, adminEmail: 'gemwright@example.com', url: 'www.example.com' }).url
+  ).toBe('www.example.com');
 });
 
 test('ai.debug is a boolean and defaults to off', () => {
-  expect(createConfig({ emulator: 'servuo', ai: { debug: true } }).ai?.debug).toBe(true);
-  expect(createConfig({ emulator: 'servuo', ai: { population: 10 } }).ai?.debug).toBeUndefined();
-  expect(() => createConfig({ emulator: 'servuo', ai: { debug: 'yes' } as unknown as { debug: boolean } })).toThrow(
-    'Invalid ai settings'
+  expect(createConfig({ client: { version: '7.0.45.1' }, emulator: 'servuo', ai: { debug: true } }).ai?.debug).toBe(
+    true
   );
+  expect(
+    createConfig({ client: { version: '7.0.45.1' }, emulator: 'servuo', ai: { population: 10 } }).ai?.debug
+  ).toBeUndefined();
+  expect(() =>
+    createConfig({
+      client: { version: '7.0.45.1' },
+      emulator: 'servuo',
+      ai: { debug: 'yes' } as unknown as { debug: boolean }
+    })
+  ).toThrow('Invalid ai settings');
 });

@@ -5,6 +5,7 @@ import { appraise } from './appraise';
 import { type DecisionCoordinator, decisionState, requireDecision } from './decisions';
 import { type FighterContext, weaponSkill } from './fighter-context';
 import { distance } from './navigation';
+import { onItem, useOn } from './target-action';
 
 // Resident fighters (never crafters) form small hunting parties so three or four of them can take
 // on undead none would fight alone. Every resident runs in this process, so this registry
@@ -176,9 +177,8 @@ export async function organizeParty(ctx: FighterContext, decisions?: DecisionCoo
   );
   for (const member of welcome.slice(0, MAX_MEMBERS - own.members.size)) {
     try {
-      session.party('add');
-      await session.waitFor(() => session.world.target !== null, 'party member cursor', 3000, { resource: 'target' });
-      session.target({ serial: member.serial, x: 0, y: 0, z: 0, graphic: member.graphic });
+      const asked = await useOn(session, () => session.party('add'), onItem(member), { label: 'party member cursor' });
+      if ('why' in asked) continue;
       invites.set(member.serial, serial);
     } catch (error) {
       if (session.phase !== 'ready') throw error;

@@ -1,16 +1,15 @@
 import { gold, ingot, miningTools, ore } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
-import { Opcode } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
+import { deposit, withdraw } from './bank-box';
 import { chargedPurchase, openBankBox, queryBankBalance } from './bank-gold';
 import { clearBankRoom } from './bank-space';
 import { Blocked } from './blocked';
 import { replaceDeathRobe } from './death-robe';
 import { packItems, packSummary } from './inventory';
-import { goodMatch, sellCarried } from './market';
 import { bestRecipe, RAW_INGOT_VALUE } from './miner-crafting';
 import { createIngotSeller, smithed } from './miner-selling';
 import { createSmelter } from './miner-smelting';
@@ -20,6 +19,7 @@ import { distance } from './navigation';
 import { putDown } from './overload';
 import { craftedGoods } from './selling';
 import { createServiceExperience } from './service-experience';
+import { buyOffers } from './vendor-shop';
 import { buyFrom, sellTo } from './vendor-trade';
 
 export const tools = miningTools;
@@ -103,7 +103,14 @@ export function createMinerServices(ctx: MinerServicesContext) {
     await sellIngots(backpack);
     const banker = await findBanker();
     const box = { serial: await openBankBox(ctx, banker.serial) };
-    await Bun.sleep(500);
+    const visit = { banker: banker.serial, box: box.serial };
+    // Every move is the shared verified one (bank-box.ts); a refusal keeps the shard's reason.
+    const into = async (item: Entity) => {
+      const result = await deposit(ctx, visit, [item]);
+      for (const refusal of result.refused) log(`The bank refused it: ${refusal.reason}`);
+      return result.moved.length > 0;
+    };
+    const out = async (item: Entity) => (await withdraw(ctx, [item], backpack)).moved.length > 0;
     // A nearly full box first gives back kept pieces to sell (bank-space.ts).
     checkpoint.keep ??= [];
     const freed = await clearBankRoom(session, box.serial, backpack, checkpoint.keep);
@@ -117,8 +124,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
     const boxed = packItems(session, box.serial).filter((item) => ore.has(item.graphic));
     for (const item of boxed.slice(0, Math.min(10, Math.max(0, boxed.length - ORE_STASH)))) {
       check();
-      if (await session.moveItem(item.serial, backpack).catch(() => false))
-        await putDown(session, item.serial).catch(() => {});
+      if (await out(item)) await putDown(session, item.serial).catch(() => {});
     }
     // Ore the forge refused would otherwise pin the pack at its weight limit with no way to mine.
     const retained = new Set(retainedOre(backpack).map((item) => item.serial));
@@ -142,18 +148,12 @@ export function createMinerServices(ctx: MinerServicesContext) {
       }
       check();
       // A full box refuses the deposit: the iron is sold instead, below.
-      if (
-        !(await session.moveItem(item.serial, box.serial).then(
-          () => true,
-          () => false
-        ))
-      ) {
+      if (!(await into(item))) {
         refused = true;
         continue;
       }
       if (kept) checkpoint.keep = checkpoint.keep?.filter((serial) => serial !== item.serial);
       if (item.graphic === ingot) progress.deposits += item.amount ?? 1;
-      await Bun.sleep(700);
     }
     // Exceptional pieces: one of each kind stays in the bank, the rest are sold with whatever is
     // carried; a pack that holds the only one banks it first.
@@ -167,25 +167,12 @@ export function createMinerServices(ctx: MinerServicesContext) {
         // A batch it can carry to the shop; the rest waits for the next bank visit.
         if (status().weight > status().maxWeight * 0.7) break;
         check();
-        if (
-          await session.moveItem(extra.serial, backpack).then(
-            () => true,
-            () => false
-          )
-        )
-          toSell.push(extra.serial);
-        await Bun.sleep(500);
+        if (await out(extra)) toSell.push(extra.serial);
         await session.refreshStatus().catch(() => {});
       }
     for (const item of pieces(backpack)) {
       if (toSell.includes(item.serial)) continue;
-      if (
-        !kinds.has(item.graphic) &&
-        (await session.moveItem(item.serial, box.serial).then(
-          () => true,
-          () => false
-        ))
-      ) {
+      if (!kinds.has(item.graphic) && (await into(item))) {
         kinds.set(item.graphic, [item]);
         continue;
       }
@@ -197,14 +184,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
       if (mining < (oreSkill.get(pile.hue ?? 0) ?? 0)) continue;
       if (status().weight + (pile.amount ?? 1) * 12 > status().maxWeight * 0.7) break;
       check();
-      if (
-        await session.moveItem(pile.serial, backpack).then(
-          () => true,
-          () => false
-        )
-      )
-        unsmeltable.delete(pile.serial);
-      await Bun.sleep(500);
+      if (await out(pile)) unsmeltable.delete(pile.serial);
     }
     checkpoint.stock = {
       ingots: [...session.world.entities.values()]
@@ -216,13 +196,6 @@ export function createMinerServices(ctx: MinerServicesContext) {
     await queryBankBalance({ ...ctx, checkpoint }, banker.serial);
     const confirmedBanker = session.world.entities.get(banker.serial);
     if (confirmedBanker) learning.record(confirmedBanker, Actions.bank, 'success');
-    // Exceptional armour goes to fighters at the Minoc market first, for more than the shop pays.
-    if (toSell.some((serial) => goodMatch('exceptional armour')(session.world.entities.get(serial) ?? ({} as Entity))))
-      await sellCarried(
-        { session, checkpoint, city, position, navigate, phase, backpack: () => backpack },
-        'exceptional armour',
-        3
-      ).catch(() => 0);
     if (freed.length || toSell.length)
       await sellTo(
         { ...ctx, backpack: () => backpack },
@@ -251,7 +224,11 @@ export function createMinerServices(ctx: MinerServicesContext) {
     }
     const amount = Math.min(stack.amount ?? 1, most);
     phase('bank-withdraw', `Taking ${amount} banked iron ingots to work`);
-    await session.moveItem(stack.serial, backpack, amount);
+    const taken = await withdraw(ctx, [stack], backpack, () => amount);
+    if (!taken.moved.length) {
+      phase('bank-withdraw', `The bank kept the ingots: ${taken.refused[0]?.reason}`);
+      return false;
+    }
     if (checkpoint.stock) checkpoint.stock = { ingots: (checkpoint.stock.ingots ?? 0) - amount, at: Date.now() };
     ctx.persist();
     return true;
@@ -268,7 +245,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
         'buy-ingots',
         `Buying iron from the smith for ${recipe.name}s (${recipe.perIngot.toFixed(1)} gold an ingot)`
       );
-      if (!(await buyFrom({ ...ctx, backpack: () => backpack }, 'blacksmith', new Map([[ingot, 16]]), 5))) return false;
+      if (!(await buyFrom({ ...ctx, backpack: () => backpack }, 'blacksmith', new Map([[ingot, 16]])))) return false;
     } else if (!(await withdrawIngots(backpack, recipe.ingots, recipe.ingots * 8))) return false;
     const sold = progress.sold;
     await sellIngots(backpack, true);
@@ -320,25 +297,9 @@ export function createMinerServices(ctx: MinerServicesContext) {
           log(`Tool vendor approach unavailable: ${error instanceof Error ? error.message : 'unknown obstruction'}`);
           continue;
         }
-        const freshBuy = (await session.context(mobile.serial)).find(
-          (entry) => entry.cliloc === Actions.buy && !(entry.flags & 1)
-        );
-        if (!freshBuy) continue;
-        session.world.buyOffers.clear();
-        const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-        session.selectContext(mobile.serial, freshBuy.index);
-        try {
-          await session.waitFor(
-            () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before,
-            'vendor stock',
-            2500
-          );
-        } catch (error) {
-          if (session.phase !== 'ready') throw error;
-          else continue;
-        }
-        const offer = [...session.world.buyOffers.values()]
-          .flat()
+        const stock = await buyOffers(session, mobile.serial, Actions.buy);
+        if ('why' in stock) continue;
+        const offer = stock.offers
           .filter((entry) => {
             const item = session.world.entities.get(entry.serial);
             const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
@@ -347,13 +308,12 @@ export function createMinerServices(ctx: MinerServicesContext) {
               item &&
               tools.has(item.graphic) &&
               (item.amount ?? 0) > 0 &&
-              entry.price > 0 &&
-              entry.price <= 100
+              entry.price > 0
             );
           })
           .sort((a, b) => a.price - b.price)[0];
         if (!offer) {
-          const stocked = [...session.world.buyOffers.values()].flat().some((entry) => {
+          const stocked = stock.offers.some((entry) => {
             const item = session.world.entities.get(entry.serial);
             const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
             return item && stock?.parent === mobile.serial && tools.has(item.graphic) && (item.amount ?? 0) > 0;
@@ -368,7 +328,7 @@ export function createMinerServices(ctx: MinerServicesContext) {
         await approachVendor(ctx, mobile.serial);
         // The vendor charges carried gold, then this character's bank balance; a refusal is a Blocked outcome.
         await chargedPurchase({ ...ctx, backpack: () => backpack }, offer.price, () =>
-          session.purchaseItem(mobile.serial, offer.serial, backpack, 1, 100)
+          session.purchaseItem(mobile.serial, offer.serial, backpack, 1, offer.price)
         );
         learning.record(mobile, Actions.buy, 'success', [...tools]);
         progress.purchases++;

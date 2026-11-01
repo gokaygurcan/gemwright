@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 
-import type { Gate } from './moongate';
+import type { Gate } from './gates';
 import { distance } from './navigation';
 import { crowdFactor, pickWeighted, residentsWhere } from './spread';
 

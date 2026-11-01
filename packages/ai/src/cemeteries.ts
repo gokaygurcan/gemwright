@@ -4,12 +4,13 @@ import { urgentAction } from './action-purpose';
 import { strandedAt, withinReach } from './areas';
 import { Blocked } from './blocked';
 import { chaosOf } from './chaos';
-import { fightConfidence } from './fight-confidence';
+import { fightConfidence, strikesFromAfar } from './fight-confidence';
 import { Ambushed, type FighterContext, observedThreat, Retreat } from './fighter-context';
 import { combatSkill, goldOf, readyFor, teaches } from './fighter-prey';
-import { confinedToHaven, haven, onHaven } from './haven';
+import { type Gate, moongates, nearestGate } from './gates';
+import { haven, onHaven, prefersHaven } from './haven';
 import { lasting } from './lasting';
-import { type Gate, moongates, nearestGate, travelByMoongate } from './moongate';
+import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import { residentsNear } from './spread';
 import { learnedPlaceCost } from './strategy-learning';
@@ -109,14 +110,13 @@ export function nextGround(ctx: FighterContext): string {
   const current = groundOf(ctx.trip).name;
   // The skill it fights with, not its highest: a maxed Anatomy says nothing about its sword arm.
   const skill = combatSkill(ctx);
-  // A Young resident of New Haven hunts only on Haven Island (haven.ts).
-  const confined = confinedToHaven(ctx.session);
+  // A Young resident of New Haven prefers Haven Island's grounds (haven.ts), as new players do.
+  const young = prefersHaven(ctx.session);
   const options = grounds.flatMap((ground) => {
     const present = residentsNear(ground.center, reach(ground), ctx.serial);
     if (ground.name === current || present >= CROWDED) return [];
     // Only grounds it can walk to, or reach through a moongate (areas.ts): never one out at sea.
     if (!withinReach(here, ground.center)) return [];
-    if (confined && !onHaven(ground.center)) return [];
     const kinds = Object.entries(ground.creatures ?? {});
     const total = kinds.reduce((n, [, count]) => n + count, 0);
     const fit = kinds.filter(([type]) => readyFor(ctx, type)).reduce((n, [, count]) => n + count, 0);
@@ -132,10 +132,11 @@ export function nextGround(ctx: FighterContext): string {
       present * 40 -
       (total ? (teaching / total) * 400 : 0) -
       Math.min(gold, 100) +
-      Math.random() * 300 * chaosOf(ctx.session);
+      Math.random() * 300 * chaosOf(ctx.session) +
+      (young && !onHaven(ground.center) ? 300 : 0);
     return [{ name: ground.name, cost }];
   });
-  return options.sort((a, b) => a.cost - b.cost)[0]?.name ?? (confined ? 'New Haven' : 'Britain');
+  return options.sort((a, b) => a.cost - b.cost)[0]?.name ?? (young ? 'New Haven' : 'Britain');
 }
 
 // Reaches a far point the way a player would: through the moongate nearest to it, then on foot.
@@ -173,8 +174,6 @@ export async function travelToGround(ctx: FighterContext, overland = false) {
     return;
   }
   if (ctx.trip.ground?.startsWith(LOCAL)) ctx.trip.ground = nextGround(ctx);
-  // Bound to Haven Island: a ground elsewhere (or none chosen yet) gives way to one there.
-  if (confinedToHaven(ctx.session) && !onHaven(groundOf(ctx.trip).center)) ctx.trip.ground = nextGround(ctx);
   const ground = groundOf(ctx.trip);
   ctx.phase(
     'travelling-to-graveyard',
@@ -213,9 +212,19 @@ export async function returnHome(ctx: FighterContext) {
     await urgentAction(ctx.session, 'escape', () => travelByMoongate(ctx, gate));
 }
 
-// The nearest threat that just hurt it, within 8 tiles (fighter.ts check).
-const attackerNear = (ctx: FighterContext) =>
-  ctx
+// What is swinging at it first (the server's swing packet names attacker and target), else the
+// nearest threat within 8 tiles (fighter.ts check).
+const attackerNear = (ctx: FighterContext) => {
+  const swinging = ctx
+    .nearby()
+    .find(
+      (m) =>
+        !ctx.session.world.deaths.has(m.serial) &&
+        ctx.session.world.swings.get(m.serial)?.target === ctx.serial &&
+        Date.now() - (ctx.session.world.swings.get(m.serial)?.at ?? 0) < 3000
+    );
+  if (swinging) return { mobile: swinging, engaged: true };
+  const near = ctx
     .nearby()
     .filter(
       (m) =>
@@ -228,6 +237,24 @@ const attackerNear = (ctx: FighterContext) =>
       (a, b) =>
         distance(ctx.position(), a.position ?? ctx.position()) - distance(ctx.position(), b.position ?? ctx.position())
     )[0];
+  if (near) return { mobile: near, engaged: false };
+  // Nothing swings and nothing is close: a caster or archer in sight is what hurts it.
+  const afar = ctx
+    .nearby()
+    .filter(
+      (m) =>
+        m.position &&
+        !ctx.session.world.deaths.has(m.serial) &&
+        observedThreat(m, ctx.session.world.combatant) &&
+        strikesFromAfar(m) &&
+        distance(ctx.position(), m.position) <= 14
+    )
+    .sort(
+      (a, b) =>
+        distance(ctx.position(), a.position ?? ctx.position()) - distance(ctx.position(), b.position ?? ctx.position())
+    )[0];
+  return afar && { mobile: afar, engaged: true };
+};
 
 // Hurt twice within half an hour on the same ground: it is beyond it for now, so another one.
 export function retreatedFrom(ctx: FighterContext) {
@@ -244,7 +271,11 @@ export function retreatedFrom(ctx: FighterContext) {
 // otherwise it gets to safety.
 export function hurtOnTheWay(ctx: FighterContext) {
   const attacker = attackerNear(ctx);
-  if (attacker && !ctx.state.inCombat && fightConfidence(ctx, attacker).ok) throw new Ambushed(attacker);
+  if (attacker && !ctx.state.inCombat && fightConfidence(ctx, attacker.mobile, attacker.engaged).ok)
+    throw new Ambushed(attacker.mobile);
+  // A scratch from something unseen (poison, a far archer) is no reason to walk home: a player
+  // carries on while healthy and leaves only when it starts to tell.
+  if (!attacker && ctx.status().hits >= ctx.status().maxHits * 0.5) return;
   throw new Retreat('Taking damage outside combat; returning to safety even when the attacker is unknown');
 }
 

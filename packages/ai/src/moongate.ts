@@ -4,11 +4,11 @@ import { moongateDestination } from '@gemwright/network/gumps';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Position } from '@gemwright/network/world';
 
-import { areaHere, areaOfPlace, gateArea, strandedAt } from './areas';
+import { areaHere, gateArea, strandedAt } from './areas';
 import { Blocked } from './blocked';
 import { threatsNear } from './danger';
 import { dangerAhead } from './danger-response';
-import { confinedToHaven } from './haven';
+import { type Gate, moongates } from './gates';
 import { lasting } from './lasting';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
@@ -16,31 +16,6 @@ import { gatherPets } from './pets';
 import { recallFor } from './recall';
 import { noteStranded, strandedOften, useStuckMenu } from './stuck';
 import { reachableFrom } from './unreachable';
-
-// Trammel public moongates on the pinned shard (PublicMoongate.PMList.Trammel): gate location and
-// the destination's label in the gate menu. Arrival is at the destination gate itself.
-export const moongates = {
-  moonglow: { x: 4467, y: 1283, z: 5, label: 1012003 },
-  britain: { x: 1336, y: 1997, z: 5, label: 1012004 },
-  jhelom: { x: 1499, y: 3771, z: 5, label: 1012005 },
-  yew: { x: 771, y: 752, z: 5, label: 1012006 },
-  minoc: { x: 2701, y: 692, z: 5, label: 1012007 },
-  trinsic: { x: 1828, y: 2948, z: -20, label: 1012008 },
-  skara: { x: 643, y: 2067, z: 5, label: 1012009 },
-  // PublicMoongate.cs PMEntry for New Haven (Trammel).
-  newhaven: { x: 3450, y: 2677, z: 25, label: 1078098 }
-} as const;
-export type Gate = keyof typeof moongates;
-
-export const nearestGate = (point: { x: number; y: number }): Gate => {
-  const area = areaOfPlace(point) ?? areaHere(point);
-  const gates = Object.keys(moongates) as Gate[];
-  const own = area === undefined ? [] : gates.filter((gate) => gateArea(moongates[gate]) === area);
-  return (
-    [...(own.length ? own : gates)].sort((a, b) => distance(point, moongates[a]) - distance(point, moongates[b]))[0] ??
-    'britain'
-  );
-};
 
 // Walks to the nearest public moongate that can be reached on foot and steps through to `to`, as
 // any player travels. A gate across water (an island town seen from the shore) is skipped for the
@@ -58,9 +33,6 @@ export async function travelByMoongate(
   to: Gate
 ) {
   const { session, position, navigate, phase } = ctx;
-  // A Young resident of New Haven only ever takes the gate home (haven.ts).
-  if (confinedToHaven(session) && to !== 'newhaven')
-    throw new Blocked('unreachable', `Staying on Haven Island while Young (not taking the gate to ${to})`);
   const here = position();
   const order = (Object.keys(moongates) as Gate[]).sort(
     (a, b) => distance(here, moongates[a]) - distance(here, moongates[b])
@@ -130,7 +102,7 @@ export async function travelByMoongate(
   if (!from) throw new Blocked('unreachable', `No public moongate can be reached on foot from ${here.x},${here.y}`);
   if (from === to) return;
   if (lasting('gate-ban', session.world.serial ?? -1).active(`${from}>${to}`))
-    throw new Blocked('unreachable', `The ${from} moongate failed to take me to ${to} lately`);
+    throw new Blocked('unreachable', `The ${from} moongate to ${to} is barred for now (failed or dangerous lately)`);
   const item = [...session.world.entities.values()].find(
     (entity) => entity.graphic === moongate && entity.position && distance(position(), entity.position) <= 1
   );
@@ -183,6 +155,9 @@ export async function travelByMoongate(
       if (menu && home !== undefined) {
         session.replyGump(menu.serial, menu.id, 1, [home]);
         await session.waitFor(() => distance(position(), moongates[from]) <= 2, `return to ${from}`).catch(() => {});
+        // Remembered, as the comment above promises: the same crossing is not taken into the same
+        // monsters again for half an hour; the resident finds another way or another town.
+        crossing.set(`${from}>${to}`, Date.now() + 30 * 60_000);
         throw new Blocked('dangerous', `Monsters at the ${to} moongate`);
       }
     }

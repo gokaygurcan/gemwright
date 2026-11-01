@@ -4,8 +4,9 @@ import { Blocked } from '../src/blocked';
 import { validateDecisionConfig } from '../src/decision-provider';
 import { DecisionCoordinator } from '../src/decisions';
 import { lifeTurn } from '../src/life';
-import { chooseLifePhase, observeLifeWork } from '../src/life-choice';
-import { tally, workEvidence } from '../src/work-evidence';
+import { chooseLifePhase, needPhase, observeLifeWork } from '../src/life-choice';
+import { rememberBalance, tally, workEvidence } from '../src/work-evidence';
+import type { LifePhase } from '../src/world';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 
@@ -85,4 +86,24 @@ test('a stale life choice cannot silently execute its random baseline', async ()
   await expect(chooseLifePhase(f.ctx)).rejects.toThrow('stale');
   expect(f.checkpoint.decisions?.history.at(-1)?.execution.status).toBe('not-run');
   expect(f.checkpoint.life?.phase).toBe('work');
+});
+
+test('a hard need decides the life phase before the weights do', () => {
+  const f = fixture('work');
+  const valid: LifePhase[] = ['work', 'dungeon', 'errands', 'leisure', 'visit', 'practice'];
+  f.template.behavior.activities = ['mine'];
+  // A missing tool is not a preference: the errand goes and buys one.
+  f.world.entities.delete(12);
+  expect(needPhase(f.ctx, valid)).toBe('errands');
+  // Tool back, empty purse: earning decides.
+  f.world.entities.set(12, { serial: 12, kind: 'item', graphic: 0xe85, parent: 10 });
+  f.checkpoint.funds = { bank: 0, at: Date.now() };
+  if (f.world.status) f.world.status.gold = 0;
+  // The income need reads the banker's reported balance (rememberBalance), not just the checkpoint.
+  rememberBalance(f.ctx.session, 0);
+  expect(needPhase(f.ctx, valid)).toBe('work');
+  // Funded and equipped: the weighted choice (curve, season, drives) decides.
+  f.checkpoint.funds = { bank: 5000, at: Date.now() };
+  rememberBalance(f.ctx.session, 5000);
+  expect(needPhase(f.ctx, valid)).toBeUndefined();
 });

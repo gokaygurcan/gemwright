@@ -1,5 +1,5 @@
 import { Layer } from '@gemwright/network/layers';
-import { Notoriety, Opcode } from '@gemwright/network/opcodes';
+import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
@@ -15,6 +15,7 @@ import { approachVendor } from './mobile-approach';
 import { errand } from './objective-memory';
 import { createServiceExperience } from './service-experience';
 import { trainingVisit } from './training';
+import { buyOffers } from './vendor-shop';
 
 export { reportedBankGold } from './bank-gold';
 
@@ -206,20 +207,10 @@ export function createFighterEquipment(
         await errand(ctx, `weapon:${stop.x},${stop.y}`, `buying a weapon at ${stop.x},${stop.y}`, async () => {
           await navigate(stop, 5);
           for (const mobile of nearby()) {
-            const before = session.world.received.get(Opcode.vendorBuyList) ?? 0;
-            if (!(await services.contextAction(mobile, Actions.buy))) continue;
-            try {
-              await session.waitFor(
-                () => (session.world.received.get(Opcode.vendorBuyList) ?? 0) > before,
-                'weapon vendor stock',
-                2500
-              );
-            } catch {
-              check();
-              continue;
-            }
-            const offer = [...session.world.buyOffers.values()]
-              .flat()
+            if (mobile.notoriety !== Notoriety.invulnerable) continue;
+            const stock = await buyOffers(session, mobile.serial, Actions.buy);
+            if ('why' in stock) continue;
+            const offer = stock.offers
               .filter((offer) => {
                 const item = session.world.entities.get(offer.serial);
                 const stock = item?.parent === undefined ? undefined : session.world.entities.get(item.parent);
@@ -229,7 +220,6 @@ export function createFighterEquipment(
                   (item.amount ?? 0) > 0 &&
                   stock?.parent === mobile.serial &&
                   offer.price > 0 &&
-                  offer.price <= 150 &&
                   offer.price <= spendable() - 30
                 );
               })
@@ -237,7 +227,7 @@ export function createFighterEquipment(
             if (!offer) continue;
             await approachVendor(ctx, mobile.serial);
             await chargedPurchase(ctx, offer.price, () =>
-              session.purchaseItem(mobile.serial, offer.serial, ctx.backpack(), 1, 150)
+              session.purchaseItem(mobile.serial, offer.serial, ctx.backpack(), 1, offer.price)
             );
             learning.record(mobile, Actions.buy, 'success');
             stats.replacementWeapons++;

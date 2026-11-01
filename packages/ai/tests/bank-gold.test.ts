@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { Layer } from '@gemwright/network/layers';
 
-import { bankNearbyGold, bankSurplus, chargedPurchase, spendableGold } from '../src/bank-gold';
+import { bankNearbyGold, bankSurplus, chargedPurchase, knownBankGold, spendableGold } from '../src/bank-gold';
 import { lasting } from '../src/lasting';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
@@ -103,4 +103,34 @@ test('AI purchase accounting translates network refusal into a recoverable funds
   expect(error).toBeInstanceOf(Blocked);
   expect((error as InstanceType<typeof Blocked>).reason).toBe('insufficient-funds');
   expect(f.checkpoint.funds?.bank).toBe(bankBefore);
+});
+
+test('a tool purchase with the bank balance unknown asks the banker first instead of counting only carried gold', async () => {
+  const f = bankingFixture(0);
+  delete f.checkpoint.funds;
+  f.ctx.navigate = async () => {};
+  const { buyTool } = await import('../src/vendor-trade');
+  await buyTool(
+    { ...f.ctx, city: 'Britain', carried: () => [], status: () => required(f.world.status) },
+    'fisherman',
+    [0xdc0]
+  );
+  expect(knownBankGold(f.checkpoint)).toBe(1000);
+});
+
+test('a bank deposit reports what the shard refused, with its reason, and still moves the rest', async () => {
+  const f = bankingFixture(35);
+  f.world.entities.set(40, { serial: 40, kind: 'item', graphic: 0x1bdd, parent: 10, amount: 50 });
+  f.world.entities.set(41, { serial: 41, kind: 'item', graphic: 0x1bd7, parent: 10, amount: 20 });
+  f.session.moveItem = async (item, box) => {
+    if (item === 40) throw new Error('Server rejected item lift');
+    f.world.entities.set(item, { ...required(f.world.entities.get(item)), parent: box });
+  };
+  const { deposit } = await import('../src/bank-box');
+  const result = await deposit(f.ctx, { banker: 20, box: 30 }, [
+    required(f.world.entities.get(40)),
+    required(f.world.entities.get(41))
+  ]);
+  expect(result.moved).toEqual([41]);
+  expect(result.refused).toEqual([{ serial: 40, reason: 'Server rejected item lift' }]);
 });

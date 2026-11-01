@@ -88,6 +88,7 @@ test('--client uses the server game files after deployment; server-only skips th
       id: 'gemwright',
       timezone: 'Europe/London',
       expansion: 'ej',
+      client: { version: '7.0.45.1' },
       emulator: 'servuo',
       source: { repository: 'https://github.com/ServUO/ServUO.git', ref: 'pub57', revision: 'a'.repeat(40) }
     })
@@ -202,6 +203,7 @@ test('web deployment uses the existing project and uploads only manifest-listed 
       id: 'gemwright',
       timezone: 'Europe/London',
       expansion: 'ej',
+      client: { version: '7.0.45.1' },
       emulator: 'servuo'
     })
   );

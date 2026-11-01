@@ -3,6 +3,7 @@ import { chmod, copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } fro
 import { isIP } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 
+import { clientVersion } from '@gemwright/common/config/shard';
 import { createManifest } from '@gemwright/deployment/client-files';
 import { attachedCommand, command } from '@gemwright/deployment/process';
 import { loadShard, type ShardConfig } from '@gemwright/server/config';
@@ -186,7 +187,7 @@ export async function writeVpsBundle(
         UO_PORT: '2593',
         PUBLIC_ORIGIN: `https://${options.domain}`,
         SERVER_NAME: config.name.replaceAll('$', () => '$$'),
-        UO_CLIENT_VERSION: process.env.UO_CLIENT_VERSION ?? '7.0.45.1',
+        UO_CLIENT_VERSION: process.env.UO_CLIENT_VERSION ?? clientVersion(config),
         UO_ENCRYPTION: process.env.UO_ENCRYPTION ?? '0'
       },
       volumes: ['./gamefiles:/app/data/gamefiles:ro'],

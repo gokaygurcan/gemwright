@@ -19,7 +19,10 @@ afterEach(async () => {
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'gemwright-deploy-prompts-'));
   folders.push(root);
-  await writeFile(join(root, 'gemwright.json'), JSON.stringify(createConfig({ name: 'Prompt test' })));
+  await writeFile(
+    join(root, 'gemwright.json'),
+    JSON.stringify(createConfig({ client: { version: '7.0.45.1' }, name: 'Prompt test' }))
+  );
   mocks.push(
     spyOn(prompts, 'intro').mockImplementation(() => {}),
     spyOn(prompts, 'note').mockImplementation(() => {})
