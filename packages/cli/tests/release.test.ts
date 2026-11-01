@@ -187,9 +187,14 @@ test('three publications survive two failures; retry publishes only missing vers
       .sort()
   ).toEqual([...failures].sort());
   await expect(
-    announcement(value.dir, value.run, async () => {
-      throw new Error('Announcement ran before publication finished');
-    })
+    announcement(
+      value.dir,
+      value.run,
+      async () => {
+        throw new Error('Announcement ran before publication finished');
+      },
+      { tries: 1, settle: async () => {} }
+    )
   ).rejects.toThrow('still missing');
   expect(value.git(['tag', '--list'])).toBe('');
   write(join(value.dir, 'registry/failures.json'), []);
@@ -222,4 +227,11 @@ test('bad artifact integrity and registry failures stop before publication', () 
     publishPacked(value.dir, join(value.dir, 'pack'), (args) => value.run(args, { FAIL_INFO: '1' }))
   ).toThrow();
   expect(() => readFileSync(join(value.dir, 'registry/attempts.log'))).toThrow();
+});
+
+test('announcement waits for versions the registry does not show yet', async () => {
+  const value = fixture([{ name: '@gemwright/fixture', version: '0.7.1' }]);
+  value.pack();
+  const settle = async () => publishPacked(value.dir, join(value.dir, 'pack'), value.run);
+  expect(await announcement(value.dir, value.run, async () => false, { tries: 2, settle })).toHaveLength(1);
 });

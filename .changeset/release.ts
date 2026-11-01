@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 export interface Package {
   dir: string;
@@ -95,10 +96,18 @@ export async function announcement(
     if (response.status === 404) return false;
     if (!response.ok) throw new Error(`GitHub release lookup failed (${response.status})`);
     return true;
-  }
+  },
+  // npm shows a new version only minutes after publication (longest for the large CLI package):
+  // look again for up to 15 minutes before calling a version missing.
+  wait = { tries: 30, settle: () => sleep(30_000) }
 ) {
   const list = packages(cwd);
-  assert.equal(freshPlan(run).plan.flat().length, 0, 'Public versions are still missing from npm; no announcement');
+  let unpublished = freshPlan(run).plan.flat().length;
+  for (let attempt = 1; unpublished > 0 && attempt < wait.tries; attempt++) {
+    await wait.settle();
+    unpublished = freshPlan(run).plan.flat().length;
+  }
+  assert.equal(unpublished, 0, 'Public versions are still missing from npm; no announcement');
   const missing = [];
   for (const pkg of list.filter((entry) => !entry.private)) {
     assert.ok(
