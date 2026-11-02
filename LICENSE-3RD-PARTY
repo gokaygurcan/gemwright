@@ -32,16 +32,16 @@ CLI dependencies installed separately by npm
 - Chalk 6.0.1: MIT, https://github.com/chalk/chalk/blob/main/license
 
 Browser runtime
-Source: https://github.com/rootmancer/uonexus-minimal/releases/tag/v1.0.56
-Commit: daa46b247616c55aa9664707cf171974c8883cf6
-Release archive SHA-256: dd97eb942e67b1b16aa47ca4c4f4a40a1e3a43091406c180181aaf0f5df407da
+Source: https://github.com/rootmancer/uonexus-minimal/releases/tag/v1.0.67
+Commit: 76057d08c40ff957a996c38ee4663e044d18f29e
+Release archive SHA-256: cf0c16243038f5a9a0bad87391f6ba214cee10bc3f71424839ea6e17d6594ea9
 All 182 WASM files match that release. Local changes are a dotnet.js re-export
 shim, line endings and a MIDI comment; no WASM changes.
 - WebClients: BSD-2-Clause,
-  https://github.com/rootmancer/uonexus-minimal/blob/daa46b247616c55aa9664707cf171974c8883cf6/LICENSE.md
+  https://github.com/rootmancer/uonexus-minimal/blob/76057d08c40ff957a996c38ee4663e044d18f29e/LICENSE.md
 - ClassicUO/FNA, native dependencies and GeneralUser GS 2.0.3: original license
   files are in the pinned release archive below (paths relative to its root):
-  https://github.com/rootmancer/uonexus-minimal/releases/download/v1.0.56/uonexus-minimal-v1.0.56.zip
+  https://github.com/rootmancer/uonexus-minimal/releases/download/v1.0.67/uonexus-minimal-v1.0.67.zip
   client/minimal/lib/GeneralUser-GS.LICENSE.txt
   source/cuo/external/FNA/lib/FAudio/LICENSE
   source/cuo/external/FNA/lib/FAudio/csharp/LICENSE
