@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 
@@ -82,6 +82,14 @@ export class Terrain {
     if (this.tiles.length !== 3188736) throw new Error('Terrain requires the modern 64-bit tiledata format');
     this.index = readFileSync(join(directory, `staidx${facet}.mul`));
     this.statics = readFileSync(join(directory, `statics${facet}.mul`));
+    const expected = ((7168 * 4096) / 64) * 196;
+    if (!existsSync(join(directory, `map${facet}LegacyMUL.uop`))) {
+      // map1.mul holds the same blocks; the pre-expansion map is narrower and its missing east stays empty.
+      const mul = readFileSync(join(directory, `map${facet}.mul`));
+      if (mul.length > expected || mul.length % ((4096 / 8) * 196)) throw new Error('Unexpected map dimensions');
+      this.map = Buffer.concat([mul, Buffer.alloc(expected - mul.length)]);
+      return;
+    }
     const uop = readFileSync(join(directory, `map${facet}LegacyMUL.uop`));
     if (uop.readUInt32LE(0) !== 0x0050594d) throw new Error('Invalid map UOP');
     const entries = new Map<bigint, Buffer>();
@@ -105,7 +113,6 @@ export class Terrain {
       block = next;
     }
     const chunks: Buffer[] = [];
-    const expected = ((7168 * 4096) / 64) * 196;
     for (let i = 0; chunks.reduce((sum, chunk) => sum + chunk.length, 0) < expected; i++) {
       const chunk = entries.get(nameHash(`build/map${facet}legacymul/${String(i).padStart(8, '0')}.dat`));
       if (!chunk) throw new Error(`Missing map chunk ${i}`);
