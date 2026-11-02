@@ -1,5 +1,11 @@
 # @gemwright/cli
 
+## 0.9.0
+
+### Minor Changes
+
+- Run the server, web client and AI residents on this machine with Docker Compose: `deploy`, `logs`, `pull` and `restore` accept `--local`, `stop --local` and `start --local` pause and resume parts, and `--server-port`/`--client-port` choose the local ports.
+
 ## 0.8.3
 
 No changes in this release.

@@ -1,5 +1,17 @@
 # @gemwright/deployment
 
+## 0.9.0
+
+### Minor Changes
+
+- Run the server, web client and AI residents on this machine with Docker Compose: `deploy`, `logs`, `pull` and `restore` accept `--local`, `stop --local` and `start --local` pause and resume parts, and `--server-port`/`--client-port` choose the local ports.
+
+### Patch Changes
+
+- Updated dependencies [`eb038f3`, `fce8494`]:
+  - @gemwright/common@0.9.0
+  - @gemwright/client@0.9.0
+
 ## 0.8.3
 
 ### Patch Changes

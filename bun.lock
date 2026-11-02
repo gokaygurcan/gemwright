@@ -16,7 +16,7 @@
     },
     "packages/ai": {
       "name": "@gemwright/ai",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "devDependencies": {
         "@anthropic-ai/sdk": "1.3.0",
         "@gemwright/common": "workspace:*",
@@ -30,7 +30,7 @@
     },
     "packages/analyze": {
       "name": "@gemwright/analyze",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "dependencies": {
         "preact": "11.1.1",
       },
@@ -43,7 +43,7 @@
     },
     "packages/cli": {
       "name": "@gemwright/cli",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "bin": {
         "gemwright-cli": "dist/index.js",
       },
@@ -61,7 +61,7 @@
     },
     "packages/client": {
       "name": "@gemwright/client",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "devDependencies": {
         "@gemwright/common": "workspace:*",
         "@opentelemetry/api-logs": "0.223.0",
@@ -72,14 +72,14 @@
     },
     "packages/common": {
       "name": "@gemwright/common",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "dependencies": {
         "ajv": "8.20.0",
       },
     },
     "packages/deployment": {
       "name": "@gemwright/deployment",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "dependencies": {
         "@gemwright/client": "workspace:*",
         "@gemwright/common": "workspace:*",
@@ -87,24 +87,24 @@
     },
     "packages/gemwright": {
       "name": "gemwright",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "bin": {
         "gemwright": "dist/index.js",
       },
       "dependencies": {
-        "@gemwright/cli": "0.8.3",
+        "@gemwright/cli": "0.9.0",
       },
     },
     "packages/network": {
       "name": "@gemwright/network",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "dependencies": {
         "@gemwright/common": "workspace:*",
       },
     },
     "packages/server": {
       "name": "@gemwright/server",
-      "version": "0.8.3",
+      "version": "0.9.0",
       "devDependencies": {
         "@gemwright/common": "workspace:*",
         "@gemwright/deployment": "workspace:*",

@@ -1,5 +1,12 @@
 # @gemwright/network
 
+## 0.9.0
+
+### Patch Changes
+
+- Updated dependencies [`eb038f3`]:
+  - @gemwright/common@0.9.0
+
 ## 0.8.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @gemwright/client
 
+## 0.9.0
+
+### Patch Changes
+
+- Update the AI and web client log export to OpenTelemetry 3 (`sdk-logs` and `resources` 3.0.0, `exporter-logs-otlp-http` 0.300.0).
+
 ## 0.8.3
 
 No changes in this release.
