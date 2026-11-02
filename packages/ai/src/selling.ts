@@ -97,6 +97,7 @@ export const isSaleable = (ctx: Pick<Ctx, 'session' | 'terrain'>, item: Entity) 
 
 const BULK_ORDER_DEED = bulkOrderDeed;
 const lastTrip = new WeakMap<object, number>();
+const unsoldTrips = new WeakMap<object, Map<number, number>>();
 const MIN_PIECES = 6;
 const REST_MS = 20 * 60_000;
 
@@ -105,6 +106,14 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   const { session } = ctx;
   // What it put down to be able to walk comes back with it, to be sold too (overload.ts).
   if (await recoverPile(session, ctx.backpack(), ctx.navigate, ctx.log)) return true;
+  // Listed pieces sold, dropped or banked leave the list, so it never fills with serials long gone.
+  const stillCarried = (ctx.checkpoint.forSale ?? []).filter(
+    (serial) => session.world.entities.get(serial)?.parent === ctx.backpack()
+  );
+  if (stillCarried.length !== (ctx.checkpoint.forSale ?? []).length) {
+    ctx.checkpoint.forSale = stillCarried;
+    ctx.persist?.();
+  }
   if (!force && Date.now() - (lastTrip.get(session) ?? 0) < REST_MS) return false;
   const carried = ctx.carried(ctx.backpack());
   await learnQuality(
@@ -177,13 +186,25 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
       return sell().catch(() => 0);
     });
   }
-  // Pieces marked unfit that no shop will take (magic, blessed, exceptional) are left where another
-  // resident may find them rather than carried forever; sold or gone pieces leave the list.
+  // Pieces marked unfit that no shop will take (magic, blessed, exceptional, or refused on a second
+  // trip: starter gear, pieces no shop of this shard stocks) are left where another resident may
+  // find them rather than carried on trip after trip; sold or gone pieces leave the list.
+  const unsold = unsoldTrips.get(session) ?? new Map<number, number>();
+  unsoldTrips.set(session, unsold);
   let left = 0;
   for (const serial of listed) {
     const item = session.world.entities.get(serial);
-    if (!item || item.parent !== ctx.backpack() || shopSafe(item)) continue;
-    if (await putDown(session, serial).catch(() => false)) left++;
+    if (!item || item.parent !== ctx.backpack()) {
+      unsold.delete(serial);
+      continue;
+    }
+    const trips = (unsold.get(serial) ?? 0) + 1;
+    unsold.set(serial, trips);
+    if (shopSafe(item) && trips < 2) continue;
+    if (await putDown(session, serial).catch(() => false)) {
+      unsold.delete(serial);
+      left++;
+    }
   }
   const remaining = (ctx.checkpoint.forSale ?? []).filter(
     (serial) => session.world.entities.get(serial)?.parent === ctx.backpack()
