@@ -14,9 +14,10 @@ let cached = { at: 0, cells: [] as number[] };
 
 export const troubleCell = (x: number, y: number) => (x >> CELL) * 1024 + (y >> CELL);
 
-export function noteTrouble(at: { x: number; y: number }, kind: 'unreachable' | 'dangerous' | 'stuck') {
+export function noteTrouble(at: { x: number; y: number }, kind: 'unreachable' | 'dangerous' | 'stuck' | 'deadly') {
   events.set(`${at.x >> CELL},${at.y >> CELL}|${kind}|${Date.now()}`, Date.now() + HOLD_MS);
   cached.at = 0;
+  deadly.at = 0;
 }
 
 function tally() {
@@ -43,6 +44,22 @@ export function troubleCells(): number[] {
     });
   cached = { at: Date.now(), cells };
   return cells;
+}
+
+// Where residents keep dying (resurrection.ts), with a cell of margin all round: what killed them
+// may cast from out of sight. Every walk pays dearly to cross it (path-search.ts) and goes round it,
+// as a player who knows the land keeps clear of a lich's graveyard on the way somewhere else.
+let deadly = { at: 0, cells: [] as number[] };
+export function deadlyCells(): number[] {
+  if (Date.now() - deadly.at < 60_000) return deadly.cells;
+  const cells = new Set<number>();
+  for (const [cell, entry] of tally()) {
+    if ((entry.kinds.get('deadly') ?? 0) < tuning.trouble.deadlyAt) continue;
+    const [cx = 0, cy = 0] = cell.split(',').map(Number);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) cells.add((cx + dx) * 1024 + cy + dy);
+  }
+  deadly = { at: Date.now(), cells: [...cells] };
+  return deadly.cells;
 }
 
 // A line in the log for the worst places (run-session.ts, every few minutes).

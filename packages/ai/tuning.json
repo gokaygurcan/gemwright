@@ -12,6 +12,12 @@
     "lessonTo": 30,
     "lessonMinGold": 500
   },
-  "trouble": { "holdHours": 6, "penaltyAt": 3, "stepCost": 4 },
+  "trouble": {
+    "holdHours": 6,
+    "penaltyAt": 3,
+    "stepCost": 4,
+    "deadlyAt": 2,
+    "deadlyStepCost": 30
+  },
   "taming": { "emptySearches": 6, "givenUpHours": 1 }
 }

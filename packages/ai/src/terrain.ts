@@ -8,7 +8,7 @@ import { nameHash } from '@gemwright/common/assets/uop';
 import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';
 import { RouteSearch, routeSeed } from './path-search';
-import { troubleCells } from './trouble';
+import { deadlyCells, troubleCells } from './trouble';
 import { tuning } from './tuning';
 
 interface Tile {
@@ -337,6 +337,8 @@ export class Terrain {
           blocked: [...blocked, ...teleporterTiles.filter((tile) => tile !== `${goal.x},${goal.y}`)],
           penalties: troubleCells(),
           penaltyCost: tuning.trouble.stepCost,
+          deadly: deadlyCells(),
+          deadlyCost: tuning.trouble.deadlyStepCost,
           targetZ,
           partial,
           wide,

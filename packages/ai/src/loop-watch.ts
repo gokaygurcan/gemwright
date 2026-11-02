@@ -51,7 +51,9 @@ const kindOf = (phase: string, note: string) => `${phase}: ${note.replace(/-?\d+
 // Recovery and planned waits use the goal deadline rather than the repeated-step detector, and a
 // hunter sweeping its ground for prey is hunting (its own patrol count moves it to another ground).
 const recovering = (phase: string) =>
-  /^(recovering|recovering-health|recovery-wait|securing-assets|plan-wait|patrolling|choosing-opponent)$/.test(phase);
+  /^(recovering|recovering-health|recovery-wait|mending|securing-assets|plan-wait|patrolling|choosing-opponent)$/.test(
+    phase
+  );
 
 function trigger(session: PlayerSession, watch: Watch, reason: string) {
   const now = Date.now();

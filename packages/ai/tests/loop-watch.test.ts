@@ -167,6 +167,17 @@ test('bounded recovery phases are paced by the goal deadline instead of the loop
     expect(() => checkLoop(f.session)).toThrow(Stuck);
   }));
 
+test('resting after a resurrection is not cut short by the loop guard', () =>
+  withClock((advance) => {
+    const f = behaviorFixture();
+    watchStep(f.session, 'test', 'mending', 'Healing before going back to work (10/100)');
+    for (let i = 0; i < 90; i++) {
+      advance(10_000);
+      checkLoop(f.session);
+    }
+    expect(forcedToWork(f.session)).toBe(false);
+  }));
+
 test('small-area circling across navigation calls interrupts; travel and safety movement remain possible', () =>
   withClock(async (advance) => {
     const f = behaviorFixture();

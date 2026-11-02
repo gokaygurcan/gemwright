@@ -69,8 +69,9 @@ export const healSelf = (ctx: Ctx) => {
   return me === null || ratio(ctx.session) >= 1 ? Promise.resolve(false) : healOnce(ctx, me);
 };
 
-// Badly hurt (as after a resurrection): heal to most of its health before anything else, four minutes at most.
-// With nothing to heal with it rests (natural regeneration), out of reach of monsters.
+// Badly hurt (as after a resurrection): heal to most of its health before anything else, fifteen minutes at
+// most. With nothing to heal with it rests (natural regeneration, about six hit points a minute), out of
+// reach of monsters; four minutes sent it back out at a third of its health, to die again on the way.
 export async function mendAfterDeath(ctx: Ctx, log: (message: string) => void, home = 'Britain') {
   const { session } = ctx;
   if (ratio(session) >= 0.5) return;
@@ -78,7 +79,7 @@ export async function mendAfterDeath(ctx: Ctx, log: (message: string) => void, h
     'mending',
     `Healing before going back to work (${session.world.status?.hits}/${session.world.status?.maxHits})`
   );
-  const until = Date.now() + 4 * 60_000;
+  const until = Date.now() + 15 * 60_000;
   while (Date.now() < until && ratio(session) < 0.8) {
     ctx.check();
     // Never mends among monsters: first to the nearest town bank, where it is safe.

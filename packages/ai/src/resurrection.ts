@@ -20,6 +20,7 @@ import { travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import { dyingOverAndOver, noteDeath, useStuckMenu } from './stuck';
+import { noteTrouble } from './trouble';
 import { WALKING_LIMIT } from './tuning';
 
 const ghosts = GHOST_BODIES;
@@ -53,6 +54,22 @@ function effort(from: { x: number; y: number }, to: { x: number; y: number }) {
   return distance(from, moongates[nearestGate(from)]) + distance(moongates[nearestGate(to)], to) + 20;
 }
 
+// A far healer is reached by walking on from its moongate. When residents keep dying on that walk
+// (the orcs between the Minoc moongate and Cove), the ghost passes safely but rises on the wrong side
+// of them, and dies again going home: two deaths of the last day near that leg put it last.
+export function deadlyWalk(option: { x: number; y: number }) {
+  const gate = moongates[nearestGate(option)];
+  const [minX, maxX] = [Math.min(gate.x, option.x) - 20, Math.max(gate.x, option.x) + 20];
+  const [minY, maxY] = [Math.min(gate.y, option.y) - 20, Math.max(gate.y, option.y) + 20];
+  let deaths = 0;
+  for (const [key, until] of lasting('death-log').entries()) {
+    if (until <= Date.now()) continue;
+    const [x, y] = (key.split('|')[1] ?? '').split(',').map(Number);
+    if (x !== undefined && y !== undefined && x >= minX && x <= maxX && y >= minY && y <= maxY) deaths++;
+  }
+  return deaths >= 2;
+}
+
 // Resurrects a ghost at the closest healer or ankh, as a player would. A ghost stays in the town
 // it is in: moongates only when no healer or ankh is within walking range. Healers (BaseHealer) and
 // ankhs (Ankhs.OnMovement) both send ResurrectGump when a ghost steps into range; the free
@@ -73,6 +90,7 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
     // The day's death log, by place and what was near (lasting.ts; the save browser's /trouble).
     const cause = (near[0] ?? 'unknown').replace(/[|,]/g, ' ');
     lasting('death-log').set(`${ctx.serial}|${fell.x},${fell.y}|${cause}|${Date.now()}`, Date.now() + 24 * 3_600_000);
+    noteTrouble(fell, 'deadly');
     const me = session.world.entities.get(ctx.serial)?.name ?? 'someone';
     recordEvent(ctx.serial, (place) => `${me} got killed ${near[0] ? `by ${near[0]} ` : ''}${place} earlier`, fell);
   }
@@ -84,7 +102,9 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
   // Every healer and ankh in walking range first, each tried many times; another city only when
   // none of them can be reached at all (a shrine ankh with no route to it).
   const local = all.filter((option) => distance(position(), option) <= WALKING_LIMIT);
-  const options = [...local, ...all.filter((option) => !local.includes(option))];
+  const far = all.filter((option) => !local.includes(option));
+  const deadly = far.filter((option) => deadlyWalk(option));
+  const options = [...local, ...far.filter((option) => !deadly.includes(option)), ...deadly];
   // A healer met on the way (a wandering healer between towns, or any town healer in view) comes
   // before the trip to the next catalogued one.
   const met = new Set<number>();

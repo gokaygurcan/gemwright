@@ -1,10 +1,14 @@
-import { expect, test } from 'bun:test';
+import { expect, setSystemTime, spyOn, test } from 'bun:test';
 
 import { speech } from '@gemwright/network/packets';
 
 import { SESSION_BREAK } from '../src/action-errors';
 import { superviseBehavior } from '../src/behavior-supervisor';
 import { corpseRecoveryChoice, resurrectionButton } from '../src/fighter-recovery';
+import { lasting } from '../src/lasting';
+import { mendAfterDeath } from '../src/mend';
+import { deadlyWalk } from '../src/resurrection';
+import { behaviorFixture, required } from './behavior-fixture';
 
 test('resurrection accepts the observed free healer Continue control and rejects a paid or missing control', () => {
   const layout =
@@ -296,4 +300,36 @@ test('an ordinary returned behavior is still run again, unlike a break', async (
   });
   expect(result.runs).toBe(3);
   expect(result.result).toBe('still stranded');
+});
+
+test('after a resurrection a resident with nothing to heal with rests to most of its health before working', async () => {
+  const f = behaviorFixture('swordsman');
+  const status = required(f.world.status);
+  status.hits = 10;
+  let now = Date.now();
+  setSystemTime(now);
+  const sleep = spyOn(Bun, 'sleep').mockImplementation(async () => {});
+  // Natural regeneration: about six hit points a minute.
+  f.session.refreshStatus = async () => {
+    now += 60_000;
+    setSystemTime(now);
+    status.hits = Math.min(status.maxHits, status.hits + 6);
+  };
+  try {
+    await mendAfterDeath({ ...f.ctx, backpack: () => 10 }, () => {});
+  } finally {
+    sleep.mockRestore();
+    setSystemTime();
+  }
+  expect(status.hits).toBeGreaterThanOrEqual(80);
+});
+
+test('a ghost does not pick a far healer whose walk from the moongate crosses where residents keep dying', () => {
+  const deaths = lasting('death-log');
+  const now = Date.now();
+  // Residents killed by the orcs on the road between the Minoc moongate and Cove.
+  for (const [i, spot] of ['2470,1105', '2444,1119', '2477,1119'].entries())
+    deaths.set(`${900 + i}|${spot}|0x1a|${now}`, now + 3_600_000);
+  expect(deadlyWalk({ x: 2250, y: 1230 })).toBe(true);
+  expect(deadlyWalk({ x: 2930, y: 854 })).toBe(false);
 });

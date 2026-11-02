@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, setSystemTime, test } from 'bun:test';
 
 import { ConnectionAdmission } from '../src/connection-admission';
 import { directRoute } from '../src/direct-route';
@@ -7,6 +7,7 @@ import { PathPool } from '../src/path-pool';
 import { RouteSearch, routeSeed } from '../src/path-search';
 import { RouteWaypoints } from '../src/route-waypoints';
 import type { Terrain, TerrainBuffers } from '../src/terrain';
+import { deadlyCells, noteTrouble } from '../src/trouble';
 
 const fake = (walls = new Set<string>()) =>
   ({
@@ -170,4 +171,22 @@ test('one walk keeps one route variation through its re-plans; a later trip gets
   const at = 1_800_000_000_000;
   expect(routeSeed(goal, at + 1_000)).toBe(routeSeed(goal, at + 60_000));
   expect(routeSeed(goal, at)).not.toBe(routeSeed(goal, at + 600_000));
+});
+
+test('a walk goes around ground where residents keep dying instead of through it', () => {
+  // Two residents killed at 40,10 by something that casts from out of sight.
+  noteTrouble({ x: 40, y: 10 }, 'deadly');
+  setSystemTime(Date.now() + 60_000);
+  noteTrouble({ x: 41, y: 12 }, 'deadly');
+  setSystemTime();
+  const result = new RouteSearch().run(fake(), {
+    start: { x: 10, y: 10, z: 0 },
+    goal: { x: 70, y: 10 },
+    range: 0,
+    blocked: [],
+    deadly: deadlyCells()
+  });
+  expect(result.path?.at(-1)).toEqual({ x: 70, y: 10, z: 0 });
+  // Not within a cell (8 tiles) of the deaths.
+  expect(result.path?.some((p) => p.x >= 32 && p.x < 56 && p.y < 24)).toBe(false);
 });

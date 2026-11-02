@@ -9,6 +9,9 @@ export interface RouteRequest {
   // 8-tile cells where walks keep failing (trouble.ts): each step there costs more.
   penalties?: number[];
   penaltyCost?: number;
+  // 8-tile cells where residents keep dying (trouble.ts): crossed only when no way round is shorter.
+  deadly?: number[];
+  deadlyCost?: number;
   wide?: boolean;
   targetZ?: number;
   partial?: boolean;
@@ -151,6 +154,7 @@ export class RouteSearch {
     const MAX_STEP_Z = 8;
     const blocked = new Set(request.blocked);
     const penalties = new Set(request.penalties ?? []);
+    const deadly = new Set(request.deadly ?? []);
     const estimate = (x: number, y: number) => {
       const dx = Math.abs(x - goal.x),
         dy = Math.abs(y - goal.y);
@@ -215,7 +219,10 @@ export class RouteSearch {
         const turn =
           parent >= 0 &&
           (Math.sign(current.x - this.x[parent]!) !== dx || Math.sign(current.y - this.y[parent]!) !== dy);
-        const trouble = penalties.size && penalties.has((x >> 3) * 1024 + (y >> 3)) ? (request.penaltyCost ?? 4) : 0;
+        const cell = (x >> 3) * 1024 + (y >> 3);
+        const trouble =
+          (penalties.size && penalties.has(cell) ? (request.penaltyCost ?? 4) : 0) +
+          (deadly.size && deadly.has(cell) ? (request.deadlyCost ?? 30) : 0);
         const vary = request.seed ? ((((x >> 2) * 73856093) ^ ((y >> 2) * 19349663) ^ request.seed) & 1023) / 3000 : 0;
         const cost =
           this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : this.offRoad) + (turn ? 0.08 : 0) + trouble + vary;
