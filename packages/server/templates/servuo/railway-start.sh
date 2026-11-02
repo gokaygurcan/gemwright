@@ -57,7 +57,7 @@ for host in $(printf '%s' "${GEMWRIGHT_TRUSTED_HOSTS:-}" | tr ',' ' '); do
 done
 
 if [ -n "${GEMWRIGHT_PUBLIC_HOST:-}" ]; then
-    exec /opt/gemwright/run-server.sh --public "$GEMWRIGHT_PUBLIC_HOST:2593" "$@" -noconsole
+    exec /opt/gemwright/run-server.sh --public "$GEMWRIGHT_PUBLIC_HOST:${GEMWRIGHT_PUBLIC_PORT:-2593}" "$@" -noconsole
 fi
 : "${RAILWAY_TCP_PROXY_DOMAIN:?Public hostname is missing}"
 : "${RAILWAY_TCP_PROXY_PORT:?Public port is missing}"

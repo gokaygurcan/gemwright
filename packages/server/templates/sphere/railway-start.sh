@@ -44,7 +44,7 @@ while [ ! -e /app/data/.client-ready ]; do
 done
 
 if [ -n "${GEMWRIGHT_PUBLIC_HOST:-}" ]; then
-    exec /opt/gemwright/run-server.sh --listen 0.0.0.0:2593 --public "$GEMWRIGHT_PUBLIC_HOST:2593"
+    exec /opt/gemwright/run-server.sh --listen 0.0.0.0:2593 --public "$GEMWRIGHT_PUBLIC_HOST:${GEMWRIGHT_PUBLIC_PORT:-2593}"
 fi
 : "${RAILWAY_TCP_PROXY_DOMAIN:?Public hostname is missing}"
 : "${RAILWAY_TCP_PROXY_PORT:?Public port is missing}"

@@ -36,7 +36,7 @@ while [ ! -e /app/data/.client-ready ]; do
 done
 if [ -n "${GEMWRIGHT_PUBLIC_HOST:-}" ]; then
     export RAILWAY_TCP_PROXY_DOMAIN="$GEMWRIGHT_PUBLIC_HOST"
-    export RAILWAY_TCP_PROXY_PORT=2593
+    export RAILWAY_TCP_PROXY_PORT="${GEMWRIGHT_PUBLIC_PORT:-2593}"
 fi
 : "${RAILWAY_TCP_PROXY_DOMAIN:?Public hostname is missing}"
 : "${RAILWAY_TCP_PROXY_PORT:?Public port is missing}"
