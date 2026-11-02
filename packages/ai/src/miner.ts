@@ -219,7 +219,9 @@ export async function runMiner(options: ResidentOptions) {
       await answerDanger(professional, undefined);
       if (ghost()) await revive();
     });
-    if (distance(position(), home) < 180) await mounts.acquire().then(() => packs?.acquire());
+    // Miners keep a pack animal they already have but buy and search for none: half of them lost
+    // theirs (631 gold each) and kept walking back to look for it.
+    if (distance(position(), home) < 180) await mounts.acquire();
     rememberObservedForges();
     if (plan().pending === 'smelt' && !smeltable(backpack).length) {
       if (carried(backpack).some((item) => item.graphic === ingot)) plan().smeltsSinceBank++;
@@ -298,7 +300,7 @@ export async function runMiner(options: ResidentOptions) {
               if ((checkpoint.stock?.ingots ?? 0) >= 200 && Math.random() < 0.4) await smithFromBank(backpack);
             }
             await resupplyOrPass(backpack);
-            await activeMounts.acquire().then(() => packs?.acquire());
+            await activeMounts.acquire();
             if (await lifeTurn(life(bank, options.decisions))) return;
           }
           if (status().weight >= miningLimit() || needsSpace()) {
