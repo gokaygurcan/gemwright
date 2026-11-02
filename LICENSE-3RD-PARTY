@@ -10,15 +10,22 @@ Bundled JavaScript
 - fast-uri 3.1.9: BSD-3-Clause, https://github.com/fastify/fast-uri/blob/v3.1.9/LICENSE
 - json-schema-traverse 1.0.0: MIT, https://github.com/epoberezkin/json-schema-traverse/blob/v1.0.0/LICENSE
 - Anthropic SDK 1.3.0: Apache-2.0, https://github.com/anthropics/anthropic-sdk-typescript/blob/v1.3.0/LICENSE
-  Its embedded qs parser's MIT notice: https://unpkg.com/@anthropic-ai/sdk@1.3.0/src/internal/qs/LICENSE.md
+- qs parser in the Anthropic SDK 1.3.0: MIT, https://unpkg.com/@anthropic-ai/sdk@1.3.0/src/internal/qs/LICENSE.md
 - OpenTelemetry API 1.10.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry Logs API 0.223.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry Core 3.0.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry Resources 3.0.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry Logs SDK 3.0.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry Semantic Conventions 1.44.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry OTLP Exporter Base 0.300.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry OTLP Transformer 0.300.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
+- OpenTelemetry OTLP HTTP Logs Exporter 0.300.0: Apache-2.0, https://github.com/open-telemetry/opentelemetry-js/blob/main/LICENSE
 - @typesafe-ai/sdk 0.7.0: MIT, https://unpkg.com/@typesafe-ai/sdk@0.7.0/package.json
 - @stablelib/base64 1.0.1: MIT, https://github.com/StableLib/stablelib/blob/master/LICENSE
 - fast-sha256 1.3.0: Unlicense, https://github.com/dchest/fast-sha256-js/blob/master/LICENSE
-- standardwebhooks 1.1.1: package metadata says MIT; the upstream license at its
-  recorded source revision is Apache-2.0:
-  https://github.com/standard-webhooks/standard-webhooks/blob/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/LICENSE
-- Preact 11.1.0 (private analyzer): MIT, https://github.com/preactjs/preact/blob/11.1.0/LICENSE
+- standardwebhooks 1.1.1: Apache-2.0 (package metadata says MIT), https://github.com/standard-webhooks/standard-webhooks/blob/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/LICENSE
+- Preact 11.1.1 (private analyzer): MIT, https://github.com/preactjs/preact/blob/11.1.1/LICENSE
+- Tailwind CSS 4.1.14 (private analyzer): MIT, https://github.com/tailwindlabs/tailwindcss/blob/v4.1.14/LICENSE
 
 CLI dependencies installed separately by npm
 - @clack/prompts 1.8.1: MIT, https://github.com/bombshell-dev/clack/blob/main/LICENSE
