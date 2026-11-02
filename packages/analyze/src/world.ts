@@ -67,6 +67,9 @@ export interface Item {
   worth?: number;
   // The ridden animal behind a mount item.
   mount?: number;
+  // An ethereal mount's statuette, which it shows unless it is being ridden (its graphic is then
+  // the mount layer's, which has no art of its own).
+  statue?: { graphic: number; hue: number };
   // Where a teleporter sends whoever steps on it, and whether it is switched on.
   teleport?: { x: number; y: number; z: number; map: number; active: boolean };
   // Set when the record could not be decoded past its header (item sockets).
@@ -295,6 +298,12 @@ function readItem(r: Reader, entry: Entry): Item {
   // Script data after the base: BankCheck version, worth; MountItem version, mount.
   if (item.type === 'Server.Items.BankCheck' && r.int() === 0) item.worth = r.int();
   if (item.type === 'Server.Mobiles.MountItem' && r.int() === 0) item.mount = r.int();
+  // EtherealMount.Serialize, versions 5 to 7: transparent, the transparent and solid mounted ids and
+  // hues, then the statue's id and hue.
+  if (ETHEREALS.has(item.type) && r.int() >= 5) {
+    r.skip(1 + 16);
+    item.statue = { graphic: r.int(), hue: r.int() };
+  }
   // Teleporter.Serialize, version 4: criminal and combat checks, source and destination effects,
   // delay (ticks), sound (encoded), creatures, active, destination point and map.
   if (item.type === 'Server.Items.Teleporter' && r.int() === 4) {
@@ -307,6 +316,32 @@ function readItem(r: Reader, entry: Entry): Item {
   }
   return item;
 }
+
+// Every EtherealMount type (ServUO Scripts/Mobiles/Normal/Ethereals.cs, Items/Tools/GMEthereal.cs).
+const ETHEREALS = new Set([
+  'Server.Mobiles.GMEthereal',
+  'Server.Mobiles.GMEthVirtual',
+  'Server.Mobiles.EtherealHorse',
+  'Server.Mobiles.EtherealLlama',
+  'Server.Mobiles.EtherealOstard',
+  'Server.Mobiles.EtherealRidgeback',
+  'Server.Mobiles.EtherealUnicorn',
+  'Server.Mobiles.EtherealBeetle',
+  'Server.Mobiles.EtherealKirin',
+  'Server.Mobiles.EtherealSwampDragon',
+  'Server.Mobiles.RideablePolarBear',
+  'Server.Mobiles.EtherealCuSidhe',
+  'Server.Mobiles.EtherealHiryu',
+  'Server.Mobiles.EtherealReptalon',
+  'Server.Mobiles.ChargerOfTheFallen',
+  'Server.Mobiles.EtherealBoura',
+  'Server.Mobiles.EtherealAncientHellHound',
+  'Server.Mobiles.EtherealTiger',
+  'Server.Mobiles.EtherealTarantula',
+  'Server.Mobiles.EtherealLasher',
+  'Server.Mobiles.EtherealSerpentineDragon',
+  'Server.Mobiles.EtherealWarBoar'
+]);
 
 export function loadWorld(saves: string): World {
   const world: World = { mobiles: new Map(), items: new Map(), errors: [] };

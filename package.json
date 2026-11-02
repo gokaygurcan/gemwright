@@ -16,6 +16,7 @@
   "scripts": {
     "start": "bun run packages/cli/src/index.ts",
     "build": "bun run --filter '*' --if-present build",
+    "analyze": "bun --watch packages/analyze/src/serve.ts",
     "test": "bun test",
     "format": "biome format --write",
     "typecheck": "bun check",

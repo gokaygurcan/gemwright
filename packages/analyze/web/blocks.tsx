@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'preact/hooks';
 
 import type { Block, Cell } from '../src/doc';
+import { LineChart, MiniMap, Shares, Stats } from './charts';
 
 // Renders a page's blocks (src/doc.ts): notes, headings, fact lists, tables that sort and filter,
-// preformatted text and the server-drawn character scene.
+// preformatted text, item art and the server-drawn character scene.
 const text = (cell: Cell) => (cell === null ? '' : typeof cell === 'object' ? cell.text : String(cell));
 const sortValue = (cell: Cell) =>
   cell === null ? '' : typeof cell === 'object' ? (cell.sort ?? cell.text) : typeof cell === 'number' ? cell : cell;
@@ -11,7 +12,18 @@ const sortValue = (cell: Cell) =>
 export function CellView({ cell }: { cell: Cell }) {
   if (cell === null || cell === '') return null;
   if (typeof cell !== 'object') return <>{typeof cell === 'number' ? cell.toLocaleString('en-GB') : cell}</>;
-  const main = cell.href ? <a href={cell.href}>{cell.text}</a> : cell.text;
+  const icon = cell.icon && <img alt="" class="icon" loading="lazy" src={cell.icon} />;
+  const main = cell.href ? (
+    <a class={icon ? 'with-icon' : undefined} href={cell.href}>
+      {icon}
+      {cell.text}
+    </a>
+  ) : (
+    <>
+      {icon}
+      {cell.text}
+    </>
+  );
   return (
     <span class={cell.tone ? `tone-${cell.tone}` : undefined}>
       {main}
@@ -126,6 +138,20 @@ export function BlockView({ block }: { block: Block }) {
       return <Table block={block} />;
     case 'pre':
       return <pre class="scroll">{block.text}</pre>;
+    case 'stats':
+      return <Stats block={block} />;
+    case 'line':
+      return <LineChart block={block} />;
+    case 'shares':
+      return <Shares block={block} />;
+    case 'minimap':
+      return <MiniMap block={block} />;
+    case 'art':
+      return (
+        <figure class="art">
+          <img alt={block.alt} src={block.src} />
+        </figure>
+      );
     case 'html':
       return (
         <>

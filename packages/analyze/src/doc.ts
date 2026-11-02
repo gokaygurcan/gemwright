@@ -13,6 +13,8 @@ export type Cell =
       // A quieter second part, such as a serial in hex.
       muted?: string;
       tone?: 'error' | 'good';
+      // A small picture before the text, such as an item's art.
+      icon?: string;
     };
 
 export type Block =
@@ -30,8 +32,34 @@ export type Block =
       empty?: string;
     }
   | { kind: 'pre'; text: string }
+  // A picture drawn from the client's art, such as an item's.
+  | { kind: 'art'; src: string; alt: string }
   // Server-made markup (the character scene drawn from the client's art), with its own style.
-  | { kind: 'html'; html: string; style?: string };
+  | { kind: 'html'; html: string; style?: string }
+  // Headline numbers, each with how it moved since the previous pull.
+  | { kind: 'stats'; items: Stat[] }
+  // One measure over time (epoch ms, value), with moments worth marking (stalls).
+  | { kind: 'line'; label: string; points: [number, number][]; marks?: { at: number; label: string }[] }
+  // How a whole splits into parts, in a fixed order so each part keeps its colour.
+  | { kind: 'shares'; label: string; parts: { label: string; value: number }[] }
+  // A small world map with dots, linking to the full map.
+  | { kind: 'minimap'; map: number; width: number; height: number; drawn: boolean; dots: Dot[] };
+
+export interface Stat {
+  label: string;
+  value: string;
+  // The change since the previous pull, toned by whether it is good news.
+  delta?: { text: string; tone: 'good' | 'error' | 'muted' };
+  note?: string;
+  href?: string;
+}
+
+export interface Dot {
+  x: number;
+  y: number;
+  label: string;
+  href: string;
+}
 
 export interface Doc {
   title: string;

@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { GumpArt, ItemArt } from '@gemwright/common/assets/art';
-import { Facet } from '@gemwright/common/assets/facet';
+import { FACET_SIZES, Facet } from '@gemwright/common/assets/facet';
 import { Hues } from '@gemwright/common/assets/hues';
-import { encodePng, type Image } from '@gemwright/common/assets/png';
+import { color16, encodePng, type Image } from '@gemwright/common/assets/png';
 import { clientSkills } from '@gemwright/common/assets/skill-groups';
 import { Tiledata } from '@gemwright/common/assets/tiledata';
 
@@ -18,6 +18,7 @@ export class ClientFiles {
   private readonly art: ItemArt;
   private readonly hues: Hues;
   private readonly facets = new Map<number, Facet>();
+  private readonly grids = new Map<number, Uint16Array>();
   private readonly pngs = new Map<string, Buffer | null>();
   private readonly sizes = new Map<string, { width: number; height: number } | null>();
 
@@ -57,15 +58,48 @@ export class ClientFiles {
     return this.sizes.get(`a${graphic}:0`) ?? undefined;
   }
 
-  radar(map: number, x: number, y: number, size: number) {
+  private facet(map: number) {
     let facet = this.facets.get(map);
     if (!facet) {
       facet = new Facet(this.directory, map);
       this.facets.set(map, facet);
     }
-    return encodePng(facet.radar(x, y, size));
+    return facet;
+  }
+
+  radar(map: number, x: number, y: number, size: number) {
+    return encodePng(this.facet(map).radar(x, y, size));
+  }
+
+  // One square of the world map: 256 pixels across, covering 256 << level tiles from tile
+  // (tx, ty) of that grid, one pixel per 1 << level tiles. The facet's colours are read once.
+  mapTile(map: number, level: number, tx: number, ty: number) {
+    const size = FACET_SIZES[map];
+    if (!size || level < 0 || level > MAP_LEVELS - 1) return undefined;
+    return this.cached(`m${map}:${level}:${tx}:${ty}`, () => {
+      const [width, height] = size;
+      let grid = this.grids.get(map);
+      if (!grid) {
+        grid = this.facet(map).colorGrid();
+        this.grids.set(map, grid);
+      }
+      const step = 1 << level;
+      const rgba = new Uint8Array(256 * 256 * 4);
+      for (let py = 0; py < 256; py++)
+        for (let px = 0; px < 256; px++) {
+          const x = (tx * 256 + px) * step;
+          const y = (ty * 256 + py) * step;
+          if (x >= width || y >= height) continue;
+          const [r, g, b] = color16(grid[y * width + x] ?? 0);
+          rgba.set([r, g, b, 255], (py * 256 + px) * 4);
+        }
+      return { width: 256, height: 256, rgba };
+    });
   }
 }
+
+// The world map's scales: level n draws one pixel per 2^n tiles.
+export const MAP_LEVELS = 5;
 
 // The client files: --files, else the repository's files/ folder when it has them.
 export function findClientFiles(given?: string) {

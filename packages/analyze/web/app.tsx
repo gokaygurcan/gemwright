@@ -5,6 +5,8 @@ import type { Doc } from '../src/doc';
 import type { PullsResponse } from '../src/pulls-api';
 import { ApiError, api } from './api';
 import { BlockView, CellView } from './blocks';
+import { MapPage } from './map';
+import './paperdoll';
 import { PullsPage } from './pulls';
 import { navigate, useLocation } from './router';
 
@@ -14,6 +16,7 @@ const SECTIONS = [
   ['/overview', 'Overview'],
   ['/players', 'Players'],
   ['/residents', 'Residents'],
+  ['/map', 'Map'],
   ['/trouble', 'Trouble'],
   ['/loops', 'Loops'],
   ['/history', 'History'],
@@ -131,7 +134,15 @@ function App() {
           </nav>
         )}
       </header>
-      <main>{home ? <PullsPage data={pulls} onChange={update} /> : <DocPage path={path} />}</main>
+      <main class={path.startsWith('/map') ? 'max-w-none pb-4' : undefined}>
+        {home ? (
+          <PullsPage data={pulls} onChange={update} />
+        ) : path.startsWith('/map') ? (
+          <MapPage key={new URLSearchParams(path.split('?')[1]).get('m') ?? '1'} path={path} />
+        ) : (
+          <DocPage path={path} />
+        )}
+      </main>
     </>
   );
 }

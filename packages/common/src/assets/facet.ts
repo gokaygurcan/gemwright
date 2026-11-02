@@ -8,7 +8,7 @@ import { Uop } from './uop';
 // of 8x8 cells (a 4-byte header, then per cell a land tile and its z), and statics listed per
 // block (staidx: offset, length; statics: tile, x, y, z, hue). radarcol.mul gives each land tile
 // (0..0x3FFF) and item tile (0x4000 + id) a 16-bit colour.
-const SIZES: Record<number, [number, number]> = {
+export const FACET_SIZES: Record<number, [number, number]> = {
   0: [7168, 4096], // Felucca
   1: [7168, 4096], // Trammel
   2: [2304, 1600], // Ilshenar
@@ -28,7 +28,7 @@ export class Facet {
   private readonly colors: Buffer;
 
   constructor(directory: string, facet: number) {
-    const size = SIZES[facet];
+    const size = FACET_SIZES[facet];
     if (!size) throw new Error(`Unknown facet ${facet}`);
     [this.width, this.height] = size;
     const uop = new Uop(join(directory, `map${facet}LegacyMUL.uop`));
@@ -87,5 +87,36 @@ export class Facet {
         rgba.set([r, g, b, 255], (dy * size + dx) * 4);
       }
     return { width: size, height: size, rgba };
+  }
+
+  // The whole facet's top-down colours, one 16-bit colour per tile (row by row): the radar of
+  // every cell at once, for drawing the world map at any scale.
+  colorGrid(): Uint16Array {
+    const grid = new Uint16Array(this.width * this.height);
+    const tops = new Int8Array(this.width * this.height);
+    for (let x = 0; x < this.width; x++)
+      for (let y = 0; y < this.height; y++) {
+        const cell = ((x >> 3) * (this.height >> 3) + (y >> 3)) * 196 + 4 + ((y & 7) * 8 + (x & 7)) * 3;
+        grid[y * this.width + x] = this.colors.readUInt16LE(this.map.readUInt16LE(cell) * 2);
+        tops[y * this.width + x] = this.map.readInt8(cell + 2);
+      }
+    for (let entry = 0; entry + 12 <= this.index.length; entry += 12) {
+      const start = this.index.readInt32LE(entry);
+      const length = this.index.readInt32LE(entry + 4);
+      if (start < 0 || length <= 0) continue;
+      const block = entry / 12;
+      const bx = Math.floor(block / (this.height >> 3));
+      const by = block % (this.height >> 3);
+      for (let at = start; at + 7 <= start + length; at += 7) {
+        const x = (bx << 3) + this.statics.readUInt8(at + 2);
+        const y = (by << 3) + this.statics.readUInt8(at + 3);
+        const z = this.statics.readInt8(at + 4);
+        const key = y * this.width + x;
+        if (x >= this.width || y >= this.height || z < (tops[key] ?? 0)) continue;
+        tops[key] = z;
+        grid[key] = this.colors.readUInt16LE((0x4000 + this.statics.readUInt16LE(at)) * 2);
+      }
+    }
+    return grid;
   }
 }

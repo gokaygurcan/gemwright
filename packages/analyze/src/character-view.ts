@@ -13,7 +13,7 @@ import type { Item, Mobile } from './world';
 // skills, laid out as ClassicUO lays out those gumps.
 const gumpUrl = (id: number, hue = 0, partial = false) =>
   `/gump/${id}${hue ? `?hue=${hue & 0x3fff}${partial ? '&partial=1' : ''}` : ''}`;
-const artUrl = (graphic: number, hue = 0) => `/art/${graphic}${hue ? `?hue=${hue & 0x3fff}` : ''}`;
+export const artUrl = (graphic: number, hue = 0) => `/art/${graphic}${hue ? `?hue=${hue & 0x3fff}` : ''}`;
 const at = (x: number, y: number) => `left:${x}px;top:${y}px`;
 
 // Paperdoll layers, bottom to top (ClassicUO PaperDollInteractable).

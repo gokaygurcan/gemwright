@@ -17,11 +17,12 @@ Report: bun dist/src/index.js [options]
   --json <file>        Export characters and items as JSON
 
 Browser: bun dist/src/serve.js [options]
+  --shard <directory>  Shard folder whose pulls to browse (default: current directory)
   --local <directory>  Inspect a local Saves folder
   --files <directory>  Game files for rendering character art
   --port <number>      HTTP port (default: 4100)
 
-Without --local, the browser uses .gemwright/pulls in the current directory.
+Without --local, the browser uses .gemwright/pulls in the shard folder.
 ```
 
 ## License

@@ -1,4 +1,5 @@
 import type { Doc } from '../src/doc';
+import type { MapResponse } from '../src/map';
 import type { PullsResponse } from '../src/pulls-api';
 
 // The analyzer server's JSON API (src/serve.ts).
@@ -24,5 +25,6 @@ export const api = {
   openPull: (stamp: string) => call<PullsResponse>(`/api/pulls/${stamp}/open`, { method: 'POST' }),
   deletePull: (stamp: string) => call<PullsResponse>(`/api/pulls/${stamp}`, { method: 'DELETE' }),
   // A page of the open pull, by its path in the app (/players, /mobile/12, /search?q=...).
-  page: (path: string) => call<Doc>(`/api/page${path}`)
+  page: (path: string) => call<Doc>(`/api/page${path}`),
+  map: (map: number) => call<MapResponse>(`/api/map/${map}`)
 };

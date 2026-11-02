@@ -17,14 +17,16 @@
   "scripts": {
     "start": "bun dist/src/serve.js",
     "dev": "bun --watch src/serve.ts",
-    "build": "rm -rf dist && bun build src/index.ts src/serve.ts --outdir dist/src --target bun && bun build web/index.html --outdir dist/web --target browser --minify --entry-naming '[name].[ext]' --asset-naming '[name].[ext]' --chunk-naming '[name].[ext]' --public-path /"
+    "build": "rm -rf dist && bun build src/index.ts src/serve.ts --outdir dist/src --target bun && bun web/build.ts dist/web"
   },
   "dependencies": {
     "preact": "11.1.1"
   },
   "devDependencies": {
     "@gemwright/common": "workspace:*",
-    "@gemwright/deployment": "workspace:*"
+    "@gemwright/deployment": "workspace:*",
+    "bun-plugin-tailwind": "0.1.2",
+    "tailwindcss": "4.3.3"
   },
   "files": [
     "dist/"

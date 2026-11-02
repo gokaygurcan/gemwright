@@ -1,9 +1,10 @@
+import { FACET_SIZES } from '@gemwright/common/assets/facet';
 import { LAYERS } from '@gemwright/common/game/layers';
 import { MAPS } from '@gemwright/common/game/maps';
 import { skillLabel } from '@gemwright/common/game/skills';
 
 import type { Analysis } from './analysis';
-import { characterScene, SCENE_STYLE } from './character-view';
+import { artUrl, characterScene, SCENE_STYLE } from './character-view';
 import type { ClientFiles } from './client';
 import { type Block, type Cell, type Doc, link, num } from './doc';
 import { holderKind, itemLabel, type Placement } from './owners';
@@ -16,48 +17,23 @@ const hex = (serial: number) => `0x${serial.toString(16)}`;
 const typeName = (type: string) => type.replace(/^Server\.(Items|Mobiles|Multis)\./, '');
 const layerNames = new Map<number, string>(Object.entries(LAYERS).map(([name, id]) => [id, name]));
 const _mobileLink = (m: Mobile) => link(m.name ?? typeName(m.type), `/mobile/${m.serial}`);
-const itemLink = (i: Item) => link(itemLabel(i), `/item/${i.serial}`);
+// An item's picture: its own art, or a ridden ethereal's statuette.
+const pictureUrl = (i: Item) => artUrl((i.statue ?? i).graphic, (i.statue ?? i).hue);
+// An item's link, with its art when the client files can draw it.
+const itemLink = (i: Item, client?: ClientFiles, text = itemLabel(i)): Cell => ({
+  text,
+  href: `/item/${i.serial}`,
+  icon: client ? pictureUrl(i) : undefined
+});
 const serialCell = (serial: number): Cell => ({ text: String(serial), muted: hex(serial), sort: serial });
-const where = (map: number, p: { x: number; y: number; z?: number }) =>
-  `${MAPS[map] ?? map} ${p.x},${p.y}${p.z !== undefined ? `,${p.z}` : ''}`;
+// A place in the world, linking to it on the world map.
+const where = (map: number, p: { x: number; y: number; z?: number }, note = ''): Cell => {
+  const text = `${MAPS[map] ?? map} ${p.x},${p.y}${p.z !== undefined ? `,${p.z}` : ''}${note}`;
+  return FACET_SIZES[map] ? link(text, `/map?m=${map}&px=${p.x}&py=${p.y}`) : text;
+};
 const path = (items: Item[]) => items.map((i) => itemLabel(i)).join(' › ');
 
-export function overviewDoc(a: Analysis): Doc {
-  const residents = a.characters.filter((c) => c.resident);
-  return {
-    title: 'Overview',
-    subtitle: [a.source],
-    blocks: [
-      {
-        kind: 'fields',
-        rows: [
-          ['Mobiles', num(a.world.mobiles.size)],
-          ['Player characters', num(a.characters.length)],
-          ['Residents', `${residents.length} (${residents.filter((c) => c.online).length} online at the save)`],
-          ['Items', num(a.world.items.size)],
-          ['Records not decoded', num(a.world.errors.length)]
-        ]
-      },
-      { kind: 'heading', text: 'Most skilled residents' },
-      {
-        kind: 'table',
-        head: ['Character', 'Skill total', 'Best skill', 'Gold'],
-        numeric: [1, 3],
-        rows: [...residents]
-          .sort((x, y) => y.skillTotal - x.skillTotal)
-          .slice(0, 25)
-          .map((c) => [
-            link(c.name, `/mobile/${c.serial}`),
-            num(c.skillTotal, 1),
-            c.skills[0] ? `${c.skills[0].skill} ${c.skills[0].value.toFixed(1)}` : '—',
-            num(c.gold.carried + c.gold.bankBalance + c.gold.bankCoins + c.gold.checks)
-          ])
-      }
-    ]
-  };
-}
-
-export function searchDoc(query: string, hits: Hit[]): Doc {
+export function searchDoc(a: Analysis, query: string, hits: Hit[], client?: ClientFiles): Doc {
   return {
     title: `Results for “${query}”`,
     blocks: [
@@ -65,19 +41,22 @@ export function searchDoc(query: string, hits: Hit[]): Doc {
         kind: 'table',
         head: ['Name', 'Kind', 'Serial', 'Detail'],
         empty: 'Nothing matches.',
-        rows: hits.map((h) => [
-          link(h.label, `/${h.kind === 'item' ? 'item' : 'mobile'}/${h.serial}`),
-          h.kind,
-          serialCell(h.serial),
-          h.detail
-        ])
+        rows: hits.map((h) => {
+          const item = h.kind === 'item' ? a.world.items.get(h.serial) : undefined;
+          return [
+            item ? itemLink(item, client, h.label) : link(h.label, `/mobile/${h.serial}`),
+            h.kind,
+            serialCell(h.serial),
+            h.detail
+          ];
+        })
       }
     ]
   };
 }
 
 // The items a mobile holds, one table per place (backpack, bank, worn...).
-function heldBlocks(held: Placement[]): Block[] {
+function heldBlocks(held: Placement[], client?: ClientFiles): Block[] {
   return [...new Set(held.map((p) => p.place))].flatMap((place): Block[] => {
     const rows = held.filter((p) => p.place === place);
     return [
@@ -87,7 +66,13 @@ function heldBlocks(held: Placement[]): Block[] {
         head: ['Item', 'Graphic', 'Hue', 'Amount', 'Inside'],
         numeric: [2, 3],
         interactive: rows.length > 15,
-        rows: rows.map((p) => [itemLink(p.item), hex(p.item.graphic), p.item.hue, p.item.amount, path(p.path) || '—'])
+        rows: rows.map((p) => [
+          itemLink(p.item, client),
+          hex(p.item.graphic),
+          p.item.hue,
+          p.item.amount,
+          path(p.path) || '—'
+        ])
       }
     ];
   });
@@ -116,7 +101,7 @@ export function mobileDoc(a: Analysis, m: Mobile, client?: ClientFiles): Doc {
           ['Account', c?.account ?? null],
           ['Title', m.title ?? null],
           ['Body', hex(m.body)],
-          ['Where', `${where(m.map, m.location)}${m.player ? (m.online ? ' (online)' : ' (logout location)') : ''}`],
+          ['Where', where(m.map, m.location, m.player ? (m.online ? ' (online)' : ' (logout location)') : '')],
           ['Str / Dex / Int', `${m.str} / ${m.dex} / ${m.int}`],
           ['Hits', m.hits],
           ['Fame / Karma', `${m.fame} / ${m.karma}`],
@@ -143,18 +128,19 @@ export function mobileDoc(a: Analysis, m: Mobile, client?: ClientFiles): Doc {
         ])
       },
       { kind: 'heading', text: 'Items' },
-      ...heldBlocks(a.held.get(m.serial) ?? [])
+      ...heldBlocks(a.held.get(m.serial) ?? [], client)
     ]
   };
 }
 
-export function itemDoc(a: Analysis, i: Item): Doc {
+export function itemDoc(a: Analysis, i: Item, client?: ClientFiles): Doc {
   const p = a.placements.get(i.serial);
   const inside = a.contents.get(i.serial) ?? [];
   const outer = p?.path[0] ?? i;
   return {
     title: itemLabel(i),
     blocks: [
+      ...(client ? [{ kind: 'art', src: pictureUrl(i), alt: itemLabel(i) } as Block] : []),
       {
         kind: 'fields',
         rows: [
@@ -188,7 +174,7 @@ export function itemDoc(a: Analysis, i: Item): Doc {
         head: ['Item', 'Graphic', 'Hue', 'Amount'],
         numeric: [2, 3],
         interactive: inside.length > 15,
-        rows: inside.map((x) => [itemLink(x), hex(x.graphic), x.hue, x.amount])
+        rows: inside.map((x) => [itemLink(x, client), hex(x.graphic), x.hue, x.amount])
       }
     ]
   };
