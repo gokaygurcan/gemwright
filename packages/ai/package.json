@@ -24,9 +24,9 @@
     "@gemwright/common": "workspace:*",
     "@gemwright/network": "workspace:*",
     "@opentelemetry/api-logs": "0.223.0",
-    "@opentelemetry/exporter-logs-otlp-http": "0.223.0",
-    "@opentelemetry/resources": "2.12.0",
-    "@opentelemetry/sdk-logs": "0.223.0",
+    "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
+    "@opentelemetry/resources": "3.0.0",
+    "@opentelemetry/sdk-logs": "3.0.0",
     "@typesafe-ai/sdk": "0.7.0"
   },
   "files": [
