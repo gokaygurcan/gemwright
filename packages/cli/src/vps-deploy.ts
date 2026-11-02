@@ -55,6 +55,84 @@ const exists = async (path: string) =>
     return undefined;
   }));
 
+export async function addMysql(
+  root: string,
+  shard: Record<string, unknown>,
+  services: Record<string, unknown>,
+  volumes: Record<string, unknown>
+) {
+  const secrets = join(root, '.env');
+  if (!(await exists(secrets)))
+    await writeFile(
+      secrets,
+      `MYSQL_PASSWORD=${randomBytes(32).toString('hex')}\nMYSQL_ROOT_PASSWORD=${randomBytes(32).toString('hex')}\n`,
+      { mode: 0o600, flag: 'wx' }
+    );
+  Object.assign(shard.environment as Record<string, string>, {
+    MYSQLHOST: 'mysql',
+    MYSQLPORT: '3306',
+    MYSQLUSER: 'gemwright',
+    MYSQLPASSWORD: '$' + '{MYSQL_PASSWORD:?Missing MYSQL_PASSWORD}',
+    MYSQLDATABASE: 'gemwright'
+  });
+  shard.depends_on = { mysql: { condition: 'service_healthy' } };
+  services.mysql = {
+    image: 'mysql:8.4',
+    restart: 'unless-stopped',
+    stop_grace_period: '1m',
+    environment: {
+      MYSQL_DATABASE: 'gemwright',
+      MYSQL_USER: 'gemwright',
+      MYSQL_PASSWORD: '$' + '{MYSQL_PASSWORD:?Missing MYSQL_PASSWORD}',
+      MYSQL_ROOT_PASSWORD: '$' + '{MYSQL_ROOT_PASSWORD:?Missing MYSQL_ROOT_PASSWORD}'
+    },
+    volumes: ['mysql-data:/var/lib/mysql'],
+    healthcheck: {
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 --silent'],
+      interval: '5s',
+      timeout: '5s',
+      retries: 30
+    }
+  };
+  volumes['mysql-data'] = {};
+}
+
+// Copy only manifested files; executables and account files never enter the public directory.
+export async function installGameFiles(root: string, assets: string, installed: boolean, replace = false) {
+  const files = await createManifest(assets);
+  const gamefiles = join(root, 'gamefiles');
+  await mkdir(gamefiles, { recursive: true, mode: 0o755 });
+  await chmod(gamefiles, 0o755);
+  if (installed && replace) {
+    const recorded = JSON.parse(await readFile(join(gamefiles, 'manifest.json'), 'utf8'));
+    if (JSON.stringify(recorded.files) !== JSON.stringify(files)) {
+      await rm(gamefiles, { recursive: true, force: true });
+      await mkdir(gamefiles, { recursive: true, mode: 0o755 });
+      installed = false;
+    }
+  }
+  if (!installed) {
+    for (const file of files) {
+      const target = join(gamefiles, file.path);
+      await mkdir(dirname(target), { recursive: true, mode: 0o755 });
+      await copyFile(join(assets, file.path), target);
+      await chmod(target, 0o644);
+      let parent = dirname(target);
+      while (parent !== root) {
+        await chmod(parent, 0o755);
+        if (parent === gamefiles) break;
+        parent = dirname(parent);
+      }
+    }
+  } else {
+    const recorded = JSON.parse(await readFile(join(gamefiles, 'manifest.json'), 'utf8'));
+    if (JSON.stringify(recorded.files) !== JSON.stringify(files))
+      throw new Error('The web client has different game files. They were not replaced.');
+  }
+  await writeFile(join(gamefiles, 'manifest.json'), `${JSON.stringify({ files })}\n`, { mode: 0o644 });
+  await chmod(join(gamefiles, 'manifest.json'), 0o644);
+}
+
 // State stays outside the replaceable build contexts so rebuilds cannot erase a live world.
 export async function writeVpsBundle(
   directory: string,
@@ -112,69 +190,10 @@ export async function writeVpsBundle(
   };
   const services: Record<string, unknown> = { shard };
   const volumes: Record<string, unknown> = {};
-  if (config.sphere?.mysql) {
-    const secrets = join(root, '.env');
-    if (!(await exists(secrets)))
-      await writeFile(
-        secrets,
-        `MYSQL_PASSWORD=${randomBytes(32).toString('hex')}\nMYSQL_ROOT_PASSWORD=${randomBytes(32).toString('hex')}\n`,
-        { mode: 0o600, flag: 'wx' }
-      );
-    Object.assign(environment, {
-      MYSQLHOST: 'mysql',
-      MYSQLPORT: '3306',
-      MYSQLUSER: 'gemwright',
-      MYSQLPASSWORD: '$' + '{MYSQL_PASSWORD:?Missing MYSQL_PASSWORD}',
-      MYSQLDATABASE: 'gemwright'
-    });
-    shard.depends_on = { mysql: { condition: 'service_healthy' } };
-    services.mysql = {
-      image: 'mysql:8.4',
-      restart: 'unless-stopped',
-      stop_grace_period: '1m',
-      environment: {
-        MYSQL_DATABASE: 'gemwright',
-        MYSQL_USER: 'gemwright',
-        MYSQL_PASSWORD: '$' + '{MYSQL_PASSWORD:?Missing MYSQL_PASSWORD}',
-        MYSQL_ROOT_PASSWORD: '$' + '{MYSQL_ROOT_PASSWORD:?Missing MYSQL_ROOT_PASSWORD}'
-      },
-      volumes: ['mysql-data:/var/lib/mysql'],
-      healthcheck: {
-        test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 --silent'],
-        interval: '5s',
-        timeout: '5s',
-        retries: 30
-      }
-    };
-    volumes['mysql-data'] = {};
-  }
+  if (config.sphere?.mysql) await addMysql(root, shard, services, volumes);
   if (options.client) {
     if (!assets) throw new Error('Web client assets are required.');
-    const files = await createManifest(assets);
-    const gamefiles = join(root, 'gamefiles');
-    await mkdir(gamefiles, { recursive: true, mode: 0o755 });
-    await chmod(gamefiles, 0o755);
-    // Copy only manifested files; executables and account files never enter the public directory.
-    if (!previous?.client) {
-      for (const file of files) {
-        const target = join(gamefiles, file.path);
-        await mkdir(dirname(target), { recursive: true, mode: 0o755 });
-        await copyFile(join(assets, file.path), target);
-        await chmod(target, 0o644);
-        let parent = dirname(target);
-        while (parent !== root) {
-          await chmod(parent, 0o755);
-          if (parent === gamefiles) break;
-          parent = dirname(parent);
-        }
-      }
-    } else {
-      const installed = JSON.parse(await readFile(join(gamefiles, 'manifest.json'), 'utf8'));
-      if (JSON.stringify(installed.files) !== JSON.stringify(files))
-        throw new Error('The web client has different game files. They were not replaced.');
-    }
-    await writeFile(join(gamefiles, 'manifest.json'), `${JSON.stringify({ files })}\n`, { mode: 0o644 });
-    await chmod(join(gamefiles, 'manifest.json'), 0o644);
+    await installGameFiles(root, assets, !!previous?.client);
     await rm(join(root, 'web'), { recursive: true, force: true });
     await mkdir(join(root, 'web'));
     await stageImage('client', join(root, 'web'), ['Dockerfile', '.dockerignore']);

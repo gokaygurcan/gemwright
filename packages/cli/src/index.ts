@@ -15,20 +15,25 @@ import { assetPath } from './assets';
 import { deploy } from './deploy';
 import { deploymentOptions } from './deploy-options';
 import { initialize } from './init';
+import { deployLocal } from './local-deploy';
+import { localLogs, localPower, localPull, localRestore } from './local-ops';
 import { updatePackages } from './package-update';
 import { Cancelled } from './prompts';
-import { restore } from './restore';
+import { confirmRestore, restore } from './restore';
 import { updateNotice } from './update';
-import { deployVps } from './vps-deploy';
+import { deployVps, validateVpsOptions } from './vps-deploy';
 import { deployVpsRemote } from './vps-remote';
 
 const help = `Usage: gemwright init [directory] [options]
        gemwright deploy [--files <path>] [--server] [--client] [--ai]
+       gemwright deploy --local [--server] [--client] [--ai] [--public-host <host>] [--server-port <n>] [--client-port <n>]
+       gemwright stop --local [--server] [--client] [--ai]
+       gemwright start --local [--server] [--client] [--ai]
        gemwright deploy --target vps --public-host <host> [--client --domain <host>] [--prepare]
        gemwright update [--server | --client | --ai] [--package-version <exact>]
-       gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
-       gemwright logs [--server] [--client] [--ai] [--watch]
-       gemwright restore [--from <pull>] [--server] [--ai] [--yes]
+       gemwright pull [--local] [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
+       gemwright logs [--local] [--server] [--client] [--ai] [--watch]
+       gemwright restore [--local] [--from <pull>] [--server] [--ai] [--yes]
 
 Options:
   --package-version <exact>  Select a published component version (update; does not deploy)
@@ -44,8 +49,11 @@ Options:
   --server              Deploy the shard server (the default when no part is named)
   --client              Deploy the web client
   --ai                  Deploy AI residents (ServUO; settings under "ai" in gemwright.json)
+  --local               Use the Docker Compose deployment on this machine (deploy, stop, start, logs, pull, restore)
+  --server-port <n>     Local native client port (default: 2593; kept for later deploys)
+  --client-port <n>     Local browser client port (default: 3000; kept for later deploys)
   --target <target>     Deployment target: railway (default) or vps
-  --public-host <host>  VPS public IPv4 address or hostname for native clients
+  --public-host <host>  Address native clients use (VPS: required; local: default 127.0.0.1)
   --domain <host>       Browser client HTTPS hostname
   --prepare             Generate a VPS bundle without installing or starting services
   --method <method>     VPS runtime: docker or native (Ubuntu with systemd)
@@ -61,6 +69,14 @@ Options:
   --help                Show this help
   --version             Show the installed version`;
 
+function port(value: string | undefined, flag: string) {
+  if (value === undefined) return undefined;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 1 || number > 65535)
+    throw new Error(`${flag} must be a port from 1 to 65535.`);
+  return number;
+}
+
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const { values, positionals } = parseArgs({
     args,
@@ -72,6 +88,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       server: { type: 'boolean' },
       ai: { type: 'boolean' },
       client: { type: 'boolean' },
+      local: { type: 'boolean' },
+      'server-port': { type: 'string' },
+      'client-port': { type: 'string' },
       target: { type: 'string' },
       'public-host': { type: 'string' },
       domain: { type: 'string' },
@@ -122,36 +141,50 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   if (values['package-version']) throw new Error('--package-version is supported only by update.');
   if (command === 'pull') {
     if (positionals.length > 1)
-      throw new Error('Usage: gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]');
-    await pull(
-      {
-        server: values.server,
-        ai: values.ai,
-        logs: values.logs,
-        backups: values.backups,
-        output: values.output,
-        cleanup: values.cleanup
-      },
-      process.cwd(),
-      console.log
-    );
+      throw new Error(
+        'Usage: gemwright pull [--local] [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]'
+      );
+    const parts = {
+      server: values.server,
+      ai: values.ai,
+      logs: values.logs,
+      backups: values.backups,
+      output: values.output,
+      cleanup: values.cleanup
+    };
+    if (values.local) await localPull(parts);
+    else await pull(parts, process.cwd(), console.log);
+    return;
+  }
+  if (command === 'stop' || command === 'start') {
+    if (!values.local) throw new Error(`gemwright ${command} works on local deployments only: add --local.`);
+    if (directory || Object.keys(values).some((key) => !['local', 'server', 'client', 'ai'].includes(key)))
+      throw new Error(`Usage: gemwright ${command} --local [--server] [--client] [--ai]`);
+    await localPower(command, { server: values.server, client: values.client, ai: values.ai });
     return;
   }
   if (command === 'logs') {
-    if (directory || Object.keys(values).some((key) => !['server', 'client', 'ai', 'watch'].includes(key)))
-      throw new Error('Usage: gemwright logs [--server] [--client] [--ai] [--watch]');
-    await logs({ server: values.server, client: values.client, ai: values.ai, watch: values.watch });
+    if (directory || Object.keys(values).some((key) => !['local', 'server', 'client', 'ai', 'watch'].includes(key)))
+      throw new Error('Usage: gemwright logs [--local] [--server] [--client] [--ai] [--watch]');
+    const parts = { server: values.server, client: values.client, ai: values.ai, watch: values.watch };
+    if (values.local) await localLogs(parts);
+    else await logs(parts);
     return;
   }
   if (command === 'restore') {
-    const allowed = ['from', 'server', 'ai', 'yes'];
+    const allowed = ['local', 'from', 'server', 'ai', 'yes'];
     if (directory || Object.keys(values).some((key) => !allowed.includes(key)))
-      throw new Error('Usage: gemwright restore [--from <pull>] [--server] [--ai] [--yes]');
-    await restore({ from: values.from, server: values.server, ai: values.ai, yes: values.yes });
+      throw new Error('Usage: gemwright restore [--local] [--from <pull>] [--server] [--ai] [--yes]');
+    const parts = { from: values.from, server: values.server, ai: values.ai, yes: values.yes };
+    if (values.local) await localRestore(parts, confirmRestore);
+    else await restore(parts);
     return;
   }
   if (command === 'deploy') {
     const allowed = [
+      'local',
+      'server-port',
+      'client-port',
       'files',
       'server',
       'client',
@@ -168,6 +201,28 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     ];
     if (directory || extra.length || Object.keys(values).some((key) => !allowed.includes(key)))
       throw new Error('Usage: gemwright deploy [--files <path>] [--server] [--client] [--ai]');
+    if (values.local) {
+      if (
+        Object.keys(values).some(
+          (key) =>
+            !['local', 'files', 'server', 'client', 'ai', 'public-host', 'server-port', 'client-port'].includes(key)
+        )
+      )
+        throw new Error(
+          'Usage: gemwright deploy --local [--files <path>] [--server] [--client] [--ai] [--public-host <host>]'
+        );
+      if (values['public-host']) validateVpsOptions({ publicHost: values['public-host'] });
+      await deployLocal({
+        files: values.files,
+        server: values.server,
+        client: values.client,
+        ai: values.ai,
+        publicHost: values['public-host'],
+        serverPort: port(values['server-port'], '--server-port'),
+        clientPort: port(values['client-port'], '--client-port')
+      });
+      return;
+    }
     const options = await deploymentOptions({
       target: values.target,
       files: values.files,
@@ -202,6 +257,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     values.server ||
     values.ai ||
     values.client ||
+    values.local ||
+    values['server-port'] ||
+    values['client-port'] ||
     values.target ||
     values['public-host'] ||
     values.domain ||

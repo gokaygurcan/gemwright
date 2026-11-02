@@ -82,7 +82,7 @@ AI residents are ordinary players run by a separate service. Configure them in `
 "ai": { "population": 20, "decisions": "local" }
 ```
 
-`decisions` is `local` (built-in rules) or `jev` (TypeSafe's Jev; set `TYPESAFE_API_KEY` in the environment you deploy from). AI residents deploy to Railway only for now.
+`decisions` is `local` (built-in rules) or `jev` (TypeSafe's Jev; set `TYPESAFE_API_KEY` in the environment you deploy from). AI residents deploy to Railway or locally (`--local`) for now.
 
 Name the parts to deploy: with no part flags `gemwright deploy` deploys the server; with any, it deploys exactly those.
 
@@ -91,6 +91,34 @@ For a VPS, the questionnaire asks for Docker Compose or native systemd (Ubuntu),
 ```bash
 gemwright deploy --target vps
 ```
+
+### Run your shard locally
+
+With Docker running (Docker Desktop on macOS, or Docker Engine with the Compose plugin), `--local` runs the same parts on this machine as one Compose project in `.gemwright/local/`. Each part is its own container, and deploying one never restarts another. World saves and the resident database stay in that directory across redeploys.
+
+```bash
+# the server; native clients log in at 127.0.0.1:2593
+gemwright deploy --local --files ~/uo
+
+# add the browser client at http://localhost:3000 beside the local server
+gemwright deploy --local --client
+
+# add AI residents: the local server is rebuilt once with the AI patch
+gemwright deploy --local --server --ai
+
+# let other machines on your network log in, on other ports (all kept for later deploys)
+gemwright deploy --local --public-host 192.168.1.20 --server-port 2600 --client-port 8080
+
+# stop and start parts without rebuilding; data stays in the Docker volumes
+gemwright stop --local [--server] [--client] [--ai]
+gemwright start --local [--server] [--client] [--ai]
+```
+
+Deploying with a different set of game files (`--files`) replaces the set each named part uses, and the world stays as it is.
+
+Every emulator runs locally. On Apple Silicon, Sphere 0.56 builds and runs under Docker's x86-64 emulation, so its first build is slower.
+
+`logs`, `pull` and `restore` accept `--local` too, and read or change the local deployment instead of Railway.
 
 ### Pull your shard's state
 
@@ -103,13 +131,16 @@ gemwright pull
 # or only some parts; --backups adds the server's own Backups folder,
 # --cleanup deletes older pulls once this one is complete
 gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
+
+# from the local deployment
+gemwright pull --local
 ```
 
 To pull on a schedule, run `gemwright pull --cleanup` from a cron job.
 
 ### Restore a pull
 
-Puts a pull back on a Railway deployment: the world saves (ServUO) and the AI residents database. The files are uploaded to each volume first, then each service restarts and swaps them in on boot; the replaced files stay on the volume (`server/Saves.before-restore`, `residents.sqlite.before-restore`). Restoring the world disconnects everyone and returns the shard to that save, so the command always asks first.
+Puts a pull back on a Railway deployment, or the local one with `--local`: the world saves (ServUO) and the AI residents database. The files are uploaded to each volume first, then each service restarts and swaps them in on boot; the replaced files stay on the volume (`server/Saves.before-restore`, `residents.sqlite.before-restore`). Restoring the world disconnects everyone and returns the shard to that save, so the command always asks first.
 
 ```bash
 # the newest pull, everything in it

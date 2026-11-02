@@ -13,11 +13,23 @@ import { required } from './required';
 import { checkAi, ensureService } from './service';
 
 // The map files AI residents walk by: Trammel's map, statics and their index, and tiledata.
-const mapPattern = /^(?:map1LegacyMUL\.uop|map1\.mul|statics1\.mul|staidx1\.mul|tiledata\.mul)$/i;
+export const mapPattern = /^(?:map1LegacyMUL\.uop|map1\.mul|statics1\.mul|staidx1\.mul|tiledata\.mul)$/i;
 
 // Deploys the AI residents as their own Railway service beside the shard (`<shard>-ai`), with a
 // volume for the resident database and map files. It reaches ServUO over the private network,
 // and the shard trusts its private address through the AI patch (GEMWRIGHT_TRUSTED_HOSTS).
+// Shard settings the AI needs (expansion, account rules, AI settings); never client paths.
+export function aiSettings(shard: ShardConfig) {
+  return {
+    id: shard.id,
+    timezone: shard.timezone,
+    emulator: shard.emulator,
+    expansion: shard.expansion,
+    client: { version: clientVersion(shard) },
+    servuo: { autoCreateAccounts: shard.servuo?.autoCreateAccounts, accountsPerIp: shard.servuo?.accountsPerIp },
+    ai: shard.ai ?? {}
+  };
+}
 interface Dependencies {
   loadShard: (directory: string) => Promise<ShardConfig>;
   stageImage: (image: 'ai' | 'client', context: string) => Promise<void>;
@@ -46,16 +58,7 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
     const name = `${target.name}-ai`;
     const { state, flags, save } = await ensureService(join(directory, '.gemwright/ai.json'), name, target, run);
 
-    // Shard settings the AI needs (expansion, account rules, AI settings); never client paths.
-    const settings = {
-      id: shard.id,
-      timezone: shard.timezone,
-      emulator: shard.emulator,
-      expansion: shard.expansion,
-      client: { version: clientVersion(shard) },
-      servuo: { autoCreateAccounts: shard.servuo?.autoCreateAccounts, accountsPerIp: shard.servuo?.accountsPerIp },
-      ai: shard.ai ?? {}
-    };
+    const settings = aiSettings(shard);
     const jev = shard.ai?.decisions === 'jev';
     // Without a key here, the one already set on the service is kept (it is never cleared).
     if (jev && !process.env.TYPESAFE_API_KEY)

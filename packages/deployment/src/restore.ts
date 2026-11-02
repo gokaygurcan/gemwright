@@ -21,7 +21,7 @@ export interface RestoreParts {
   yes?: boolean;
 }
 
-async function newestPull(directory: string) {
+export async function newestPull(directory: string) {
   const pulls = join(directory, '.gemwright/pulls');
   const stamps = existsSync(pulls) ? (await readdir(pulls)).sort().reverse() : [];
   const found = stamps

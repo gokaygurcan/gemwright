@@ -25,7 +25,8 @@
     "./restore": "./src/restore.ts",
     "./ai-deploy": "./src/ai-deploy.ts",
     "./client-deploy": "./src/client-deploy.ts",
-    "./client-files": "./src/client-files.ts"
+    "./client-files": "./src/client-files.ts",
+    "./service": "./src/service.ts"
   },
   "files": [
     "src/"

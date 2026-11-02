@@ -10,11 +10,14 @@ gemwright --help
 ```text
 Usage: gemwright init [directory] [options]
        gemwright deploy [--files <path>] [--server] [--client] [--ai]
+       gemwright deploy --local [--server] [--client] [--ai] [--public-host <host>] [--server-port <n>] [--client-port <n>]
+       gemwright stop --local [--server] [--client] [--ai]
+       gemwright start --local [--server] [--client] [--ai]
        gemwright deploy --target vps --public-host <host> [--client --domain <host>] [--prepare]
        gemwright update [--server | --client | --ai] [--package-version <exact>]
-       gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
-       gemwright logs [--server] [--client] [--ai] [--watch]
-       gemwright restore [--from <pull>] [--server] [--ai] [--yes]
+       gemwright pull [--local] [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
+       gemwright logs [--local] [--server] [--client] [--ai] [--watch]
+       gemwright restore [--local] [--from <pull>] [--server] [--ai] [--yes]
 
 Options:
   --package-version <exact>  Select a published component version (update; does not deploy)
@@ -30,8 +33,11 @@ Options:
   --server              Deploy the shard server (the default when no part is named)
   --client              Deploy the web client
   --ai                  Deploy AI residents (ServUO; settings under "ai" in gemwright.json)
+  --local               Use the Docker Compose deployment on this machine (deploy, stop, start, logs, pull, restore)
+  --server-port <n>     Local native client port (default: 2593; kept for later deploys)
+  --client-port <n>     Local browser client port (default: 3000; kept for later deploys)
   --target <target>     Deployment target: railway (default) or vps
-  --public-host <host>  VPS public IPv4 address or hostname for native clients
+  --public-host <host>  Address native clients use (VPS: required; local: default 127.0.0.1)
   --domain <host>       Browser client HTTPS hostname
   --prepare             Generate a VPS bundle without installing or starting services
   --method <method>     VPS runtime: docker or native (Ubuntu with systemd)
