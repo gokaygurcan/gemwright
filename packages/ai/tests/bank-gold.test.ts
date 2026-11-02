@@ -2,7 +2,14 @@ import { expect, test } from 'bun:test';
 
 import { Layer } from '@gemwright/network/layers';
 
-import { bankNearbyGold, bankSurplus, chargedPurchase, knownBankGold, spendableGold } from '../src/bank-gold';
+import {
+  bankNearbyGold,
+  bankSurplus,
+  chargedPurchase,
+  knownBankGold,
+  queryBankBalance,
+  spendableGold
+} from '../src/bank-gold';
 import { lasting } from '../src/lasting';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
@@ -133,4 +140,30 @@ test('a bank deposit reports what the shard refused, with its reason, and still 
   ]);
   expect(result.moved).toEqual([41]);
   expect(result.refused).toEqual([{ serial: 40, reason: 'Server rejected item lift' }]);
+});
+
+test("a banker's public balance reply to another resident is not taken as this resident's balance", async () => {
+  const a = bankingFixture();
+  const b = bankingFixture();
+  const residents = [a, b];
+  residents.forEach((f, index) => {
+    f.session.say = (text) => {
+      if (text !== 'balance') return;
+      // The banker says it aloud: everyone nearby hears it, a moment later.
+      setTimeout(() => {
+        for (const listener of residents)
+          listener.world.addJournal({
+            serial: 20,
+            name: 'Banker',
+            cliloc: 1042759,
+            arguments: String(index ? 9000 : 500)
+          });
+      }, 5);
+    };
+    f.session.waitFor = async (predicate) => {
+      for (let tries = 0; tries < 100 && !predicate(); tries++) await Bun.sleep(1);
+      if (!predicate()) throw new Error('No server confirmation');
+    };
+  });
+  expect(await Promise.all([queryBankBalance(a.ctx, 20), queryBankBalance(b.ctx, 20)])).toEqual([500, 9000]);
 });

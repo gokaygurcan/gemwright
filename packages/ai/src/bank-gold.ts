@@ -170,6 +170,10 @@ export async function offersBank(session: MountContext['session'], mobile: numbe
   }
 }
 
+// Bankers answer "balance" aloud, so every resident nearby hears every reply. Residents of this
+// process ask one at a time, so the only reply awaited is the asker's own.
+let balanceTurn = Promise.resolve();
+
 export async function queryBankBalance(
   ctx: Pick<MountContext, 'session' | 'serial' | 'position' | 'terrain' | 'navigate' | 'check' | 'checkpoint'> & {
     log?: (message: string) => void;
@@ -177,17 +181,27 @@ export async function queryBankBalance(
   banker: number
 ): Promise<number> {
   const { session } = ctx;
-  const before = new Set(session.world.journal);
   await withinBankerRange(ctx, banker);
-  session.say('balance');
-  const reply = () =>
-    session.world.journal.find(
-      // Any banker in range may answer the keyword, not only the one approached.
-      (entry) => !before.has(entry) && [Bank.balance, Bank.accountBalance, Bank.refused].includes(entry.cliloc ?? 0)
-    );
-  await session.waitFor(() => !!reply(), 'banker balance reply', 3000);
-  const cliloc = reply()?.cliloc ?? 0;
-  const bank = reportedBankGold(cliloc, reply()?.arguments ?? '');
+  const turn = balanceTurn;
+  let release = () => {};
+  balanceTurn = new Promise((resolve) => (release = resolve));
+  let answer: { cliloc?: number; arguments?: string } | undefined;
+  try {
+    await turn;
+    const before = new Set(session.world.journal);
+    session.say('balance');
+    const reply = () =>
+      session.world.journal.find(
+        // Any banker in range may answer the keyword, not only the one approached.
+        (entry) => !before.has(entry) && [Bank.balance, Bank.accountBalance, Bank.refused].includes(entry.cliloc ?? 0)
+      );
+    await session.waitFor(() => !!reply(), 'banker balance reply', 3000);
+    answer = reply();
+  } finally {
+    release();
+  }
+  const cliloc = answer?.cliloc ?? 0;
+  const bank = reportedBankGold(cliloc, answer?.arguments ?? '');
   if (bank === undefined) {
     // The banker answered, but not with a balance (500389: "I will not do business with a criminal!").
     // Recording zero there made a flagged resident believe it was broke, and every purchase, saving
