@@ -84,28 +84,44 @@ const grounds = [...cells.values()]
     };
   })
   .sort((a, b) => a.center.x - b.center.x || a.center.y - b.center.y);
-// The cemeteries (cemeteries.ts) lie in town regions, so they get their creatures here: every
-// huntable spawn within the hunting radius of each, whatever the region.
+// The cemeteries (cemeteries.ts) lie in town regions, so they get their creatures here: a cemetery
+// with its own graveyard spawner (Graveyards#n) has that spawner's creatures, each at its MX; one
+// without (Old Haven) has every huntable spawn within the hunting radius. The radius alone lent
+// Britain's graveyard the trolls and orcs of a spawner next to it, and kept novices away.
 const cemeteryCreatures: Record<string, Record<string, number>> = {};
-for (const [, point] of spawns.matchAll(/<Points>([\s\S]*?)<\/Points>/g)) {
+const points = [...spawns.matchAll(/<Points>([\s\S]*?)<\/Points>/g)].map(([, point]) => {
   const field = (name: string) => new RegExp(`<${name}>([^<]*)</${name}>`).exec(point ?? '')?.[1] ?? '';
-  if (field('Map') !== 'Trammel') continue;
-  const at = { x: Number(field('CentreX')), y: Number(field('CentreY')) };
-  const kinds = field('Objects2')
-    .split(':OBJ=')
-    .map((entry) => (entry.split(':')[0] ?? '').toLowerCase())
-    .filter(huntable);
-  const share = Math.max(1, Math.round((Number(field('MaxCount')) || kinds.length) / Math.max(1, kinds.length)));
-  for (const cemetery of cemeteries.filter(
-    (c) => Math.max(Math.abs(c.center.x - at.x), Math.abs(c.center.y - at.y)) <= HUNTING_RADIUS
-  )) {
-    cemeteryCreatures[cemetery.name] ??= {};
-    const creatures = cemeteryCreatures[cemetery.name] ?? {};
-    for (const kind of kinds) {
+  return { field, at: { x: Number(field('CentreX')), y: Number(field('CentreY')) } };
+});
+const near = (at: { x: number; y: number }, center: { x: number; y: number }, reach: number) =>
+  Math.max(Math.abs(center.x - at.x), Math.abs(center.y - at.y)) <= reach;
+for (const cemetery of cemeteries) {
+  const own = points.find(
+    ({ field, at }) =>
+      field('Map') === 'Trammel' && field('Name').startsWith('Graveyards#') && near(at, cemetery.center, 10)
+  );
+  const creatures: Record<string, number> = {};
+  if (own)
+    for (const entry of own.field('Objects2').split(':OBJ=')) {
+      const kind = (entry.split(':')[0] ?? '').toLowerCase();
+      if (!huntable(kind)) continue;
       const type = byType.get(kind)?.type ?? kind;
-      creatures[type] = (creatures[type] ?? 0) + share;
+      creatures[type] = (creatures[type] ?? 0) + Number(/MX=(\d+)/.exec(entry)?.[1] ?? 1);
     }
-  }
+  else
+    for (const { field, at } of points) {
+      if (field('Map') !== 'Trammel' || !near(at, cemetery.center, HUNTING_RADIUS)) continue;
+      const kinds = field('Objects2')
+        .split(':OBJ=')
+        .map((entry) => (entry.split(':')[0] ?? '').toLowerCase())
+        .filter(huntable);
+      const share = Math.max(1, Math.round((Number(field('MaxCount')) || kinds.length) / Math.max(1, kinds.length)));
+      for (const kind of kinds) {
+        const type = byType.get(kind)?.type ?? kind;
+        creatures[type] = (creatures[type] ?? 0) + share;
+      }
+    }
+  if (Object.keys(creatures).length) cemeteryCreatures[cemetery.name] = creatures;
 }
 const output = resolve(values.output ?? new URL('../catalogs/hunting-grounds.json', import.meta.url).pathname);
 writeFileSync(output, `${JSON.stringify({ schemaVersion: 1, cemeteries: cemeteryCreatures, grounds }, null, 1)}\n`);

@@ -66,3 +66,34 @@ test('a novice standing by a cemetery of spellcasting undead does not choose to 
   } as unknown as FighterContext;
   expect(nextGround(novice)).not.toBe('Jhelom');
 });
+
+test("a cemetery's creatures are its own graveyard spawner's, not every spawn nearby", async () => {
+  const { grounds } = await import('../src/cemeteries');
+  expect(grounds.find((g) => g.name === 'Britain')?.creatures).toEqual({
+    Spectre: 2,
+    Wraith: 2,
+    Skeleton: 3,
+    Zombie: 4
+  });
+});
+
+test('a fighter not ready for a lich does not hunt the Cove graveyard', async () => {
+  const { skillId } = await import('@gemwright/common/game/skills');
+  const fighter = {
+    trip: { ground: 'Britain' },
+    serial: 1,
+    position: () => ({ x: 2438, y: 1110, z: 0 }),
+    status: () => ({ maxHits: 100, armor: 30, hits: 100 }),
+    template: { archetype: { primarySkills: ['Macing'], supportingSkills: [] }, behavior: {} },
+    session: {
+      world: {
+        childrenOf: () => [{ layer: 1, graphic: 0x13b4 }],
+        skills: new Map([
+          [skillId('Macing'), { value: 72, base: 72 }],
+          [skillId('Tactics'), { value: 69, base: 69 }]
+        ])
+      }
+    }
+  } as unknown as FighterContext;
+  for (let i = 0; i < 20; i++) expect(nextGround(fighter)).not.toBe('Cove');
+});

@@ -126,6 +126,9 @@ export function nextGround(ctx: FighterContext): string {
     const total = kinds.reduce((n, [, count]) => n + count, 0);
     const fit = kinds.filter(([type]) => readyFor(ctx, type)).reduce((n, [, count]) => n + count, 0);
     if (ground.creatures && fit * 2 < total) return [];
+    // A lich attacks whoever it sees, chosen opponent or not (the Cove graveyard): a ground with one
+    // waits until the fighter could take it on. Vesper's undead are the same rung without it.
+    if (ground.creatures?.Lich && !readyFor(ctx, 'Lich')) return [];
     const gold = kinds.reduce((n, [type, count]) => n + goldOf(type) * count, 0) / Math.max(1, total);
     // Skill comes from creatures near the character's own skill: a ground where most of them still
     // teach is worth up to 400 tiles more walking; gold only breaks ties.
