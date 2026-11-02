@@ -17,12 +17,11 @@ import { recallFor } from './recall';
 import { noteStranded, strandedOften, useStuckMenu } from './stuck';
 import { reachableFrom } from './unreachable';
 
+const ghosts = GHOST_BODIES;
+
 // Walks to the nearest public moongate that can be reached on foot and steps through to `to`, as
 // any player travels. A gate across water (an island town seen from the shore) is skipped for the
 // next nearest; reaching `to`'s own gate on foot means the walk alone arrives.
-// Ghost bodies (male, female, elf male, elf female).
-const ghosts = GHOST_BODIES;
-
 export async function travelByMoongate(
   ctx: {
     session: PlayerSession;
@@ -124,8 +123,7 @@ export async function travelByMoongate(
   const choice = gump && moongateDestination(gump.layout, target.label);
   if (!gump || choice === undefined) throw new Error(`${to} was not offered on the Trammel moongate page`);
   session.replyGump(gump.serial, gump.id, 1, [choice]);
-  // The far gate sets one down beside it, not always on the catalogued tile. A crossing that never
-  // arrives is not tried again for two hours (ROADMAP.md step 2).
+  // The far gate sets one down beside it, not always on the catalogued tile.
   const crossing = lasting('gate-ban', session.world.serial ?? -1);
   try {
     await session.waitFor(() => distance(position(), target) <= 6 && session.world.map === 1, `arrival at ${to}`);

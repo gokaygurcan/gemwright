@@ -201,7 +201,6 @@ if (has('decision_spend')) {
   line(`\n## Model cost\n\nJev: $${usd.toFixed(4)} over ${spend.length} day(s) recorded.`);
 }
 
-// Dungeons and players.
 if (has('dungeon_runs')) {
   const runs = db.query<{ n: number }, []>('SELECT COUNT(*) n FROM dungeon_runs').get()?.n ?? 0;
   line(`\n## Dungeons\n\nRuns recorded: ${runs}`);

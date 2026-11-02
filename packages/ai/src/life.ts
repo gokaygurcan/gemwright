@@ -43,7 +43,6 @@ export interface LifeContext {
   terrain: Terrain;
   template: CharacterTemplate;
   checkpoint: Checkpoint;
-  // Home city name.
   city: string;
   position: () => Position;
   check: () => void;

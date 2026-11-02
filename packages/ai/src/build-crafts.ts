@@ -124,7 +124,6 @@ for (const [skill, c] of Object.entries(crafts)) {
     graphic: c.graphic,
     vendor: c.service
   };
-  // One recipe per line.
   const lines = list.map((r) => `  ${JSON.stringify(r)}`).join(',\n');
   writeFileSync(
     join(resolve(values.output), `${skill.toLowerCase()}.json`),

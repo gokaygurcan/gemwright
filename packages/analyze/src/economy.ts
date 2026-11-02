@@ -39,7 +39,6 @@ export function economyDoc(saves: string): Doc {
         ])
     );
     const trade = (id: string) => trades.get(id) ?? 'other';
-    // Totals per trade.
     const totals = new Map<string, Record<string, number>>();
     for (const row of db
       .query<{ id: string; totals: string }, []>('SELECT resident_id AS id, totals_json AS totals FROM activity')

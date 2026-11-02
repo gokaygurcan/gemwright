@@ -1,8 +1,9 @@
 import tailwind from 'bun-plugin-tailwind';
 
-// The app's one build, with Tailwind (the bun build CLI does not take plugins yet): the package
-// build writes it to dist/web (bun web/build.ts dist/web), and serve.ts run from source builds it
-// in memory on each page load.
+// Approved exception to AGENTS.md decision 6 (build helpers): the Tailwind plugin runs through
+// Bun.build's JS API, so the analyzer builds its web app here instead of with the bun build CLI.
+// The package build writes it to dist/web (bun web/build.ts dist/web); serve.ts run from source
+// builds it in memory on each page load.
 export async function buildWeb(outdir?: string) {
   const result = await Bun.build({
     entrypoints: [new URL('./index.html', import.meta.url).pathname],
