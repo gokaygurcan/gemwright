@@ -126,20 +126,24 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const)
   process.once(signal, () => {
     stopping = true;
   });
-// The shard's own spawners (the deployment's world files) decide where vendors stand and residents hunt.
-const shardWorld = readShardWorld(join(data, 'world'));
-if (!shardWorld)
-  throw new Error(
-    `No world files in ${join(data, 'world')} (Spawns/ and Regions.xml): run gemwright deploy --ai to upload them.`
-  );
-useShardWorld(shardWorld);
-logger('serve').info(`[serve] vendors and hunting grounds from ${shardWorld.spawners.length} spawners`);
-// Which places can be walked to from which: kept on the volume, built again only for a new world or map.
-// Where each town's mines and woods lie, from the map.
-buildWorkAreas(Terrain.shared(join(data, 'assets'), 1));
-await useShardAreas(data, Terrain.shared(join(data, 'assets'), 1), join(data, 'assets'), shardWorld.teleporters);
-// The public roads long walks follow: kept on the volume, walked again only for new hubs or a new map.
-useShardRoutes(data, Terrain.shared(join(data, 'assets'), 1), join(data, 'assets'));
+// The shard's own spawners (the deployment's world files) decide where vendors stand and residents
+// hunt; with no residents to run there is no land to learn.
+if (count > 0) {
+  const shardWorld = readShardWorld(join(data, 'world'));
+  if (!shardWorld)
+    throw new Error(
+      `No world files in ${join(data, 'world')} (Spawns/ and Regions.xml): run gemwright deploy --ai to upload them.`
+    );
+  useShardWorld(shardWorld);
+  logger('serve').info(`[serve] vendors and hunting grounds from ${shardWorld.spawners.length} spawners`);
+  const terrain = Terrain.shared(join(data, 'assets'), 1);
+  // Where each town's mines and woods lie, from the map.
+  buildWorkAreas(terrain);
+  // Which places can be walked to from which, and the public roads long walks follow: kept on the
+  // volume, built again only for a new world or map.
+  await useShardAreas(data, terrain, join(data, 'assets'), shardWorld.teleporters);
+  useShardRoutes(data, terrain, join(data, 'assets'));
+}
 while (!stopping) {
   const started = Date.now();
   try {
