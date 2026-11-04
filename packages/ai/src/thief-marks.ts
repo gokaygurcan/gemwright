@@ -1,4 +1,5 @@
 import { HUMAN_ELF_BODIES, PACK_ANIMAL_BODIES } from '@gemwright/common/game/bodies';
+import { bodyParts, graphicsOf } from '@gemwright/common/game/rules';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity, Position, WorldView } from '@gemwright/network/world';
 
@@ -18,7 +19,7 @@ const names = /^an? (zombie|skeleton)$/i;
 // graphic is left alone.
 const mostHits = 60;
 // BaseCreature.PackBodyPartOrBones: graveyard refuse a thief drops instead of carrying it home.
-export const refuse = new Set([0x1da1, 0x1da2, 0x1d9f, 0x1da3, 0x1da4, 0x0f7e]);
+export const refuse = new Set(bodyParts.flatMap(graphicsOf));
 // Human and player bodies are never cased. Town NPCs refuse the peek and players refuse the theft.
 const humans = HUMAN_ELF_BODIES;
 // Pack horse and pack llama: their StrongBackpack is the only creature pack Container_Snoop opens

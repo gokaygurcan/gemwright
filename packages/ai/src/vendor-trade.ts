@@ -15,7 +15,8 @@ type TradeContext = CraftContext & { backpack: () => number };
 
 // Buys up to `wanted` amounts (graphic -> count) from one vendor of `service` at whatever the shard
 // asks, as long as the resident can pay it (the spending limits it was given). True when it bought.
-export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: Map<number, number>) {
+// `one`: any one of the wanted kinds will do (a tool: a pickaxe or a shovel), the first offered is bought.
+export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: Map<number, number>, one = false) {
   const { session } = ctx;
   // Gold lives in the bank: a balance it no longer knows is asked for, not counted as nothing — a
   // fisher with thousands banked was turning down every pole as unaffordable.
@@ -31,7 +32,9 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
       let bought = false;
       // Why each wanted offer was passed over, so a vendor that sold nothing says which it was.
       const passed = { unwanted: 0, funds: 0 };
-      for (const offer of stock.offers) {
+      // Any one of several will do: the cheapest that is offered.
+      const offers = one ? [...stock.offers].sort((a, b) => a.price - b.price) : stock.offers;
+      for (const offer of offers) {
         const graphic = session.world.entities.get(offer.serial)?.graphic ?? 0;
         const amount = Math.min(wanted.get(graphic) ?? 0, session.world.entities.get(offer.serial)?.amount ?? 1);
         const cost = amount * offer.price;
@@ -44,6 +47,7 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
           recordTrainingSpend(ctx.checkpoint, cost);
           wanted.delete(graphic);
           bought = true;
+          if (one) break;
         }
       }
       if (!bought)
@@ -66,11 +70,13 @@ export async function buyFrom(ctx: TradeContext, service: ServiceType, wanted: M
 // `sellable` also sees the price this vendor offers for the whole stack. `exceptional` lets
 // exceptional pieces go too (clearing a full bank box); artifacts, blessed and magic items never do.
 // A work tool that wears out (instruments 350-450 uses, ServUO BaseInstrument): a pair when
-// affordable, so the spare keeps the resident working when the first breaks, else one. Kinds are
-// tried in order and the first purchase ends it, so a vendor stocking several kinds sells one.
+// affordable, so the spare keeps the resident working when the first breaks, else one. Every kind is
+// asked for at once and the first one offered is bought, so the town's vendor sells whichever it has
+// (ServUO SBTinker: a pickaxe is 0xE86, never 0xE85); one kind at a time sent a miner to every other
+// town's vendor for the first kind before the next was tried.
 export async function buyTool(ctx: TradeContext, service: ServiceType, kinds: readonly number[]) {
   for (const count of [2, 1])
-    for (const graphic of kinds) if (await buyFrom(ctx, service, new Map([[graphic, count]]))) return true;
+    if (await buyFrom(ctx, service, new Map(kinds.map((graphic) => [graphic, count])), true)) return true;
   return false;
 }
 

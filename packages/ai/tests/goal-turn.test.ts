@@ -10,6 +10,9 @@ import { blockGoal, goalAllows, goalControlled, goalPermission } from '../src/re
 import { tally } from '../src/work-evidence';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 function fixture(trade: string) {
   const f = socialFixture(trade);

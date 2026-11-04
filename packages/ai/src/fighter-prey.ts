@@ -1,3 +1,4 @@
+import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';
@@ -26,12 +27,12 @@ const profiles: { name: RegExp; bodies: number[]; tier: Tier; note: string }[] =
 ];
 const graveyard = profiles.flatMap((profile) => profile.bodies);
 
-// Dungeon creatures (catalogs/monsters.json) get the same tiers from their ServUO stats, calibrated
+// Dungeon creatures (the creature rules) get the same tiers from their ServUO stats, calibrated
 // on the undead above: a zombie is common, a ghoul a brute, a spectre a caster, a bone knight or
 // mummy a knight, a lich a lich. Creatures with unknown stats, very high health or resist, or human
 // bodies (players and brigands look alike) are never engaged. Random-named kinds (orcs, ratmen)
 // match on body alone.
-const humanBodies = [0x190, 0x191];
+const humanBodies = [...PLAIN_HUMAN_BODIES];
 // Creatures that do not attack on sight (deer, horses, cats) are no one's opponents.
 const tierOf = (m: Monster): Tier => {
   if (!m.hits || !m.damage || m.aggressive === false || humanBodies.some((body) => m.bodies.includes(body)))
@@ -56,7 +57,7 @@ const dungeonProfiles = monsters
   }));
 export const dungeonPrey = new Set(dungeonProfiles.filter((p) => p.tier !== 'unsupported').flatMap((p) => p.bodies));
 // Any creature a fighter may hunt: graveyard undead, and every other creature that attacks on
-// sight, in a dungeon or overland (catalogs/monsters.json covers both; hunting-grounds.json says
+// sight, in a dungeon or overland (the creature rules cover both; the shard's spawners say
 // where they spawn).
 export const prey = new Set([...graveyard, ...dungeonPrey]);
 export const recognised = (graphic: number) => prey.has(graphic);

@@ -1,6 +1,7 @@
 import { Worker } from 'node:worker_threads';
 
 import type { RouteRequest, RouteResult } from './path-search';
+import type { Corridor } from './route-waypoints';
 import { timed } from './stall-probe';
 import type { TerrainBuffers } from './terrain';
 
@@ -19,6 +20,12 @@ interface Slot {
 }
 export class PathPool {
   private static readonly pools = new Map<string, PathPool>();
+  // The public road corridors (route-build.ts), handed to every path worker.
+  private static corridors: Corridor[] = [];
+  static useCorridors(corridors: Corridor[]) {
+    PathPool.corridors = corridors;
+    for (const pool of PathPool.pools.values()) for (const slot of pool.slots) slot.worker.postMessage({ corridors });
+  }
   static get(directory: string, facet: number, buffers?: TerrainBuffers) {
     const key = `${directory}:${facet}`;
     let pool = PathPool.pools.get(key);
@@ -57,7 +64,7 @@ export class PathPool {
       const worker = new Worker(
         new URL(`./path-worker${import.meta.url.endsWith('.ts') ? '.ts' : '.js'}`, import.meta.url),
         {
-          workerData: { directory, facet, buffers }
+          workerData: { directory, facet, buffers, corridors: PathPool.corridors }
         }
       );
       const slot: Slot = { worker };

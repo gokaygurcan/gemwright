@@ -1,3 +1,5 @@
+import { spellbook } from '@gemwright/common/game/items';
+import { graphicOf } from '@gemwright/common/game/rules';
 import { gumpCommands } from '@gemwright/network/gumps';
 import type { PlayerSession } from '@gemwright/network/session';
 
@@ -9,15 +11,15 @@ import { residentContext } from './resident-context';
 import { onItem, useOn } from './target-action';
 import { sellTo } from './vendor-trade';
 
-// The young player ticket every new character gets (ServUO NewPlayerTicket, 0x14EF): two players
+// The young player ticket every new character gets (ServUO NewPlayerTicket): two players
 // put theirs together for a prize each. Using one's own ticket on the other's sends both owners the
 // prize gump (1013011), wherever they are. So no meeting is needed: a holder near a bank puts its
 // ticket down there and goes back to work; another holder walks to it and uses its own ticket on
 // it. Each answers the gump on its next turn. The spellbook with every 1st to 4th circle spell
 // (button 3) is the prize worth having: a caster keeps it, Recall included (no mage sells that
 // scroll); anyone else sells it to a mage for 25 gold (SBMage), the price of a tool.
-const TICKET = 0x14ef;
-const SPELLBOOK = 0x0efa;
+const TICKET = graphicOf('NewPlayerTicket');
+const SPELLBOOK = spellbook;
 const PRIZE_GUMP = 1013011;
 const SPELLBOOK_PRIZE = 3;
 const RECLAIM_MS = 2 * 3_600_000;

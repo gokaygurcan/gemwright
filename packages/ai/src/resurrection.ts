@@ -1,14 +1,16 @@
-import { readFileSync } from 'node:fs';
-
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
+import { graphicsOf } from '@gemwright/common/game/rules';
 import { Layer } from '@gemwright/network/layers';
 import { Notoriety } from '@gemwright/network/opcodes';
 import { ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 
+import { absence } from './absence';
 import { Blocked } from './blocked';
 import { recoverOwnCorpse } from './corpse-recovery';
 import { threatsNear } from './danger';
+import { isAnkh, type Placement } from './decoration';
+import { inDungeon, leaveDungeon } from './dungeon-exit';
 import { resurrectionButton } from './fighter-recovery';
 import { moongates, nearestGate } from './gates';
 import { recordEvent } from './gossip';
@@ -20,26 +22,18 @@ import { travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import { dyingOverAndOver, noteDeath, useStuckMenu } from './stuck';
+import { placeAllowed } from './towns';
 import { noteTrouble } from './trouble';
 import { WALKING_LIMIT } from './tuning';
 
 const ghosts = GHOST_BODIES;
-// Ankh pieces a ghost can double-click (Ankhs.cs AnkhWest and AnkhNorth, plain or bloodied).
-const ankhGraphics = new Set([
-  0x0002, // ankh, west, second piece
-  0x0003, // ankh, west
-  0x0004, // ankh, north
-  0x0005, // ankh, north, second piece
-  0x1d97, // bloodied ankh, west, second piece
-  0x1d98, // bloodied ankh, west
-  0x1e5c, // bloodied ankh, north, second piece
-  0x1e5d // bloodied ankh, north
-]);
-const ankhs = (
-  JSON.parse(readFileSync(new URL('../locations/ankhs.json', import.meta.url), 'utf8')) as {
-    ankhs: { x: number; y: number; z: number }[];
-  }
-).ankhs;
+// Ankhs a ghost can double-click (Ankhs.cs AnkhWest and AnkhNorth, plain or bloodied).
+const ankhGraphics = new Set([...graphicsOf('AnkhWest'), ...graphicsOf('AnkhNorth')]);
+// Resurrection ankhs from the shard's decoration data (decoration.ts), read at start.
+const ankhs: { x: number; y: number; z: number }[] = [];
+export function useShardAnkhs(placements: Placement[]) {
+  ankhs.splice(0, ankhs.length, ...placements.filter((p) => isAnkh(p.type)).map(({ x, y, z }) => ({ x, y, z })));
+}
 
 type Ctx = Pick<MountContext, 'session' | 'serial' | 'terrain' | 'position' | 'navigate' | 'check' | 'phase' | 'log'>;
 
@@ -70,6 +64,12 @@ export function deadlyWalk(option: { x: number; y: number }) {
   return deaths >= 2;
 }
 
+// Healers and ankhs not found where the world files put them lately (absence.ts) wait their turn.
+export const untried = <T extends { kind: 'healer' | 'ankh'; x: number; y: number }>(
+  options: T[],
+  missed: ReturnType<typeof absence>
+) => options.filter((option) => !missed.seen(option.kind, option));
+
 // Resurrects a ghost at the closest healer or ankh, as a player would. A ghost stays in the town
 // it is in: moongates only when no healer or ankh is within walking range. Healers (BaseHealer) and
 // ankhs (Ankhs.OnMovement) both send ResurrectGump when a ghost steps into range; the free
@@ -95,6 +95,11 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
     recordEvent(ctx.serial, (place) => `${me} got killed ${near[0] ? `by ${near[0]} ` : ''}${place} earlier`, fell);
   }
   const offer = () => [...session.world.gumps.values()].find((gump) => resurrectionButton(gump.layout) !== undefined);
+  // Dead in a dungeon or mine: up and out to the open world first, where healers and ankhs are.
+  if (inDungeon(position()) && isGhost(ctx) && !(await leaveDungeon(ctx))) {
+    log(`No known way out of the dungeon at ${position().x},${position().y}`);
+    return false;
+  }
   const all = [
     ...allServiceLocations('healer').map((point) => ({ kind: 'healer' as const, ...point })),
     ...ankhs.map((point) => ({ kind: 'ankh' as const, name: 'ankh', ...point }))
@@ -102,7 +107,9 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
   // Every healer and ankh in walking range first, each tried many times; another city only when
   // none of them can be reached at all (a shrine ankh with no route to it).
   const local = all.filter((option) => distance(position(), option) <= WALKING_LIMIT);
-  const far = all.filter((option) => !local.includes(option));
+  // Only in the cities the shard allows (gemwright.json ai.cities), unless none is left at all.
+  const allowed = all.filter((option) => placeAllowed(option));
+  const far = (allowed.length ? allowed : all).filter((option) => !local.includes(option));
   const deadly = far.filter((option) => deadlyWalk(option));
   const options = [...local, ...far.filter((option) => !deadly.includes(option)), ...deadly];
   // A healer met on the way (a wandering healer between towns, or any town healer in view) comes
@@ -133,7 +140,11 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
     }
     return undefined;
   };
-  const queue = options.slice(0, Math.max(4, local.length + 2));
+  // A healer is where one may be, not where one is (a wandering healer dies): spots found empty
+  // lately wait (absence.ts), unless nothing else is left.
+  const missed = absence(ctx.serial);
+  const fresh = untried(options, missed);
+  const queue = (fresh.length ? fresh : options).slice(0, Math.max(4, local.length + 2));
   while (queue.length) {
     const option = (isGhost(ctx) && (await healerInView())) || queue.shift();
     if (!option) break;
@@ -160,7 +171,12 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
           const ankh = [...session.world.entities.values()]
             .filter((item) => item.kind === 'item' && ankhGraphics.has(item.graphic) && item.position)
             .sort((a, b) => distance(position(), a.position ?? option) - distance(position(), b.position ?? option))[0];
-          if (!ankh?.position) throw new Error('No ankh in view');
+          if (!ankh?.position) {
+            // Only from beside its spot is a missing ankh missing (one far off is out of view), and an
+            // ankh, unlike a creature, has no spawner to bring it back.
+            if (distance(position(), option) <= 3) missed.note('ankh', option);
+            throw new Error('No ankh in view');
+          }
           if (ankh.position) {
             if (distance(position(), ankh.position) > 2) await navigate(ankh.position, 2).catch(() => {});
             session.use(ankh.serial);
@@ -201,6 +217,7 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
           }
         }
         healer ??= npcs[0];
+        if (!healer) missed.note('healer', option);
         if (!healer)
           log(
             `No healer in view near ${option.x},${option.y} from ${position().x},${position().y}; ${

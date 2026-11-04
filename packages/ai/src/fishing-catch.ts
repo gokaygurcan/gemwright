@@ -1,4 +1,5 @@
 import { fish } from '@gemwright/common/game/items';
+import { fishedTypes, graphicsOf, isA } from '@gemwright/common/game/rules';
 
 import { bankNearbyGold, bankSurplus } from './bank-gold';
 import { Blocked } from './blocked';
@@ -7,7 +8,7 @@ import type { ProfessionContext } from './profession';
 import { sellTo } from './vendor-trade';
 
 // ServUO Fishing's footwear catches and SBCobbler's buyback list.
-export const fishingFootwear = new Set([0x170b, 0x170c, 0x170d, 0x170e, 0x170f, 0x1710, 0x1711, 0x1712]);
+export const fishingFootwear = new Set(fishedTypes.filter((type) => isA(type, 'BaseShoes')).flatMap(graphicsOf));
 
 export async function sellFishingCatch(ctx: ProfessionContext): Promise<void> {
   const local = { ...ctx, city: townAt(ctx.position(), ctx.city) };

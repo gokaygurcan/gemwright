@@ -1,4 +1,4 @@
-import { fishingPoles, gold } from '@gemwright/common/game/items';
+import { gold } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Notoriety } from '@gemwright/network/opcodes';
 
@@ -13,6 +13,7 @@ import { goalAllows, goalControlled } from './resident-goal';
 import { oreNear, oreTurn, woodNear, woodTurn } from './side-gathering';
 import { trainFromNpc } from './training';
 import { tuning } from './tuning';
+import { fishingPoles } from './vendor-catalog';
 
 // A side trade for a resident whose own work does not pay, as players pick one up (fishing here;
 // wood and ore in side-gathering.ts): most residents

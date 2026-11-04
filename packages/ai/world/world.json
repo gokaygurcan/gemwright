@@ -597,74 +597,10 @@
     }
   },
   "workAreas": {
-    "schemaVersion": 1,
-    "facet": 1,
-    "note": "Work areas scanned from the Trammel map and weighted by lore: Minoc is the mining town (Britannian Mining Company, Covetous), Yew the timber town; Trinsic (Honor) and Jhelom (Valor) are left to fighters. Cove buys tools in Britain (no tool vendor).",
-    "mining": [
-      {
-        "city": "Minoc",
-        "x": 2560,
-        "y": 500,
-        "weight": 4
-      },
-      {
-        "city": "Cove",
-        "x": 2185,
-        "y": 1195,
-        "weight": 1,
-        "toolCity": "Britain"
-      },
-      {
-        "city": "New Haven",
-        "x": 3481,
-        "y": 2757,
-        "weight": 0
-      }
-    ],
-    "woods": [
-      {
-        "city": "Yew",
-        "x": 571,
-        "y": 1041,
-        "weight": 4
-      },
-      {
-        "city": "Britain",
-        "x": 1230,
-        "y": 1470,
-        "weight": 1
-      },
-      {
-        "city": "Minoc",
-        "x": 2353,
-        "y": 652,
-        "weight": 1
-      },
-      {
-        "city": "Vesper",
-        "x": 2798,
-        "y": 651,
-        "weight": 1
-      },
-      {
-        "city": "Moonglow",
-        "x": 4346,
-        "y": 1128,
-        "weight": 1
-      },
-      {
-        "city": "Skara Brae",
-        "x": 647,
-        "y": 2080,
-        "weight": 1
-      },
-      {
-        "city": "New Haven",
-        "x": 3460,
-        "y": 2700,
-        "weight": 0
-      }
-    ]
+    "schemaVersion": 2,
+    "note": "Each town's share of miners and lumberjacks (0: its own residents only), by lore: Minoc is the mining town (Britannian Mining Company, Covetous), Yew the timber town; Trinsic (Honor) and Jhelom (Valor) are left to fighters. Where each town's mines and woods lie is read from the map at start (work-area-build.ts).",
+    "mining": { "Minoc": 4, "Cove": 1, "New Haven": 0 },
+    "woods": { "Yew": 4, "Britain": 1, "Minoc": 1, "Vesper": 1, "Moonglow": 1, "Skara Brae": 1, "New Haven": 0 }
   },
   "population": {
     "max": 300

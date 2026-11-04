@@ -1,12 +1,12 @@
 import type { PlayerSession } from '@gemwright/network/session';
 
+import { absence } from './absence';
 import { moongates, nearestGate } from './gates';
 import { HAVEN_CITY, havenResident } from './haven';
 import { allServiceLocations, forgeSites, type ServiceType, serviceLocations, townAt } from './locations';
 import { distance } from './navigation';
-import { objectiveBlocked } from './objective-memory';
 import { outgrewYoung } from './progression';
-import type { Checkpoint } from './store';
+import { cityAllowed } from './world';
 
 // No resident has a home town. It works from whichever town supports its trade — a bank and the
 // trade's own vendor, a forge for a miner — staying while that holds and moving to the nearest
@@ -28,28 +28,32 @@ const NEEDS: Record<string, ServiceType[]> = {
   fighter: ['banker', 'healer'],
   miner: ['banker']
 };
-const towns = () => [...new Set(allServiceLocations('banker').map((bank) => bank.city.toLowerCase()))];
+const towns = () =>
+  [...new Set(allServiceLocations('banker').map((bank) => bank.city.toLowerCase()))].filter((town) =>
+    cityAllowed(town)
+  );
+// A place counts as its nearest town's (within 250 tiles, townAt); the wilds beyond belong to none.
+export const placeAllowed = (point: { x: number; y: number }) => cityAllowed(townAt(point, ''));
 
-// The catalogue lists the shard's shops; a spot this resident found empty twice is not one.
-function serves(session: PlayerSession, checkpoint: Checkpoint, town: string, service: ServiceType) {
+// The catalogue lists the shard's shops; a spot this resident found empty lately is not one (absence.ts).
+function serves(session: PlayerSession, town: string, service: ServiceType) {
   return serviceLocations(town, service).some(
-    (shop) =>
-      !objectiveBlocked(checkpoint, `vendor-absent:${session.world.map}:${service}:${shop.x},${shop.y}`, 'absent')
+    (shop) => !absence(session.world.serial ?? -1).seen('vendor', shop, service)
   );
 }
 
-export function supports(session: PlayerSession, checkpoint: Checkpoint, trade: string, town: string) {
+export function supports(session: PlayerSession, trade: string, town: string) {
   const forge = trade !== 'miner' || forgeSites.some((site) => site.city.toLowerCase() === town.toLowerCase());
-  return forge && (NEEDS[trade] ?? ['banker', 'provisioner']).every((need) => serves(session, checkpoint, town, need));
+  return forge && (NEEDS[trade] ?? ['banker', 'provisioner']).every((need) => serves(session, town, need));
 }
 
-export function townFor(session: PlayerSession, checkpoint: Checkpoint, trade: string) {
+export function townFor(session: PlayerSession, trade: string) {
   const here = session.world.position ?? { x: 0, y: 0 };
   const current = townAt(here, '').toLowerCase();
   const young = havenResident(session) && !outgrewYoung(session);
   const haven = HAVEN_CITY.toLowerCase();
-  if (young && supports(session, checkpoint, trade, haven)) return haven;
-  if (current && supports(session, checkpoint, trade, current)) return current;
+  if (young && cityAllowed(haven) && supports(session, trade, haven)) return haven;
+  if (current && cityAllowed(current) && supports(session, trade, current)) return current;
   // Travel as residents travel: on foot, or to the nearest moongate and from the gate by the town.
   const cost = (to: { x: number; y: number }) =>
     Math.min(
@@ -59,16 +63,17 @@ export function townFor(session: PlayerSession, checkpoint: Checkpoint, trade: s
   const near = (town: string) => Math.min(...serviceLocations(town, 'banker').map(cost));
   return (
     towns()
-      .filter((town) => supports(session, checkpoint, trade, town))
+      .filter((town) => supports(session, trade, town))
       .sort((a, b) => near(a) - near(b))[0] ??
-    (current || haven)
+    [current, haven, ...towns()].find((town) => town && cityAllowed(town)) ??
+    haven
   );
 }
 
 // Every turn (goal-turn.ts): a town that no longer supports the work ends the run, and the next run
 // starts from the nearest one that does.
-export function townTurn(session: PlayerSession, checkpoint: Checkpoint, trade: string, town: string) {
-  if (supports(session, checkpoint, trade, town)) return;
-  const next = townFor(session, checkpoint, trade);
+export function townTurn(session: PlayerSession, trade: string, town: string) {
+  if (supports(session, trade, town)) return;
+  const next = townFor(session, trade);
   if (next !== town.toLowerCase()) throw new TownChanged(next);
 }

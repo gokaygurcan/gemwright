@@ -2,6 +2,9 @@ import { expect, test } from 'bun:test';
 
 import { scrapTurn } from '../src/skirmish';
 import { behaviorFixture } from './behavior-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 test('a resident with nothing, bare-handed and unskilled, finds a ground with creatures it can beat', async () => {
   const f = behaviorFixture('fisherman');

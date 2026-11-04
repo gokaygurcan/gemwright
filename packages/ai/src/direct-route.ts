@@ -1,7 +1,5 @@
-import { teleporterTiles } from './links';
+import { teleporterTiles as teleporters } from './links';
 import type { Point, Terrain } from './terrain';
-
-const teleporters = new Set(teleporterTiles);
 
 // Most travel is an unobstructed stretch. Reserve A* for the obstacle ahead.
 export function directRoute(

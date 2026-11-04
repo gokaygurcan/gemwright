@@ -29,7 +29,8 @@ export function perceiveEntity(
   visible: boolean,
   now: number,
   swing?: { target: number; at: number },
-  owned = false
+  owned = false,
+  calm = false
 ): PerceivedEntity {
   const entity = record.entity;
   const reference = entity.kind === 'mobile' ? baselineTraits(entity.graphic, entity.name) : itemReference;
@@ -93,6 +94,11 @@ export function perceiveEntity(
       at: now,
       confidence: 0.5,
       evidence: ['notoriety raises risk; does not establish intent']
+    };
+  else if (calm)
+    risk = {
+      ...risk,
+      evidence: ['close by for half a minute without coming nearer: penned or peaceful, whatever its kind']
     };
   else if (!vendor && reference.value.aggressive === true && hostileNotoriety.includes(entity.notoriety ?? 0))
     risk = {

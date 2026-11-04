@@ -10,6 +10,10 @@ interface Tuning {
   fighter: { supplyRunMinGold: number; ammoLow: number; reagentLow: number; carriedGold: number };
   sideTrade: { checkHours: number; spellHours: number; lessonTo: number; lessonMinGold: number };
   trouble: { holdHours: number; penaltyAt: number; stepCost: number; deadlyAt: number; deadlyStepCost: number };
-  taming: { emptySearches: number; givenUpHours: number };
+  taming: { emptySearches: number };
+  absence: {
+    minutes: { vendor: number; healer: number; ankh: number; escort: number; tamable: number; ground: number };
+    repeatFactor: number;
+  };
 }
 export const tuning = JSON.parse(readFileSync(new URL('../tuning.json', import.meta.url), 'utf8')) as Tuning;

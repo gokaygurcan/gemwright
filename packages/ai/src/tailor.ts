@@ -1,4 +1,14 @@
-import { boltOfCloth, bulkOrderDeed, cloth, gold, scissors, uncutCloth } from '@gemwright/common/game/items';
+import {
+  bandage,
+  boltOfCloth,
+  bulkOrderDeed,
+  cloth,
+  gold,
+  scissors,
+  sewingKit,
+  uncutCloth
+} from '@gemwright/common/game/items';
+import { shopPrices, soldAs } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 
 import { TOOLS } from './bank-gold';
@@ -21,7 +31,7 @@ export const tailoring: CraftSkill = {
   skill: 'Tailoring',
   vendor: 'tailor',
   // The sewing kit; scissors open a cutting cursor, not the tailoring menu.
-  tools: new Set([0x0f9d]),
+  tools: new Set([sewingKit]),
   material: cloth,
   // SBTailor sells cloth in random dyed colours; the colour does not matter for sewing.
   anyHue: true,
@@ -53,7 +63,7 @@ async function cutCloth(ctx: ProfessionContext) {
 async function refill(ctx: ProfessionContext, least: number) {
   if (await buyFrom(ctx, 'tailor', new Map([[cloth, Math.max(least, 60)]]))) return true;
   if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-    await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]));
+    await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[soldAs('Scissors'), 1]]));
   await buyFrom(
     ctx,
     'tailor',
@@ -69,8 +79,8 @@ async function refill(ctx: ProfessionContext, least: number) {
 
 // What a resident in a death robe needs first, and the shop's price for each (SBTailor).
 const garments = new Map([
-  [0x1f03, 18], // robe
-  [0x1517, 12] // shirt
+  [soldAs('Robe'), shopPrices('Robe').charges],
+  [soldAs('Shirt'), shopPrices('Shirt').charges]
 ]);
 function postGarments(ctx: ProfessionContext) {
   const spare = ctx
@@ -82,7 +92,7 @@ function postGarments(ctx: ProfessionContext) {
       seller: ctx.serial,
       kind: 'clothes',
       item: item.serial,
-      label: item.graphic === 0x1f03 ? 'robe' : 'shirt',
+      label: item.graphic === soldAs('Robe') ? 'robe' : 'shirt',
       price: shopShare(garments.get(item.graphic) ?? 12),
       at: ctx.position()
     });
@@ -101,22 +111,22 @@ export const runTailor = (options: ProfessionOptions) =>
     'tailor',
     options,
     async (ctx) => {
-      const bandagesNeeded = orderDemand(ctx.session, 'bandages') - ctx.count(0x0e21);
+      const bandagesNeeded = orderDemand(ctx.session, 'bandages') - ctx.count(bandage);
       if (bandagesNeeded > 0) {
         if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]));
+          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[soldAs('Scissors'), 1]]));
         await refill(ctx, bandagesNeeded + orderDemand(ctx.session, 'cloth'));
         const blade = ctx.carried().find((item) => scissors.has(item.graphic));
         const piece = ctx.carried().find((item) => item.graphic === cloth);
         if (blade && piece && !reservedFor(ctx.session, piece)) {
-          const before = ctx.count(0x0e21);
+          const before = ctx.count(bandage);
           ctx.phase('gathering-bandages', 'Cutting cloth for an agreed bandage order');
           const cut = await useOn(ctx.session, () => ctx.session.use(blade.serial), onItem(piece), {
             label: 'scissors cursor'
           });
           ctx.check();
           if (!('why' in cut)) {
-            await ctx.session.waitFor(() => ctx.count(0x0e21) > before, 'bandages cut', 3000).catch(() => {});
+            await ctx.session.waitFor(() => ctx.count(bandage) > before, 'bandages cut', 3000).catch(() => {});
             ctx.persist();
           }
         }
@@ -124,7 +134,7 @@ export const runTailor = (options: ProfessionOptions) =>
       }
       if (orderDemand(ctx.session, 'cloth') > ctx.count(cloth)) {
         if (!ctx.carried().some((item) => scissors.has(item.graphic)))
-          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[0x0f9f, 1]]));
+          await buyFrom({ ...ctx, limits: TOOLS }, 'tailor', new Map([[soldAs('Scissors'), 1]]));
         await woolToBolt(ctx);
         await cutCloth(ctx);
         return;

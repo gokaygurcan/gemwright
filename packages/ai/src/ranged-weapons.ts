@@ -1,4 +1,5 @@
 import { arrow, crossbowBolt } from '@gemwright/common/game/items';
+import { rangedWeapons } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 
 export interface RangedWeapon {
@@ -8,15 +9,17 @@ export interface RangedWeapon {
   seconds: number;
 }
 
-// ServUO pub57 BaseRanged and the five weapon classes, including both facings.
-const definitions: [number[], RangedWeapon][] = [
-  [[0x13b1, 0x13b2], { name: 'bow', ammo: arrow, range: 10, seconds: 4.25 }],
-  [[0x26c2, 0x26cc], { name: 'composite bow', ammo: arrow, range: 10, seconds: 4 }],
-  [[0x0f4f, 0x0f50], { name: 'crossbow', ammo: crossbowBolt, range: 8, seconds: 4.5 }],
-  [[0x13fc, 0x13fd], { name: 'heavy crossbow', ammo: crossbowBolt, range: 8, seconds: 5 }],
-  [[0x26c3, 0x26cd], { name: 'repeating crossbow', ammo: crossbowBolt, range: 7, seconds: 2.75 }]
-];
-const profiles = new Map(definitions.flatMap(([ids, profile]) => ids.map((id) => [id, profile] as const)));
+// ServUO BaseRanged weapons, both facings; a graphic shared by an artifact keeps its plain weapon's profile.
+const ammunition: Record<string, number> = { Arrow: arrow, Bolt: crossbowBolt };
+const profiles = new Map<number, RangedWeapon>();
+for (const weapon of rangedWeapons().sort((a, b) => a.type.length - b.type.length))
+  if (!profiles.has(weapon.graphic) && ammunition[weapon.ammo] !== undefined)
+    profiles.set(weapon.graphic, {
+      name: weapon.type.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase(),
+      ammo: ammunition[weapon.ammo] ?? arrow,
+      range: weapon.range,
+      seconds: weapon.seconds
+    });
 export const rangedGraphics: ReadonlySet<number> = new Set(profiles.keys());
 export const rangedWeapon = (graphic: number | undefined) =>
   graphic === undefined ? undefined : profiles.get(graphic);

@@ -1,4 +1,4 @@
-import { ingot } from '@gemwright/common/game/items';
+import { ingot, smithTools, tongs } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
 import { Opcode } from '@gemwright/network/opcodes';
@@ -19,8 +19,6 @@ import { onItem, useOn } from './target-action';
 import { buyOffers } from './vendor-shop';
 // Iron ingots are a vendor "economy" item on the pinned shard: 75% of the 5-gold sale price.
 export const RAW_INGOT_VALUE = 3;
-const tongs = new Set([0x0fbb, 0x0fbc]);
-const smithTools = new Set([0x0fbb, 0x0fbc, 0x13e3, 0x13e4]);
 const SHIELDS = 1011080;
 
 // Every iron recipe the blacksmith buys back (catalogs/crafts/blacksmith.json from DefBlacksmithy

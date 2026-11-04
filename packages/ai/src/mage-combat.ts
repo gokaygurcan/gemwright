@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { necroReagentByName, reagentByName } from '@gemwright/common/game/items';
+import { manaOf } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 import { ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
@@ -33,7 +34,7 @@ const byName = new Map([...spells, ...necro].map((spell) => [spell.name, spell])
 export const reagentGraphics = reagentByName;
 const allReagents: Record<string, number> = { ...reagentByName, ...necroReagentByName };
 // MagerySpell mana per circle (ServUO m_ManaTable).
-const MANA = [0, 4, 6, 9, 11, 14, 20, 40, 50];
+const MANA = [0, ...[1, 2, 3, 4, 5, 6, 7, 8].map(manaOf)];
 
 // Per-fight memory: spells missing from the book, buffs already cast, the current combo step.
 const state = new WeakMap<

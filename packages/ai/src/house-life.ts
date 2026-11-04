@@ -1,4 +1,5 @@
 import { gold } from '@gemwright/common/game/items';
+import { graphicOf } from '@gemwright/common/game/rules';
 
 import { chaosOf } from './chaos';
 import { type HouseRecord, houseOf, housingOpen, updateHouse } from './house-lots';
@@ -12,7 +13,7 @@ import { useOn } from './target-action';
 // (housing.ts), visits it about once a day (opening its door refreshes ServUO's decay timer for
 // the owner, HouseDoors.cs), keeps a secured wooden box there for its valuables, and sometimes
 // spends its leisure at home. Nothing is ever deleted: a house outlives its owner's deaths.
-const BOX = 0x0e7d;
+const BOX = graphicOf('WoodenBox');
 const nextCheck = new WeakMap<LifeContext['session'], number>();
 // After an attempt: blocked lots are retried at once on another lot, everything else waits.
 const backoff: Record<Purchase, number> = {

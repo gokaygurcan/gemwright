@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { clientVersion } from '@gemwright/common/config/shard';
 import { validateConnection } from '@gemwright/network/connection';
 
+import { useShardAreas } from './area-build';
 import { setPopulationChaos } from './chaos';
 import { type PopulationConfig, validateConfig } from './config';
 import { setDebug } from './debug';
@@ -12,10 +13,15 @@ import { setWars } from './guild-wars';
 import { logger, logToStdout } from './log';
 import { startExport, stopExport } from './otlp-export';
 import { enablePhrasing } from './phrasing';
+import { useShardRoutes } from './route-build';
 import { runPopulation } from './run-population';
 import { checkProvisioning, loadShardProfile } from './shard-profile';
+import { useShardWorld } from './shard-world';
+import { readShardWorld } from './spawns';
 import { ResidentStore } from './store';
-import { applyWorld, type Cohorts, world } from './world';
+import { Terrain } from './terrain';
+import { buildWorkAreas } from './work-area-build';
+import { applyWorld, type Cohorts, useCities, world } from './world';
 
 // The deployed AI service (gemwright deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
@@ -43,6 +49,7 @@ const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
     wars?: boolean;
     cohorts?: Cohorts;
     debug?: boolean;
+    cities?: string[];
   };
 };
 enablePhrasing(shard.ai?.speech === 'claude');
@@ -53,6 +60,8 @@ if (shard.ai?.debug) logger('debug').info('ai.debug is on: residents emote their
 setPopulationChaos(shard.ai?.chaos ?? world.lifecycle?.chaos ?? 0.3);
 // Order and Chaos guild wars (guild-wars.ts) only when the shard turns them on.
 setWars(shard.ai?.wars === true);
+// The cities residents may go to (world.ts useCities): every city when unset.
+useCities(shard.ai?.cities);
 const shardFile = join(data, 'gemwright.json');
 await mkdir(data, { recursive: true });
 await writeFile(shardFile, JSON.stringify(shard));
@@ -117,6 +126,20 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const)
   process.once(signal, () => {
     stopping = true;
   });
+// The shard's own spawners (the deployment's world files) decide where vendors stand and residents hunt.
+const shardWorld = readShardWorld(join(data, 'world'));
+if (!shardWorld)
+  throw new Error(
+    `No world files in ${join(data, 'world')} (Spawns/ and Regions.xml): run gemwright deploy --ai to upload them.`
+  );
+useShardWorld(shardWorld);
+logger('serve').info(`[serve] vendors and hunting grounds from ${shardWorld.spawners.length} spawners`);
+// Which places can be walked to from which: kept on the volume, built again only for a new world or map.
+// Where each town's mines and woods lie, from the map.
+buildWorkAreas(Terrain.shared(join(data, 'assets'), 1));
+await useShardAreas(data, Terrain.shared(join(data, 'assets'), 1), join(data, 'assets'), shardWorld.teleporters);
+// The public roads long walks follow: kept on the volume, walked again only for new hubs or a new map.
+useShardRoutes(data, Terrain.shared(join(data, 'assets'), 1), join(data, 'assets'));
 while (!stopping) {
   const started = Date.now();
   try {

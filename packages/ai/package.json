@@ -32,7 +32,6 @@
   "files": [
     "dist/",
     "catalogs/",
-    "locations/",
     "templates/",
     "world/",
     "tuning.json",

@@ -2,7 +2,6 @@ FROM oven/bun:1.4.3
 WORKDIR /app
 COPY dist/ ./dist/
 COPY catalogs/ ./catalogs/
-COPY locations/ ./locations/
 COPY templates/ ./templates/
 COPY world/ ./world/
 COPY tuning.json start.sh ./

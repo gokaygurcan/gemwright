@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'n
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { board, ingot, reagentByName } from '@gemwright/common/game/items';
+import { board, cloth, ingot, reagentByName } from '@gemwright/common/game/items';
 
 // Offline build of catalogs/crafts/<skill>.json from the pinned ServUO source: every recipe of the craft
 // skills residents use that needs only the skill's basic material (DefBlacksmithy, DefCarpentry,
@@ -98,10 +98,16 @@ const crafts = {
     service: 'blacksmith'
   },
   Carpentry: { def: 'DefCarpentry', material: 'Board', graphic: board, vendor: 'Carpenter', service: 'carpenter' },
-  Tailoring: { def: 'DefTailoring', material: 'Cloth', graphic: 0x1766, vendor: 'Tailor', service: 'tailor' },
+  Tailoring: { def: 'DefTailoring', material: 'Cloth', graphic: cloth, vendor: 'Tailor', service: 'tailor' },
   Tinkering: { def: 'DefTinkering', material: 'IronIngot', graphic: ingot, vendor: 'Tinker', service: 'tinker' },
   // Each potion names its own reagent (`material` per recipe) and a bottle.
-  Alchemy: { def: 'DefAlchemy', material: 'Reagent', graphic: 0x0f85, vendor: 'Alchemist', service: 'alchemist' },
+  Alchemy: {
+    def: 'DefAlchemy',
+    material: 'Reagent',
+    graphic: reagentByName.Ginseng ?? 0,
+    vendor: 'Alchemist',
+    service: 'alchemist'
+  },
   Bowcraft: { def: 'DefBowFletching', material: 'Board', graphic: board, vendor: 'Bowyer', service: 'bowyer' }
 };
 // One file per skill keeps each catalog small enough to read and review.

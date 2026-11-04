@@ -66,6 +66,25 @@ const slug = (text: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 const enabledFacets = new Set(world.facets.filter((f) => f.enabled).map((f) => f.id));
+
+// The cities a shard's residents may go to (gemwright.json ai.cities): their shops, banks and
+// healers, the grounds and gates around them. Every city when unset. Homes stay as created: a
+// resident living elsewhere works from the nearest allowed town (towns.ts).
+let allowedCities: Set<string> | undefined;
+export function useCities(cities?: readonly string[]) {
+  if (!cities?.length) {
+    allowedCities = undefined;
+    return;
+  }
+  const known = new Map(Object.keys(world.cities).map((city) => [city.toLowerCase(), city]));
+  const unknown = cities.filter((city) => !known.has(city.toLowerCase()));
+  if (unknown.length)
+    throw new Error(
+      `gemwright.json ai.cities names unknown cities: ${unknown.join(', ')}. Use any of: ${[...known.values()].join(', ')}.`
+    );
+  allowedCities = new Set(cities.map((city) => city.toLowerCase()));
+}
+export const cityAllowed = (city: string) => !allowedCities || allowedCities.has(city.toLowerCase());
 const allowedHome = (city: string) => {
   const entry = world.cities[city];
   return !!entry?.enabled && entry.startingCity && enabledFacets.has(entry.facet);

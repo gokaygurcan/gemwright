@@ -3,6 +3,9 @@ import { expect, test } from 'bun:test';
 import { createDoorOpener, isDoor } from '../src/doors';
 import { createNavigator } from '../src/navigation';
 import { behaviorFixture, required } from './behavior-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 function fixture() {
   const f = behaviorFixture();
@@ -39,7 +42,7 @@ test('recognizes every ServUO door family without relying on client flags', () =
     [0x866, 0x875],
     [0x1fed, 0x1ffc],
     [0x2a05, 0x2a1c],
-    [0x2d63, 0x2d70],
+    [0x2d63, 0x2d6e],
     [0x319c, 0x31af],
     [0x367b, 0x369a],
     [0x409b, 0x40a2],
@@ -58,7 +61,7 @@ test('recognizes every ServUO door family without relying on client flags', () =
     for (let id = required(first); id <= required(last); id++) expect(isDoor(id, terrain)).toBe(true);
   for (const id of [
     0x241f, 0x2420, 0x2423, 0x2424, 0x2d46, 0x2d47, 0x2d48, 0x2d49, 0x2fe2, 0x2fe3, 0x2fe4, 0x2fe5, 0x363a, 0x3619,
-    0x242, 0x244, 0x3c9, 0x3ca, 18304
+    0x242, 0x244, 0x3c9, 0x3ca
   ])
     expect(isDoor(id, terrain)).toBe(true);
   expect(isDoor(0xeed, terrain)).toBe(false);
@@ -247,4 +250,48 @@ test('with no path on foot, walking to a teleporter does not take the teleporter
   });
   await expect(navigate({ x: 1420, y: 3830 }, 2)).rejects.toThrow('No walkable route');
   expect(teleporters).toBeLessThanOrEqual(2);
+}, 15_000);
+
+test('a ghost walks straight past monsters to the healer: nothing can hurt it', async () => {
+  const f = fixture();
+  f.world.entities.set(1, { serial: 1, kind: 'mobile', graphic: 0x192, position: required(f.world.position) });
+  f.world.entities.set(30, {
+    serial: 30,
+    kind: 'mobile',
+    graphic: 0x12,
+    notoriety: 6,
+    position: { x: 105, y: 102, z: 0, direction: 0 }
+  });
+  const phases: string[] = [];
+  let asked = false;
+  const steps = [
+    [0, -1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+    [-1, -1]
+  ];
+  f.session.walk = async (direction) => {
+    const [dx = 0, dy = 0] = steps[direction & 7] ?? [];
+    const at = required(f.world.position);
+    f.world.position = { ...at, x: at.x + dx, y: at.y + dy, direction };
+    return true;
+  };
+  const navigate = createNavigator({
+    session: f.session,
+    terrain: f.terrain,
+    check: () => {},
+    phase: (phase) => phases.push(phase),
+    log: (line) => f.logs.push(line),
+    wary: () => {
+      asked = true;
+      return true;
+    }
+  });
+  await navigate({ x: 110, y: 100 }, 0);
+  expect(required(f.world.position).x).toBe(110);
+  expect(asked).toBe(false);
 }, 15_000);

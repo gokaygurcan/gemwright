@@ -1,4 +1,4 @@
-import { ItemProperty } from '@gemwright/common/game/items';
+import { blankScroll, ItemProperty, repairDeed, smithTools } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -26,7 +26,7 @@ export function durability(item: Entity): { current: number; maximum: number } |
 }
 export function smithContract(item: Entity): boolean {
   return (
-    item.graphic === 0x14f0 &&
+    item.graphic === repairDeed &&
     !!item.properties?.some((p) => p.cliloc === 1061133 && /#1023015\b|blacksmith/i.test(p.arguments))
   );
 }
@@ -130,8 +130,8 @@ export async function guildRepairTurn(ctx: LifeContext): Promise<boolean> {
     if (!mate) return false;
     let deed = contract;
     if (!deed) {
-      const tool = items.find((e) => [0xfbb, 0xfbc, 0x13e3, 0x13e4].includes(e.graphic));
-      const scroll = items.find((e) => e.graphic === 0xe34);
+      const tool = items.find((e) => smithTools.has(e.graphic));
+      const scroll = items.find((e) => e.graphic === blankScroll);
       if (!tool || !scroll) return false;
       const before = new Set(items.map((e) => e.serial));
       if (session.world.target || !canPause(session)) return false;
@@ -147,11 +147,11 @@ export async function guildRepairTurn(ctx: LifeContext): Promise<boolean> {
       if ('why' in used) return false;
       ctx.check();
       await session.waitFor(
-        () => packItems(session, pack.serial).some((e) => !before.has(e.serial) && e.graphic === 0x14f0),
+        () => packItems(session, pack.serial).some((e) => !before.has(e.serial) && e.graphic === repairDeed),
         'created repair contract',
         3000
       );
-      deed = packItems(session, pack.serial).find((e) => !before.has(e.serial) && e.graphic === 0x14f0);
+      deed = packItems(session, pack.serial).find((e) => !before.has(e.serial) && e.graphic === repairDeed);
       if (deed) await session.inspectProperties(deed.serial);
       if (!deed || !smithContract(session.world.entities.get(deed.serial) ?? deed)) return false;
     }

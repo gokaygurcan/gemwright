@@ -2,12 +2,13 @@ import { expect, setSystemTime, spyOn, test } from 'bun:test';
 
 import { speech } from '@gemwright/network/packets';
 
+import { absence } from '../src/absence';
 import { SESSION_BREAK } from '../src/action-errors';
 import { superviseBehavior } from '../src/behavior-supervisor';
 import { corpseRecoveryChoice, resurrectionButton } from '../src/fighter-recovery';
 import { lasting } from '../src/lasting';
 import { mendAfterDeath } from '../src/mend';
-import { deadlyWalk } from '../src/resurrection';
+import { deadlyWalk, untried } from '../src/resurrection';
 import { behaviorFixture, required } from './behavior-fixture';
 
 test('resurrection accepts the observed free healer Continue control and rejects a paid or missing control', () => {
@@ -332,4 +333,12 @@ test('a ghost does not pick a far healer whose walk from the moongate crosses wh
     deaths.set(`${900 + i}|${spot}|0x1a|${now}`, now + 3_600_000);
   expect(deadlyWalk({ x: 2250, y: 1230 })).toBe(true);
   expect(deadlyWalk({ x: 2930, y: 854 })).toBe(false);
+});
+
+test('an ankh found missing is skipped for a while, like a healer found away', () => {
+  const missed = absence(424242);
+  const ankh = { kind: 'ankh' as const, x: 3606, y: 2582 };
+  const healer = { kind: 'healer' as const, x: 2577, y: 599 };
+  missed.note('ankh', ankh);
+  expect(untried([ankh, healer], missed)).toEqual([healer]);
 });

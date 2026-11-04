@@ -1,4 +1,4 @@
-import { gold } from '@gemwright/common/game/items';
+import { gold, recallRune } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -10,6 +10,7 @@ import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
 import { buyOffer, findOffer } from './resident-offers';
 import { RUNEBOOK } from './scribe';
+import { spellNamed } from './spell-rules';
 import { onItem, useOn } from './target-action';
 
 // Recall, as players travelled: a caster marks a blank rune where it wants to return (Mark, sixth
@@ -20,9 +21,9 @@ import { onItem, useOn } from './target-action';
 // Magery for it does this, and only for its own marked places: the bank of its home town and of
 // the towns it visits. A long trip that ends near one of them (work-areas.ts reachRegion, a
 // stranded resident in moongate.ts) recalls instead of walking to a moongate.
-const RECALL = { id: 32, scroll: 0x1f4c, mana: 11, magery: 50 };
-const MARK = { id: 45, scroll: 0x1f59, mana: 20, magery: 70 };
-const RUNE = 0x1f14;
+const RECALL = { ...spellNamed('Recall'), magery: 50 };
+const MARK = { ...spellNamed('Mark'), magery: 70 };
+const RUNE = recallRune;
 const MAX_RUNES = 6;
 const BOOK_RUNES = 16;
 const RECALL_BUTTON = 50;

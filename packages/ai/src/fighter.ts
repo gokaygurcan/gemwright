@@ -1,5 +1,6 @@
 import { gold } from '@gemwright/common/game/items';
 
+import { absence } from './absence';
 import { tally } from './activity';
 import { recoverWithAid } from './aid-recovery';
 import { knownBankGold } from './bank-gold';
@@ -53,7 +54,7 @@ export async function runFighter(options: ResidentOptions) {
   const { session, template } = options;
   const serial = session.world.serial;
   if (serial === null || session.world.map !== 1) throw new Error('Fighter needs Trammel');
-  const home = homeOf(townFor(session, options.checkpoint, 'fighter'), () => session.world.position ?? { x: 0, y: 0 });
+  const home = homeOf(townFor(session, 'fighter'), () => session.world.position ?? { x: 0, y: 0 });
   const checkpoint = structuredClone(options.checkpoint);
   reconcileExperience(checkpoint);
   options.decisions?.reconcile(checkpoint);
@@ -354,9 +355,10 @@ export async function runFighter(options: ResidentOptions) {
           activeDecision = choice.kind === 'avoid' ? null : choice.pick;
           const opponent = choice.kind === 'fight' ? choice.opponent : undefined;
           if (!opponent) {
-            // An empty cemetery is crowded or picked clean: move on.
+            // An empty cemetery is crowded or picked clean: move on, and leave it a while (absence.ts).
             if (++idlePatrols > 6 + (template.behavior.temperament?.patrolOffset ?? 0)) {
               idlePatrols = 0;
+              absence(serial).note('ground', groundOf(trip).center);
               trip.ground = options.overland
                 ? ({ Britain: 'Yew', Yew: 'Britain', Cove: 'Vesper', Vesper: 'Cove' }[trip.ground ?? 'Britain'] ??
                   'Britain')

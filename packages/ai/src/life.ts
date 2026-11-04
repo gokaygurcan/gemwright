@@ -28,7 +28,7 @@ import { learnedPlaceCost } from './strategy-learning';
 import type { Terrain } from './terrain';
 import { WALKING_LIMIT } from './tuning';
 import { skillGrowth, workEvidence } from './work-evidence';
-import { world } from './world';
+import { cityAllowed, world } from './world';
 
 export { skillCurve, skillProgress } from './life-choice';
 
@@ -89,7 +89,7 @@ function pickUp(ctx: LifeContext) {
 async function linger(ctx: LifeContext, city: string, until: number) {
   // Leisure in the home town is sometimes spent in one's own house (house-life.ts).
   if (city === ctx.city && (await leisureAtHome(ctx, until))) return true;
-  const spots = [...serviceLocations(city, 'banker'), ...cityLandmarks(city, /\b(inn|tavern|pub|saloon)\b/i)];
+  const spots = [...serviceLocations(city, 'banker'), ...cityLandmarks(city, /^(innkeeper|tavernkeeper|barkeeper)$/)];
   // Somewhere with company, not a crowd (spread.ts).
   const self = ctx.session.world.serial ?? undefined;
   const spot = pickWeighted(spots, (s) => crowdFactor(residentsNear(s, 12, self)));
@@ -130,7 +130,10 @@ async function bankVisit(ctx: LifeContext) {
 function destination(ctx: LifeContext): string | undefined {
   const home = pickLocation(ctx.city, 'banker');
   const towns = Object.entries(world.cities)
-    .filter(([name, entry]) => entry.enabled && entry.startingCity && name.toLowerCase() !== ctx.city.toLowerCase())
+    .filter(
+      ([name, entry]) =>
+        entry.enabled && entry.startingCity && cityAllowed(name) && name.toLowerCase() !== ctx.city.toLowerCase()
+    )
     .flatMap(([name]) => {
       const bank = pickLocation(name, 'banker');
       if (!bank) return [];

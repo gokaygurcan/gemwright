@@ -1,25 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { creatures } from '@gemwright/common/game/rules';
 
-export interface Monster {
-  type: string;
-  name: string | null;
-  bodies: number[];
-  hits: number[] | null;
-  damage: number[] | null;
-  magery: number;
-  resist: number;
-  fame: number;
-  // Attacks on sight (its ServUO FightMode); combat skills, armor and the gold its loot packs carry.
-  aggressive?: boolean;
-  // ServUO AIType without the AI_ prefix (Melee, Mage, Archer, Berserk, Healer...) and FightMode.
-  ai?: string | null;
-  fightMode?: string;
-  tactics?: number;
-  wrestling?: number;
-  armor?: number;
-  gold?: number;
-}
-
-export const monsters: Monster[] = (
-  JSON.parse(readFileSync(new URL('../catalogs/monsters.json', import.meta.url), 'utf8')) as { monsters: Monster[] }
-).monsters;
+// The ServUO creatures (common rules) as residents size them up: health, damage, combat skills,
+// armor, whether they attack on sight (FightMode), their AI and the gold their loot packs carry.
+export type Monster = (typeof creatures)[number];
+export const monsters: readonly Monster[] = creatures;

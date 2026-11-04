@@ -45,6 +45,7 @@ import { runTamer } from './tamer';
 import { personalTemplate } from './temperament';
 import { runThief } from './thief';
 import { guardTrades } from './trade-guard';
+import { miningTools } from './vendor-catalog';
 
 async function exercise(session: PlayerSession) {
   const before = { ...session.world.position };
@@ -81,7 +82,7 @@ async function exercise(session: PlayerSession) {
     'backpack contents'
   );
   const tool = [...session.world.entities.values()].find(
-    (entity) => entity.parent === backpack.serial && [0x0e85, 0x0e86, 0x0f39, 0x0f3a].includes(entity.graphic)
+    (entity) => entity.parent === backpack.serial && miningTools.has(entity.graphic)
   );
   if (!tool) throw new Error('This exercise needs a normal starting pickaxe or shovel (use a miner template)');
   session.use(tool.serial);

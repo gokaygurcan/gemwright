@@ -1,4 +1,4 @@
-import { bandage, corpse as corpseGraphic, ItemProperty, spellbook } from '@gemwright/common/game/items';
+import { bandage, corpse as corpseGraphic, ItemProperty, reagentByName, spellbook } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import { Opcode } from '@gemwright/network/opcodes';
@@ -37,7 +37,7 @@ const skill = (ctx: DungeonContext, name: string) => ctx.session.world.skills.ge
 // spell in the book; "You do not have that spell!" rules it out for this character.
 const RESURRECTION = 59;
 const NO_SPELL = ShardMessage.noSuchSpell;
-const reagents = [0x0f7b, 0x0f84, 0x0f85];
+const reagents = ['Bloodmoss', 'Garlic', 'Ginseng'].map((name) => reagentByName[name] ?? 0);
 const withoutSpell = new Set<number>();
 const carried = (ctx: DungeonContext) => {
   const pack = backpack(ctx);

@@ -1,16 +1,6 @@
 import { Tiledata } from '@gemwright/common/assets/tiledata';
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
-import {
-  arrow,
-  board,
-  crossbowBolt,
-  fish,
-  hides,
-  ingot,
-  isDeathRobe,
-  logPile,
-  ore
-} from '@gemwright/common/game/items';
+import { fish, gems, gold, hides, isDeathRobe, ore, reagents, scrolls, shopBought } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -47,41 +37,16 @@ export interface ScavengeContext {
 const MOVABLE = 0x20;
 const RANGE = 10;
 const WEARABLE = 0x400000;
-const kinds: [number, number][] = [
-  [0x0eed, 0x0eed], // gold
-  [0x0f0f, 0x0f30], // gems
-  [0x0f7a, 0x0f91], // reagents
-  [0x0e21, 0x0e21], // bandages
-  [0x0f06, 0x0f0d], // potions
-  [0x1f2d, 0x1f6c], // spell scrolls
-  [arrow, arrow], // arrows
-  [crossbowBolt, crossbowBolt], // bolts
-  [ingot, ingot], // ingots
-  [0x19b7, 0x19ba], // ore
-  [board, board], // boards
-  [logPile, logPile], // logs
-  [0x1766, 0x1767], // cloth and uncut cloth
-  [Math.min(...hides), Math.max(...hides)], // hides
-  [0x1081, 0x1081], // leather
-  [0x0f95, 0x0f9c], // bolts of cloth
-  // Things any shop buys back or a resident's work uses (ServUO SB* sell lists).
-  [0x0e85, 0x0e86], // pickaxes
-  [0x0f39, 0x0f3a], // shovels
-  [0x0f43, 0x0f4a], // hatchets and axes
-  [0x13fa, 0x13fb], // large battle axes
-  [0x1022, 0x1023], // fletcher's tools
-  [0x0e9b, 0x0e9b], // mortar and pestle
-  [0x1eb8, 0x1ebc], // tinker's tools
-  [0x0f9d, 0x0f9f], // sewing kit and scissors
-  [0x0dbf, 0x0dc0], // fishing poles
-  [0x0f0e, 0x0f0e], // empty bottles
-  [0x1bd1, 0x1bd1], // feathers
-  [0x1bd4, 0x1bd4], // shafts
-  [0x0e9c, 0x0e9e], // drums and tambourines
-  [0x0eb1, 0x0eb3], // harps and lutes
-  [Math.min(...fish), Math.max(...fish)], // fish
-  [0x1f14, 0x1f14] // recall runes
-];
+const kinds: ReadonlySet<number> = new Set([
+  gold,
+  ...gems,
+  ...reagents,
+  ...scrolls,
+  ...ore,
+  ...hides,
+  ...fish,
+  ...shopBought
+]);
 // Items this session could not reach or the server refused; never tried again.
 const skipped = new WeakMap<PlayerSession, Map<number, number>>();
 const ghosts = GHOST_BODIES;
@@ -92,8 +57,7 @@ const ghosts = GHOST_BODIES;
 const worthwhile = (terrain: Terrain, item: Entity, session?: PlayerSession) =>
   !isDeathRobe(item) &&
   !(ore.has(item.graphic) && (session?.world.skills.get(skillId('Mining'))?.base ?? 0) < 30) &&
-  (kinds.some(([low, high]) => item.graphic >= low && item.graphic <= high) ||
-    (terrain.tile(item.graphic, true).flags & WEARABLE) !== 0);
+  (kinds.has(item.graphic) || (terrain.tile(item.graphic, true).flags & WEARABLE) !== 0);
 
 // One pickup if something worthwhile lies within reach. True when it acted.
 export async function scavenge(ctx: ScavengeContext): Promise<boolean> {

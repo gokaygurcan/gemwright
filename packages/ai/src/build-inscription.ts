@@ -2,7 +2,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { reagentByName } from '@gemwright/common/game/items';
+import { blankScroll, reagentByName, runebook } from '@gemwright/common/game/items';
+import { scrollOf } from '@gemwright/common/game/rules';
 
 // Offline build of catalogs/crafts/inscription.json from the pinned ServUO source
 // (Scripts/Services/Craft/DefInscription.cs): the Magery spell scrolls (AddSpell: a circle's skill
@@ -17,7 +18,7 @@ const { values } = parseArgs({
 if (!values.servuo) throw new Error('--servuo is required');
 const source = readFileSync(join(resolve(values.servuo), 'Scripts/Services/Craft/DefInscription.cs'), 'utf8');
 const reagent = reagentByName;
-const BLANK = 0x0e34;
+const BLANK = blankScroll;
 // Spell ids by name (catalogs/magery-spells.json): the menu's order is not the spell order.
 const spellIds = new Map(
   (
@@ -37,8 +38,7 @@ const ranges = [
   [60.7, 110.7, 1111694],
   [75, 125, 1111694]
 ] as const;
-// The scroll graphic for spell id n (Loot.RegularScrollTypes order; SBMage's mapping).
-const scrollGraphic = (id: number) => (id === 7 ? 0x1f2d : id < 7 ? 0x1f2d + id : 0x1f2c + id);
+const scrollGraphic = (id: number) => scrollOf(id) ?? 0;
 
 const recipes: object[] = [];
 let circle = 0;
@@ -71,7 +71,7 @@ const book = /AddCraft\(typeof\(Runebook\), (\d+), (\d+), ([\d.]+), ([\d.]+)/.ex
 if (!book) throw new Error('No runebook recipe in DefInscription.cs');
 recipes.push({
   name: 'runebook',
-  graphic: 0x22c5,
+  graphic: runebook,
   group: Number(book[1]),
   label: Number(book[2]),
   min: Number(book[3]),

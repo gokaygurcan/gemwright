@@ -1,10 +1,11 @@
-import { fishingPoles, hatchets, instruments, miningTools, sewingKit } from '@gemwright/common/game/items';
+import { alchemyTools, fletchingTools, instruments, sewingKit } from '@gemwright/common/game/items';
 
 import { deposit, openBank, withdraw } from './bank-box';
 import { weaponsFor } from './fighter-context';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
+import { fishingPoles, hatchets, miningTools } from './vendor-catalog';
 import { professionOf } from './world';
 
 // Insurance against the worst outcome: a death loses everything carried, and without its tool a
@@ -17,8 +18,8 @@ const toolsByTrade: Record<string, ReadonlySet<number>> = {
   fisherman: fishingPoles,
   bard: instruments,
   tailor: new Set([sewingKit]),
-  bowyer: new Set([0x1022, 0x1023]), // fletcher's tools
-  alchemist: new Set([0x0e9b]) // mortar and pestle
+  bowyer: fletchingTools,
+  alchemist: alchemyTools
 };
 const toolsOf = (ctx: Pick<ProfessionContext, 'template'>) => {
   const trade = professionOf(ctx.template.id)?.[0] ?? '';

@@ -7,12 +7,17 @@ import { validateConnection } from '@gemwright/network/connection';
 import type { PlayerSession } from '@gemwright/network/session';
 import { Latency } from '@gemwright/network/session-observation';
 
+import { useShardAreas } from './area-build';
 import { validateConfig } from './config';
 import { PathPool } from './path-pool';
+import { useShardRoutes } from './route-build';
 import { runResident, withRuntime } from './run-session';
+import { useShardWorld } from './shard-world';
+import { readShardWorld } from './spawns';
 import { drainSlices } from './stall-probe';
 import { ResidentStore } from './store';
 import { Terrain } from './terrain';
+import { buildWorkAreas } from './work-area-build';
 import { applyWorld, behaviorOf, professionOf, weightedPick } from './world';
 
 const { values } = parseArgs({
@@ -30,6 +35,15 @@ const seconds = Number(values.seconds ?? 300);
 if (!Number.isInteger(count) || count < 1 || count > 300 || !Number.isFinite(seconds) || seconds < 60 || seconds > 3600)
   throw new Error('Invalid load-test bounds');
 const data = resolve(values.data);
+// The shard's own spawners, from its world files beside the assets (serve.ts reads them the same way).
+const shardWorld = readShardWorld(`${data}/world`);
+if (!shardWorld) throw new Error(`No world files in ${data}/world: copy Spawns/ and Regions.xml there.`);
+useShardWorld(shardWorld);
+// Where each town's mines and woods lie, from the map.
+buildWorkAreas(Terrain.shared(`${data}/assets`, 1));
+await useShardAreas(data, Terrain.shared(`${data}/assets`, 1), `${data}/assets`, shardWorld.teleporters);
+// The public roads long walks follow: kept on the volume, walked again only for new hubs or a new map.
+useShardRoutes(data, Terrain.shared(`${data}/assets`, 1), `${data}/assets`);
 const output = resolve(values.output);
 mkdirSync(output, { recursive: true, mode: 0o700 });
 const save = (name: string, value: unknown) =>

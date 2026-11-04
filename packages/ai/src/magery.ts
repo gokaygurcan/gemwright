@@ -1,36 +1,27 @@
 import { spellbook } from '@gemwright/common/game/items';
+import { spellScrollGraphics } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 import { Actions, ShardMessage } from '@gemwright/network/replies';
 
 import { canSpendOnTraining, chargedPurchase, recordTrainingSpend } from './bank-gold';
 import type { CraftContext } from './craft-training';
 import { packItems } from './inventory';
+import { spellNamed as rule } from './spell-rules';
 import { buyOffers } from './vendor-shop';
 import { atVendor } from './vendor-visit';
 
-const [garlic, ginseng, mandrake, nightshade, silk, ash, moss] = [
-  0x0f84, 0x0f85, 0x0f86, 0x0f88, 0x0f8d, 0x0f8c, 0x0f7b
-];
-// Regular spell scrolls (Loot.RegularScrollTypes): Reactive Armor 0x1F2D, then 0x1F2E onwards.
-export const isSpellScroll = (graphic: number) => graphic >= 0x1f2d && graphic <= 0x1f6c;
+const spellNamed = (name: string, untargeted?: true) => ({ ...rule(name), ...(untargeted && { untargeted }) });
+export const isSpellScroll = (graphic: number) => spellScrollGraphics.has(graphic);
 // Self-cast spells from the circles SBMage sells scrolls for (1-3). ServUO MagerySpell gains from
-// 14.3 * (circle - 1) - 20 up to 40 points higher; mana per circle 4, 6, 9.
+// 14.3 * (circle - 1) - 20 up to 40 points higher.
 const spells = [
-  { id: 4, name: 'Heal', circle: 1, scroll: 0x1f31, mana: 4, reagents: [garlic, ginseng, silk] },
-  { id: 10, name: 'Cunning', circle: 2, scroll: 0x1f36, mana: 6, reagents: [mandrake, nightshade] },
-  { id: 17, name: 'Bless', circle: 3, scroll: 0x1f3d, mana: 9, reagents: [garlic, mandrake] },
+  spellNamed('Heal'),
+  spellNamed('Cunning'),
+  spellNamed('Bless'),
   // Circles 4-6 come only from looted scrolls; skipped while not in the spellbook.
-  { id: 26, name: 'Arch Protection', circle: 4, scroll: 0x1f47, mana: 11, reagents: [garlic, ginseng, mandrake, ash] },
-  {
-    id: 36,
-    name: 'Magic Reflection',
-    circle: 5,
-    scroll: 0x1f51,
-    mana: 14,
-    reagents: [garlic, mandrake, silk],
-    untargeted: true
-  },
-  { id: 48, name: 'Reveal', circle: 6, scroll: 0x1f5d, mana: 20, reagents: [moss, ash] }
+  spellNamed('Arch Protection'),
+  spellNamed('Magic Reflection', true),
+  spellNamed('Reveal')
 ];
 const VENDOR_CIRCLES = 3;
 const NO_SPELL = ShardMessage.noSuchSpell; // You do not have that spell!
@@ -153,16 +144,13 @@ export async function trainMagery(ctx: MageryContext, until: number) {
   return casts;
 }
 
-// Vendor scroll ids (SBMage, circles 1-3) for the combat spells casters fight with.
-const combatScrolls = new Map([
-  [5, 0x1f32],
-  [4, 0x1f31],
-  [12, 0x1f38],
-  [11, 0x1f37],
-  [20, 0x1f40],
-  [18, 0x1f3e],
-  [17, 0x1f3d]
-]);
+// The combat spells casters fight with, from the circles SBMage sells scrolls for.
+const combatScrolls = new Map(
+  ['Magic Arrow', 'Heal', 'Harm', 'Cure', 'Poison', 'Fireball', 'Bless'].map((name) => {
+    const { id, scroll } = spellNamed(name);
+    return [id, scroll];
+  })
+);
 
 // Gives a caster a spellbook holding its vendor-sold combat spells. Each spell is tried at most once
 // a day, and only until it is known to be in the spellbook (kept with the resident, so restarts do not

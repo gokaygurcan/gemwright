@@ -1,12 +1,12 @@
-import { readFileSync } from 'node:fs';
-
 import type { PlayerSession } from '@gemwright/network/session';
 
 import type { CharacterArchetype } from './archetypes';
 import type { CharacterTemplate } from './config';
 import { outgrewYoung } from './progression';
+import type { Town } from './spawns';
 
-// New Haven (locations/new-haven.json, built from a world save and Regions.xml): the island town
+// New Haven (Haven Island and its town from the shard's Regions.xml; its shops and monster grounds
+// from the shard's own spawners, haven-spawns.ts): the island town
 // where new players begin. Residents of the New Haven cohort start there, and while Young they
 // never leave Haven Island: every walk, moongate trip, visit, dungeon run and escort stays on it.
 // Out of Young status (at least three skills at 100.0 base, progression.ts) they go where they like; it stays
@@ -23,15 +23,24 @@ export interface HavenGround {
   radius: number;
   creatures: Record<string, number>;
 }
-export const haven = JSON.parse(readFileSync(new URL('../locations/new-haven.json', import.meta.url), 'utf8')) as {
-  island: Box;
-  town: Box;
-  moongate: { x: number; y: number; z: number };
-  mines: { x: number; y: number; radius: number };
-  docks: { x: number; y: number };
-  services: Record<string, { name: string; x: number; y: number }[]>;
-  grounds: HavenGround[];
-};
+const none: Box = { x0: 0, y0: 0, x1: 0, y1: 0 };
+// Set at start from the shard's world files (shard-world.ts).
+export const haven = { island: none, town: none, grounds: [] as HavenGround[] };
+// The box around a region's own rectangles.
+export function useHaven(regions: readonly Town[]) {
+  const box = (name: string): Box => {
+    const rects = regions.find((region) => region.name === name)?.rects ?? [];
+    if (!rects.length) return none;
+    return {
+      x0: Math.min(...rects.map((r) => r.x)),
+      y0: Math.min(...rects.map((r) => r.y)),
+      x1: Math.max(...rects.map((r) => r.x + r.width)),
+      y1: Math.max(...rects.map((r) => r.y + r.height))
+    };
+  };
+  haven.island = box('Haven Island');
+  haven.town = box(HAVEN_CITY);
+}
 export const HAVEN_CITY = 'New Haven';
 const inside = (box: Box, p: { x: number; y: number }) =>
   p.x >= box.x0 && p.x < box.x1 && p.y >= box.y0 && p.y < box.y1;

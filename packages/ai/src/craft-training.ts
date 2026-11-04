@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { board, ingot } from '@gemwright/common/game/items';
+import { board, carpentryTools, ingot, tinkerTools } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
 import { Opcode } from '@gemwright/network/opcodes';
@@ -25,7 +25,7 @@ import { atVendor } from './vendor-visit';
 export interface CraftSkill {
   skill: string;
   vendor: ServiceType;
-  tools: Set<number>;
+  tools: ReadonlySet<number>;
   material: number;
   // Dyed material works the same (cloth). Coloured ingots and boards are other resources, so
   // crafts without this count only the plain material.
@@ -98,7 +98,7 @@ export function chooseRecipe(
 export const tinkering: CraftSkill = {
   skill: 'Tinkering',
   vendor: 'tinker',
-  tools: new Set([0x1eb8, 0x1ebc]),
+  tools: tinkerTools,
   material: ingot,
   recipes: craftRecipes('Tinkering'),
   unitCost: 5
@@ -107,7 +107,7 @@ export const tinkering: CraftSkill = {
 export const carpentry: CraftSkill = {
   skill: 'Carpentry',
   vendor: 'carpenter',
-  tools: new Set([0x1034, 0x1035, 0x1028, 0x1029]),
+  tools: carpentryTools,
   material: board,
   recipes: craftRecipes('Carpentry'),
   unitCost: 3

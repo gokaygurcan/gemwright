@@ -1,11 +1,10 @@
 import {
+  alchemyTools,
   arrow,
   bandage,
-  fishingPoles,
-  hatchets,
+  fletchingTools,
   healPotion,
   instruments,
-  miningTools,
   reagents,
   sewingKit
 } from '@gemwright/common/game/items';
@@ -17,6 +16,7 @@ import type { CharacterTemplate } from './config';
 import type { ServiceType } from './locations';
 import { equippedRanged, rangedWeapon } from './ranged-weapons';
 import type { Checkpoint } from './store';
+import { fishingPoles, type Harvest, hatchets, miningTools, toolsForSale } from './vendor-catalog';
 import { professionOf } from './world';
 
 // What a resident is short of, from what it carries, its trade and its funds: the honest answer to
@@ -60,22 +60,28 @@ export function residentNeeds(session: PlayerSession, checkpoint: Checkpoint, te
       : [...graphics].reduce((n, graphic) => n + (counts.get(graphic) ?? 0), 0);
   const profession = professionOf(template.id)?.[0] ?? template.archetype?.id ?? '';
   const needs: Need[] = [];
-  const tool = (graphics: ReadonlySet<number> | number, what: string, service: ServiceType) => {
+  // A harvest tool is bought as whatever its vendors sell (vendor-catalog.ts), not as every graphic it shows.
+  const tool = (graphics: ReadonlySet<number> | number, what: string, service: ServiceType, harvest?: Harvest) => {
     if (!has(graphics))
       needs.push({
         what,
         why: 'I cannot work without one',
         kind: 'tool',
-        purchase: { service, graphics: typeof graphics === 'number' ? [graphics] : [...graphics], amount: 1 }
+        purchase: {
+          service,
+          graphics: harvest ? toolsForSale(harvest) : typeof graphics === 'number' ? [graphics] : [...graphics],
+          amount: 1
+        }
       });
   };
   if (profession === 'bard') tool(instruments, 'an instrument, a lute or drums', 'bard');
-  if (profession === 'fisherman' || profession === 'fisher') tool(fishingPoles, 'a fishing pole', 'fisherman');
-  if (profession === 'lumberjack') tool(hatchets, 'a hatchet', 'blacksmith');
-  if (profession === 'miner') tool(miningTools, 'a pickaxe or a shovel', 'tinker');
+  if (profession === 'fisherman' || profession === 'fisher')
+    tool(fishingPoles, 'a fishing pole', 'fisherman', 'fishing');
+  if (profession === 'lumberjack') tool(hatchets, 'a hatchet', 'blacksmith', 'lumberjacking');
+  if (profession === 'miner') tool(miningTools, 'a pickaxe or a shovel', 'mining-tools', 'mining');
   if (profession === 'tailor') tool(sewingKit, 'a sewing kit', 'tailor');
-  if (profession === 'bowyer') tool(new Set([0x1022, 0x1023]), 'fletching tools', 'bowyer');
-  if (profession === 'alchemist') tool(0x0e9b, 'a mortar and pestle', 'alchemist');
+  if (profession === 'bowyer') tool(fletchingTools, 'fletching tools', 'bowyer');
+  if (profession === 'alchemist') tool(alchemyTools, 'a mortar and pestle', 'alchemist');
   const supply = (graphic: number, amount: number, what: string, why: string, service: ServiceType) => {
     const missing = amount - has(graphic);
     if (missing > 0)

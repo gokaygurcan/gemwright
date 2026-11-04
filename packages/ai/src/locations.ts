@@ -1,6 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { graphicsOfKinds } from '@gemwright/common/game/rules';
 
 import { withinReach } from './areas';
+import { isForge, type Placement } from './decoration';
+import { servicesOf } from './shops';
+import type { Spawner, Town } from './spawns';
 import { reachableFrom } from './unreachable';
 
 export type ServiceType =
@@ -31,118 +34,107 @@ export interface Landmark {
   x: number;
   y: number;
 }
-interface Point {
+
+// The towns of the shard (Regions.xml TownRegion), set at start (useTowns).
+let towns: Town[] = [];
+export function useTowns(found: Town[]) {
+  towns = found;
+}
+const gap = (at: { x: number; y: number }, r: { x: number; y: number; width: number; height: number }) =>
+  Math.max(r.x - at.x, at.x - (r.x + r.width - 1), r.y - at.y, at.y - (r.y + r.height - 1), 0);
+
+// The town a resident is in, else the nearest within 250 tiles (by its region), else its home town:
+// shops, banks and shelter come from where it is, not from where it was born.
+export function townAt(at: { x: number; y: number }, home: string): string {
+  let best = home;
+  let nearest = 250;
+  for (const town of towns)
+    for (const rect of town.rects) {
+      const d = gap(at, rect);
+      if (d < nearest) {
+        nearest = d;
+        best = town.name;
+      }
+    }
+  return best;
+}
+
+// Where services are found, from the shard's spawners at start (useShardVendors): each NPC that gives
+// one (shops.ts) where its spawner stands, in its town; and the graveyards (Graveyards# spawners).
+interface Place {
+  city: string;
   name: string;
   x: number;
   y: number;
+  z: number;
+  kinds: readonly string[];
 }
-interface Reference {
-  name: string;
-  x?: number;
-  y?: number;
+const places = new Map<string, Place[]>();
+const key = (city: string, service: ServiceType) => `${city.toLowerCase()}:${service}`;
+const STAYS_WITHIN = 12;
+export function useShardVendors(spawners: Spawner[]) {
+  places.clear();
+  for (const spawner of spawners) {
+    if (spawner.map !== 'Trammel') continue;
+    // An NPC is found where its spawner keeps it; one that roams a wide area (a wandering healer
+    // among the wildlife) is met on the way, not sought at the spawner.
+    const stays = spawner.range <= STAYS_WITHIN;
+    const services = new Set<ServiceType>(stays ? spawner.kinds.flatMap((type) => servicesOf(type)) : []);
+    if (spawner.name.startsWith('Graveyards#')) services.add('graveyard');
+    const city = services.size ? townAt(spawner, '') : '';
+    if (!city) continue;
+    const place = { city, name: spawner.name, x: spawner.x, y: spawner.y, z: spawner.z, kinds: spawner.kinds };
+    for (const service of services) places.set(key(city, service), [...(places.get(key(city, service)) ?? []), place]);
+  }
 }
-const source = JSON.parse(readFileSync(new URL('../locations/locations.json', import.meta.url), 'utf8')) as Record<
-  string,
-  Point[]
->;
-type Bindings = {
-  schemaVersion: number;
-  facet: number;
-  cities: Record<string, Partial<Record<ServiceType, Reference[]>>>;
-};
-const load = (file: string) =>
-  JSON.parse(readFileSync(new URL(`../locations/${file}`, import.meta.url), 'utf8')) as Bindings;
-// Hand-curated services first, then shops generated from ServUO's Data/Guide/*.graph vertices.
-const bindings = load('services.json');
-const guide = load('services-guide.json');
-// ServUO Data/Guide shop ID 2 (Definitions.cfg) identifies cobbler shops.
-const cobblers = load('cobblers.json');
-for (const catalogFile of [bindings, guide, cobblers])
-  if (catalogFile.schemaVersion !== 1 || catalogFile.facet !== 1)
-    throw new Error('Unsupported navigation catalog version or facet');
-for (const catalogFile of [guide, cobblers])
-  for (const [city, services] of Object.entries(catalogFile.cities)) {
-    const merged = bindings.cities[city] ?? {};
-    bindings.cities[city] = merged;
-    for (const [service, entries] of Object.entries(services) as [ServiceType, Reference[]][])
-      merged[service] = [...(merged[service] ?? []), ...entries];
-  }
-// New Haven's shops, from the vendor spawners in the ServUO source (locations/new-haven.json).
-const havenServices = (
-  JSON.parse(readFileSync(new URL('../locations/new-haven.json', import.meta.url), 'utf8')) as {
-    services: Record<string, Reference[]>;
-  }
-).services;
-bindings.cities['New Haven'] = { ...bindings.cities['New Haven'], ...havenServices } as Bindings['cities'][string];
-const catalog = new Map<string, readonly Landmark[]>();
-for (const [city, services] of Object.entries(bindings.cities)) {
-  for (const [service, entries] of Object.entries(services)) {
-    const points = entries.map((entry): Landmark => {
-      const matches = (source[city] ?? []).filter((item) => item.name === entry.name);
-      if (entry.x === undefined && matches.length !== 1)
-        throw new Error(`Ambiguous or missing ${city} landmark: ${entry.name}`);
-      const point = entry.x === undefined ? matches[0] : entry;
-      if (
-        !point ||
-        !Number.isInteger(point.x) ||
-        !Number.isInteger(point.y) ||
-        (point.x ?? -1) < 1 ||
-        (point.x ?? 7166) > 7165 ||
-        (point.y ?? -1) < 1 ||
-        (point.y ?? 4094) > 4093
-      )
-        throw new Error(`Invalid navigation landmark: ${city}/${entry.name}`);
-      return Object.freeze({
-        name: entry.name,
-        city,
-        facet: bindings.facet,
-        x: point.x as number,
-        y: point.y as number
-      });
-    });
-    catalog.set(`${city.toLowerCase()}:${service}`, Object.freeze(points));
-  }
+// Every spawner of a town, by its kinds: for what no service names (an inn, a tavern).
+const townSpawners: Place[] = [];
+export function useTownSpawners(spawners: Spawner[]) {
+  townSpawners.splice(
+    0,
+    townSpawners.length,
+    ...spawners.flatMap((s) => {
+      const city = s.map === 'Trammel' ? townAt(s, '') : '';
+      return city ? [{ city, name: s.name, x: s.x, y: s.y, z: s.z, kinds: s.kinds }] : [];
+    })
+  );
 }
 
+const landmark = (place: Place): Landmark => ({ name: place.name, city: place.city, facet: 1, x: place.x, y: place.y });
 export function serviceLocations(city: string, service: ServiceType): readonly Landmark[] {
-  return catalog.get(`${city.toLowerCase()}:${service}`) ?? [];
+  return (places.get(key(city, service)) ?? []).map(landmark);
 }
-
-// Public forge placements from the shard's decoration data (locations/forges.json): a town without
-// a forge of its own, like Cove or Yew, smelts at the nearest one, crossing by gate.
-const forgeCatalog = JSON.parse(readFileSync(new URL('../locations/forges.json', import.meta.url), 'utf8')) as {
-  schemaVersion: number;
-  facet: number;
-  cities: Record<string, [number, number, number, number][]>;
-};
-if (forgeCatalog.schemaVersion !== 1 || forgeCatalog.facet !== 1)
-  throw new Error('Unsupported forge catalog version or facet');
-export const forgeSites: readonly { city: string; x: number; y: number; z: number; graphic: number }[] = Object.freeze(
-  Object.entries(forgeCatalog.cities).flatMap(([city, points]) =>
-    points.map(([x, y, z, graphic]) => Object.freeze({ city, x, y, z, graphic }))
-  )
-);
-
-// Where each kind of vendor actually appears in a town (ServUO spawner data, locations/vendors.json):
-// the shop landmark is the door, the vendor may stand some tiles inside or beside it.
-const vendorCatalog = JSON.parse(readFileSync(new URL('../locations/vendors.json', import.meta.url), 'utf8')) as {
-  schemaVersion: number;
-  facet: number;
-  cities: Record<string, Partial<Record<ServiceType, [number, number, number][]>>>;
-};
-if (vendorCatalog.schemaVersion !== 1 || vendorCatalog.facet !== 1)
-  throw new Error('Unsupported vendor catalog version or facet');
+// Where a vendor of a service stands in a town (its spawner, with the height it stands at).
 export function vendorLocations(city: string, service: ServiceType): readonly { x: number; y: number; z: number }[] {
-  const points = vendorCatalog.cities[city]?.[service] ?? [];
-  return points.map(([x, y, z]) => Object.freeze({ x, y, z }));
+  return (places.get(key(city, service)) ?? []).map(({ x, y, z }) => ({ x, y, z }));
 }
 
-// Every configured landmark of one service type, across all cities.
+// Public forges, spinning wheels and looms from the shard's decoration data (decoration.ts), read at
+// start, by their town: a town without a forge of its own, like Cove or Yew, smelts at the nearest
+// one, crossing by gate.
+type Station = { city: string; x: number; y: number; z: number; graphic: number };
+export const forgeSites: Station[] = [];
+export const wheelSites: Station[] = [];
+export const loomSites: Station[] = [];
+const wheels = graphicsOfKinds('ISpinningWheel');
+const looms = graphicsOfKinds('ILoom');
+export function useShardForges(placements: Placement[]) {
+  const sites = (is: (graphic: number) => boolean) =>
+    placements.flatMap((p) => {
+      const city = is(p.graphic) ? townAt(p, '') : '';
+      return city ? [Object.freeze({ city, x: p.x, y: p.y, z: p.z, graphic: p.graphic })] : [];
+    });
+  forgeSites.splice(0, forgeSites.length, ...sites(isForge));
+  wheelSites.splice(0, wheelSites.length, ...sites((g) => wheels.has(g)));
+  loomSites.splice(0, loomSites.length, ...sites((g) => looms.has(g)));
+}
+
+// Every place of one service, across all towns.
 export function allServiceLocations(service: ServiceType): Landmark[] {
-  return [...catalog].flatMap(([key, points]) => (key.endsWith(`:${service}`) ? [...points] : []));
+  return [...places].flatMap(([k, list]) => (k.endsWith(`:${service}`) ? list.map(landmark) : []));
 }
 
-// Where to go for a service: any of the town's landmarks of that kind, at random, so residents do
+// Where to go for a service: any of the town's places of that kind, at random, so residents do
 // not all walk to the same spot (the nearer ones more often when a starting point is given).
 export function pickLocation(
   city: string,
@@ -159,26 +151,14 @@ export function pickLocation(
   return [...points].sort((a, b) => score(a) - score(b))[0];
 }
 
-// The town a resident is in or nearest to (by its nearest shop or bank, within 250 tiles), else its
-// home town: shops, banks and shelter come from where it is, not from where it was born.
-export function townAt(at: { x: number; y: number }, home: string): string {
-  const tiles = (p: { x: number; y: number }) => Math.max(Math.abs(p.x - at.x), Math.abs(p.y - at.y));
-  return (
-    [...catalog.values()]
-      .flat()
-      .filter((point) => tiles(point) < 250)
-      .sort((a, b) => tiles(a) - tiles(b))[0]?.city ?? home
-  );
-}
-
 export function serviceLocation(city: string, service: ServiceType): Landmark {
   const point = serviceLocations(city, service)[0];
-  if (!point) throw new Error(`No ${service} landmark configured for ${city}`);
+  if (!point) throw new Error(`No ${service} place in ${city}`);
   return point;
 }
 
-// Named landmarks of a city matching `pattern` (inns and taverns for a resident's leisure).
+// A town's spawners whose kinds match `pattern` (innkeepers and tavern keepers for a resident's leisure).
 export const cityLandmarks = (city: string, pattern: RegExp): { name: string; x: number; y: number }[] =>
-  Object.entries(source)
-    .find(([name]) => name.toLowerCase() === city.toLowerCase())?.[1]
-    .filter((point) => pattern.test(point.name)) ?? [];
+  townSpawners
+    .filter((p) => p.city.toLowerCase() === city.toLowerCase() && p.kinds.some((kind) => pattern.test(kind)))
+    .map(({ name, x, y }) => ({ name, x, y }));

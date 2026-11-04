@@ -1,4 +1,5 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
+import { soldAs } from '@gemwright/common/game/rules';
 import { Actions, Commerce, ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
@@ -11,6 +12,9 @@ import { createServiceExperience } from './service-experience';
 import { flushSession } from './session-durability';
 import { buyOffers } from './vendor-shop';
 import { reachRegion } from './work-areas';
+
+// What a stable master's horse is offered as (SBAnimalTrainer).
+const HORSE = soldAs('Horse');
 
 // `animal` picks what the trainer sells: riding horses by default, pack animals for gatherers
 // (pack-animal.ts); `memory.horse` holds whichever animal the memory is for.
@@ -59,7 +63,7 @@ export function createMountServices(
       return true;
     } catch (error) {
       check();
-      learning.record(vendor, Actions.buy, 'unreachable', [0xcc]);
+      learning.record(vendor, Actions.buy, 'unreachable', [HORSE]);
       log(`Trainer approach unavailable: ${error instanceof Error ? error.message : error}`);
       return false;
     }
@@ -117,9 +121,9 @@ export function createMountServices(
         why = `the ${stop.name} stables were unreachable`;
         continue;
       }
-      for (const vendor of learning.order(mobiles(), Actions.buy, [0xcc])) {
+      for (const vendor of learning.order(mobiles(), Actions.buy, [HORSE])) {
         check();
-        if (learning.blocked(vendor, Actions.buy, [0xcc])) continue;
+        if (learning.blocked(vendor, Actions.buy, [HORSE])) continue;
         let menu: Awaited<ReturnType<typeof session.context>>;
         try {
           menu = await session.context(vendor.serial);
@@ -145,7 +149,7 @@ export function createMountServices(
           })
           .sort((a, b) => a.price - b.price);
         if (!offers.length) {
-          learning.record(vendor, Actions.buy, 'no-stock', [0xcc]);
+          learning.record(vendor, Actions.buy, 'no-stock', [HORSE]);
           why = `${vendor.name ?? 'the trainer'} had no ${animal.name} in stock`;
           continue;
         }
@@ -214,7 +218,7 @@ export function createMountServices(
           );
           const horse = await discover(memory.pending.before);
           if (horse) {
-            learning.record(vendor, Actions.buy, 'success', [0xcc]);
+            learning.record(vendor, Actions.buy, 'success', [HORSE]);
             return;
           }
           if (rejected()) {

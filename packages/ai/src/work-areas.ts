@@ -15,13 +15,18 @@ export interface WorkArea {
   // City that sells this area's tools when its own does not.
   toolCity?: string;
 }
-// Work areas live in the world configuration (world/world.json, `workAreas`).
-const catalog = (
+// Each town's share of each kind of work (world/world.json, `workAreas`); where the work lies is
+// read from the map at start (work-area-build.ts).
+export const workAreaWeights = (
   JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8')) as {
-    workAreas: { schemaVersion: number; facet: number; mining: WorkArea[]; woods: WorkArea[] };
+    workAreas: { schemaVersion: number; mining: Record<string, number>; woods: Record<string, number> };
   }
 ).workAreas;
-if (catalog.schemaVersion !== 1 || catalog.facet !== 1) throw new Error('Unsupported work-area catalog');
+if (workAreaWeights.schemaVersion !== 2) throw new Error('Unsupported work-area weights');
+const catalog: Record<'mining' | 'woods', WorkArea[]> = { mining: [], woods: [] };
+export function useWorkAreas(kind: 'mining' | 'woods', areas: WorkArea[]) {
+  catalog[kind] = areas;
+}
 
 // A stable, weighted per-resident pick, so the population spreads the way the lore suggests.
 // `usable` lets the caller demand the district's town support the work (a miner's bank and forge):

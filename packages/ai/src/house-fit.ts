@@ -1,3 +1,5 @@
+import { houseRoads } from '@gemwright/common/game/rules';
+
 // Whether a 7x7 classic house fits on a spot, by ServUO's placement rules (HousePlacement.Check)
 // read against the map files alone: the house's walls rest flat on passable, non-road land
 // (Map.GetAverageZ equal to the house's z), nothing impassable or solid stands inside it, and the
@@ -18,19 +20,8 @@ const BACKGROUND = 0x1;
 const IMPASSABLE = 0x40;
 const SURFACE = 0x200;
 const BRIDGE = 0x400;
-// HousePlacement.m_RoadIDs: roads, sand stones and furrows, as inclusive ranges.
-const ROADS = [
-  [0x71, 0x78],
-  [0xe8, 0xeb],
-  [0x7ae, 0x7b1],
-  [0x3ff4, 0x3ff4],
-  [0x3ff8, 0x3ffb],
-  [0x442, 0x479],
-  [0x501, 0x510],
-  [0x9, 0x15],
-  [0x150, 0x15c]
-] as const;
-const road = (id: number) => ROADS.some(([low, high]) => id >= low && id <= high);
+// HousePlacement.m_RoadIDs: roads, sand stones and furrows.
+const road = (id: number) => houseRoads.has(id);
 
 // Map.GetAverageZ: the lower diagonal's floored mean.
 export function averageZ(map: MapCells, x: number, y: number): number {

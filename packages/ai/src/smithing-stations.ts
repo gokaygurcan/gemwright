@@ -1,3 +1,5 @@
+import { anvils, smithingForges as forges } from '@gemwright/common/game/rules';
+
 import { lasting } from './lasting';
 import { serviceLocations } from './locations';
 import type { MountContext } from './mount-types';
@@ -13,14 +15,12 @@ type Context = Pick<
   MountContext,
   'session' | 'serial' | 'checkpoint' | 'terrain' | 'position' | 'navigate' | 'check' | 'phase' | 'log'
 > & { city: string; persist?: () => void };
-const anvils = new Set([0x0faf, 0x0fb0, 0x2dd5, 0x2dd6]);
-const forges = new Set([0x0fb1, 0x2dd8, ...Array.from({ length: 48 }, (_, i) => 6522 + i)]);
 const used = new WeakMap<Context['session'], SmithingStation>();
 const key = (station: Pick<SmithingStation, 'anvil' | 'forge'>) =>
   `${station.anvil.x},${station.anvil.y},${station.anvil.z}:${station.forge.x},${station.forge.y},${station.forge.z}`;
 const near = (a: Point, b: Point, range: number) => distance(a, b) <= range && Math.abs(a.z - b.z) < 16;
 
-function observed(ctx: Context, ids: Set<number>): Point[] {
+function observed(ctx: Context, ids: ReadonlySet<number>): Point[] {
   return [
     ...ctx.terrain.findStatics(ids, ctx.position(), 200),
     ...[...ctx.session.world.entities.values()].flatMap((item) =>

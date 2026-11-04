@@ -1,4 +1,4 @@
-import { arrow, board, crossbowBolt, ingot } from '@gemwright/common/game/items';
+import { graphicOf, graphicsOf, shopPrices } from '@gemwright/common/game/rules';
 import type { Entity } from '@gemwright/network/world';
 
 import { quality } from './item-quality';
@@ -32,57 +32,51 @@ interface GoodDef {
   shop: ServiceType;
   lot: number;
 }
+// A good of ServUO types: the band runs from what shops pay for a middling piece of them to the most
+// the cheapest shop charges for one.
+function good(
+  types: readonly string[],
+  trade: { market: string; shop: ServiceType; lot: number },
+  more: Pick<GoodDef, 'exceptional' | 'recipes'> = {}
+): GoodDef {
+  const prices = types.map(shopPrices);
+  const graphics = types.flatMap(graphicsOf);
+  return {
+    graphic: graphicOf(types[0] ?? ''),
+    ...(types.length > 1 && { graphics }),
+    ...more,
+    shopPays: prices.map((p) => p.pays).sort((a, b) => a - b)[Math.floor((prices.length - 1) / 2)] ?? 0,
+    shopCharges: Math.max(...prices.map((p) => p.charges)),
+    ...trade
+  };
+}
+const armour = ['Ringmail', 'Chain', 'Plate'].flatMap((metal) =>
+  ['Chest', 'Legs', 'Arms', 'Gloves', 'Coif', 'Gorget', 'Helm'].map((piece) => `${metal}${piece}`)
+);
 export const goods: Record<Good, GoodDef> = {
-  // A smith's exceptional armour for fighters. The armourer pays about half its price back
-  // (SBPlateArmor, SBChainmailArmor, SBRingmailArmor), so the band runs between the two.
-  'exceptional armour': {
-    graphic: 0x1415,
-    graphics: [
-      0x13ec, // ringmail tunic
-      0x13f0, // ringmail leggings
-      0x13ee, // ringmail sleeves
-      0x13eb, // ringmail gloves
-      0x13bf, // chainmail tunic
-      0x13be, // chainmail leggings
-      0x13bb, // chainmail coif
-      0x1415, // platemail tunic
-      0x1411, // platemail legs
-      0x1410, // platemail arms
-      0x1413, // plate gorget
-      0x1414, // platemail gloves
-      0x1412 // plate helm
-    ],
-    exceptional: true,
-    shopPays: 60,
-    shopCharges: 243,
-    market: 'minoc',
-    shop: 'blacksmith',
-    lot: 1
-  },
-  arrows: { graphic: arrow, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
-  bolts: { graphic: crossbowBolt, shopPays: 1, shopCharges: 3, market: 'britain', shop: 'bowyer', lot: 10 },
-  cloth: { graphic: 0x1766, shopPays: 1, shopCharges: 2, market: 'britain', shop: 'tailor', lot: 10 },
-  bandages: { graphic: 0x0e21, shopPays: 1, shopCharges: 5, market: 'britain', shop: 'healer', lot: 10 },
-  boards: { graphic: board, shopPays: 2, shopCharges: 3, market: 'yew', shop: 'carpenter', lot: 10 },
-  'heal potions': { graphic: 0x0f0c, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
-  'cure potions': { graphic: 0x0f07, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
-  'poison potions': { graphic: 0x0f0a, shopPays: 7, shopCharges: 15, market: 'britain', shop: 'alchemist', lot: 2 },
-  // SBBlacksmith: sells iron at 5 (only 16 in stock), buys at 4; Minoc is the miners' town.
-  'iron ingots': { graphic: ingot, shopPays: 4, shopCharges: 5, market: 'minoc', shop: 'blacksmith', lot: 10 },
-  // A bowyer's exceptional bows and composite bows (item-quality.ts) for archers. Shops buy any bow
-  // back for at most 27 (SBRangedWeapon), so the band starts above that and runs to 80.
-  'exceptional bows': {
-    graphic: 0x13b2,
-    graphics: [0x13b2, 0x26c2],
-    exceptional: true,
-    // What the bowyer makes for it, best first; normal results go to the shop.
-    recipes: ['composite bow', 'bow'],
-    shopPays: 27,
-    shopCharges: 81,
-    market: 'yew',
-    shop: 'bowyer',
-    lot: 1
-  }
+  // A smith's exceptional armour for fighters (SBPlateArmor, SBChainmailArmor, SBRingmailArmor).
+  'exceptional armour': good(
+    armour.filter((type) => graphicsOf(type).length),
+    { market: 'minoc', shop: 'blacksmith', lot: 1 },
+    { exceptional: true }
+  ),
+  arrows: good(['Arrow'], { market: 'britain', shop: 'bowyer', lot: 10 }),
+  bolts: good(['Bolt'], { market: 'britain', shop: 'bowyer', lot: 10 }),
+  cloth: good(['Cloth'], { market: 'britain', shop: 'tailor', lot: 10 }),
+  bandages: good(['Bandage'], { market: 'britain', shop: 'healer', lot: 10 }),
+  boards: good(['Board'], { market: 'yew', shop: 'carpenter', lot: 10 }),
+  'heal potions': good(['LesserHealPotion'], { market: 'britain', shop: 'alchemist', lot: 2 }),
+  'cure potions': good(['LesserCurePotion'], { market: 'britain', shop: 'alchemist', lot: 2 }),
+  'poison potions': good(['LesserPoisonPotion'], { market: 'britain', shop: 'alchemist', lot: 2 }),
+  // Minoc is the miners' town.
+  'iron ingots': good(['IronIngot'], { market: 'minoc', shop: 'blacksmith', lot: 10 }),
+  // A bowyer's exceptional bows and composite bows (item-quality.ts) for archers; what the bowyer
+  // makes for it, best first; normal results go to the shop.
+  'exceptional bows': good(
+    ['Bow', 'CompositeBow'],
+    { market: 'yew', shop: 'bowyer', lot: 1 },
+    { exceptional: true, recipes: ['composite bow', 'bow'] }
+  )
 };
 
 // The items a good covers: plain (unhued) ones of its graphics, and only exceptional ones when so.

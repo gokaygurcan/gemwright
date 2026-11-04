@@ -1,4 +1,4 @@
-import { board, hatchets, logPile } from '@gemwright/common/game/items';
+import { board, logPile } from '@gemwright/common/game/items';
 
 import { TOOLS } from './bank-gold';
 import { unsafeCheck } from './danger';
@@ -9,6 +9,7 @@ import { distance } from './navigation';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import type { ProfessionContext } from './profession';
 import { onItem, useOn } from './target-action';
+import { hatchets } from './vendor-catalog';
 import { buyTool, sellTo } from './vendor-trade';
 
 // A bowyer whose finished goods have no buyer can still earn by supplying raw wood.
@@ -23,7 +24,7 @@ export async function earnBoards(ctx: ProfessionContext): Promise<boolean> {
   }
   const tool = () =>
     [...session.world.childrenOf(ctx.serial), ...ctx.carried()].find((item) => hatchets.has(item.graphic));
-  if (!tool()) await buyTool({ ...ctx, limits: TOOLS }, 'blacksmith', [0x0f43, 0x0f44]);
+  if (!tool()) await buyTool({ ...ctx, limits: TOOLS }, 'blacksmith', [...hatchets]);
   const unsafe = unsafeCheck(session);
   const trees = ctx.terrain
     .findStatics(treeStatics, ctx.position(), 60)

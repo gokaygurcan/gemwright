@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-
+import { creatures } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 import { Notoriety } from '@gemwright/network/opcodes';
 import { ShardAction, Taming } from '@gemwright/network/replies';
@@ -18,15 +17,11 @@ import { companion, fightWithPet, readyBow, shoots, veterinary } from './tamer-p
 import { keepOffers, offerPet } from './tamer-sales';
 import { onItem, useOn } from './target-action';
 
-interface Tamable {
-  name: string;
-  bodies: number[];
-  minTame: number;
-  mount: boolean;
-}
-const tamables = (
-  JSON.parse(readFileSync(new URL('../catalogs/tamables.json', import.meta.url), 'utf8')) as { creatures: Tamable[] }
-).creatures;
+// Creatures ServUO lets be tamed (Tamable, MinTameSkill), from the common rules.
+type Tamable = { name: string; bodies: readonly number[]; minTame: number; mount: boolean };
+const tamables: Tamable[] = creatures.flatMap((c) =>
+  c.minTame === undefined ? [] : [{ name: c.name ?? '', bodies: c.bodies, minTame: c.minTame, mount: c.mount }]
+);
 const byBody = new Map<number, Tamable[]>();
 for (const creature of tamables)
   for (const body of creature.bodies) byBody.set(body, [...(byBody.get(body) ?? []), creature]);
@@ -174,7 +169,7 @@ export const runTamer = (options: ProfessionOptions) => {
   );
 };
 
-// In a dungeon the companion fights whatever lives there (catalogs/monsters.json) except the kinds
+// In a dungeon the companion fights whatever lives there (the creature rules) except the kinds
 // rated too strong to engage; the pet stays close, since only nearby pets go through a stairway
 // with their master (BaseCreature.TeleportPets).
 const tamerDungeon: DungeonRole = {

@@ -131,7 +131,7 @@ export const runBard = (options: ProfessionOptions) =>
     bardDungeon
   );
 
-// In a dungeon the audience is whatever lives there (catalogs/monsters.json): calm what attacks,
+// In a dungeon the audience is whatever lives there (the creature rules): calm what attacks,
 // set two creatures on each other, and in a party weaken a lone one for the others to finish.
 const bardDungeon: DungeonRole = {
   ready: (ctx) => ctx.carried().some((i) => instruments.has(i.graphic)),

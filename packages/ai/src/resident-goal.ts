@@ -245,7 +245,12 @@ export function chooseGoal(checkpoint: Checkpoint, state: GoalSituation, now = D
     exposed: state.planning?.exposed ?? null,
     uncertainty: state.planning?.uncertainty ?? null
   });
-  if (state.planning && (!state.planning.available || activeRisk === null || (activeRisk ?? 0) > budget))
+  // Risk over budget sends a resident to recover first. When recovery in this same situation has
+  // already failed to bring it down and the resident is healthy and unthreatened, the rest is risk no
+  // wait will lower: it works with it (the arbiter still stops work at any real threat).
+  const residual =
+    state.safe && state.planning?.available && activeRisk != null && activeRisk < 1 && blocked('recover');
+  if (state.planning && !residual && (!state.planning.available || activeRisk === null || (activeRisk ?? 0) > budget))
     state = { ...state, safe: false };
   if (
     memory.active &&

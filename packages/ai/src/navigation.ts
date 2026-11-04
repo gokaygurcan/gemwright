@@ -7,6 +7,7 @@ import { Blocked } from './blocked';
 import { rememberedDangerTiles, threatsNear } from './danger';
 import { directRoute } from './direct-route';
 import { createDoorOpener, isDoor, openNearbyDoors } from './doors';
+import { inDungeon, leaveDungeon, takeLink } from './dungeon-exit';
 import { holdWhileEngaged, noteStep } from './engagement';
 import { land, takeOff } from './flight';
 import { assertNotHalted } from './gm';
@@ -78,6 +79,15 @@ export function createNavigator(options: {
     // Always give the event loop a turn: a caller looping on an already-reached goal must not
     // starve timers, the shard lease and every other session.
     await Bun.sleep(0);
+    // Inside a dungeon, anywhere out in the world is reached by leaving it first (dungeon-exit.ts).
+    if (inDungeon(position()) && !inDungeon(goal)) {
+      const pos = () => {
+        const at = position();
+        return { x: at.x, y: at.y, z: at.z };
+      };
+      if (!(await leaveDungeon({ session, terrain, position: pos, phase, navigate: (to, r) => go(to, r, linksTried) })))
+        throw new Blocked('unreachable', `No known way out of the dungeon at ${position().x},${position().y}`);
+    }
     let failures = 0;
     let travelled = 0;
     let detouring = false;
@@ -92,6 +102,9 @@ export function createNavigator(options: {
     const rejected = new Map<string, number>();
     while (distance(position(), goal) > range || (goal.z !== undefined && Math.abs(position().z - goal.z) > 8)) {
       check();
+      // A ghost walks over creatures and through doors (ServUO Movement.cs: !m.Alive ignores doors,
+      // CanMoveOver lets the dead pass any mobile) and nothing can hurt it: the straightest way.
+      const dead = GHOST_BODIES.has(session.world.entities.get(serial)?.graphic ?? 0);
       const originKey = `${position().x},${position().y},${position().z}`;
       const visits = (origins.get(originKey) ?? 0) + 1;
       origins.set(originKey, visits);
@@ -103,7 +116,7 @@ export function createNavigator(options: {
       for (const entity of session.world.entities.values()) {
         if (!entity.position || entity.serial === serial || distance(position(), entity.position) > 18) continue;
         const flags = entity.kind === 'item' ? terrain.tile(entity.graphic, true).flags : 0;
-        if (entity.kind === 'mobile' || (flags & 0x40 && !isDoor(entity.graphic, terrain))) {
+        if ((entity.kind === 'mobile' && !dead) || (flags & 0x40 && !isDoor(entity.graphic, terrain))) {
           if (Math.abs(entity.position.z - position().z) < 16) {
             occupied.add(`${entity.position.x},${entity.position.y}`);
             if (entity.kind === 'item') hard.add(`${entity.position.x},${entity.position.y}`);
@@ -115,7 +128,7 @@ export function createNavigator(options: {
       // is what the walk is for (a hunter closing on its target near the goal). With no way
       // around, the walk stops here instead of running through them.
       const avoid = new Set<string>();
-      const careful = options.purpose !== 'combat' && (options.wary?.() ?? true);
+      const careful = !dead && options.purpose !== 'combat' && (options.wary?.() ?? true);
       if (careful && !takingUrgentAction(session))
         for (const key of rememberedDangerTiles(session, position())) avoid.add(key);
       const wary = (careful ? threatsNear(session, position(), 18) : []).filter(
@@ -138,9 +151,9 @@ export function createNavigator(options: {
       let path = detouring ? null : directRoute(terrain, position(), goal, range, occupied, goal.z);
       if (!path) {
         detouring = true;
-        path = await terrain.pathAsync(position(), goal, range, occupied, goal.z, session.signal, true);
+        path = await terrain.pathAsync(position(), goal, range, occupied, goal.z, session.signal, true, dead);
         if (!path && occupied.size > hard.size)
-          path = await terrain.pathAsync(position(), goal, range, hard, goal.z, session.signal, true);
+          path = await terrain.pathAsync(position(), goal, range, hard, goal.z, session.signal, true, dead);
       }
       if (!path?.length && [...rejected.values()].some((until) => until > Date.now() && until <= Date.now() + 2000)) {
         await Bun.sleep(1000);
@@ -197,8 +210,10 @@ export function createNavigator(options: {
         if (link) {
           linksTried.add(link);
           phase('teleporter', `Taking the teleporter at ${link.from.x},${link.from.y}`);
-          await go(link.from, 0, linksTried).catch(() => {});
-          await session.waitFor(() => distance(position(), link.to) <= 3, 'teleport', 4000).catch(() => {});
+          await takeLink(
+            { session, terrain, position: () => ({ ...position() }), navigate: (to, r) => go(to, r, linksTried) },
+            link
+          );
           if (distance(position(), link.to) <= 3) continue;
         }
         markUnreachable(goal, position());
@@ -273,8 +288,8 @@ export function createNavigator(options: {
         // still ahead, so the step through it is not refused while it swings. A refusal surfaces
         // again when the step itself reaches the door.
         const ahead = path[index + 1];
-        if (ahead) await openDoors(point, ahead).catch(() => ({ blocked: false, locked: false }));
-        const doors = await openDoors(before, point);
+        if (ahead && !ghost) await openDoors(point, ahead).catch(() => ({ blocked: false, locked: false }));
+        const doors = ghost ? { blocked: false, locked: false } : await openDoors(before, point);
         if (doors.blocked) {
           rejected.set(`${point.x},${point.y}`, rememberRejectedStep(session, terrain, point, true));
           lockedDoor ||= doors.locked;

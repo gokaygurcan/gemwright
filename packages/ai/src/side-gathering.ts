@@ -1,4 +1,4 @@
-import { board, ingot, logPile, miningTools, ore, smallOrePile } from '@gemwright/common/game/items';
+import { board, ingot, logPile, ore, smallOrePile } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 
 import { spendableGold } from './bank-gold';
@@ -16,6 +16,7 @@ import { createSmelter } from './miner-smelting';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
 import { onItem, useOn } from './target-action';
+import { miningTools, toolsForSale } from './vendor-catalog';
 import { buyTool, sellTo } from './vendor-trade';
 import { workAreas } from './work-areas';
 
@@ -89,7 +90,7 @@ export async function woodTurn(ctx: ProfessionContext): Promise<boolean> {
 export async function oreTurn(ctx: ProfessionContext): Promise<boolean> {
   const { session } = ctx;
   if (!tool(ctx, miningTools) && spendableGold(session, ctx.backpack(), ctx.checkpoint) >= 40)
-    await buyTool(ctx, 'mining-tools', [...miningTools]).catch(() => false);
+    await buyTool(ctx, 'mining-tools', toolsForSale('mining')).catch(() => false);
   const pick = tool(ctx, miningTools);
   if (!pick) return false;
   const area = [...workAreas('mining')].sort((a, b) => distance(a, ctx.position()) - distance(b, ctx.position()))[0];

@@ -1,4 +1,5 @@
 import { gold, instruments } from '@gemwright/common/game/items';
+import { spellScrollGraphics } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 import { gumpCommands } from '@gemwright/network/gumps';
 import { Layer } from '@gemwright/network/layers';
@@ -23,7 +24,7 @@ const SKILL_BONUS = [1060451, 1060452, 1060453, 1060454, 1060455];
 const JEWELLERY = new Set<number>([Layer.Ring, Layer.Bracelet, Layer.Earrings, Layer.Neck]);
 const RESERVE = 500;
 const VISIT_EVERY = 6 * 3_600_000;
-const isScroll = (graphic: number) => graphic >= 0x1f2d && graphic <= 0x1f6c;
+const isScroll = (graphic: number) => spellScrollGraphics.has(graphic);
 
 // Every resident shares what any of them has seen (vendors stand still).
 const known = new Map<number, { map: number; x: number; y: number }>();

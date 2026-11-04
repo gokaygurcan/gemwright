@@ -1,5 +1,6 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
-import { gold } from '@gemwright/common/game/items';
+import { boneArmor, gems, gold } from '@gemwright/common/game/items';
+import { spellScrollGraphics } from '@gemwright/common/game/rules';
 import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
@@ -99,14 +100,12 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
       contents().some(
         (item) =>
           trip.loot.includes(item.serial) &&
-          (terrain.tile(item.graphic, true).flags & (TileFlag.Weapon | TileFlag.Armor) ||
-            (item.graphic >= 0x144e && item.graphic <= 0x1457))
+          (terrain.tile(item.graphic, true).flags & (TileFlag.Weapon | TileFlag.Armor) || boneArmor.has(item.graphic))
       )
     )
       services.add('blacksmith');
-    if (contents().some((item) => trip.loot.includes(item.serial) && item.graphic >= 0xf10 && item.graphic <= 0xf30))
-      services.add('jeweler');
-    if (contents().some((item) => trip.loot.includes(item.serial) && item.graphic >= 0x1f2d && item.graphic <= 0x1f6c))
+    if (contents().some((item) => trip.loot.includes(item.serial) && gems.has(item.graphic))) services.add('jeweler');
+    if (contents().some((item) => trip.loot.includes(item.serial) && spellScrollGraphics.has(item.graphic)))
       services.add('mage');
     const saleStops = [...services]
       .map((service) => ctx.home.one(service))

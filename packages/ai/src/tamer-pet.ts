@@ -1,5 +1,6 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 import { arrow, bandage } from '@gemwright/common/game/items';
+import { soldAs } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 import { hostileNotoriety } from '@gemwright/network/opcodes';
 import { Healing, ShardAction, ShardMessage } from '@gemwright/network/replies';
@@ -91,7 +92,7 @@ export async function readyBow(ctx: ProfessionContext) {
       restocked.set(ctx, Date.now());
       ctx.phase('bow-restock', 'Buying a bow and arrows from a bowyer');
       const wanted = new Map([[ammo(), 150]]);
-      if (!held() && !ctx.carried().some((i) => bows.has(i.graphic))) wanted.set(0x13b2, 1);
+      if (!held() && !ctx.carried().some((i) => bows.has(i.graphic))) wanted.set(soldAs('Bow'), 1);
       await buyFrom({ ...ctx, limits: TOOLS }, 'bowyer', wanted).catch(() => false);
     }
   }

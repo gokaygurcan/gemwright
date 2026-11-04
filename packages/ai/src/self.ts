@@ -1,13 +1,12 @@
 import { readFileSync } from 'node:fs';
 
 import {
+  alchemyTools,
   bandage,
-  fishingPoles,
+  fletchingTools,
   gold,
-  hatchets,
   healPotion,
   instruments,
-  miningTools,
   sewingKit
 } from '@gemwright/common/game/items';
 import { skillId, skillNames } from '@gemwright/common/game/skills';
@@ -24,6 +23,7 @@ import { lasting } from './lasting';
 import { LIFE_GOAL } from './life-goal';
 import { equippedRanged } from './ranged-weapons';
 import type { Checkpoint } from './store';
+import { fishingPoles, hatchets, miningTools } from './vendor-catalog';
 import { professionOf } from './world';
 
 // Who a resident is and what it has, as it would know it: its build and skills, what it wears
@@ -224,8 +224,8 @@ export function jobReady(session: PlayerSession, template: CharacterTemplate) {
   if (trade === 'fisherman' || trade === 'fisher') return needs(has(fishingPoles), 'a fishing pole', 20);
   if (trade === 'bard') return needs(has(instruments), 'an instrument', 35);
   if (trade === 'tailor') return needs(has(sewingKit), 'a sewing kit', 5);
-  if (trade === 'alchemist') return needs(has(0x0e9b), 'a mortar and pestle', 8);
-  if (trade === 'bowyer') return needs(has(new Set([0x1022, 0x1023])), 'fletching tools', 4);
+  if (trade === 'alchemist') return needs(has(alchemyTools), 'a mortar and pestle', 8);
+  if (trade === 'bowyer') return needs(has(fletchingTools), 'fletching tools', 4);
   if (template.behavior.activities.includes('hunt')) {
     const family = weaponSkill(template);
     // Casters and wrestlers fight without one; archers need a bow; anyone else any melee weapon.

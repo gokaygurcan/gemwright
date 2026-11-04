@@ -1,24 +1,35 @@
-import { existsSync, readFileSync } from 'node:fs';
-
 import { lasting } from './lasting';
 import type { Terrain } from './terrain';
 
-// Where a resident can actually walk (the life-goal plan, ROADMAP.md step 3). locations/areas.json
-// (build-areas.ts) puts every known place in an area: places a walk joins, or a teleporter. A place
+// Where a resident can actually walk (the life-goal plan, ROADMAP.md step 3). The areas (area-build.ts,
+// set at start by useAreas) put every known place in an area: places a walk joins, or a teleporter. A place
 // is within reach when it is in the resident's own area, or when both areas have a public moongate
 // (the gates join them). Where the resident stands is found by walking to the nearest known
 // places, kept by 16-tile cell for two hours. Unknown means no filtering: nothing is ruled out on
 // a guess.
-interface Areas {
+export interface Areas {
   areas: { id: number; gates: string[] }[];
-  points: { x: number; y: number; kind: string; area: number }[];
+  // `section`: the places joined by walking alone (a dungeon level); `area` adds teleporters.
+  points: { x: number; y: number; kind: string; area: number; section?: number }[];
 }
-const file = new URL('../locations/areas.json', import.meta.url);
-const data: Areas = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { areas: [], points: [] };
-const byPoint = new Map(data.points.map((p) => [`${p.x},${p.y}`, p.area]));
-const gated = new Set(data.areas.filter((a) => a.gates.length).map((a) => a.id));
+let data: Areas = { areas: [], points: [] };
+const byPoint = new Map<string, number>();
+const gated = new Set<number>();
+// Where residents stood is kept per build of the areas (`version`): a rebuild numbers them anew.
+let version = '';
+export function useAreas(areas: Areas, fingerprint: string) {
+  data = areas;
+  byPoint.clear();
+  for (const p of areas.points) byPoint.set(`${p.x},${p.y}`, p.area);
+  gated.clear();
+  for (const a of areas.areas) if (a.gates.length) gated.add(a.id);
+  version = fingerprint;
+}
 const cells = lasting('area-of');
-const cellKey = (p: { x: number; y: number }) => `${p.x >> 4},${p.y >> 4}`;
+const cellKey = (p: { x: number; y: number }) => `${version}:${p.x >> 4},${p.y >> 4}`;
+
+// Every catalogued place.
+export const knownPoints = () => data.points;
 
 // The area of a catalogued place, if it is one.
 export const areaOfPlace = (p: { x: number; y: number }) => byPoint.get(`${p.x},${p.y}`);

@@ -1,6 +1,7 @@
 import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 
+import { absence } from './absence';
 import { ActionBusy } from './action-errors';
 import { withinReach } from './areas';
 import { Blocked } from './blocked';
@@ -12,6 +13,7 @@ import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { reachableFrom } from './unreachable';
+import { cityAllowed } from './world';
 
 // One vendor interaction (Actions.buy buy, Actions.sell sell) at the first stop where it succeeds.
 export async function atVendor(
@@ -26,7 +28,7 @@ export async function atVendor(
   // A town without this kind of shop (Yew has no tinker) sends the crafter to the nearest ones.
   const own = serviceLocations(town, vendorType);
   const alternatives = allServiceLocations(vendorType)
-    .filter((shop) => !own.some((point) => point.x === shop.x && point.y === shop.y))
+    .filter((shop) => cityAllowed(shop.city) && !own.some((point) => point.x === shop.x && point.y === shop.y))
     .sort((a, b) => distance(position(), a) - distance(position(), b));
   // Shops in walking reach only; a moongate trip to a far town's shop only for one who can pay
   // for what it goes for, and only the nearest such town. Nobody crosses the land on a hunch.
@@ -42,7 +44,7 @@ export async function atVendor(
       ? alternatives.filter((shop) => !stops.some((stop) => stop.x === shop.x && stop.y === shop.y)).slice(0, 3)
       : [];
   // The shop landmark is the door; the vendor stands somewhere inside or beside it. The spawner data
-  // (locations/vendors.json) lists where each kind of vendor actually appears in this town. A town
+  // (the shard's vendor spawners, locations.ts) lists where each kind of vendor actually appears in this town. A town
   // whose shops all failed this objective lately teaches nothing new: its spawn points wait too.
   const objectiveKey = (x: number, y: number) =>
     `shop:${session.world.map}:${vendorType}:${cliloc}:${x},${y}:${objective}`;
@@ -100,10 +102,10 @@ export async function atVendor(
     ctx.check();
     const key = objectiveKey(shop.x, shop.y);
     const condition = suppliesCondition(session, ctx.checkpoint);
-    // The catalogue is reference, not this shard: a shop found empty of its vendor stays empty in
-    // memory (towns.ts counts it against the town), whatever the resident carries.
-    const absentKey = `vendor-absent:${session.world.map}:${vendorType}:${shop.x},${shop.y}`;
-    if (objectiveBlocked(ctx.checkpoint, absentKey, 'absent')) continue;
+    // A shop is where a vendor may be, not where it is: one found empty stays empty in memory for a
+    // while (absence.ts; towns.ts counts it against the town), whatever the resident carries.
+    const absent = absence(session.world.serial ?? -1);
+    if (absent.seen('vendor', shop, vendorType)) continue;
     if (
       objectiveBlocked(ctx.checkpoint, key, condition) &&
       !ctx.checkpoint.objectives?.[key]?.reason?.startsWith('Too heavy')
@@ -161,19 +163,9 @@ export async function atVendor(
           continue;
         }
         // Conclusive: nobody there, or every vendor there answered without it. Vendors wander out
-        // of reach: a first miss is a couple of hours, a second one a day.
-        const again = (ctx.checkpoint.objectives?.[absentKey]?.failures ?? 0) > 0;
-        ctx.log(
-          `No ${vendorType} near ${shop.x},${shop.y} (${reasons}); not looking there for ${again ? 'a day' : 'two hours'}`
-        );
-        failObjective(
-          ctx.checkpoint,
-          absentKey,
-          'absent',
-          `No ${vendorType} here`,
-          Date.now(),
-          again ? 86_400_000 : 7_200_000
-        );
+        // of reach or die: a first miss holds a while, a second soon after longer.
+        const minutes = absent.note('vendor', shop, vendorType);
+        ctx.log(`No ${vendorType} near ${shop.x},${shop.y} (${reasons}); not looking there for ${minutes} minutes`);
         continue;
       }
       townSettled ||= inTown;

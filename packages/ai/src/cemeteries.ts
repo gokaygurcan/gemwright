@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-
+import { absence } from './absence';
 import { urgentAction } from './action-purpose';
 import { strandedAt, withinReach } from './areas';
 import { Blocked } from './blocked';
@@ -10,10 +9,14 @@ import { combatSkill, goldOf, readyFor, teaches } from './fighter-prey';
 import { type Gate, moongates, nearestGate } from './gates';
 import { haven, onHaven, prefersHaven } from './haven';
 import { lasting } from './lasting';
+import { monsters } from './monster-reference';
 import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
+import { spawnGrounds as buildGrounds } from './spawn-grounds';
+import type { Rect, Spawner } from './spawns';
 import { residentsNear } from './spread';
 import { learnedPlaceCost } from './strategy-learning';
+import { placeAllowed } from './towns';
 import { WALKING_LIMIT } from './tuning';
 
 // Trammel cemeteries (uo.com "Cemeteries" list) that hold undead spawners on the pinned shard
@@ -24,15 +27,10 @@ export interface Ground {
   center: { x: number; y: number };
   gate: Gate;
   patrol?: { x: number; y: number }[];
-  // Overland spawns (catalogs/hunting-grounds.json): how far they reach and what lives there.
+  // Overland spawns (spawn-grounds.ts): how far they reach and what lives there.
   radius?: number;
   creatures?: Record<string, number>;
 }
-// The overland catalog (build-grounds.ts), which also names what spawns at each cemetery.
-const catalog = JSON.parse(readFileSync(new URL('../catalogs/hunting-grounds.json', import.meta.url), 'utf8')) as {
-  cemeteries?: Record<string, Record<string, number>>;
-  grounds: { name: string; center: { x: number; y: number }; radius: number; creatures: Record<string, number> }[];
-};
 const cemeteryPlaces: Ground[] = [
   {
     name: 'Britain',
@@ -54,18 +52,22 @@ const cemeteryPlaces: Ground[] = [
   // The undead of Old Haven on Haven Island, where New Haven's residents start (haven.ts).
   { name: 'New Haven', center: { x: 3650, y: 2510 }, gate: 'newhaven' }
 ];
-export const cemeteries: Ground[] = cemeteryPlaces.map((ground) => ({
-  ...ground,
-  creatures: catalog.cemeteries?.[ground.name]
-}));
+export const cemeteries: Ground[] = cemeteryPlaces.map((ground) => ({ ...ground }));
 export const HUNTING_RADIUS = 65;
-// Beyond the cemeteries: every overland place where creatures that attack on sight spawn, outside
-// towns and dungeons (build-grounds.ts): orcs, harpies, trolls and lizardmen west of Britain, and
-// hundreds more. A fighter moves on to one its skills meet when its cemetery runs dry.
-const spawnGrounds: Ground[] = catalog.grounds.map((g) => ({ ...g, gate: nearestGate(g.center) }));
-// Haven Island's monster grounds (locations/new-haven.json), left out of the overland catalog.
-const havenGrounds: Ground[] = haven.grounds.map((g) => ({ ...g, gate: 'newhaven' as const }));
-export const grounds: Ground[] = [...cemeteries, ...spawnGrounds, ...havenGrounds];
+// The cemeteries, and every overland place where creatures that attack on sight spawn outside towns
+// and dungeons (orcs, harpies, trolls and lizardmen west of Britain, and hundreds more), and Haven
+// Island's: all from the shard's own spawners, read at start (shard-world.ts). A fighter moves on to
+// one its skills meet when its cemetery runs dry.
+export const grounds: Ground[] = [];
+export function useShardSpawns(world: { spawners: Spawner[]; regions: Rect[] }) {
+  const built = buildGrounds(world.spawners, world.regions, cemeteryPlaces, HUNTING_RADIUS);
+  for (const cemetery of cemeteries) cemetery.creatures = built.cemeteries[cemetery.name];
+  const overland = built.grounds.map((g) => ({ ...g, gate: nearestGate(g.center) }));
+  const island = haven.grounds.map((g) => ({ ...g, gate: 'newhaven' as const }));
+  // A cemetery with no spawner of its own on this shard has nothing to hunt: it is no ground.
+  const spawning = cemeteries.filter((cemetery) => cemetery.creatures);
+  grounds.splice(0, grounds.length, ...spawning, ...overland, ...island);
+}
 const reach = (ground: Ground) => ground.radius ?? HUNTING_RADIUS;
 // Residents at a cemetery beyond which a fighter moving on looks elsewhere.
 const CROWDED = 8;
@@ -110,6 +112,20 @@ export const patrolPoints = (ground: Ground) => {
 // teach it (`teaches`) and quieter ones (spread.ts) are preferred, gold breaks ties; with more
 // combat skill the plain cemeteries lose their pull, and chaos shuffles the order a little. A
 // crowded ground is passed over.
+// Whether a ground's creatures suit this fighter: it meets at least half of what lives there, and
+// none that attacks on sight is beyond it. Such a creature attacks whoever it sees, chosen opponent
+// or not (the Cove graveyard's lich, Haven Island's ettins): a ground with one waits until the
+// fighter could take it on, whatever else lives there.
+export function groundFits(ctx: FighterContext, ground: Ground): boolean {
+  // Only around the cities the shard allows (gemwright.json ai.cities).
+  if (!ground.name.startsWith(LOCAL) && !placeAllowed(ground.center)) return false;
+  const kinds = Object.entries(ground.creatures ?? {});
+  const total = kinds.reduce((n, [, count]) => n + count, 0);
+  const fit = kinds.filter(([type]) => readyFor(ctx, type)).reduce((n, [, count]) => n + count, 0);
+  if (ground.creatures && fit * 2 < total) return false;
+  return !kinds.some(([type]) => monsters.find((m) => m.type === type)?.aggressive && !readyFor(ctx, type));
+}
+
 export function nextGround(ctx: FighterContext): string {
   const here = ctx.position();
   const current = groundOf(ctx.trip).name;
@@ -119,16 +135,12 @@ export function nextGround(ctx: FighterContext): string {
   const young = prefersHaven(ctx.session);
   const options = grounds.flatMap((ground) => {
     const present = residentsNear(ground.center, reach(ground), ctx.serial);
-    if (ground.name === current || present >= CROWDED) return [];
+    if (ground.name === current || present >= CROWDED || absence(ctx.serial).seen('ground', ground.center)) return [];
     // Only grounds it can walk to, or reach through a moongate (areas.ts): never one out at sea.
     if (!withinReach(here, ground.center)) return [];
+    if (!groundFits(ctx, ground)) return [];
     const kinds = Object.entries(ground.creatures ?? {});
     const total = kinds.reduce((n, [, count]) => n + count, 0);
-    const fit = kinds.filter(([type]) => readyFor(ctx, type)).reduce((n, [, count]) => n + count, 0);
-    if (ground.creatures && fit * 2 < total) return [];
-    // A lich attacks whoever it sees, chosen opponent or not (the Cove graveyard): a ground with one
-    // waits until the fighter could take it on. Vesper's undead are the same rung without it.
-    if (ground.creatures?.Lich && !readyFor(ctx, 'Lich')) return [];
     const gold = kinds.reduce((n, [type, count]) => n + goldOf(type) * count, 0) / Math.max(1, total);
     // Skill comes from creatures near the character's own skill: a ground where most of them still
     // teach is worth up to 400 tiles more walking; gold only breaks ties.
@@ -181,7 +193,11 @@ export async function travelToGround(ctx: FighterContext, overland = false) {
     ctx.phase('stranded-hunting', 'No way out on foot; hunting where I stand');
     return;
   }
-  if (ctx.trip.ground?.startsWith(LOCAL)) ctx.trip.ground = nextGround(ctx);
+  // A ground chosen before (a saved trip) is held to the same test as a new choice.
+  if (ctx.trip.ground?.startsWith(LOCAL) || !groundFits(ctx, groundOf(ctx.trip))) {
+    ctx.trip.ground = nextGround(ctx);
+    ctx.persist();
+  }
   const ground = groundOf(ctx.trip);
   ctx.phase(
     'travelling-to-graveyard',

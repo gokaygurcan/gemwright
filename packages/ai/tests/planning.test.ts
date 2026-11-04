@@ -197,3 +197,17 @@ test('combat inference is revised after skill growth without rewriting observed 
   const craft = { ...capability(50), skills: { ...capability(50).skills, [skillId('Blacksmith')]: 100 } };
   expect(comparableCapability(capability(50), craft)).toBe(1);
 });
+
+test('a safe resident whose recovery cannot lower a residual risk goes back to work instead of waiting', () => {
+  const c = checkpoint(),
+    s = situation();
+  Object.assign(required(s.planning), { deathRisk: riskBudget(s) * 1.05 });
+  expect(chooseGoal(c, s, now).kind).toBe('recover');
+  blockGoal(c, 'Objective recover exceeded its bounded action time', now, s);
+  const next = chooseGoal(c, s, now + 1);
+  expect(next.step).not.toBe('wait');
+  expect(next.kind).toBe('earn');
+  // A threat is still no residual risk: nothing works through an attack.
+  Object.assign(required(s.planning), { deathRisk: 1 });
+  expect(chooseGoal(checkpoint(), s, now + 2).kind).toBe('recover');
+});

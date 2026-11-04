@@ -7,8 +7,12 @@ import { Blocked } from '../src/blocked';
 import { type Dungeon, dungeonAt, dungeons, exitStair, floorAt } from '../src/dungeons';
 import { type Gate, moongates } from '../src/gates';
 import { destinationGate, travelJourney } from '../src/journey';
+import { allLinks } from '../src/links';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 function travelFixture(start: Position) {
   const f = socialFixture();
@@ -16,10 +20,32 @@ function travelFixture(start: Position) {
   const legs: { x: number; y: number; z?: number }[] = [];
   const crossings: Gate[] = [];
   const stairs: Position[] = [];
+  // As the server moves a mobile: stepping onto a teleporter's tile sends it on (ServUO
+  // Teleporter.OnMoveOver); standing on one does not.
+  const arrive = (point: { x: number; y: number; z?: number }) => {
+    const link = allLinks().find((l) => l.from.x === point.x && l.from.y === point.y);
+    f.world.position = { ...required(f.world.position), ...(link ? link.to : point) };
+  };
   const walk = async (point: { x: number; y: number; z?: number }) => {
     legs.push(point);
-    f.world.position = { ...required(f.world.position), ...point };
+    if (point.x !== f.world.position?.x || point.y !== f.world.position?.y) arrive(point);
     f.world.entities.set(20, { serial: 20, kind: 'item', graphic: 0xf6c, position: { ...required(f.world.position) } });
+  };
+  const steps = [
+    [0, -1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+    [-1, -1]
+  ];
+  f.session.walk = async (direction) => {
+    const at = required(f.world.position);
+    const [dx = 0, dy = 0] = steps[direction & 7] ?? [];
+    arrive({ x: at.x + dx, y: at.y + dy, z: at.z });
+    return true;
   };
   f.session.use = () => {
     const layout =
@@ -58,7 +84,7 @@ for (const [from, to] of [
 test('a destination gate must be on its connected land, regardless of straight-line distance', () => {
   const mainland = areaOfPlace(moongates.britain);
   expect(destinationGate({ x: 650, y: 2070 }, mainland)).toBe('britain');
-  expect(destinationGate({ x: 650, y: 2070 }, areaOfPlace(moongates.skara))).toBe('skara');
+  expect(destinationGate({ x: 650, y: 2070 }, areaOfPlace(moongates.skarabrae))).toBe('skarabrae');
   expect(destinationGate({ x: 650, y: 2070 }, -1)).toBeUndefined();
 });
 
@@ -76,10 +102,9 @@ test('a resident exits the dungeon before trying to travel on the surface', asyn
   const dungeon = required(dungeons.find((d) => d.name === 'Despise'));
   const stair = required(dungeon.floors.flatMap((f) => f.stairs).find((s) => s.toFloor === null));
   expect(dungeonAt(stair.at)?.name).toBe('Despise');
+  // Standing on the way out, as a ghost that fell on it does: off it and back on.
   const f = travelFixture({ ...stair.at, direction: 0 });
-  f.stairs.push({ ...stair.to, direction: 0 });
   await travelJourney(f.ctx, stair.to, 1, f.walk);
-  expect(f.stairs).toEqual([]);
   expect(f.ctx.position().x).toBe(stair.to.x);
   expect(floorAt(dungeon, f.ctx.position())).toBeUndefined();
 });

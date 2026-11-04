@@ -1,24 +1,24 @@
-import { readFileSync } from 'node:fs';
-
 import type { RouteRequest, RouteResult, RouteSearch } from './path-search';
 import type { Point, Terrain } from './terrain';
 
-interface Corridor {
+// A public-terrain walk between two hubs (route-build.ts), every 24th step; `both` when it can be
+// walked back the same way.
+export interface Corridor {
   name: string;
   both: boolean;
   points: number[][];
 }
-const publicRoutes = JSON.parse(
-  readFileSync(new URL('../locations/route-corridors.json', import.meta.url), 'utf8')
-) as { facet: number; corridors: Corridor[] };
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 const point = (row: number[]): Point => ({ x: row[0] ?? 0, y: row[1] ?? 0, z: row[2] ?? 0 });
 
 export class RouteWaypoints {
-  constructor(private readonly corridors: Corridor[] = publicRoutes.corridors) {}
+  constructor(private corridors: Corridor[] = []) {}
+  use(corridors: Corridor[]) {
+    this.corridors = corridors;
+  }
   run(terrain: Terrain, request: RouteRequest, search: RouteSearch, cancelled: () => boolean): RouteResult | null {
-    if (!request.partial || terrain.facet !== publicRoutes.facet) return null;
+    if (!request.partial || terrain.facet !== 1) return null;
     const remaining = distance(request.start, request.goal);
     const choices: { join: Point; next: Point; score: number }[] = [];
     for (const corridor of this.corridors) {

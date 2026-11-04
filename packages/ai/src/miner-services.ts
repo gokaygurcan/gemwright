@@ -1,4 +1,5 @@
-import { boards, gold, ingot, logs, miningTools, ore } from '@gemwright/common/game/items';
+import { boards, gold, ingot, logs, ore } from '@gemwright/common/game/items';
+import { harvestTiles } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -19,6 +20,7 @@ import { distance } from './navigation';
 import { putDown } from './overload';
 import { craftedGoods } from './selling';
 import { createServiceExperience } from './service-experience';
+import { miningTools } from './vendor-catalog';
 import { buyOffers } from './vendor-shop';
 import { buyFrom, sellTo } from './vendor-trade';
 
@@ -28,18 +30,8 @@ export const ORE_STASH = 10;
 export { forges } from './miner-smelting';
 export type { MinerProgress } from './miner-types';
 
-// The Mining skill each coloured ore needs to smelt (ServUO Mining.cs
-// resources), by the ore's hue; plain iron needs none.
-const oreSkill = new Map([
-  [0x973, 65], // dull copper
-  [0x966, 70], // shadow iron
-  [0x96d, 75], // copper
-  [0x972, 80], // bronze
-  [0x8a5, 85], // gold
-  [0x979, 90], // agapite
-  [0x89f, 95], // verite
-  [0x8ab, 99] // valorite
-]);
+// The Mining skill each coloured ore needs (ServUO Mining.cs resources), by the ore's hue; plain iron needs none.
+const oreSkill = new Map(harvestTiles.ores.filter((ore) => ore.hue).map((ore) => [ore.hue, ore.skill]));
 
 // What a miner's bank trip takes from the pack, besides refused ore and kept pieces: its iron and
 // gold, and the wood its side trade left unsold (side-gathering.ts), which would otherwise keep the

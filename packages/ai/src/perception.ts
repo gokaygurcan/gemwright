@@ -10,11 +10,17 @@ import { type Known, observed, type PerceivedEntity, type SelfPerception, unknow
 const separation = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
+// Close enough for a creature that attacks on sight to come at us, and long enough to have done it.
+const CALM_RANGE = 10;
+const CALM_MS = 30_000;
+
 export class Perception {
   private readonly records = new Map<number, EntityObservation>();
   private readonly spatial = new Set<number>();
   private readonly visible = new Set<number>();
   private readonly swings = new Map<number, { target: number; at: number }>();
+  // Creatures close by that have not come any nearer: since when, and the nearest they have been.
+  private readonly calm = new Map<number, { since: number; nearest: number }>();
   private readonly invalidated = new Map<WorldField, number>();
   private readonly tombstones: { serial: number; at: number }[] = [];
   private readonly stamps = new Map<WorldField, number>();
@@ -174,6 +180,7 @@ export class Perception {
       this.spatial.delete(serial);
       this.visible.delete(serial);
     }
+    this.watchCalm(change.at);
     if (
       this.facet !== this.world.map ||
       change.fields.some((f) => ['position', 'range', 'map'].includes(f)) ||
@@ -194,6 +201,28 @@ export class Perception {
       !GHOST_BODIES.has(this.world.entities.get(this.world.serial ?? -1)?.graphic ?? 0)
     )
       this.life = observed('alive', change.at);
+  }
+
+  // A player learns which creatures cannot reach it (a zoo's pens) by watching them: one within
+  // CALM_RANGE that never attacks and never comes nearer keeps its calm; approaching or swinging
+  // starts the watch over.
+  private watchCalm(now: number) {
+    const self = this.world.position;
+    for (const serial of this.calm.keys()) if (!this.visible.has(serial) || !self) this.calm.delete(serial);
+    if (!self) return;
+    for (const serial of this.visible) {
+      const at = this.world.entities.get(serial)?.position;
+      if (!at || serial === this.world.serial) continue;
+      const distance = separation(self, at);
+      const watch = this.calm.get(serial);
+      const swung = (this.swings.get(serial)?.at ?? -1) >= (watch?.since ?? Number.POSITIVE_INFINITY);
+      if (distance > CALM_RANGE) this.calm.delete(serial);
+      else if (!watch || swung || distance < watch.nearest) this.calm.set(serial, { since: now, nearest: distance });
+    }
+  }
+  calmFor(serial: number, now = this.now()) {
+    const watch = this.calm.get(serial);
+    return !!watch && now - watch.since >= CALM_MS;
   }
 
   reconcile() {
@@ -314,7 +343,8 @@ export class Perception {
       this.available && this.visible.has(serial),
       this.now(),
       this.swings.get(serial),
-      owned
+      owned,
+      this.calmFor(serial)
     );
   }
   visibleEntities(kind?: Entity['kind']): PerceivedEntity[] {

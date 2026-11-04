@@ -1,4 +1,11 @@
-import { board, bottle, gold as goldCoin, reagentByName } from '@gemwright/common/game/items';
+import {
+  alchemyTools,
+  board,
+  bottle,
+  fletchingTools,
+  gold as goldCoin,
+  reagentByName
+} from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 
 import { BUSINESS } from './bank-gold';
@@ -24,8 +31,8 @@ import { orderDemand } from './work-orders';
 export const alchemy: CraftSkill = {
   skill: 'Alchemy',
   vendor: 'alchemist',
-  tools: new Set([0x0e9b]),
-  material: 0x0f85,
+  tools: alchemyTools,
+  material: reagentByName.Ginseng ?? 0,
   recipes: craftRecipes('Alchemy'),
   unitCost: 3,
   costs: { [reagentByName.BlackPearl ?? 0]: 5, [reagentByName.Bloodmoss ?? 0]: 5, [bottle]: 5 }
@@ -36,7 +43,7 @@ export const alchemy: CraftSkill = {
 export const bowcraft: CraftSkill = {
   skill: 'Fletching',
   vendor: 'bowyer',
-  tools: new Set([0x1022, 0x1023]),
+  tools: fletchingTools,
   material: board,
   recipes: craftRecipes('Bowcraft'),
   unitCost: 3

@@ -476,3 +476,19 @@ test('an unchanged poison state remains known while stale health still requires 
     model.dispose();
   }
 });
+
+test('an on-sight attacker that stays put beside us for half a minute is penned or peaceful, until it comes closer', () => {
+  const f = setup();
+  try {
+    // A lich (ServUO FightMode.Closest) five tiles away, like a caged creature in Moonglow's zoo.
+    mobile(f.world, 2, 105, 100, 24, 3);
+    expect(f.model.entity(2)?.risk.value).toBe('caution');
+    f.advance(31_000);
+    mobile(f.world, 2, 105, 101, 24, 3);
+    expect(f.model.entity(2)?.risk.value).toBe('unknown');
+    mobile(f.world, 2, 102, 100, 24, 3);
+    expect(f.model.entity(2)?.risk.value).toBe('caution');
+  } finally {
+    f.close();
+  }
+});

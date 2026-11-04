@@ -16,7 +16,7 @@ import { selfNow } from './self';
 // health and what it can heal with. A fighter's risk tolerance and a little chance decide where the
 // line is, so two fighters in the same spot do not decide the same, and a recent death makes it warier.
 const JOIN_RANGE = 8;
-// By the creature's server brain (catalogs/monsters.json `ai`): spellcasters, and archers and
+// By the creature's server brain (the creature rules' `ai`): spellcasters, and archers and
 // casters that join from farther off than melee creatures.
 const CASTERS = new Set(['Mage', 'NecroMage', 'Spellbinder', 'Spellweaving', 'Mystic', 'Necro']);
 const RANGED = new Set([...CASTERS, 'Archer', 'OrcScout']);

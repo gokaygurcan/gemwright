@@ -5,7 +5,7 @@ import { distance } from './navigation';
 import { crowdFactor, pickWeighted, residentsWhere } from './spread';
 
 // Trammel dungeons from catalogs/dungeons (built by build-dungeons.ts) and the creatures their
-// rooms spawn from catalogs/monsters.json (build-monsters.ts).
+// rooms spawn from the creature rules (common rules-creatures.ts).
 interface Point {
   x: number;
   y: number;

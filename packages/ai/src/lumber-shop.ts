@@ -1,4 +1,3 @@
-import { hatchets } from '@gemwright/common/game/items';
 import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
@@ -10,6 +9,7 @@ import { approachVendor } from './mobile-approach';
 import type { MountContext } from './mount-types';
 import { distance } from './navigation';
 import type { Checkpoint } from './store';
+import { hatchets } from './vendor-catalog';
 import { buyOffers } from './vendor-shop';
 
 // The lumberjack's shop errands: the vendor menu entry check shared with board sales, and buying a

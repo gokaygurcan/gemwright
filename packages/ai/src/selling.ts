@@ -35,7 +35,7 @@ import { buyersOf } from './price-book';
 import { sellTo } from './vendor-trade';
 import { reachRegion } from './work-areas';
 import { reservedFor } from './work-orders';
-import { world } from './world';
+import { cityAllowed, world } from './world';
 
 // Selling is a task of its own, chosen between others like mining or practice: a resident whose
 // pack holds goods it has no use for (what it made, caught or picked up) takes them to the shops
@@ -155,7 +155,7 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   if (missing.length && goods.length >= MIN_PIECES) {
     const here = ctx.position();
     const target = (Object.keys(world.cities) as string[])
-      .filter((name) => name !== town && world.cities[name]?.enabled)
+      .filter((name) => name !== town && world.cities[name]?.enabled && cityAllowed(name))
       .flatMap((name) => {
         const bank = pickLocation(name, 'banker');
         if (!bank || !missing.every((service) => serviceLocations(name, service).length > 0)) return [];
@@ -186,13 +186,14 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
       return sell().catch(() => 0);
     });
   }
-  // Pieces marked unfit that no shop will take (magic, blessed, exceptional, or refused on a second
-  // trip: starter gear, pieces no shop of this shard stocks) are left where another resident may
-  // find them rather than carried on trip after trip; sold or gone pieces leave the list.
+  // Wear it if better, else sell it, else leave it: a piece no shop took on a second trip (starter
+  // gear, pieces no shop of this shard stocks), and a marked one no shop will take at all (magic,
+  // blessed, exceptional), is left where another resident may find them rather than carried on trip
+  // after trip; sold or gone pieces leave the list.
   const unsold = unsoldTrips.get(session) ?? new Map<number, number>();
   unsoldTrips.set(session, unsold);
   let left = 0;
-  for (const serial of listed) {
+  for (const serial of new Set([...listed, ...forSale])) {
     const item = session.world.entities.get(serial);
     if (!item || item.parent !== ctx.backpack()) {
       unsold.delete(serial);
@@ -200,6 +201,8 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
     }
     const trips = (unsold.get(serial) ?? 0) + 1;
     unsold.set(serial, trips);
+    // Unmarked magic or exceptional loot is kept (banked), never left.
+    if (!listed.has(serial) && !shopSafe(item)) continue;
     if (shopSafe(item) && trips < 2) continue;
     if (await putDown(session, serial).catch(() => false)) {
       unsold.delete(serial);

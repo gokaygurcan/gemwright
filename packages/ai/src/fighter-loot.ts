@@ -1,6 +1,6 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
-import { arrow, crossbowBolt, gold } from '@gemwright/common/game/items';
+import { arrow, boneArmor, crossbowBolt, gold, shields } from '@gemwright/common/game/items';
 
 import { type Death, openCorpse } from './corpse-open';
 import { type FighterContext, huntable, valuable } from './fighter-context';
@@ -20,8 +20,7 @@ export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<voi
   // Heavy pieces — armour and shields/weapons — are worth the stones only when the slot is bare or
   // the piece is worth more than scrap: a fighter does not haul bone armour off every skeleton, fill
   // its pack with it and walk to town for the privilege. Coins and light things always come.
-  const heavy = (graphic: number) =>
-    (graphic >= 0x144e && graphic <= 0x1457) || (graphic >= 0x1b72 && graphic <= 0x1b7b);
+  const heavy = (graphic: number) => boneArmor.has(graphic) || shields.has(graphic);
 
   // Every corpse left behind says why in the log, so a kill that brings nothing can be traced.
   return async (death?: Death) => {

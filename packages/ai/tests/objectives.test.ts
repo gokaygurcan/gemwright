@@ -7,6 +7,9 @@ import { residentNeeds } from '../src/needs';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from '../src/objective-memory';
 import { atVendor } from '../src/vendor-visit';
 import { behaviorFixture, required } from './behavior-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 test('a failed objective waits two hours, reopens on changed means, and stays bounded', () => {
   const { checkpoint } = behaviorFixture();
@@ -146,4 +149,52 @@ test('a vendor menu that fails for our own reasons (resource busy) never writes 
   };
   await atVendor(craft, 'cobbler', 3006104, async () => true);
   expect(checkpoint.objectives?.[`vendor-absent:1:cobbler:${shop.x},${shop.y}`]).toBeUndefined();
+});
+
+test("a miner without a pickaxe looks for one where miners' tools are sold, not only at a tinker", () => {
+  const { session, checkpoint, template } = behaviorFixture('miner');
+  const pickaxe = residentNeeds(session, checkpoint, { ...template, id: 'minoc-miner' }).find(
+    (need) => need.kind === 'tool'
+  );
+  expect(pickaxe?.purchase?.service).toBe('mining-tools');
+});
+
+test("a miner buys the cheapest mining tool the town's tinker has on the counter, in one visit, not a far town's", async () => {
+  const { ctx, world, session, checkpoint, template } = behaviorFixture('miner');
+  const miner = { ...ctx, template: { ...template, id: 'minoc-miner' } };
+  checkpoint.funds = { bank: 0, at: Date.now() };
+  const shop = required(serviceLocations('Minoc', 'mining-tools')[0]);
+  world.position = { ...shop, z: 0, direction: 0 };
+  world.entities.set(2, { serial: 2, kind: 'mobile', graphic: 400, notoriety: 7, position: { ...world.position } });
+  // ServUO SBTinker: a pickaxe is 0xE86, a shovel 0xF39; nothing sells the other pickaxe graphic.
+  world.entities.set(20, { serial: 20, kind: 'item', graphic: 0xe86, amount: 20, parent: 99 });
+  world.entities.set(22, { serial: 22, kind: 'item', graphic: 0xf39, amount: 20, parent: 99 });
+  let visits = 0;
+  const bought: number[] = [];
+  session.context = async () => [{ index: 0, cliloc: 3006103, flags: 0 }];
+  session.selectContext = () => {
+    visits++;
+    world.received.set(0x74, (world.received.get(0x74) ?? 0) + 1);
+    world.buyOffers.set(2, [
+      { serial: 20, price: 25, description: 'pickaxe' },
+      { serial: 22, price: 12, description: 'shovel' }
+    ]);
+  };
+  session.waitFor = async (predicate) => {
+    if (!predicate()) throw new Error('No observation');
+  };
+  session.purchaseItem = async (_vendor, offer, backpack, amount) => {
+    const graphic = required(world.entities.get(offer)).graphic;
+    bought.push(graphic);
+    world.entities.set(30 + bought.length, {
+      serial: 30 + bought.length,
+      kind: 'item',
+      graphic,
+      parent: backpack,
+      amount
+    });
+  };
+  expect(await meetNeeds(miner)).toBe('handled');
+  expect(visits).toBe(1);
+  expect(bought).toEqual([0xf39]);
 });

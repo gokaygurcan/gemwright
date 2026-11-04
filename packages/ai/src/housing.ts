@@ -1,3 +1,4 @@
+import { graphicOf, houseKey } from '@gemwright/common/game/rules';
 import { Layer } from '@gemwright/network/layers';
 import { Actions } from '@gemwright/network/replies';
 
@@ -28,9 +29,9 @@ export const HOUSES = [
   { name: 'Wood and Plaster House', cliloc: 1011307, cost: 36500 },
   { name: 'Thatched-Roof Cottage', cliloc: 1011308, cost: 36500 }
 ] as const;
-const TOOL = 0x14f6;
+const TOOL = graphicOf('HousePlacementTool');
 const TOOL_PRICE = 627;
-const KEY = 0x100f;
+const KEY = houseKey;
 const reserve = () => world.housing?.reserve ?? 3000;
 // What a resident needs in the bank before it goes to buy: the dearest house, the tool, the reserve.
 export const houseGoal = () => Math.max(...HOUSES.map((h) => h.cost)) + TOOL_PRICE + reserve();

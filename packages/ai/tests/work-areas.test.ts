@@ -5,6 +5,9 @@ import { expect, test } from 'bun:test';
 import '../src/cemeteries';
 import { forgeSites, serviceLocations } from '../src/locations';
 import { workArea } from '../src/work-areas';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 test('miners are only assigned to districts whose town can bank and smelt', () => {
   const usable = (area: { city: string }) =>

@@ -19,5 +19,16 @@
     "deadlyAt": 2,
     "deadlyStepCost": 30
   },
-  "taming": { "emptySearches": 6, "givenUpHours": 1 }
+  "taming": { "emptySearches": 6 },
+  "absence": {
+    "minutes": {
+      "vendor": 120,
+      "healer": 30,
+      "ankh": 43200,
+      "escort": 120,
+      "tamable": 60,
+      "ground": 30
+    },
+    "repeatFactor": 12
+  }
 }

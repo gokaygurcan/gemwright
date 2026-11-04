@@ -1,6 +1,7 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { gold, isDeathRobe } from '@gemwright/common/game/items';
 import { LAYERS } from '@gemwright/common/game/layers';
+import { soldAs } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
@@ -53,8 +54,9 @@ export async function shedDeathRobe(session: PlayerSession, terrain: Terrain, ca
   return true;
 }
 
-const ROBE = 0x1f03; // robe, 18 gold at a tailor (ServUO SBTailor)
-const SHIRT = 0x1517; // shirt, 12 gold
+// A robe or a shirt from a tailor (ServUO SBTailor).
+const ROBE = soldAs('Robe');
+const SHIRT = soldAs('Shirt');
 const CLOTHES = { reserve: 50, perHour: 100 };
 const lastTry = new WeakMap<PlayerSession, number>();
 

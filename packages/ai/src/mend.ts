@@ -11,6 +11,7 @@ import { packItems } from './inventory';
 import { lasting } from './lasting';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
+import { spellNamed } from './spell-rules';
 import { onItem, useOn } from './target-action';
 
 // Mending, as players do it. A resident just back from the dead has a handful of hit points and
@@ -24,9 +25,8 @@ type Ctx = {
   navigate: (point: { x: number; y: number }, range: number) => Promise<unknown>;
   backpack: () => number;
 };
-const [garlic, ginseng, mandrake, silk] = [0x0f84, 0x0f85, 0x0f86, 0x0f8d];
-const HEAL = { id: 4, mana: 4, reagents: [garlic, ginseng, silk], min: 0 };
-const GREATER_HEAL = { id: 29, mana: 11, reagents: [garlic, ginseng, mandrake, silk], min: 50 };
+const HEAL = { ...spellNamed('Heal'), min: 0 };
+const GREATER_HEAL = { ...spellNamed('Greater Heal'), min: 50 };
 const BANDAGE_MS = 7000;
 const lastAid = new WeakMap<PlayerSession, number>();
 

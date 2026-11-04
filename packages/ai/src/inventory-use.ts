@@ -1,6 +1,8 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 import {
   board,
+  bottle,
+  cloth,
   gold,
   ItemProperty,
   ingot,
@@ -8,8 +10,14 @@ import {
   logPile,
   magicFish,
   ore,
-  reagents
+  reagents,
+  repairDeed,
+  scissors,
+  uncutCloth,
+  wool,
+  yarn
 } from '@gemwright/common/game/items';
+import { graphicsOf } from '@gemwright/common/game/rules';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
@@ -144,7 +152,7 @@ export async function betterEquipment(session: PlayerSession, item: Entity): Pro
 export async function usefulGift(session: PlayerSession, item: Entity): Promise<boolean> {
   const ctx = residentContext(session);
   if (item.graphic === gold) return true;
-  if (item.graphic === 0x14f0) {
+  if (item.graphic === repairDeed) {
     if (!item.properties) await session.inspectProperties(item.serial).catch(() => {});
     return usefulRepairContract(session, session.world.entities.get(item.serial) ?? item);
   }
@@ -158,9 +166,9 @@ export async function usefulGift(session: PlayerSession, item: Entity): Promise<
   const materials: Record<string, number[]> = {
     miner: [ingot, ...ore], // iron ingots, ore
     lumberjack: [board, logPile],
-    tailor: [0x1766, 0x1767, 0x0f95, 0x0df8, 0x0e1d, 0x0e1e, 0x0e1f, 0x0f9e, 0x0f9f],
-    bowyer: [board, logPile, 0x1bd1, 0x1bd4],
-    alchemist: [0x0f0e, ...reagents] // bottles, reagents
+    tailor: [cloth, uncutCloth, ...graphicsOf('BoltOfCloth'), wool, ...yarn, ...scissors],
+    bowyer: [board, logPile, ...graphicsOf('Feather'), ...graphicsOf('Shaft')],
+    alchemist: [bottle, ...reagents]
   };
   if (materials[profession]?.includes(item.graphic)) return true;
   return betterEquipment(session, item);

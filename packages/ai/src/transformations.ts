@@ -1,4 +1,5 @@
 import { bandage, boltOfCloth, cloth, scissors, uncutCloth } from '@gemwright/common/game/items';
+import { soldAs } from '@gemwright/common/game/rules';
 
 // What a resident can turn one thing into with a tool in hand, the way the shard does it: rules of
 // the world, not plans. Whether any of them pays is for the resident to work out from the prices it
@@ -14,7 +15,7 @@ export interface Transformation {
 }
 
 export const transformations: readonly Transformation[] = [
-  { from: boltOfCloth, tools: scissors, tool: 0x0f9f, yields: cloth, per: 50 },
-  { from: uncutCloth, tools: scissors, tool: 0x0f9f, yields: cloth, per: 1 },
-  { from: cloth, tools: scissors, tool: 0x0f9f, yields: bandage, per: 1 }
+  { from: boltOfCloth, tools: scissors, tool: soldAs('Scissors'), yields: cloth, per: 50 },
+  { from: uncutCloth, tools: scissors, tool: soldAs('Scissors'), yields: cloth, per: 1 },
+  { from: cloth, tools: scissors, tool: soldAs('Scissors'), yields: bandage, per: 1 }
 ];

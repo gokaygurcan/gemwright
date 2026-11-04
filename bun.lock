@@ -53,6 +53,7 @@
       },
       "devDependencies": {
         "@gemwright/ai": "workspace:*",
+        "@gemwright/analyze": "workspace:*",
         "@gemwright/client": "workspace:*",
         "@gemwright/common": "workspace:*",
         "@gemwright/deployment": "workspace:*",

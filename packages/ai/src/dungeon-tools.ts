@@ -1,7 +1,8 @@
 import { skillId } from '@gemwright/common/game/skills';
 
 import type { DungeonContext, DungeonRun, RunRecord } from './dungeon-context';
-import { type Dungeon, dungeonAt, exitStair, floorAt, nearestEntry, type Stair, stairRoute } from './dungeons';
+import { leaveDungeon } from './dungeon-exit';
+import { type Dungeon, dungeonAt, floorAt, nearestEntry, type Stair, stairRoute } from './dungeons';
 import { observedThreat } from './fighter-context';
 import { recognised } from './fighter-prey';
 import { moongates } from './gates';
@@ -110,16 +111,10 @@ export function dungeonWalker(
     await ctx.navigate(entry.from, 4);
     return entry;
   };
-  // The nearest stairway up, floor by floor, until the surface.
-  const climbOut = async (dungeon: Dungeon, label = 'Climbing out') => {
-    for (let floors = 0; floors < 12; floors++) {
-      const floor = floorAt(dungeon, position());
-      const stair = floor && exitStair(dungeon, floor, position());
-      if (!floor) return;
-      if (!stair) throw new Error(`No known exit from ${dungeon.name} floor ${floor.id}`);
-      await takeStair(stair, label);
-    }
-    if (floorAt(dungeon, position())) throw new Error(`Did not reach the surface from ${dungeon.name}`);
+  // Up and out, level by level through the shard's teleporters, to the open world (dungeon-exit.ts).
+  const climbOut = async (_dungeon: Dungeon, _label = 'Climbing out') => {
+    if (!(await leaveDungeon({ ...ctx, navigate: walk })))
+      throw new Error(`No known way out of the dungeon at ${position().x},${position().y}`);
   };
   // Any point, surface or dungeon: into the dungeon and down its stairways to the right floor.
   const travelTo = async (site: { x: number; y: number; z: number }, range: number) => {

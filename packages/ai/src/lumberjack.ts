@@ -51,7 +51,7 @@ export async function runLumberjack(options: ResidentOptions) {
   const woods = workArea(
     'woods',
     options.label ?? template.id,
-    townFor(session, options.checkpoint, 'lumberjack'),
+    townFor(session, 'lumberjack'),
     undefined,
     session.world.position ?? undefined
   );

@@ -1,4 +1,5 @@
-import { blades, fish, fishingPoles, rawSteak } from '@gemwright/common/game/items';
+import { blades, cookingTools, fish, rawSteak } from '@gemwright/common/game/items';
+import { heatSources as heat, soldAs } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
 import { waterLandTiles, waterStaticGraphics } from '@gemwright/common/game/water';
 import { Fishing } from '@gemwright/network/replies';
@@ -16,13 +17,13 @@ import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
 import { sellingTurn } from './selling';
 import { onItem, onTile, useOn } from './target-action';
+import { fishingPoles } from './vendor-catalog';
 import { buyFrom, buyTool } from './vendor-trade';
 import { reachRegion } from './work-areas';
 
 const poles = fishingPoles;
 
-// ServUO Fishing.m_WaterTiles: land 0xA8-0xAB and 0x136-0x137; water statics 0x1797-0x179C
-// (listed there with the 0x4000 static offset). The pole reaches four tiles (MaxRange 4).
+// Fishable water is ServUO Fishing.m_WaterTiles (water.ts); the pole reaches four tiles (MaxRange 4).
 
 // A standing tile on the shore with water within reach, near `around`.
 function findSpot(ctx: ProfessionContext, around: { x: number; y: number; z: number }, avoid: Set<string>) {
@@ -46,20 +47,12 @@ function findSpot(ctx: ProfessionContext, around: { x: number; y: number; z: num
   return undefined;
 }
 
-// ServUO CraftItem.m_HeatSources (ovens, fireplaces, campfires) plus forges, which also count.
-const heat = new Set([
-  ...Array.from({ length: 0x48e - 0x461 + 1 }, (_, i) => 0x461 + i),
-  ...Array.from({ length: 0x96c - 0x92b + 1 }, (_, i) => 0x92b + i),
-  ...Array.from({ length: 0xde9 - 0xde3 + 1 }, (_, i) => 0xde3 + i),
-  0x0fb1,
-  ...Array.from({ length: 48 }, (_, i) => 6522 + i)
-]);
 // DefCooking "Barbecue" (1044498): fish steak 0-100 from one raw steak, needs heat. A rolling pin
 // or flour sifter from a cook (2 gold) opens the cooking menu, like a skillet.
 const cooking: CraftSkill = {
   skill: 'Cooking',
   vendor: 'cook',
-  tools: new Set([0x1043, 0x103e]),
+  tools: cookingTools,
   material: rawSteak,
   recipes: [
     { group: 1044498, label: 1022427, min: 0, amount: 1 } // fish steak
@@ -72,7 +65,7 @@ async function carve(ctx: ProfessionContext) {
   const { session } = ctx;
   let blade = ctx.carried().find((i) => blades.has(i.graphic));
   if (!blade) {
-    await buyFrom({ ...ctx, limits: TOOLS }, 'blacksmith', new Map([[0x0f52, 1]]));
+    await buyFrom({ ...ctx, limits: TOOLS }, 'blacksmith', new Map([[soldAs('Dagger'), 1]]));
     blade = ctx.carried().find((i) => blades.has(i.graphic));
     if (!blade) return;
   }
@@ -123,7 +116,7 @@ export const fishingTurn =
       session.world.childrenOf(ctx.serial).find((i) => poles.has(i.graphic));
     if (!pole) {
       phase('fishing-gear', 'Buying a fishing pole from a fisherman');
-      await buyTool({ ...ctx, limits: TOOLS }, 'fisherman', [0x0dc0, 0x0dbf]);
+      await buyTool({ ...ctx, limits: TOOLS }, 'fisherman', [...poles]);
       pole = ctx.carried().find((i) => poles.has(i.graphic));
       if (!pole) throw new Blocked('missing-tool', 'No fisherman sold a fishing pole');
     }

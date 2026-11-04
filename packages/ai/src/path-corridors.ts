@@ -1,6 +1,6 @@
 import { directRoute } from './direct-route';
 import { type RouteRequest, type RouteResult, RouteSearch } from './path-search';
-import { RouteWaypoints } from './route-waypoints';
+import { type Corridor, RouteWaypoints } from './route-waypoints';
 import type { Point, Terrain } from './terrain';
 
 // Full city routes are reusable public-terrain corridors; join them with a small local search.
@@ -8,6 +8,9 @@ export class RouteCorridors {
   private readonly routes = new Map<string, Point[]>();
   private readonly search = new RouteSearch();
   private readonly waypoints = new RouteWaypoints();
+  useCorridors(corridors: Corridor[]) {
+    this.waypoints.use(corridors);
+  }
   run(terrain: Terrain, request: RouteRequest, cancelled: () => boolean): RouteResult {
     const began = performance.now();
     const blocked = new Set(request.blocked);

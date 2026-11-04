@@ -13,7 +13,7 @@ import { readyForDungeons } from './progression';
 import { trainSupportingSkill } from './skill-training';
 
 // A fighter in a dungeon: its room work is to fight the nearest creature it can take, whatever the
-// creature is (catalogs/monsters.json), heal in the field, and leave alone anything too strong.
+// creature is (the creature rules), heal in the field, and leave alone anything too strong.
 export function fighterDungeon(
   ctx: FighterContext,
   deps: {

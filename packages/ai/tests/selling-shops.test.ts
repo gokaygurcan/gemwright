@@ -62,3 +62,31 @@ test('a piece listed for sale that no shop buys is left behind on the second tri
   expect(dropped).toEqual([50]);
   expect(f.checkpoint.forSale).toEqual([]);
 });
+
+test('any piece taken to the shops and refused twice is left behind, listed or not', async () => {
+  const f = behaviorFixture('swordsman');
+  f.terrain.tile = () => ({ flags: TileFlag.Wearable, height: 0, layer: 1, name: 'longsword' }) as never;
+  for (let serial = 50; serial < 56; serial++)
+    f.world.entities.set(serial, { serial, kind: 'item', graphic: 0xf61, parent: 10, amount: 1, properties: [] });
+  const dropped: number[] = [];
+  Object.assign(f.session, {
+    inspectProperties: async () => {},
+    dropAtFeet: async (serial: number) => {
+      dropped.push(serial);
+      f.world.entities.delete(serial);
+    }
+  });
+  const sellCtx = {
+    ...f.ctx,
+    navigate: async () => {
+      throw new Error('No walkable route');
+    },
+    backpack: () => 10,
+    carried: (pack: number) => f.world.childrenOf(pack),
+    status: () => f.world.status
+  } as unknown as Parameters<typeof sellingTurn>[0];
+  await sellingTurn(sellCtx, true);
+  expect(dropped).toEqual([]);
+  await sellingTurn(sellCtx, true);
+  expect(dropped).toEqual([50, 51, 52, 53, 54, 55]);
+});

@@ -15,6 +15,7 @@ import type { LifeContext } from './life';
 import { lifeEvent } from './life-events';
 import { pickLocation, townAt } from './locations';
 import { healSelf } from './mend';
+import { distance } from './navigation';
 import { meetNeeds } from './need-planning';
 import { perceptionFor } from './perception-session';
 import { updatePersonalGoals } from './personal-goals';
@@ -41,6 +42,7 @@ import { housekeeping, optionalTurn } from './shared-turn';
 import { sideTradeTurn } from './side-trade';
 import { scrapTurn } from './skirmish';
 import { townTurn } from './towns';
+import { reachRegion } from './work-areas';
 import { rememberBalance, workEvidence } from './work-evidence';
 
 // Status refreshes spent on observations that stayed unavailable (see the recover step below).
@@ -126,7 +128,7 @@ export function goalSituation(ctx: ProfessionContext): GoalSituation {
 export async function residentTurn(ctx: ProfessionContext, actions: GoalActions): Promise<boolean> {
   const { session, checkpoint } = ctx;
   assertNotHalted(session);
-  townTurn(session, checkpoint, actions.trade, ctx.city);
+  townTurn(session, actions.trade, ctx.city);
   let savedGoal = JSON.stringify(checkpoint.workGoal);
   const persist = () => {
     const current = JSON.stringify(checkpoint.workGoal);
@@ -251,6 +253,14 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
         );
         if (actions.settle) await actions.settle();
         else {
+          // Away from its town (a fishing shore, a taming ground), goods are secured at home: its
+          // bank first, then its shops, as the other trades' own settling does.
+          const home = pickLocation(ctx.city, 'banker', ctx.position());
+          if (home && distance(ctx.position(), home) > 40) {
+            ctx.phase('securing-assets', `Returning to ${ctx.city} to secure carried goods`);
+            await reachRegion(ctx, home);
+            await ctx.navigate(home, 4).catch(() => {});
+          }
           await sellingTurn(ctx, true);
           if (!(await bankNearbyGold(ctx))) await bankSurplus(ctx, ctx.city);
         }

@@ -1,24 +1,23 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 import {
-  backpack,
   bandage,
   containers,
-  fishingPoles,
-  hatchets,
   healPotion,
   instruments,
   isDeathRobe,
-  miningTools,
   reagents,
+  scissors,
   sewingKit,
   spellbook
 } from '@gemwright/common/game/items';
+import { graphicsListed, graphicsOf } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
 import { openOwnBackpack } from './backpack';
 import { chaosOf } from './chaos';
 import type { Terrain } from './terrain';
+import { fishingPoles, hatchets, miningTools } from './vendor-catalog';
 
 // How full a pack is, as ServUO counts it: a backpack holds 125 items in all, nested ones included
 // (Container.DefaultMaxItems), and the character carries up to its maximum weight. A gatherer
@@ -56,15 +55,14 @@ export const workGear = new Set<number>([
   sewingKit,
   bandage,
   healPotion,
-  0x0efa, // spellbook
-  0x1022, // fletcher's tools
-  0x1023, // fletcher's tools (alternate)
-  0x0e9b, // mortar and pestle
-  0x1eb8, // tinker's tools
-  0x0f9f, // scissors
-  0x1f14, // recall rune
-  0x0f51, // dagger (carving fish), facing east
-  0x0f52 // dagger (carving fish), facing south
+  spellbook,
+  ...graphicsOf('FletcherTools'),
+  ...graphicsOf('MortarPestle'),
+  ...graphicsOf('TinkerTools'),
+  ...scissors,
+  ...graphicsOf('RecallRune'),
+  // a dagger for carving fish
+  ...graphicsOf('Dagger')
 ]);
 
 // Tools by kind: graphics of one tool (a hatchet's two facings) count together.
@@ -74,13 +72,13 @@ const toolKinds: number[][] = [
   [...fishingPoles],
   [...instruments],
   [sewingKit],
-  [0x0f9e, 0x0f9f], // scissors
-  [0x1022, 0x1023], // fletcher's tools
-  [0x0e9b], // mortar and pestle
-  [0x1eb8, 0x1ebc], // tinker's tools and tool kit
-  [0x13e3, 0x13e4], // smith's hammer
-  [0x0fbb, 0x0fbc], // tongs
-  [0x1034, 0x1035, 0x1028, 0x1029] // saws
+  [...scissors],
+  graphicsOf('FletcherTools'),
+  graphicsOf('MortarPestle'),
+  graphicsOf('TinkerTools'),
+  graphicsOf('SmithHammer'),
+  graphicsOf('Tongs'),
+  [...graphicsOf('Saw'), ...graphicsOf('DovetailSaw')]
 ];
 const toolGraphics = new Set(toolKinds.flat());
 const toolGroup = (graphic: number) => toolKinds.findIndex((kind) => kind.includes(graphic));
@@ -90,21 +88,13 @@ export function enoughTools(session: PlayerSession, pack: number, graphic: numbe
   return kind >= 0 && packItems(session, pack).filter((item) => toolGroup(item.graphic) === kind).length >= 2;
 }
 // Backpacks found inside a backpack: what a dead pack animal leaves (its pack's contents).
-const foreignBags = new Set([
-  backpack, // backpack
-  0x09b2 // backpack (alternate)
-]);
+const foreignBags = graphicsListed('Backpack');
 
 // What no player carries: more than one spellbook, and any death robe beyond the one worn after a
 // resurrection (the robe is newbied, so each death in it leaves the old one in the pack). That one
 // comes off as soon as there is anything else to wear. Extras are dropped, where they decay.
 // Called between tasks by every runner and after every resurrection.
-const PLAIN_BOOKS = new Set([
-  0x0fef, // brown book
-  0x0ff0, // tan book
-  0x0ff1, // red book
-  0x0ff2 // blue book
-]);
+const PLAIN_BOOKS = new Set(['BrownBook', 'TanBook', 'RedBook', 'BlueBook'].flatMap(graphicsOf));
 const opened = new WeakSet<PlayerSession>();
 export async function tidyPack(
   session: PlayerSession,

@@ -1,3 +1,5 @@
+import { harvestTiles } from '@gemwright/common/game/rules';
+
 import type { Point, Terrain } from './terrain';
 
 export interface MiningCandidate extends Point {
@@ -6,7 +8,8 @@ export interface MiningCandidate extends Point {
   floor: boolean;
 }
 const catalogs = new WeakMap<Terrain, Map<string, Promise<MiningCandidate[]>>>();
-const caveFloors = new Set(Array.from({ length: 21 }, (_, i) => 0x053b + i));
+const rockLand = new Set(harvestTiles.rock.land);
+const caveFloors = new Set(harvestTiles.rock.statics);
 export function miningCatalog(
   terrain: Terrain,
   origin: Point,
@@ -28,9 +31,8 @@ export function miningCatalog(
       for (let x = Math.max(1, center.x - radius); x <= Math.min(7165, center.x + radius); x++) {
         for (let y = Math.max(1, center.y - radius); y <= Math.min(4093, center.y + radius); y++) {
           const land = terrain.cell(x, y).land;
-          const name = terrain.tile(land.id).name;
-          if (/^(rock|cave|cave floor)$/i.test(name))
-            candidates.push({ ...land, graphic: 0, floor: /^cave/i.test(name) });
+          if (rockLand.has(land.id))
+            candidates.push({ ...land, graphic: 0, floor: terrain.landKind(land.id) === 'cave' });
         }
         if (performance.now() - slice > 2) {
           await Bun.sleep(1);

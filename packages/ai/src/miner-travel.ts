@@ -45,7 +45,7 @@ export function minerDistrict(options: ResidentOptions) {
   const area = workArea(
     'mining',
     options.label ?? template.id,
-    townFor(session, options.checkpoint, 'miner'),
+    townFor(session, 'miner'),
     usableMiningArea,
     session.world.position ?? undefined
   );

@@ -1,4 +1,6 @@
 // biome-ignore-all lint/style/noNonNullAssertion: typed-array reads in the A* inner loop; every index is bounded by how the search arrays are built, and a fallback per read would cost the hottest code in the AI.
+import { landKind } from '@gemwright/common/game/land';
+
 import type { Point, Terrain } from './terrain';
 
 export interface RouteRequest {
@@ -12,6 +14,8 @@ export interface RouteRequest {
   // 8-tile cells where residents keep dying (trouble.ts): crossed only when no way round is shorter.
   deadly?: number[];
   deadlyCost?: number;
+  // A ghost's walk: every open tile costs the same, roads and trouble alike.
+  ghost?: boolean;
   wide?: boolean;
   targetZ?: number;
   partial?: boolean;
@@ -36,12 +40,12 @@ const directions = [
   [-1, -1]
 ] as const;
 const coordinate = (x: number, y: number, z: number) => (x * 4096 + y) * 512 + z + 256;
-// Land tiles that read as a road or path, by tile id; tile names do not change while running.
+// Roads and paths, and the dirt tracks between towns (common land.ts), by land tile id.
 const roads = new Map<number, boolean>();
 const isRoad = (terrain: Pick<Terrain, 'tile'>, id: number) => {
   let road = roads.get(id);
   if (road === undefined) {
-    road = /cobble|flagstone|pavement|paver|road|dirt/i.test(terrain.tile(id).name);
+    road = ['road', 'dirt'].includes(landKind(id, terrain.tile(id)));
     roads.set(id, road);
   }
   return road;
@@ -72,8 +76,8 @@ export class RouteSearch {
     private readonly capacity = 65536,
     private readonly budgetMs = 500,
     private readonly expansionBudget?: number,
-    // Cost of a step off the road; live searches prefer roads mildly, the offline corridor build
-    // (build-routes.ts) strongly, so stored town-to-town routes follow the actual roads.
+    // Cost of a step off the road; live searches prefer roads mildly, the corridor build at start
+    // (route-build.ts) strongly, so stored town-to-town routes follow the actual roads.
     private readonly offRoad = 1.12
   ) {
     if (!Number.isInteger(capacity) || capacity < 1024 || capacity > 1048576 || capacity & (capacity - 1))
@@ -153,8 +157,9 @@ export class RouteSearch {
     // refused: a path that contains a step the shard will not take is not a path.
     const MAX_STEP_Z = 8;
     const blocked = new Set(request.blocked);
-    const penalties = new Set(request.penalties ?? []);
-    const deadly = new Set(request.deadly ?? []);
+    const penalties = new Set(request.ghost ? [] : (request.penalties ?? []));
+    const deadly = new Set(request.ghost ? [] : (request.deadly ?? []));
+    const offRoad = request.ghost ? 1 : this.offRoad;
     const estimate = (x: number, y: number) => {
       const dx = Math.abs(x - goal.x),
         dy = Math.abs(y - goal.y);
@@ -225,7 +230,7 @@ export class RouteSearch {
           (deadly.size && deadly.has(cell) ? (request.deadlyCost ?? 30) : 0);
         const vary = request.seed ? ((((x >> 2) * 73856093) ^ ((y >> 2) * 19349663) ^ request.seed) & 1023) / 3000 : 0;
         const cost =
-          this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : this.offRoad) + (turn ? 0.08 : 0) + trouble + vary;
+          this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : offRoad) + (turn ? 0.08 : 0) + trouble + vary;
         if (other >= 0 && this.costs[other]! <= cost) continue;
         if (other < 0) {
           if (this.count === this.capacity) {

@@ -1,6 +1,7 @@
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 import { ingot } from '@gemwright/common/game/items';
+import { smeltingForges } from '@gemwright/common/game/rules';
 import { ShardMessage, Smelting } from '@gemwright/network/replies';
 
 import { Blocked } from './blocked';
@@ -9,7 +10,7 @@ import type { MinerServicesContext } from './miner-types';
 import { distance } from './navigation';
 import { useOn } from './target-action';
 
-export const forges = new Set([0x0fb1, ...Array.from({ length: 48 }, (_, index) => 6522 + index)]);
+export const forges = smeltingForges;
 
 // Smelting: the nearest free, reachable forge (remembered ones first); a town without one (Cove)
 // crosses to another town's smithy by gate. Then an approach from a free side, then each ore pile

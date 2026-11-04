@@ -1,8 +1,10 @@
-import { blades } from '@gemwright/common/game/items';
+import { blades, boltOfCloth, wool, yarn } from '@gemwright/common/game/items';
+import { bodiesOf, graphicsOfKinds, soldAs } from '@gemwright/common/game/rules';
 import type { Entity } from '@gemwright/network/world';
 
 import { TOOLS } from './bank-gold';
 import { Blocked } from './blocked';
+import { cityLandmarks, loomSites, wheelSites } from './locations';
 import { approachMobile } from './mobile-approach';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
@@ -14,34 +16,33 @@ import { reachRegion } from './work-areas';
 // one wool per sheep on Trammel, regrown after two hours), spin each wool into three balls of yarn
 // on a public spinning wheel, weave five balls into a bolt on a public loom, and cut the bolt into
 // fifty cloth with scissors (tailor.ts).
-const wool = 0x0df8;
-const yarn = new Set([0x0e1d, 0x0e1e, 0x0e1f]);
-const woolly = 0xcf; // a shorn sheep has body 0xdf until its wool grows back
+// A sheep with its wool grown; shorn, it wears another body until the wool grows back.
+const woolly = new Set(bodiesOf('Sheep'));
 const SHEARED = 500452; // You place the gathered wool into your backpack.
 const NOT_READY = 500449; // This sheep is not yet ready to be shorn.
 const SPUN = [1010576, 1010574]; // You put the ball(s) of yarn in your backpack.
 const WHEEL_BUSY = 502656;
 const WOVEN = 500368; // You create some cloth and put it in your backpack.
 
-// Sheep pastures, and public spinning wheels and looms from ServUO's Britannia town decoration
-// (Data/Decoration/Britannia/britain.cfg).
-const pastures = [{ x: 1319, y: 1814, z: 0 }];
-const wheels = [
-  { x: 1473, y: 1689, z: 0 },
-  { x: 1475, y: 1689, z: 0 },
-  { x: 1545, y: 1656, z: 26 },
-  { x: 1390, y: 1604, z: 30 }
-];
-const looms = [
-  { x: 1473, y: 1685, z: 0 },
-  { x: 1428, y: 1610, z: 20 },
-  { x: 1545, y: 1660, z: 26 },
-  { x: 1392, y: 1601, z: 30 }
-];
-const wheelGraphics = new Set([0x1015, 0x1016, 0x1019, 0x101a, 0x101c, 0x101d, 0x10a4, 0x10a5]);
-const loomGraphics = new Set([0x105f, 0x1060, 0x1061, 0x1062]);
+// Sheep pastures (the shard's sheep spawners) and public spinning wheels and looms (its decoration),
+// in the tailor's town, else in the towns that have them.
+const own = <T extends { city: string }>(ctx: ProfessionContext, sites: readonly T[]) => {
+  const here = sites.filter((site) => site.city === ctx.city);
+  return here.length ? here : sites;
+};
+// The two sheep spawners nearest the looms the wool is woven at.
+const pastures = (ctx: ProfessionContext) => {
+  const loom = own(ctx, loomSites)[0];
+  if (!loom) return [];
+  return cityLandmarks(loom.city, /^sheep$/)
+    .sort((a, b) => distance(a, loom) - distance(b, loom))
+    .slice(0, 2)
+    .map(({ x, y }) => ({ x, y, z: 0 }));
+};
+const wheelGraphics = graphicsOfKinds('ISpinningWheel');
+const loomGraphics = graphicsOfKinds('ILoom');
 
-const near = (ctx: ProfessionContext, graphics: Set<number>, point: { x: number; y: number }) =>
+const near = (ctx: ProfessionContext, graphics: ReadonlySet<number>, point: { x: number; y: number }) =>
   [...ctx.session.world.entities.values()].find(
     (e) => e.kind === 'item' && graphics.has(e.graphic) && e.position && distance(e.position, point) <= 2
   );
@@ -61,16 +62,16 @@ const replied = (ctx: ProfessionContext, seen: Set<unknown>, clilocs: number[]) 
 async function shear(ctx: ProfessionContext) {
   const { session, phase } = ctx;
   if (!ctx.carried().some((i) => blades.has(i.graphic)))
-    await buyFrom({ ...ctx, city: 'Britain', limits: TOOLS }, 'weaponsmith', new Map([[0x13f6, 1]])).catch(() => false);
+    await buyFrom({ ...ctx, limits: TOOLS }, 'weaponsmith', new Map([[soldAs('ButcherKnife'), 1]])).catch(() => false);
   const blade = ctx.carried().find((i) => blades.has(i.graphic));
   if (!blade) return 0;
   let sheared = 0;
-  for (const pasture of pastures) {
+  for (const pasture of pastures(ctx)) {
     phase('tailor-shear', 'Walking out to the sheep pasture for wool');
     await reachRegion(ctx, pasture);
     await ctx.navigate(pasture, 6);
     for (const sheep of [...session.world.entities.values()].filter(
-      (e) => e.kind === 'mobile' && e.graphic === woolly && e.position && distance(e.position, pasture) <= 16
+      (e) => e.kind === 'mobile' && woolly.has(e.graphic) && e.position && distance(e.position, pasture) <= 16
     )) {
       ctx.check();
       await approachMobile(ctx, sheep.serial).catch(() => undefined);
@@ -84,7 +85,7 @@ async function shear(ctx: ProfessionContext) {
 
 async function spin(ctx: ProfessionContext) {
   const { session, phase } = ctx;
-  for (const spot of wheels) {
+  for (const spot of own(ctx, wheelSites)) {
     if (!ctx.count(wool)) return;
     phase('tailor-spin', 'Spinning wool into yarn');
     try {
@@ -113,7 +114,7 @@ async function weave(ctx: ProfessionContext) {
       .carried()
       .filter((i) => yarn.has(i.graphic))
       .reduce((n, i) => n + (i.amount ?? 1), 0);
-  for (const spot of looms) {
+  for (const spot of own(ctx, loomSites)) {
     if (balls() < 5) return;
     phase('tailor-weave', 'Weaving yarn into a bolt of cloth');
     try {
@@ -148,5 +149,5 @@ export async function woolToBolt(ctx: ProfessionContext) {
   if (!ctx.count(wool)) return false;
   await spin(ctx);
   await weave(ctx);
-  return ctx.count(0x0f95) > 0;
+  return ctx.count(boltOfCloth) > 0;
 }

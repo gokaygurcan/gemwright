@@ -8,6 +8,9 @@ import { serviceLocations } from '../src/locations';
 import type { ProfessionContext } from '../src/profession';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 function catchFixture(holdsFish: boolean, refuseFish = false) {
   const f = socialFixture('fisherman');

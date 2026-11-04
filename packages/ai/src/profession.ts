@@ -82,7 +82,7 @@ export async function runProfession(
   const terrain = Terrain.shared(options.assets, 1);
   const deadline = Date.now() + options.seconds * 1000;
   const checkpoint = structuredClone(options.checkpoint);
-  const city = townFor(session, checkpoint, name);
+  const city = townFor(session, name);
   const progress: Record<string, number> = {};
   const tag = options.label ? `${name}:${options.label}` : name;
   const log = (message: string) => logger('profession').info(`[${tag}] ${message}`);

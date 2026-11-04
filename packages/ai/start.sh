@@ -30,6 +30,21 @@ while [ ! -e /app/data/.assets-ready ] || [ -e /app/data/assets.tar.gz ]; do
         wait $! || true
     fi
 done
+# The shard's world files (spawners and regions) the residents learn the land from, uploaded as
+# /app/data/world.tar.gz by the deployment; a newer upload replaces them, and they stay between deploys.
+# Waited for like the map files: the upload needs this container running.
+while [ ! -e /app/data/world/Regions.xml ] || [ ! -e /app/data/world/teleporters.csv ] || [ ! -d /app/data/world/Decoration ] || [ -e /app/data/world.tar.gz ]; do
+    if [ -e /app/data/world.tar.gz ]; then
+        rm -rf /app/data/world
+        mkdir -p /app/data/world
+        tar -xzf /app/data/world.tar.gz -C /app/data/world
+        rm /app/data/world.tar.gz
+    else
+        echo 'Waiting for world files on the data volume.'
+        sleep 3 &
+        wait $! || true
+    fi
+done
 trap - TERM INT
 
 cd /app

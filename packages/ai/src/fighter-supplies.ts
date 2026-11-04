@@ -1,4 +1,5 @@
 import { arrow, crossbowBolt, curePotion, poisonPotion } from '@gemwright/common/game/items';
+import { soldAs } from '@gemwright/common/game/rules';
 import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
@@ -49,7 +50,7 @@ export function createFighterRestock(
     const weapon = [...session.world.entities.values()].find(
       (item) => item.parent === ctx.serial && weaponsFor(ctx.template).has(item.graphic)
     )?.graphic;
-    const ammo = weaponSkill(ctx.template) === 'Archery' ? ammoFor(weapon ?? 0x13b2) : undefined;
+    const ammo = weaponSkill(ctx.template) === 'Archery' ? ammoFor(weapon ?? soldAs('Bow')) : undefined;
     if (ammo) table.set(ammo, [150, 50]);
     // Casters keep every reagent their combat spells use, 150 of each so they rarely walk back to the mage.
     if (casts()) for (const reagent of combatReagents) table.set(reagent, [150, 30]);

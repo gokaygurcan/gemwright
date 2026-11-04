@@ -1,19 +1,11 @@
-import { readFileSync } from 'node:fs';
-
 import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
 
+import { monsters } from './monster-reference';
 import type { BaselineTraits, CreaturePrior, Reference } from './perception-types';
 
-interface Creature extends CreaturePrior {
-  bodies: number[];
-}
-const catalog = JSON.parse(readFileSync(new URL('../catalogs/monsters.json', import.meta.url), 'utf8')) as {
-  schemaVersion: number;
-  source: string;
-  monsters: Creature[];
-};
+type Creature = CreaturePrior & { bodies: readonly number[] };
 const bodies = new Map<number, Creature[]>();
-for (const creature of catalog.monsters)
+for (const creature of monsters as readonly Creature[])
   for (const body of creature.bodies) bodies.set(body, [...(bodies.get(body) ?? []), creature]);
 
 const cached = new Map<string, Reference<BaselineTraits>>();
@@ -32,7 +24,7 @@ export function baselineTraits(graphic: number, name?: string): Reference<Baseli
     attitudes.size === 1 && typeof candidates[0]?.aggressive === 'boolean' ? candidates[0].aggressive : null;
   const result: Reference<BaselineTraits> = {
     kind: 'reference',
-    source: `${catalog.source}; catalog schema ${catalog.schemaVersion}`,
+    source: 'ServUO Scripts/Mobiles constructors (common rules)',
     value: {
       humanLike,
       aggressive,

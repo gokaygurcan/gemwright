@@ -15,6 +15,7 @@ import { distance } from './navigation';
 import { gatherPets } from './pets';
 import { recallFor } from './recall';
 import { noteStranded, strandedOften, useStuckMenu } from './stuck';
+import { placeAllowed } from './towns';
 import { reachableFrom } from './unreachable';
 
 const ghosts = GHOST_BODIES;
@@ -32,6 +33,9 @@ export async function travelByMoongate(
   to: Gate
 ) {
   const { session, position, navigate, phase } = ctx;
+  // Never through to a city the shard keeps its residents out of (gemwright.json ai.cities).
+  if (!placeAllowed(moongates[to]))
+    throw new Blocked('unreachable', `The ${to} moongate leads out of the allowed cities`);
   const here = position();
   const order = (Object.keys(moongates) as Gate[]).sort(
     (a, b) => distance(here, moongates[a]) - distance(here, moongates[b])

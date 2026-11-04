@@ -4,6 +4,7 @@ import { inflateSync } from 'node:zlib';
 
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { nameHash } from '@gemwright/common/assets/uop';
+import { type LandKind, landKind, landKinds } from '@gemwright/common/game/land';
 
 import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';
@@ -42,6 +43,7 @@ export interface TerrainBuffers {
 }
 export class Terrain {
   private readonly tileCache = new Map<number, Tile>();
+  private kinds?: Uint8Array;
   private localSearch?: RouteSearch;
   private shared?: TerrainBuffers;
   private readonly cacheKeys = new Uint32Array(32768);
@@ -162,6 +164,19 @@ export class Terrain {
     };
     this.tileCache.set(key, value);
     return value;
+  }
+
+  // What a land tile is (common land.ts), worked out once per map for all its residents.
+  landKind(id: number): LandKind {
+    if (!this.kinds) {
+      const kinds = new Uint8Array(0x4000);
+      for (let tile = 0; tile < kinds.length; tile++) kinds[tile] = landKinds.indexOf(landKind(tile, this.tile(tile)));
+      this.kinds = kinds;
+    }
+    return landKinds[this.kinds[id & 0x3fff] ?? 0] ?? 'unknown';
+  }
+  kind(x: number, y: number): LandKind {
+    return this.landKind(this.cell(x, y).land.id);
   }
 
   findStatics(ids: ReadonlySet<number>, origin: Point, radius: number): (Point & { id: number })[] {
@@ -325,7 +340,9 @@ export class Terrain {
     blocked = new Set<string>(),
     targetZ?: number,
     signal?: AbortSignal,
-    partial = false
+    partial = false,
+    // A ghost: no roads to favour, no trouble or danger to pay for.
+    ghost = false
   ): Promise<Point[] | null> {
     const request = (wide: boolean) =>
       PathPool.get(this.directory, this.facet, this.sharedBuffers()).run(
@@ -334,7 +351,7 @@ export class Terrain {
           goal,
           range,
           // Teleporter tiles only when one is the goal: never stepped on by accident (links.ts).
-          blocked: [...blocked, ...teleporterTiles.filter((tile) => tile !== `${goal.x},${goal.y}`)],
+          blocked: [...blocked, ...[...teleporterTiles].filter((tile) => tile !== `${goal.x},${goal.y}`)],
           penalties: troubleCells(),
           penaltyCost: tuning.trouble.stepCost,
           deadly: deadlyCells(),
@@ -342,7 +359,8 @@ export class Terrain {
           targetZ,
           partial,
           wide,
-          seed: routeSeed(goal)
+          seed: routeSeed(goal),
+          ghost
         },
         signal
       );

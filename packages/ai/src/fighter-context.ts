@@ -1,10 +1,21 @@
-import { bandage, gargishWeapons, gold, healPotion, weapons } from '@gemwright/common/game/items';
+import {
+  bandage,
+  boneArmor,
+  gargishWeapons,
+  gems,
+  gold,
+  healPotion,
+  shields,
+  weapons
+} from '@gemwright/common/game/items';
+import { bodiesOf, spellScrollGraphics } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity, Position, WorldView } from '@gemwright/network/world';
 
 import { withinReach } from './areas';
 import type { CharacterTemplate } from './config';
-import { type Landmark, pickLocation, type ServiceType, serviceLocation, serviceLocations } from './locations';
+import { type Landmark, pickLocation, type ServiceType, serviceLocations } from './locations';
+import { monsters } from './monster-reference';
 import type { createNavigator } from './navigation';
 import { rangedGraphics, rangedWeapon } from './ranged-weapons';
 import type { Checkpoint } from './store';
@@ -12,7 +23,6 @@ import type { Terrain } from './terrain';
 import { reachableFrom } from './unreachable';
 
 export { bandage, healPotion };
-export const graveyard = serviceLocation('Britain', 'graveyard');
 // A fighter's home town: its bank is the town point, and every service comes from that city, falling
 // back to Britain's when the city has none (world.json decides where fighters live).
 export function homeOf(city: string, position?: () => { x: number; y: number }) {
@@ -37,7 +47,7 @@ export function homeOf(city: string, position?: () => { x: number; y: number }) 
   const bank = all('banker')[0];
   return {
     city: serviceLocations(city, 'banker').length ? city : 'Britain',
-    town: bank ? { x: bank.x, y: bank.y } : { x: 1430, y: 1555 },
+    town: bank ?? serviceLocations('Britain', 'banker')[0] ?? position?.() ?? { x: 0, y: 0 },
     get banks() {
       return all('banker');
     },
@@ -61,15 +71,15 @@ import { prey } from './fighter-prey';
 export { prey };
 export const valuable = (graphic: number) =>
   graphic === gold ||
-  (graphic >= 0xf10 && graphic <= 0xf30) ||
-  (graphic >= 0x144e && graphic <= 0x1457) ||
-  (graphic >= 0x1b72 && graphic <= 0x1b7b) ||
+  gems.has(graphic) ||
+  boneArmor.has(graphic) ||
+  shields.has(graphic) ||
   Object.values(families).some((ids) => ids.includes(graphic)) ||
   // Arrows and bolts: AOS puts missed ammunition in the target's pack, so archers recover it.
   graphic === arrowGraphic ||
   graphic === crossbowBolt ||
   // Spell scrolls: mages buy them back, and casters add new ones to their spellbook.
-  (graphic >= 0x1f2d && graphic <= 0x1f6c);
+  spellScrollGraphics.has(graphic);
 
 export class Died extends Error {}
 export class Retreat extends Error {}
@@ -107,9 +117,8 @@ export const weaponsFor = (template: CharacterTemplate) => sets.get(weaponSkill(
 // Ammunition a ranged weapon consumes (BaseRanged.AmmoType): crossbows use bolts.
 export const ammoFor = (weapon: number | undefined) => rangedWeapon(weapon)?.ammo;
 
-const passiveBodies = new Set([
-  0x5, 0x6, 0xc8, 0xc9, 0xcb, 0xcc, 0xcd, 0xcf, 0xd0, 0xd1, 0xd7, 0xd8, 0xd9, 0xdf, 0xe2, 0xe4, 0xe7
-]);
+// Bodies some creature that never attacks on sight wears (the ServUO monster catalog).
+const passiveBodies = new Set(monsters.filter((m) => !m.aggressive).flatMap((m) => [...m.bodies, ...bodiesOf(m.type)]));
 
 // Skips opponents this session could not legally reach; serials are session-scoped observations.
 export const huntable = (mobile: Entity, unreachable: Set<number>) =>

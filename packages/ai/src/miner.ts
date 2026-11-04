@@ -9,6 +9,7 @@ import { shedDeathRobe, wearsDeathRobe } from './death-robe';
 import type { DecisionPick } from './decisions';
 import { actionScope, checkAction, yieldForInteraction } from './execution-session';
 import { reconcileExperience } from './experience';
+import { moongates, nearestGate } from './gates';
 import { residentTurn } from './goal-turn';
 import { leavesEarly, packFull, packItems, tidyPack, workGear } from './inventory';
 import { lifeTurn } from './life';
@@ -22,6 +23,7 @@ import { chooseMiningActivity, minerPlan, rememberForges } from './miner-plan';
 import { createMinerServices, tools } from './miner-services';
 import { findMiningSite } from './miner-sites';
 import { minerDistrict, reachMinerHome } from './miner-travel';
+import { travelByMoongate } from './moongate';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator } from './navigation';
 import { lighten } from './overload';
@@ -36,6 +38,7 @@ import { asProfession } from './shared-turn';
 import { answerDanger } from './skirmish';
 import { type Point, Terrain } from './terrain';
 import { TownChanged } from './towns';
+import { WALKING_LIMIT } from './tuning';
 import { reachRegion } from './work-areas';
 
 const distance = (a: Point, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -363,6 +366,11 @@ export async function runMiner(options: ResidentOptions) {
           if (await pickUp(backpack)) return;
           if (miningArea && distance(position(), miningArea) > 90) {
             phase('mine-travel', `Returning to the ${area.city} mining district`);
+            // From farther than a walk, through the district's own moongate (moongate.ts), never across
+            // the land: a miner back from Britain walked 1300 tiles of mountains and died on them.
+            const gate = nearestGate(miningArea);
+            if (distance(position(), miningArea) > WALKING_LIMIT && distance(position(), moongates[gate]) > 2)
+              await travelByMoongate({ session, position, navigate, phase }, gate);
             // The district centre can sit inside the mountain; arriving anywhere nearby is enough.
             await navigate(miningArea, 25);
           }

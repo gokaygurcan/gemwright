@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs';
-
 import { gold } from '@gemwright/common/game/items';
 import { ShardAction } from '@gemwright/network/replies';
 
+import { absence } from './absence';
 import { tally } from './activity';
 import { nearAnyGround } from './cemeteries';
 import { type Gate, moongates, nearestGate } from './gates';
@@ -12,6 +11,8 @@ import { pickLocation } from './locations';
 import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import type { ProfessionContext } from './profession';
+import type { Spawner } from './spawns';
+import { placeAllowed } from './towns';
 import { tuning } from './tuning';
 
 // Escort quests, a broke player's first income (ServUO BaseEscortable): townsfolk who want to go
@@ -45,11 +46,27 @@ const towns: Record<string, string> = {
 };
 const GATE_WALK = tuning.escort.walkToGate;
 const SEEK_BELOW = tuning.escort.seekBelowGold;
-const spots = (
-  JSON.parse(readFileSync(new URL('../locations/escorts.json', import.meta.url), 'utf8')) as {
-    spots: { x: number; y: number }[];
-  }
-).spots;
+// Where escortable NPCs (BaseEscortable and its kinds) may appear, from the shard's own spawners at
+// start (useEscortSpawns). A spot says one may come, not that one waits there.
+const escortable = new Set([
+  'baseescortable',
+  'bridegroom',
+  'escortablemage',
+  'gargishnoble',
+  'merchant',
+  'messenger',
+  'noble',
+  'peasant',
+  'seekerofadventure'
+]);
+const spots: { x: number; y: number }[] = [];
+export const escortSpots = (): readonly { x: number; y: number }[] => spots;
+export function useEscortSpawns(spawners: Spawner[]) {
+  const found = spawners
+    .filter((s) => s.map === 'Trammel' && s.x < 5120 && s.kinds.some((kind) => escortable.has(kind)))
+    .map(({ x, y }) => ({ x, y }));
+  spots.splice(0, spots.length, ...found);
+}
 // Anyone may take an escort, but the penniless come first: residents with no gold at all register
 // here, and others leave the escorts around them alone.
 const broke = new Map<number, { x: number; y: number; at: number }>();
@@ -77,13 +94,15 @@ export async function escortOpportunity(ctx: Ctx, funds: number): Promise<boolea
     tried.set('next', 0);
     return true;
   }
-  // Short of money, it goes looking where escorts spawn (locations/escorts.json): one of the
+  // Short of money, it goes looking where escorts spawn (useEscortSpawns): one of the
   // nearest few spots within walking distance, at random, never one inside a monster spawn; a spot
-  // found empty is left alone for two hours (lasting.ts).
+  // found empty is left alone for a while (absence.ts).
   if (funds >= SEEK_BELOW) return false;
-  const empty = lasting('escort-spot', ctx.serial);
+  const empty = absence(ctx.serial);
   const near = spots
-    .filter((spot) => distance(here, spot) <= 150 && !nearAnyGround(spot) && !empty.active(`${spot.x},${spot.y}`))
+    .filter(
+      (spot) => distance(here, spot) <= 150 && placeAllowed(spot) && !nearAnyGround(spot) && !empty.seen('escort', spot)
+    )
     .sort((a, b) => distance(here, a) - distance(here, b))
     .slice(0, 3);
   const spot = near[Math.floor(Math.random() * near.length)];
@@ -94,7 +113,7 @@ export async function escortOpportunity(ctx: Ctx, funds: number): Promise<boolea
     tried.set('next', 0);
     return true;
   }
-  empty.set(`${spot.x},${spot.y}`, Date.now() + 2 * 3_600_000);
+  empty.note('escort', spot);
   return false;
 }
 
