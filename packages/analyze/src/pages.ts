@@ -2,6 +2,7 @@ import { FACET_SIZES } from '@gemwright/common/assets/facet';
 import { LAYERS } from '@gemwright/common/game/layers';
 import { MAPS } from '@gemwright/common/game/maps';
 import { skillLabel } from '@gemwright/common/game/skills';
+import type { Item, Mobile } from '@gemwright/common/saves/servuo';
 
 import type { Analysis } from './analysis';
 import { artUrl, characterScene, SCENE_STYLE } from './character-view';
@@ -9,7 +10,6 @@ import type { ClientFiles } from './client';
 import { type Block, type Cell, type Doc, link, num } from './doc';
 import { holderKind, itemLabel, type Placement } from './owners';
 import type { Hit } from './search';
-import type { Item, Mobile } from './world';
 
 // The save's own pages: an overview, search results, and one page per mobile and per item that
 // links to its holder, containers and contents.

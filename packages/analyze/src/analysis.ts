@@ -1,6 +1,7 @@
+import { type Item, loadAccounts, loadWorld, type World } from '@gemwright/common/saves/servuo';
+
 import { type Account, type CharacterRecord, characterRecord } from './character';
 import { holderKind, type Placement, placeItems } from './owners';
-import { type Item, loadAccounts, loadWorld, type World } from './world';
 
 // A world save with every item placed and every player character described, shared by the
 // report, the character view and the JSON export.

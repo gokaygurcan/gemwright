@@ -1,10 +1,10 @@
 import { gold } from '@gemwright/common/game/items';
 import { MAPS } from '@gemwright/common/game/maps';
 import { skillLabel } from '@gemwright/common/game/skills';
+import type { Mobile } from '@gemwright/common/saves/servuo';
 
 import { table, tenths } from './markdown';
 import { itemLabel, type Placement } from './owners';
-import type { Mobile } from './world';
 
 // One character in full: account, stats, every skill with its cap and lock, gold, and every item
 // it holds with where it is (worn, backpack, bank, mount) and the containers around it.

@@ -1,11 +1,7 @@
-// Facets by map index (ServUO Scripts/Misc/MapDefinitions.cs); 0x7F is the internal map, where
+import { ruleMaps } from './rules';
+
+// Facets by map index (ServUO MapDefinitions.cs, rules.ts); 0x7F is the internal map, where
 // logged-out characters wait.
-export const MAPS: Record<number, string> = {
-  0: 'Felucca',
-  1: 'Trammel',
-  2: 'Ilshenar',
-  3: 'Malas',
-  4: 'Tokuno',
-  5: 'Ter Mur',
-  127: 'Internal'
-};
+export const MAPS: Record<number, string> = Object.fromEntries(
+  Object.entries(ruleMaps).map(([id, map]) => [Number(id), map.name])
+);

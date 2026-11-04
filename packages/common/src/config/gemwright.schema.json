@@ -213,6 +213,31 @@
         "wars": {
           "type": "boolean"
         },
+        "cities": {
+          "description": "The only cities AI residents go to (shops, banks, healers, moongates and the grounds around them); every city when unset.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "Britain",
+              "Buccaneer's Den",
+              "Cove",
+              "Jhelom",
+              "Magincia",
+              "Minoc",
+              "Moonglow",
+              "New Haven",
+              "Nujel'm",
+              "Serpent's Hold",
+              "Skara Brae",
+              "Trinsic",
+              "Vesper",
+              "Wind",
+              "Yew"
+            ]
+          }
+        },
         "cohorts": {
           "type": "object",
           "additionalProperties": {

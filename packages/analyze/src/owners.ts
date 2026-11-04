@@ -1,6 +1,5 @@
 import { LAYERS } from '@gemwright/common/game/layers';
-
-import type { Item, Mobile, World } from './world';
+import type { Item, Mobile, World } from '@gemwright/common/saves/servuo';
 
 // Who holds each item and where: an item's parent chain ends either at a mobile (its holder) or
 // at an item lying in the world. The first step below the mobile says how it is held.

@@ -29,12 +29,20 @@
     "./config/shard": "./src/config/shard.ts",
     "./config/types": "./src/config/types.ts",
     "./game/bodies": "./src/game/bodies.ts",
+    "./game/creatures.json": "./src/game/creatures.json",
     "./game/expansions": "./src/game/expansions.ts",
     "./game/items": "./src/game/items.ts",
+    "./game/land": "./src/game/land.ts",
     "./game/layers": "./src/game/layers.ts",
     "./game/maps": "./src/game/maps.ts",
+    "./game/regions": "./src/game/regions.ts",
+    "./game/rules": "./src/game/rules.ts",
+    "./game/rules.json": "./src/game/rules.json",
     "./game/skills": "./src/game/skills.ts",
-    "./game/water": "./src/game/water.ts"
+    "./game/water": "./src/game/water.ts",
+    "./saves": "./src/saves/index.ts",
+    "./saves/servuo": "./src/saves/servuo.ts",
+    "./saves/world-files": "./src/saves/world-files.ts"
   },
   "files": [
     "src/"

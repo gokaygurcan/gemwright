@@ -1,12 +1,12 @@
 import { gold } from '@gemwright/common/game/items';
 import { LAYERS } from '@gemwright/common/game/layers';
 import { MAPS } from '@gemwright/common/game/maps';
+import type { Item, Mobile } from '@gemwright/common/saves/servuo';
 
 import type { Analysis } from './analysis';
 import type { ClientFiles } from './client';
 import { escapeHtml } from './html';
 import { itemLabel } from './owners';
-import type { Item, Mobile } from './world';
 
 // A character drawn the way the game client shows it, from the client's own art: the world
 // around them from above, and around it the radar, status bar, paperdoll, backpack, bank box and

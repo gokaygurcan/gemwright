@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Reader } from './reader';
+import { readXmlSpawner, type SavedSpawner } from './xml-spawner';
 
 // A ServUO pub57 world save read back offline: Saves/Mobiles and Saves/Items, each a type table
 // (.tdb), an index (.idx: type, serial, offset, length per entity) and the data (.bin). Every
@@ -72,6 +73,8 @@ export interface Item {
   statue?: { graphic: number; hue: number };
   // Where a teleporter sends whoever steps on it, and whether it is switched on.
   teleport?: { x: number; y: number; z: number; map: number; active: boolean };
+  // An XmlSpawner's name, live count and what it spawns (xml-spawner.ts).
+  spawner?: SavedSpawner;
   // Set when the record could not be decoded past its header (item sockets).
   partial?: boolean;
 }
@@ -298,6 +301,7 @@ function readItem(r: Reader, entry: Entry): Item {
   // Script data after the base: BankCheck version, worth; MountItem version, mount.
   if (item.type === 'Server.Items.BankCheck' && r.int() === 0) item.worth = r.int();
   if (item.type === 'Server.Mobiles.MountItem' && r.int() === 0) item.mount = r.int();
+  if (item.type === 'Server.Mobiles.XmlSpawner') item.spawner = readXmlSpawner(r);
   // EtherealMount.Serialize, versions 5 to 7: transparent, the transparent and solid mounted ids and
   // hues, then the statue's id and hue.
   if (ETHEREALS.has(item.type) && r.int() >= 5) {
