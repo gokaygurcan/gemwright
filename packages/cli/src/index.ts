@@ -25,7 +25,7 @@ import { deployVps, validateVpsOptions } from './vps-deploy';
 import { deployVpsRemote } from './vps-remote';
 
 const help = `Usage: gemwright init [directory] [options]
-       gemwright deploy [--files <path>] [--server] [--client] [--ai]
+       gemwright deploy [--files <path>] [--server] [--client] [--ai [--world <path> | --world-pull]]
        gemwright deploy --local [--server] [--client] [--ai] [--public-host <host>] [--server-port <n>] [--client-port <n>]
        gemwright stop --local [--server] [--client] [--ai]
        gemwright start --local [--server] [--client] [--ai]
@@ -49,6 +49,8 @@ Options:
   --server              Deploy the shard server (the default when no part is named)
   --client              Deploy the web client
   --ai                  Deploy AI residents (ServUO; settings under "ai" in gemwright.json)
+  --world <path>        Teach AI residents the land from this world save: a pull, server or Saves folder (deploy --ai)
+  --world-pull          Pull a fresh world save from the server and teach AI residents the land from it (deploy --ai)
   --local               Use the Docker Compose deployment on this machine (deploy, stop, start, logs, pull, restore)
   --server-port <n>     Local native client port (default: 2593; kept for later deploys)
   --client-port <n>     Local browser client port (default: 3000; kept for later deploys)
@@ -87,6 +89,8 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       files: { type: 'string' },
       server: { type: 'boolean' },
       ai: { type: 'boolean' },
+      world: { type: 'string' },
+      'world-pull': { type: 'boolean' },
       client: { type: 'boolean' },
       local: { type: 'boolean' },
       'server-port': { type: 'string' },
@@ -197,10 +201,15 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
       'ssh',
       'remote-path',
       'install-deps',
-      'yes'
+      'yes',
+      'world',
+      'world-pull'
     ];
     if (directory || extra.length || Object.keys(values).some((key) => !allowed.includes(key)))
       throw new Error('Usage: gemwright deploy [--files <path>] [--server] [--client] [--ai]');
+    if ((values.world || values['world-pull']) && (!values.ai || values.local || values.target === 'vps'))
+      throw new Error('--world and --world-pull teach the AI residents: use them with deploy --ai on Railway.');
+    if (values.world && values['world-pull']) throw new Error('Use --world <path> or --world-pull, not both.');
     if (values.local) {
       if (
         Object.keys(values).some(
@@ -249,13 +258,18 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     }
     if ((values.client || values.ai) && !values.server)
       console.log('Deploying only the named parts; add --server to deploy the shard as well.');
-    await deploy({ files: values.files, server: values.server, client: values.client, ai: values.ai });
+    await deploy({ files: values.files, server: values.server, client: values.client, ai: values.ai }, process.cwd(), {
+      saves: values.world,
+      pull: values['world-pull']
+    });
     return;
   }
   if (
     values.files ||
     values.server ||
     values.ai ||
+    values.world ||
+    values['world-pull'] ||
     values.client ||
     values.local ||
     values['server-port'] ||

@@ -9,7 +9,7 @@ gemwright-cli --help
 
 ```text
 Usage: gemwright init [directory] [options]
-       gemwright deploy [--files <path>] [--server] [--client] [--ai]
+       gemwright deploy [--files <path>] [--server] [--client] [--ai [--world <path> | --world-pull]]
        gemwright deploy --local [--server] [--client] [--ai] [--public-host <host>] [--server-port <n>] [--client-port <n>]
        gemwright stop --local [--server] [--client] [--ai]
        gemwright start --local [--server] [--client] [--ai]
@@ -33,6 +33,8 @@ Options:
   --server              Deploy the shard server (the default when no part is named)
   --client              Deploy the web client
   --ai                  Deploy AI residents (ServUO; settings under "ai" in gemwright.json)
+  --world <path>        Teach AI residents the land from this world save: a pull, server or Saves folder (deploy --ai)
+  --world-pull          Pull a fresh world save from the server and teach AI residents the land from it (deploy --ai)
   --local               Use the Docker Compose deployment on this machine (deploy, stop, start, logs, pull, restore)
   --server-port <n>     Local native client port (default: 2593; kept for later deploys)
   --client-port <n>     Local browser client port (default: 3000; kept for later deploys)

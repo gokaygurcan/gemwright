@@ -11,6 +11,7 @@ import { command } from './process';
 import { waitForReadiness } from './providers/railway';
 import { required } from './required';
 import { checkAi, ensureService } from './service';
+import { packageWorldFiles } from './world-files';
 
 // The map files AI residents walk by: Trammel's map, statics and their index, and tiledata.
 export const mapPattern = /^(?:map1LegacyMUL\.uop|map1\.mul|statics1\.mul|staidx1\.mul|tiledata\.mul)$/i;
@@ -33,10 +34,12 @@ export function aiSettings(shard: ShardConfig) {
 interface Dependencies {
   loadShard: (directory: string) => Promise<ShardConfig>;
   stageImage: (image: 'ai' | 'client', context: string) => Promise<void>;
+  // Stages the shard's world files (Spawns/ and Regions.xml) in a folder of its own and returns it.
+  worldFiles?: (directory: string, shard: ShardConfig) => Promise<string>;
   progress?: (message: string) => void;
 }
 export async function deployAi(dependencies: Dependencies, directory: string, gameFiles: string) {
-  const { loadShard, stageImage, progress = () => {} } = dependencies;
+  const { loadShard, stageImage, worldFiles, progress = () => {} } = dependencies;
   directory = resolve(directory);
   const shard = await loadShard(directory);
   if (shard.emulator !== 'servuo') throw new Error('AI residents support ServUO shards only.');
@@ -47,6 +50,15 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
     if (!names.includes('tiledata.mul') || !names.some((n) => n.startsWith('map1')))
       throw new Error('AI residents need tiledata.mul and the Trammel map (map1LegacyMUL.uop or map1.mul).');
   });
+  let world: Awaited<ReturnType<typeof packageWorldFiles>> | undefined;
+  if (worldFiles) {
+    const staged = await worldFiles(directory, shard);
+    try {
+      world = await packageWorldFiles(directory, staged);
+    } finally {
+      await rm(staged, { recursive: true, force: true });
+    }
+  }
   const context = await mkdtemp(join(tmpdir(), 'gemwright-ai-deploy-'));
   try {
     await stageImage('ai', context);
@@ -108,18 +120,30 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
       const latest = deployments[0];
       const status = latest && (!deploymentId || latest.id === deploymentId) ? latest.status : undefined;
       if (status === 'SUCCESS') {
+        const volumeFlags = ['volume', ...flags, 'files', '--volume', required(state.volume, 'Railway volume')];
+        const send = async (archive: string, name: string) => {
+          await run([...volumeFlags, 'upload', archive, `/${name}.uploading`, '--overwrite', '--json']);
+          await run([...volumeFlags, 'rename', `/${name}.uploading`, `/${name}`, '--json']);
+        };
+        let changed = false;
         if (state.assets !== maps.digest) {
           progress(`Uploading ${Math.round(maps.bytes / 1024 / 1024)} MiB of map files to the AI volume...`);
-          const volumeFlags = ['volume', ...flags, 'files', '--volume', required(state.volume, 'Railway volume')];
-          await run([...volumeFlags, 'upload', maps.archive, '/assets.tar.gz.uploading', '--overwrite', '--json']);
-          await run([...volumeFlags, 'rename', '/assets.tar.gz.uploading', '/assets.tar.gz', '--json']);
+          await send(maps.archive, 'assets.tar.gz');
           state.assets = maps.digest;
           await save();
-          await run(['restart', ...flags, '--yes', '--json']);
+          changed = true;
         }
+        if (world && state.world !== world.digest) {
+          progress(`Uploading ${world.files} world files (spawners and regions) to the AI volume...`);
+          await send(world.archive, 'world.tar.gz');
+          state.world = world.digest;
+          await save();
+          changed = true;
+        }
+        if (changed) await run(['restart', ...flags, '--yes', '--json']);
         await waitForReadiness(
           flags,
-          'test -f /app/data/.ai-ready && test ! -f /app/data/assets.tar.gz',
+          'test -f /app/data/.ai-ready && test ! -f /app/data/assets.tar.gz && test ! -f /app/data/world.tar.gz',
           directory,
           'AI bootstrap'
         );

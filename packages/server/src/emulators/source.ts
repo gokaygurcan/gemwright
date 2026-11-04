@@ -34,6 +34,18 @@ export async function checkoutSource(directory: string, source: EmulatorSource) 
   await command(['git', 'checkout', '--quiet', '--detach', 'FETCH_HEAD'], directory);
 }
 
+// Only the named paths of a revision, fetched without the rest of the tree's contents.
+export async function checkoutPaths(directory: string, source: EmulatorSource, paths: string[]) {
+  await mkdir(directory, { recursive: true });
+  await command(['git', 'init', '--quiet'], directory);
+  await command(['git', 'sparse-checkout', 'set', '--no-cone', ...paths], directory);
+  await command(
+    ['git', 'fetch', '--quiet', '--depth', '1', '--filter=blob:none', source.repository, source.revision],
+    directory
+  );
+  await command(['git', 'checkout', '--quiet', '--detach', 'FETCH_HEAD'], directory);
+}
+
 export async function removeSourceHistory(directory: string) {
   await rm(`${directory}/.git`, { recursive: true, force: true });
 }

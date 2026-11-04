@@ -167,7 +167,7 @@ test('--client uses the server game files after deployment; server-only skips th
     const before = ups();
     await deploy({ files: assets, server: true, ai: true }, directory);
     expect(deployments.servuo.stage).toHaveBeenLastCalledWith(directory, expect.anything(), { ai: true });
-    expect(aiDeploy).toHaveBeenCalledWith(directory, assets, expect.any(Function));
+    expect(aiDeploy).toHaveBeenCalledWith(directory, assets, expect.any(Function), {});
     expect(JSON.parse(await readFile(join(directory, '.gemwright/railway.json'), 'utf8')).aiPatched).toBe(true);
     await deploy({ files: assets }, directory);
     expect(deployments.servuo.stage).toHaveBeenLastCalledWith(directory, expect.anything(), { ai: true });

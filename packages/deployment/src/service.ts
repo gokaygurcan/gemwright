@@ -12,6 +12,7 @@ export interface ServiceState {
   name?: string;
   volume?: string;
   assets?: string;
+  world?: string;
   pendingAssets?: string;
   url?: string;
 }
@@ -140,6 +141,7 @@ export async function ensureService(
       volume?.id ?? (await run<{ id: string }>(['volume', ...flags, 'add', '--mount-path', '/app/data', '--json'])).id;
     if (!state.volume) throw new Error('Railway returned no volume ID. Inspect volumes before retrying.');
     delete state.assets;
+    delete state.world;
     await saveState(path, state);
   }
   return { state, flags, save: () => saveState(path, state) };

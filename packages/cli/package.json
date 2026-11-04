@@ -30,7 +30,8 @@
     "@gemwright/common": "workspace:*",
     "@gemwright/deployment": "workspace:*",
     "@gemwright/server": "workspace:*",
-    "@gemwright/ai": "workspace:*"
+    "@gemwright/ai": "workspace:*",
+    "@gemwright/analyze": "workspace:*"
   },
   "exports": {
     ".": {

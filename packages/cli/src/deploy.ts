@@ -5,7 +5,7 @@ import { type DeployParts, deploy as runDeploy } from '@gemwright/deployment/dep
 import { loadShard } from '@gemwright/server/config';
 import { deployments } from '@gemwright/server/staging';
 
-import { deployAi } from './ai-deploy';
+import { deployAi, type WorldSource } from './ai-deploy';
 import { stageImage } from './assets';
 import { deployClient } from './client-deploy';
 import { withServicePackages } from './service-packages';
@@ -14,7 +14,7 @@ export type { DeployParts, RailwayCommand, RailwayState } from '@gemwright/deplo
 export { ensureRailway, ensureRailwayMysql } from '@gemwright/deployment/deploy';
 
 export { deployments };
-export async function deploy(options: DeployParts, directory = process.cwd()) {
+export async function deploy(options: DeployParts, directory = process.cwd(), world: WorldSource = {}) {
   const config = await loadShard(directory);
   const selected = (['server', 'client', 'ai'] as const).filter(
     (part) => options[part] || (part === 'server' && !options.client && !options.ai)
@@ -28,7 +28,7 @@ export async function deploy(options: DeployParts, directory = process.cwd()) {
       {
         loadShard,
         deployments: adapters,
-        deployAi: (dir, files) => deployAi(dir, files, stage),
+        deployAi: (dir, files) => deployAi(dir, files, stage, world),
         deployClient: (dir, files, prepared) => deployClient(dir, files, prepared, stage),
         progress: console.log
       },
