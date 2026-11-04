@@ -1,5 +1,11 @@
 # @gemwright/client
 
+## 0.10.0
+
+### Patch Changes
+
+- [`8872cc9`](https://github.com/gokaygurcan/gemwright/commit/8872cc9c1d5ab0109f47aac7e35376a299f28682) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - The browser runtime moves to uonexus-minimal v1.0.67.
+
 ## 0.9.0
 
 ### Patch Changes

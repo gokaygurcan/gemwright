@@ -1,5 +1,12 @@
 # @gemwright/network
 
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies [[`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf)]:
+  - @gemwright/common@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes

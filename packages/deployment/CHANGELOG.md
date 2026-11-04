@@ -1,5 +1,18 @@
 # @gemwright/deployment
 
+## 0.10.0
+
+### Minor Changes
+
+- [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - AI residents learn where vendors stand and creatures spawn, in towns, on Haven Island and overland, from the shard's own world files (Spawns/*.xml and Regions.xml), which `gemwright deploy --ai` keeps on the AI volume and replaces only when they change; `--world <path>` and `--world-pull` teach them from a world save instead, with whatever was placed or changed in game; a fighter skips any ground with a creature that attacks on sight it is not ready for.
+
+### Patch Changes
+
+- [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - AI residents no longer stand still for good when securing their goods cannot lower a small risk: once recovery has been tried in the same situation, a healthy, unthreatened resident goes back to work, and recovery away from home walks back to its town's bank first. Ghosts look for healers only where a spawner keeps one, not at wildlife spawners a wandering healer roams from, and the AI world files no longer need a town guide.
+- Updated dependencies [[`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf), [`8872cc9`](https://github.com/gokaygurcan/gemwright/commit/8872cc9c1d5ab0109f47aac7e35376a299f28682), [`62939d6`](https://github.com/gokaygurcan/gemwright/commit/62939d673e81b508498a02bb397662ce35691abf)]:
+  - @gemwright/common@0.10.0
+  - @gemwright/client@0.10.0
+
 ## 0.9.0
 
 ### Minor Changes
