@@ -156,3 +156,12 @@ export function parseChoice(value: unknown, request: ChoiceRequest): ChoiceResul
     outputTokens: Number(usage.output_tokens)
   };
 }
+
+// A day's allowance opens with the day: the elapsed share plus a tenth, so a busy hour cannot spend
+// what the rest of the UTC day needs.
+export const pacedAllowance = (daily: number, now = Date.now()) => {
+  const date = new Date(now);
+  const dayStart = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const fraction = Math.min(1, Math.max(0, (now - dayStart) / 86_400_000));
+  return daily * Math.min(1, fraction + 0.1);
+};

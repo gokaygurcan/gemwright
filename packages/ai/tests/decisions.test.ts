@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
 import { JEV_RESIDENT_TOKEN_ALLOWANCE } from '../src/decision-jev';
-import { type ChoiceRequest, parseChoice, validateDecisionConfig } from '../src/decision-provider';
-import { DecisionCoordinator, OPTIONAL_KINDS, OPTIONAL_SHARE, pacedAllowance, reservedTokens } from '../src/decisions';
+import { type ChoiceRequest, pacedAllowance, parseChoice, validateDecisionConfig } from '../src/decision-provider';
+import { DecisionCoordinator, OPTIONAL_KINDS, OPTIONAL_SHARE, reservedTokens } from '../src/decisions';
 import type { Checkpoint } from '../src/store';
 
 const checkpoint = (): Checkpoint => ({ goal: null, memories: [], relationships: {} });

@@ -40,6 +40,8 @@ const wire = () => ({
   }
 });
 const provider: DecisionProvider = { choose: async (request) => answer(request.model) };
+// Late in the UTC day the paced allowance is the whole day's.
+const late = () => Date.parse(`${new Date().toISOString().slice(0, 10)}T22:00:00Z`);
 const setup = (overrides = {}) => {
   const db = new Database(':memory:');
   const ledger = new SpendLedger(db);
@@ -184,11 +186,11 @@ test('concurrent residents reserve before transport and share the same persisten
       return answer();
     }
   };
-  const first = new DecisionChain(config, ledger, { clef, jev: provider, accountId });
+  const first = new DecisionChain(config, ledger, { clef, jev: provider, accountId }, late);
   const pending = first.choose(request, new AbortController().signal);
   await Promise.resolve();
   const restartedLedger = new SpendLedger(db);
-  const second = new DecisionChain(config, restartedLedger, { clef, jev: provider, accountId });
+  const second = new DecisionChain(config, restartedLedger, { clef, jev: provider, accountId }, late);
   expect((await second.choose(request, new AbortController().signal)).model).toBe('jev-1.13.0');
   expect(calls).toBe(1);
   release();
@@ -339,7 +341,7 @@ test('fifty simultaneous residents cannot oversubscribe a daily budget', async (
   };
   const results = await Promise.allSettled(
     Array.from({ length: 50 }, () =>
-      new DecisionChain(config, ledger, { clef, accountId }).choose(request, new AbortController().signal)
+      new DecisionChain(config, ledger, { clef, accountId }, late).choose(request, new AbortController().signal)
     )
   );
   expect(calls).toBe(1);
@@ -417,4 +419,32 @@ test('missing Jev credentials preserve local decisions without failing resident 
     )?.id
   ).toBe('work');
   expect(cp.decisions?.history.at(-1)?.source).toBe('local');
+});
+
+test('the daily allowance is paced across the UTC day, not spent at the first opportunity', async () => {
+  const { db, ledger, config } = setup();
+  const day = new Date().toISOString().slice(0, 10);
+  const morning = Date.parse(`${day}T06:00:00Z`);
+  ledger.adjust(day, `cloudflare:${accountId}`, CLEF_DAILY_UNITS / 2);
+  let clef = 0;
+  const chain = new DecisionChain(
+    config,
+    ledger,
+    {
+      clef: {
+        choose: async () => {
+          clef++;
+          return answer();
+        }
+      },
+      jev: provider,
+      accountId
+    },
+    () => morning
+  );
+  const result = await chain.choose(request, new AbortController().signal);
+  expect(clef).toBe(0);
+  expect(result.model).toBe('jev-1.13.0');
+  expect(result.attempts?.[0]?.reason).toBe('daily-budget');
+  db.close();
 });

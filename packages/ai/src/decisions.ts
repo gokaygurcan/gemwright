@@ -17,7 +17,8 @@ import {
   type DecisionConfig,
   type DecisionProvider,
   type ProviderAttempt,
-  ProviderFailure
+  ProviderFailure,
+  pacedAllowance
 } from './decision-provider';
 import { experienceSummary } from './experience';
 import { lasting } from './lasting';
@@ -202,13 +203,6 @@ export function decisionGuard(session: PlayerSession, stopping?: () => boolean):
 }
 
 export const reservedTokens = (bytes: number) => Math.ceil((bytes / 4) * 1.25);
-
-export const pacedAllowance = (daily: number, now = Date.now()) => {
-  const date = new Date(now);
-  const dayStart = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-  const fraction = Math.min(1, Math.max(0, (now - dayStart) / 86_400_000));
-  return daily * Math.min(1, fraction + 0.1);
-};
 
 export const OPTIONAL_KINDS: ReadonlySet<string> = new Set([
   'speech',

@@ -6,7 +6,8 @@ import {
   type DecisionConfig,
   type DecisionProvider,
   type ProviderAttempt,
-  ProviderFailure
+  ProviderFailure,
+  pacedAllowance
 } from './decision-provider';
 import type { SpendLedger } from './spend-ledger';
 
@@ -63,7 +64,7 @@ export class DecisionChain implements DecisionProvider {
           reservation: spec
             ? spec.context * spec.neuronsPerMillion
             : Buffer.byteLength(JSON.stringify({ ...request, model: entry.model })) + 1024,
-          limit: spec ? CLEF_DAILY_UNITS : JEV_DAILY_TOKEN_ALLOWANCE,
+          limit: pacedAllowance(spec ? CLEF_DAILY_UNITS : JEV_DAILY_TOKEN_ALLOWANCE, this.now()),
           rate: spec?.neuronsPerMillion ?? 1
         }
       ];
