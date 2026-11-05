@@ -60,7 +60,8 @@ export const itemPackets: [number, Decoder][] = [
         kind: 'item',
         graphic: packet.readUInt16BE(5),
         layer: packet.readUInt8(8),
-        parent: packet.readUInt32BE(9)
+        parent: packet.readUInt32BE(9),
+        hue: packet.readUInt16BE(13)
       });
     }
   ],

@@ -118,3 +118,20 @@ test('decoded semantic observations expose spatial updates, swings, deaths and r
   world.disconnect();
   expect(changes.at(-1)).toMatchObject({ decoded: false, spatial: false, events: [] });
 });
+
+test('worn items keep the hue the shard sends with them', () => {
+  const world = new WorldView();
+  const mobile = equippedMobile();
+  mobile.writeUInt16BE(2301, 26);
+  world.apply(mobile);
+  expect(world.entities.get(10)?.hue).toBe(2301);
+  const equip = Buffer.alloc(15);
+  equip[0] = 0x2e;
+  equip.writeUInt32BE(11, 1);
+  equip.writeUInt16BE(0x1f03, 5);
+  equip[8] = 22;
+  equip.writeUInt32BE(2, 9);
+  equip.writeUInt16BE(2301, 13);
+  world.apply(equip);
+  expect(world.entities.get(11)?.hue).toBe(2301);
+});

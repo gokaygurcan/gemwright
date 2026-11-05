@@ -278,7 +278,8 @@ export const mobilePackets: [number, Decoder][] = [
           kind: 'item',
           graphic: packet.readUInt16BE(offset + 4),
           layer: packet.readUInt8(offset + 6),
-          parent: serial
+          parent: serial,
+          hue: packet.readUInt16BE(offset + 7)
         });
         offset += 9;
       }
