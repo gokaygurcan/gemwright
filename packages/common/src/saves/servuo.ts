@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { isA } from '../game/rules';
 import { Reader } from './reader';
 import { readXmlSpawner, type SavedSpawner } from './xml-spawner';
 
@@ -25,6 +26,8 @@ export interface Mobile {
   beard?: { graphic: number; hue: number };
   statCap: number;
   followersMax: number;
+  // The character a tamed or bought creature obeys.
+  master?: number;
   // Str, Dex, Int locks: 0 up, 1 down, 2 locked.
   statLocks: number[];
   str: number;
@@ -182,6 +185,8 @@ function readMobile(r: Reader, entry: Entry): Mobile {
   // A logged-out character waits on the internal map; it comes back at its logout location.
   const logout = { location: r.point(), map: r.byte() };
   const statLocks = [r.byte(), r.byte(), r.byte()];
+  if (r.bool()) r.skip(r.int() * 8); // stuck menu uses
+  const master = !player && isA(entry.type.split('.').pop() ?? '', 'BaseCreature') ? controlMaster(r) : undefined;
   const away = map === 127;
   return {
     serial: entry.serial,
@@ -218,8 +223,21 @@ function readMobile(r: Reader, entry: Entry): Mobile {
     caps,
     locks,
     items,
-    player
+    player,
+    master
   };
+}
+
+// BaseCreature.Serialize, version 29, up to the controlling master: whose pet this is.
+function controlMaster(r: Reader) {
+  if (r.int() !== 29) return undefined;
+  r.skip(1 + 2 * 8 + 1 + 1 + 1 + 4); // soulbound, forced speeds, can move, lock direction, approach
+  r.skip(5 * 4 + 3 * 8 + 3 * 4 + 4); // AI, ranges, team, speeds, home and its range
+  for (let list = 0; list < 2; list++) for (let n = r.int(); n > 0; n--) r.string(); // spells
+  r.skip(4); // fight mode
+  const controlled = r.bool();
+  const master = r.int();
+  return controlled && master !== -1 ? master : undefined;
 }
 
 // Each ItemSocket subclass's own data after the base (Scripts/Items/Internal/ItemSockets).

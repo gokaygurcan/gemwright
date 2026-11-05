@@ -16,7 +16,7 @@ import type { Hit } from './search';
 const hex = (serial: number) => `0x${serial.toString(16)}`;
 const typeName = (type: string) => type.replace(/^Server\.(Items|Mobiles|Multis)\./, '');
 const layerNames = new Map<number, string>(Object.entries(LAYERS).map(([name, id]) => [id, name]));
-const _mobileLink = (m: Mobile) => link(m.name ?? typeName(m.type), `/mobile/${m.serial}`);
+const mobileLink = (m: Mobile) => link(m.name ?? typeName(m.type), `/mobile/${m.serial}`);
 // An item's picture: its own art, or a ridden ethereal's statuette.
 const pictureUrl = (i: Item) => artUrl((i.statue ?? i).graphic, (i.statue ?? i).hue);
 // An item's link, with its art when the client files can draw it.
@@ -78,6 +78,29 @@ function heldBlocks(held: Placement[], client?: ClientFiles): Block[] {
   });
 }
 
+// The creatures that obey a mobile (BaseCreature ControlMaster): its ridden mount and the pets
+// that follow it, each holding follower slots.
+function followerBlocks(a: Analysis, m: Mobile): Block[] {
+  const ridden = new Set(
+    (a.held.get(m.serial) ?? []).flatMap((p) => (p.item.mount === undefined ? [] : [p.item.mount]))
+  );
+  const followers = [...a.world.mobiles.values()].filter((x) => x.master === m.serial);
+  if (!followers.length) return [];
+  return [
+    { kind: 'heading', text: `Followers (${followers.length}; ${m.followersMax} slots)` },
+    {
+      kind: 'table',
+      head: ['Name', 'Type', 'Body', 'Where'],
+      rows: followers.map((x) => [
+        mobileLink(x),
+        typeName(x.type),
+        hex(x.body),
+        ridden.has(x.serial) ? 'ridden' : where(x.map, x.location)
+      ])
+    }
+  ];
+}
+
 export function mobileDoc(a: Analysis, m: Mobile, client?: ClientFiles): Doc {
   const c = a.characters.find((x) => x.serial === m.serial);
   const skills = m.skills
@@ -127,6 +150,7 @@ export function mobileDoc(a: Analysis, m: Mobile, client?: ClientFiles): Doc {
           ['up', 'down', 'locked'][m.locks[s.id] ?? 0] ?? 'up'
         ])
       },
+      ...followerBlocks(a, m),
       { kind: 'heading', text: 'Items' },
       ...heldBlocks(a.held.get(m.serial) ?? [], client)
     ]
