@@ -7,6 +7,7 @@ import type { Entity } from '@gemwright/network/world';
 
 import type { CraftContext } from './craft-training';
 import { isGargoyle } from './flight';
+import { logger } from './log';
 import { buyOffer, findOffer } from './resident-offers';
 import type { Terrain } from './terrain';
 import { buyFrom } from './vendor-trade';
@@ -40,18 +41,52 @@ export async function shedDeathRobe(session: PlayerSession, terrain: Terrain, ca
     .sort(
       (a, b) => TORSO.indexOf(a.layer as (typeof TORSO)[number]) - TORSO.indexOf(b.layer as (typeof TORSO)[number])
     )[0];
-  if (!own) return false;
-  await session.dropAtFeet(robe.serial);
+  if (!own) {
+    shedTrouble(
+      session,
+      `no torso clothing among ${carried.length} carried: ${carried
+        .map(
+          (i) =>
+            `0x${i.graphic.toString(16)}/${terrain.tile(i.graphic, true).layer}/${terrain.tile(i.graphic, true).flags.toString(16)}`
+        )
+        .join(' ')}`
+    );
+    return false;
+  }
+  // Into the pack, not onto the ground: the shard refuses a ground drop on many tiles, and the
+  // pack's spare death robes are put down later (inventory.ts tidyPack).
+  const pack = session.world.childrenOf(session.world.serial ?? -1).find((item) => item.layer === LAYERS.backpack);
+  if (!pack) return false;
+  try {
+    await session.moveItem(robe.serial, pack.serial);
+  } catch (error) {
+    if (session.phase !== 'ready') throw error;
+    shedTrouble(session, `death robe move to the pack failed: ${error instanceof Error ? error.message : error}`);
+    return false;
+  }
   try {
     await session.equipItem(own.item.serial, own.layer);
   } catch (error) {
     // A piece the shard will not wear (race, gender or another requirement): put the robe back on
     // rather than stand naked; the piece itself is dealt with as loot.
     if (session.phase !== 'ready') throw error;
+    shedTrouble(
+      session,
+      `0x${own.item.graphic.toString(16)} on layer ${own.layer} failed: ${error instanceof Error ? error.message : error}`
+    );
     await session.equipItem(robe.serial, robe.layer ?? LAYERS.outerTorso).catch(() => {});
     return false;
   }
   return true;
+}
+
+// Why a death robe stayed on, at most once a minute per resident.
+const troubleAt = new WeakMap<PlayerSession, number>();
+function shedTrouble(session: PlayerSession, why: string) {
+  if (Date.now() - (troubleAt.get(session) ?? 0) < 60_000) return;
+  troubleAt.set(session, Date.now());
+  const name = session.world.entities.get(session.world.serial ?? -1)?.name ?? session.world.serial;
+  logger('resident').info(`[death-robe:${name}] Kept the death robe: ${why}`);
 }
 
 // A robe or a shirt from a tailor (ServUO SBTailor).

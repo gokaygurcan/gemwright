@@ -163,14 +163,19 @@ test('a robe of its own in the pack replaces the worn death robe at the next tur
       : { flags: 0, layer: 0, name: '', height: 0 };
   f.world.entities.set(40, { serial: 40, kind: 'item', graphic: 0x1f03, hue: 2301, parent: 1, layer: 22 });
   f.world.entities.set(41, { serial: 41, kind: 'item', graphic: 0x2fba, hue: 1105, parent: 10 });
-  f.session.dropAtFeet = async (serial) => {
-    f.world.entities.delete(serial);
+  // The shard refuses ground drops on many tiles; the robe goes into the pack instead.
+  f.session.dropAtFeet = async () => {
+    throw new Error('Ground drop refused; item returned to its owner');
+  };
+  f.session.moveItem = async (serial, parent) => {
+    const item = required(f.world.entities.get(serial));
+    f.world.entities.set(serial, { ...item, parent, layer: undefined });
   };
   f.session.equipItem = async (serial, layer) => {
     const item = required(f.world.entities.get(serial));
     f.world.entities.set(serial, { ...item, parent: 1, layer });
   };
   expect(await useAcquiredItems(f.session)).toBe(true);
-  expect(f.world.entities.has(40)).toBe(false);
+  expect(f.world.entities.get(40)?.parent).toBe(10);
   expect(f.world.entities.get(41)?.layer).toBe(22);
 });
