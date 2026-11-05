@@ -100,6 +100,7 @@ export function createNavigator(options: {
     // Steps the server rejected on this route only: mobiles (a following horse, an NPC) move on,
     // so these must not outlive the route like a locked door does.
     const rejected = new Map<string, number>();
+    let nextStepAt = 0;
     while (distance(position(), goal) > range || (goal.z !== undefined && Math.abs(position().z - goal.z) > 8)) {
       check();
       // A ghost walks over creatures and through doors (ServUO Movement.cs: !m.Alive ignores doors,
@@ -240,9 +241,10 @@ export function createNavigator(options: {
         const direction = directionTo(before, point);
         if (direction < 0) break;
         if (before.direction !== direction) {
+          await Bun.sleep(Math.max(0, nextStepAt - performance.now()));
           const turnAt = performance.now();
           await session.walk(direction);
-          await Bun.sleep(Math.max(0, 110 - (performance.now() - turnAt)));
+          nextStepAt = turnAt + 110;
         }
         const ghost = GHOST_BODIES.has(session.world.entities.get(serial)?.graphic ?? 0);
         if (
@@ -299,7 +301,6 @@ export function createNavigator(options: {
           detouring = true;
           break;
         }
-        const sentAt = performance.now();
         // The shard walks one step when the ground changes by a little; sixteen stones down in one
         // step is a fall through a floor, not a step, and it refuses it. The path search can offer
         // such a step when the goal's z sits on another surface (a shop below a balcony), and the
@@ -311,6 +312,10 @@ export function createNavigator(options: {
           detouring = true;
           break;
         }
+        // The step interval runs from the last step, so the work done between steps (doors,
+        // pickups, banking) overlaps it instead of adding a pause after it.
+        await Bun.sleep(Math.max(0, nextStepAt - performance.now()));
+        const sentAt = performance.now();
         const accepted = await session.walk(slip(direction, urgent), point.z, running);
         noteStep(session);
         if (accepted) noteNavigationStep(session);
@@ -318,7 +323,7 @@ export function createNavigator(options: {
         const interval = mounted
           ? (running ? 115 : 220) + Math.random() * 15
           : (running ? 210 : 390) + Math.random() * (running ? 20 : 40);
-        await Bun.sleep(Math.max(0, interval - (performance.now() - sentAt)));
+        nextStepAt = sentAt + interval;
         await options.onStep?.();
         if (accepted && canPause(session) && travelled % 4 === 0) await bankWhileWalking(session);
         // Now and then a stop on the way, as a person looks around (human-pace.ts).
