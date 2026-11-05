@@ -1,5 +1,5 @@
 import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
-import { ShardAction } from '@gemwright/network/replies';
+import { ShardAction, ShardMessage } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { MOUNT_TOO_ILL, recoverMissingMount } from './mount-care';
@@ -159,16 +159,28 @@ export function createMountController(ctx: MountContext, city: string, reserve =
         );
       // "That is too far away to ride" (500206): the following horse stepped off; reach it again.
       const tooFar = () => session.world.journal.some((entry) => !before.has(entry) && entry.cliloc === 500206);
-      for (let attempt = 0; attempt < 3; attempt++) {
+      // A double-click inside the shard's action delay (500 ms after the last use or lift, as the
+      // mining tool's or the dismount's) is dropped with only "You must wait" (PacketHandlers.UseReq).
+      const notYet = () =>
+        session.world.journal.some((entry) => !before.has(entry) && entry.cliloc === ShardMessage.mustWait);
+      for (let attempt = 0; attempt < 4; attempt++) {
         await reach(horse.serial);
         before = new Set(session.world.journal);
         session.use(horse.serial);
-        await session.waitFor(
-          () => !!mountEquipment(session.world) || ownershipDenied() || ill() || tooFar(),
-          'server mount equipment',
-          3000
-        );
-        if (!tooFar()) break;
+        await session
+          .waitFor(
+            () => !!mountEquipment(session.world) || ownershipDenied() || ill() || tooFar() || notYet(),
+            'server mount equipment',
+            3000
+          )
+          .catch((error) => {
+            const heard = session.world.journal.filter((entry) => !before.has(entry)).map((e) => e.cliloc ?? e.text);
+            throw new Error(
+              `${error instanceof Error ? error.message : error}; heard ${heard.join(', ') || 'nothing'}`
+            );
+          });
+        if (mountEquipment(session.world) || (!tooFar() && !notYet())) break;
+        if (notYet()) await Bun.sleep(700);
       }
       if (ill()) {
         // A poisoned horse refuses riders (BaseMount); it keeps following while the poison runs out.

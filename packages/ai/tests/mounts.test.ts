@@ -157,6 +157,21 @@ test('an owned horse a diagonal step away is ridden where it stands (BaseMount I
   expect(counts().walks).toBe(0);
 });
 
+test('a double-click inside the shard action delay is tried again, not timed out', async () => {
+  const { ctx, world, horse, equipment } = fixture();
+  world.entities.set(horse.serial, horse);
+  let uses = 0;
+  ctx.session.use = () => {
+    if (++uses === 1) world.journal.push({ cliloc: 500119 } as (typeof world.journal)[number]);
+    else {
+      world.entities.delete(horse.serial);
+      world.entities.set(equipment.serial, equipment);
+    }
+  };
+  expect(await createMountController(ctx, 'Minoc').ride()).toBe(true);
+  expect(uses).toBe(2);
+});
+
 test('friend commands alone cannot establish ownership', async () => {
   const { ctx, world, horse, counts } = fixture(false);
   world.entities.set(horse.serial, horse);
