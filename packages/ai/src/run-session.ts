@@ -146,6 +146,8 @@ export interface RuntimeShared {
 export async function runResident(shared: RuntimeShared, options: ResidentOptions, residentId: string) {
   const { store, ownership, stopping } = shared;
   const runtime: { session: PlayerSession | null } = { session: null };
+  // The last coalesced save, written however the run ends.
+  let writeLast = () => {};
   try {
     const selected = store.get(residentId);
     if (!selected?.desiredActive) throw new Error('No desired active resident matches this session');
@@ -167,23 +169,37 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       !inModelShare(resident.id, options.decisionConfig.share)
         ? { ...options.decisionConfig, providers: [{ provider: 'local' as const }] }
         : options.decisionConfig;
-    const decisions = config
-      ? new DecisionCoordinator(
-          config,
-          (checkpoint) => {
-            resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
-          },
-          undefined,
-          store.spendLedger()
-        )
-      : undefined;
+    // A resident's ordinary saves are coalesced to one write every few seconds: each one stringifies
+    // the whole checkpoint on the main thread, and at a save every second or two across the
+    // population the event loop fell behind enough to make every walk stutter. The worker commits
+    // in five-second batches anyway; a flush (critical actions, reconnects, the end) writes at once.
+    let pending: Resident['checkpoint'] | undefined;
+    let pendingTimer: ReturnType<typeof setTimeout> | undefined;
+    const writePending = () => {
+      clearTimeout(pendingTimer);
+      pendingTimer = undefined;
+      if (!pending) return;
+      const checkpoint = pending;
+      pending = undefined;
+      resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
+    };
+    const save = (checkpoint: Resident['checkpoint']) => {
+      pending = checkpoint;
+      pendingTimer ??= setTimeout(writePending, 5000);
+    };
+    writeLast = writePending;
+    const flush = async () => {
+      writePending();
+      await store.flush();
+    };
+    const decisions = config ? new DecisionCoordinator(config, save, undefined, store.spendLedger()) : undefined;
     const connect = () =>
       connectionAdmission.run(async () => {
-        await store.flush();
+        await flush();
         ownership.assert();
         runtime.session?.close();
         const session = new PlayerSession(options.connection, () => ownership.assert());
-        registerDurability(session, store.flush);
+        registerDurability(session, flush);
         runtime.session = session;
         shared.track(residentId, session);
         return inSession(session, async () => {
@@ -258,9 +274,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
           seconds,
           checkpoint: resident.checkpoint,
           stopping,
-          save: (checkpoint: Resident['checkpoint']) => {
-            resident = store.saveProgress(resident.id, resident.revision, checkpoint, resident.binding);
-          }
+          save
         };
         if (options.minerAssets) {
           const result = await runMiner({ ...common, assets: options.minerAssets });
@@ -437,6 +451,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     });
     return result;
   } finally {
+    writeLast();
     runtime.session?.close();
     shared.track(residentId, null);
   }
