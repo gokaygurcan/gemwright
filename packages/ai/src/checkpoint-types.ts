@@ -131,6 +131,7 @@ export interface Checkpoint {
       outcome?: string;
       locationSource?: 'death-status' | 'last-seen';
       retryAt?: number;
+      abandonCorpse?: boolean;
     };
     deathSite?: { x: number; y: number; z: number };
     corpse?: { serial: number; x: number; y: number; z: number };

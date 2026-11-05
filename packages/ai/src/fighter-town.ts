@@ -7,10 +7,11 @@ import type { Entity } from '@gemwright/network/world';
 
 import { deposit } from './bank-box';
 import { offersBank, openBankBox } from './bank-gold';
-import { nearAnyGround, travelNear } from './cemeteries';
+import { travelNear } from './cemeteries';
 import { replaceDeathRobe } from './death-robe';
 import { actionScope } from './execution-session';
 import { bandage, type FighterContext, healPotion } from './fighter-context';
+import { returnToRefuge } from './fighter-refuge';
 import { createFighterRestock, fighterSupplyName } from './fighter-supplies';
 import { packItems } from './inventory';
 import { learnQuality, shopSafe } from './item-quality';
@@ -231,7 +232,7 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
       'recovery',
       'Recover to working health',
       async () => {
-        if (status().hits < status().maxHits * 0.9 && nearAnyGround(position())) await navigate(ctx.home.town, 4);
+        await returnToRefuge(ctx);
         phase('recovering-health', 'Recovering in town before another fight');
         const until = Math.min(deadline, Date.now() + 90_000);
         while ((status().hits < status().maxHits * 0.9 || (session.world.poisonLevel ?? 0) > 0) && Date.now() < until) {

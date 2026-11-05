@@ -3,6 +3,7 @@ import { hurtOnTheWay } from './cemeteries';
 import { beingAttacked } from './danger-response';
 import { checkAction } from './execution-session';
 import { Died, type FighterContext, Retreat } from './fighter-context';
+import { recoveryHealthReady, recoveryThreats } from './fighter-refuge';
 import { assertNotHalted } from './gm';
 import { checkLoop } from './loop-watch';
 
@@ -29,7 +30,7 @@ export function checkFighter(
     (recentlyHurt(session) || beingAttacked(session))
   )
     hurtOnTheWay(ctx);
-  if (state.recoveringCorpse && status().hits < status().maxHits * 0.35)
+  if (state.recoveringCorpse && (!recoveryHealthReady(ctx) || recoveryThreats(ctx).length))
     throw new Retreat('Corpse approach became unsafe');
   if (state.inCombat) {
     const assessment = combatAssessment();

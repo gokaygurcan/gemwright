@@ -20,11 +20,13 @@ test('resurrection accepts the observed free healer Continue control and rejects
   expect(resurrectionButton(layout.replace('1 0 1', '1 0 2'))).toBeUndefined();
 });
 
-test('corpse recovery preserves a fresh target despite nearby monsters or earlier attempts', () => {
+test('corpse recovery requires working health, no nearby threat and a bounded attempt count', () => {
   const safe = { policy: 'recover-if-safe' as const, ageMs: 1000, attempts: 0, healthRatio: 1, threats: 0 };
   expect(corpseRecoveryChoice(safe)).toBe('recover');
-  for (const changed of [{ threats: 1 }, { attempts: 2 }, { healthRatio: 0.7 }])
-    expect(corpseRecoveryChoice({ ...safe, ...changed })).toBe('recover');
+  expect(corpseRecoveryChoice({ ...safe, attempts: 1 })).toBe('recover');
+  for (const changed of [{ threats: 1 }, { attempts: 2 }])
+    expect(corpseRecoveryChoice({ ...safe, ...changed })).toBe('replace');
+  expect(corpseRecoveryChoice({ ...safe, healthRatio: 0.7 })).toBe('wait');
   expect(corpseRecoveryChoice({ ...safe, healthRatio: 0.2 })).toBe('wait');
   for (const changed of [{ ageMs: 16 * 60_000 }, { ageMs: NaN }])
     expect(corpseRecoveryChoice({ ...safe, ...changed })).toBe('replace');

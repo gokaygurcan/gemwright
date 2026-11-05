@@ -3,7 +3,7 @@ import { gumpCommands } from '@gemwright/network/gumps';
 
 import { ActionInterrupted, InteractionInterrupt } from './action-errors';
 import { checkedDelay } from './action-purpose';
-import { nearAnyGround, returnHome, travelNear } from './cemeteries';
+import { travelNear } from './cemeteries';
 import { selfLootCorpse } from './corpse-self-loot';
 import {
   type DecisionCoordinator,
@@ -16,7 +16,8 @@ import { dungeonWalker, inAnyDungeon } from './dungeon-tools';
 import { actionScope } from './execution-session';
 import { rememberExperience } from './experience';
 import { rememberDeath } from './fight-confidence';
-import { Died, type FighterContext, observedThreat, Retreat } from './fighter-context';
+import { Died, type FighterContext, Retreat } from './fighter-context';
+import { recoveryEquipmentReady, recoveryHealthReady, recoveryThreats, returnToRefuge } from './fighter-refuge';
 import { distance } from './navigation';
 import { resurrectGhost } from './resurrection';
 
@@ -43,7 +44,8 @@ export function corpseRecoveryChoice(input: {
   if (input.policy === 'seek-help') return 'seek-help';
   if (input.policy === 'replace-equipment' || !Number.isFinite(input.ageMs) || input.ageMs > 15 * 60_000)
     return 'replace';
-  if (input.healthRatio < 0.5) return 'wait';
+  if (input.threats > 0 || input.attempts >= 2) return 'replace';
+  if (!Number.isFinite(input.healthRatio) || input.healthRatio < 0.9) return 'wait';
   return 'recover';
 }
 
@@ -56,28 +58,9 @@ export function createFighterRecovery(
     decisions?: DecisionCoordinator;
   }
 ) {
-  const {
-    session,
-    template,
-    serial,
-    position,
-    check,
-    phase,
-    navigate,
-    escapeNavigate,
-    trip,
-    persist,
-    nearby,
-    dead,
-    state,
-    stats,
-    status
-  } = ctx;
-  const threats = () =>
-    nearby().filter(
-      (mobile) =>
-        mobile.position && observedThreat(mobile, session.world.combatant) && distance(position(), mobile.position) < 8
-    );
+  const { session, template, serial, position, check, phase, navigate, trip, persist, dead, state, stats, status } =
+    ctx;
+  const threats = () => recoveryThreats(ctx);
   const identifyPersonalCorpse = async () => {
     const name = trip.recovery?.ownerName || session.world.entities.get(serial)?.name;
     const site = trip.deathSite;
@@ -123,8 +106,11 @@ export function createFighterRecovery(
       outcome: 'abandoned'
     });
     phase('abandoning-corpse', reason);
+    persist();
   };
   const captureDeath = () => {
+    const diedRecovering =
+      trip.recovery?.stage === 'equipment' || (trip.recovery?.stage === 'corpse' && trip.recovery.attempts > 0);
     const lastSeen = trip.encounter?.position;
     const encounter = trip.encounter;
     if (encounter?.memoryId && encounter.body !== undefined) {
@@ -152,7 +138,8 @@ export function createFighterRecovery(
         stage: 'healer',
         diedAt: deathTime,
         ownerName: session.world.entities.get(serial)?.name ?? '',
-        attempts: 0
+        attempts: 0,
+        abandonCorpse: diedRecovering || undefined
       };
       delete trip.corpse;
       delete trip.deathSite;
@@ -170,6 +157,7 @@ export function createFighterRecovery(
     }
     rememberDeath(session);
     phase('death-recorded', 'Preserving the recovery goal and observed death location');
+    persist();
   };
   const resurrect = async () => {
     state.recovering = true;
@@ -181,10 +169,14 @@ export function createFighterRecovery(
       // The closest healer or ankh, anywhere on the map (moongate when far).
       // Fighters weigh their corpse trip themselves (corpseRecoveryChoice), so no automatic one.
       if (dead()) await resurrectGhost(ctx, false);
+      if (dead()) throw new Died('Resurrection was not confirmed by a living body');
       stats.resurrections++;
       if (!trip.recovery) throw new Error('Missing persisted death recovery');
-      trip.recovery.stage = 'corpse';
-      phase('resurrected', 'Server confirmed a living body; retaining the corpse recovery goal');
+      if (trip.recovery.abandonCorpse)
+        abandon('Died during corpse recovery; replacing essentials instead of returning.');
+      else trip.recovery.stage = 'corpse';
+      phase('resurrected', 'Server confirmed a living body; continuing persisted recovery');
+      persist();
     } finally {
       state.recovering = false;
     }
@@ -203,6 +195,7 @@ export function createFighterRecovery(
         threats: threats().length
       });
     let selected = choice();
+    if (selected === 'recover' && !recoveryHealthReady(ctx)) selected = 'wait';
     if (selected === 'wait') {
       await services.rest();
       return;
@@ -212,11 +205,7 @@ export function createFighterRecovery(
     // Hard limits (threats, attempts, policy, decay) stay local; the provider weighs the rest with
     // the local rule as baseline.
     const ageMs = Date.now() - Date.parse(recovery.diedAt);
-    const recoverable = () =>
-      template.behavior.corpseRecovery !== 'replace-equipment' &&
-      Number.isFinite(ageMs) &&
-      ageMs < 15 * 60_000 &&
-      status().hits >= status().maxHits * 0.5;
+    const recoverable = () => choice() === 'recover' && recoveryHealthReady(ctx);
     if (services.decisions && recoverable()) {
       const pick = await services.decisions.choose({
         kind: 'corpse-recovery',
@@ -226,7 +215,7 @@ export function createFighterRecovery(
           corpseAgeMinutes: Math.round(ageMs / 60_000),
           attempts: recovery.attempts,
           corpseItems: 'equipment and loot carried at death',
-          note: 'Double-clicking my own corpse restores my worn equipment and belongings. Nearby weak monsters do not veto retrieval. Decide whether to fight or flee after the equipment is restored.'
+          note: 'Retrieve only while healthy and unthreatened. Stop on damage or poison; failed retrieval must return to refuge.'
         }),
         observationRevision: session.world.revision,
         baseline: selected === 'recover' ? 'recover' : 'replace',
@@ -234,21 +223,25 @@ export function createFighterRecovery(
         candidates: [
           {
             id: 'recover',
-            description: 'Reach my corpse and double-click once to restore gear, then reassess fighting or escaping.',
+            description: 'Safely retrieve observed belongings, then return to refuge before resuming work.',
             valid: recoverable
           },
           {
             id: 'wait',
             description: 'Recover dangerously low health before returning to the corpse; retain its location.',
-            valid: () => status().hits < status().maxHits * 0.5
+            valid: () => !recoveryHealthReady(ctx)
           }
         ]
       });
       check();
       const current = requireDecision(pick);
-      selected = current.id === 'recover' ? 'recover' : 'wait';
+      selected = current.id === 'recover' ? choice() : 'wait';
+      if (selected === 'recover' && !recoveryHealthReady(ctx)) selected = 'wait';
       corpsePick = current;
-      if (selected === 'wait') return;
+      if (selected === 'wait') {
+        await services.rest();
+        return;
+      }
     }
     if (selected !== 'recover') {
       if (selected === 'seek-help') session.say('I lost my belongings. Could someone help me recover them?');
@@ -264,12 +257,13 @@ export function createFighterRecovery(
       return;
     }
     recovery.attempts++;
+    persist();
     phase('recovering-corpse', 'Approaching the recorded death site cautiously and checking observed threats');
     state.recoveringCorpse = true;
     try {
       await actionScope(
         session,
-        'escape',
+        'recovery',
         'Recover equipment from my own corpse',
         async () => {
           const site = trip.corpse ?? trip.deathSite;
@@ -289,11 +283,10 @@ export function createFighterRecovery(
           stats.recoveredItems += await selfLootCorpse(ctx, corpse.serial);
           await services.equip();
           await session.refreshStatus();
-          recovery.stage = 'ready';
+          recovery.stage = 'equipment';
           recovery.outcome = 'Observed equipment or belongings restored by personal corpse self-loot.';
           delete recovery.retryAt;
-          trip.pending =
-            status().hits >= status().maxHits * 0.6 && !(session.world.poisonLevel ?? 0) ? 'hunt' : 'return';
+          trip.pending = 'return';
           rememberExperience(ctx.checkpoint, {
             kind: 'recovery',
             id: `corpse:${recovery.diedAt}`,
@@ -326,17 +319,14 @@ export function createFighterRecovery(
       );
       persist();
       if (error instanceof ActionInterrupted || error instanceof InteractionInterrupt) throw error;
-      if (error instanceof Retreat) await escapeNavigate(ctx.home.town, 4);
+      if (error instanceof Retreat || recovery.attempts >= 2)
+        abandon(error instanceof Retreat ? error.message : 'Corpse retrieval failed twice; replacing essentials.');
+      await returnToRefuge(ctx);
       return;
     } finally {
       state.recoveringCorpse = false;
     }
-    if (trip.pending === 'hunt') return;
-    const below = inAnyDungeon(position());
-    if (below) await dungeonWalker(ctx, () => false).climbOut(below);
-    // Home may be across water from a far healer (Skara Brae): through the moongate first.
-    await returnHome(ctx);
-    await escapeNavigate(ctx.home.town, 4);
+    await returnToRefuge(ctx);
   };
   const resume = async () => {
     if (dead()) await resurrect();
@@ -352,7 +342,9 @@ export function createFighterRecovery(
     if (!trip.recovery || trip.recovery.stage === 'ready') return;
     if (trip.recovery.stage === 'healer') {
       // A reconnect may observe resurrection after its acknowledgement was lost.
-      trip.recovery.stage = 'corpse';
+      if (trip.recovery.abandonCorpse)
+        abandon('Died during corpse recovery; replacing essentials instead of returning.');
+      else trip.recovery.stage = 'corpse';
       persist();
     }
     await ctx.refreshBackpack();
@@ -364,16 +356,23 @@ export function createFighterRecovery(
       await recoverCorpse();
     }
     if (trip.recovery.stage === 'equipment') {
-      if (threats().length || nearAnyGround(position())) {
-        await returnHome(ctx);
-        await escapeNavigate(ctx.home.town, 4);
-      }
+      await returnToRefuge(ctx);
       await services.prepareEquipment();
       await services.equip();
       await services.rest();
+      if (
+        !recoveryHealthReady(ctx) ||
+        threats().length ||
+        distance(position(), ctx.home.town) > 4 ||
+        !recoveryEquipmentReady(ctx)
+      ) {
+        persist();
+        return;
+      }
       trip.recovery.stage = 'ready';
       trip.pending = 'return';
       phase('recovery-ready', 'Living, equipped and recovered; reconciling the town trip before hunting again');
+      persist();
     }
   };
   const recover = async () => {
