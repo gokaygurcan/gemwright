@@ -2,7 +2,6 @@ import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
 import { ShardAction } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
-import { approachMobile } from './mobile-approach';
 import { MOUNT_TOO_ILL, recoverMissingMount } from './mount-care';
 import { createMountServices } from './mount-services';
 import { horseBodies, type MountContext, mountEquipment } from './mount-types';
@@ -83,6 +82,19 @@ export function createMountController(ctx: MountContext, city: string, reserve =
       }
     }
   };
+  // BaseMount.OnDoubleClick asks only for InRange 1, diagonals included and nothing about which
+  // side: a horse beside the Minoc forge is ridden from wherever the rider stands next to it. A
+  // following horse keeps moving, so it is chased a few times.
+  const reach = async (serial: number) => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      check();
+      const horse = session.world.entities.get(serial);
+      if (!horse?.position) throw new Error('Horse is no longer observed');
+      if (distance(position(), horse.position) <= 1) return;
+      await ctx.navigate(horse.position, 1);
+    }
+    throw new Error('Horse stayed out of reach');
+  };
   const ride = async () => {
     if (observe()) return true;
     if (Date.now() < nextAttempt) return false;
@@ -110,8 +122,7 @@ export function createMountController(ctx: MountContext, city: string, reserve =
               distance(point, e.position) < 10
           ));
       const seen = memory.horse === undefined ? undefined : session.world.entities.get(memory.horse);
-      if (seen?.position && distance(position(), seen.position) > 12 && safe(seen.position))
-        await approachMobile(ctx, seen.serial);
+      if (seen?.position && distance(position(), seen.position) > 12 && safe(seen.position)) await reach(seen.serial);
       const hint = memory.lastSeen ?? memory.pending;
       if (
         !seen &&
@@ -136,9 +147,8 @@ export function createMountController(ctx: MountContext, city: string, reserve =
         }
         return false;
       }
-      await approachMobile(ctx, horse.serial);
       phase('mounting', `Riding owned horse ${horse.serial}`);
-      const before = new Set(session.world.journal);
+      let before = new Set(session.world.journal);
       const ownershipDenied = () =>
         session.world.journal.some(
           (entry) => !before.has(entry) && entry.serial === horse.serial && [501263, 501264].includes(entry.cliloc ?? 0)
@@ -147,12 +157,19 @@ export function createMountController(ctx: MountContext, city: string, reserve =
         session.world.journal.some(
           (entry) => !before.has(entry) && entry.serial === horse.serial && entry.cliloc === MOUNT_TOO_ILL
         );
-      session.use(horse.serial);
-      await session.waitFor(
-        () => !!mountEquipment(session.world) || ownershipDenied() || ill(),
-        'server mount equipment',
-        3000
-      );
+      // "That is too far away to ride" (500206): the following horse stepped off; reach it again.
+      const tooFar = () => session.world.journal.some((entry) => !before.has(entry) && entry.cliloc === 500206);
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await reach(horse.serial);
+        before = new Set(session.world.journal);
+        session.use(horse.serial);
+        await session.waitFor(
+          () => !!mountEquipment(session.world) || ownershipDenied() || ill() || tooFar(),
+          'server mount equipment',
+          3000
+        );
+        if (!tooFar()) break;
+      }
       if (ill()) {
         // A poisoned horse refuses riders (BaseMount); it keeps following while the poison runs out.
         nextAttempt = Date.now() + 60_000;
@@ -170,7 +187,7 @@ export function createMountController(ctx: MountContext, city: string, reserve =
         persist();
         return false;
       }
-      observe();
+      if (!observe()) throw new Error('Horse kept stepping out of reach');
       persist();
       return true;
     } catch (error) {

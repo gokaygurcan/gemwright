@@ -150,6 +150,13 @@ test('reconnect recognizes actual mount equipment, then gathering dismounts, fol
   expect(world.entities.has(equipment.serial)).toBe(true);
 });
 
+test('an owned horse a diagonal step away is ridden where it stands (BaseMount InRange 1)', async () => {
+  const { ctx, world, horse, counts } = fixture();
+  world.entities.set(horse.serial, { ...horse, position: { x: 101, y: 101, z: 0, direction: 0 } });
+  expect(await createMountController(ctx, 'Minoc').ride()).toBe(true);
+  expect(counts().walks).toBe(0);
+});
+
 test('friend commands alone cannot establish ownership', async () => {
   const { ctx, world, horse, counts } = fixture(false);
   world.entities.set(horse.serial, horse);
