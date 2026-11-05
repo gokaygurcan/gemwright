@@ -1,3 +1,4 @@
+import { figurineOf } from '@gemwright/common/game/rules';
 import { type Item, loadAccounts, loadWorld, type World } from '@gemwright/common/saves/servuo';
 
 import { type Account, type CharacterRecord, characterRecord } from './character';
@@ -33,6 +34,10 @@ export function analyze(saves: string): Analysis {
   }
   const contents = new Map<number, Item[]>();
   for (const item of world.items.values()) {
+    // A mount item's own graphic is the mount layer's, with no art: it shows its animal's figurine.
+    const ridden = item.mount === undefined ? undefined : world.mobiles.get(item.mount);
+    const figurine = ridden && figurineOf(ridden.body);
+    if (ridden && figurine) item.statue = { graphic: figurine, hue: ridden.hue };
     if (item.parent === undefined) continue;
     const list = contents.get(item.parent) ?? [];
     contents.set(item.parent, list);

@@ -46,6 +46,7 @@ interface Rules {
   world: { roads: number[]; houseKey: number; bodyParts: string[]; fished: string[] };
   stations: { anvils: number[]; forges: number[]; smelting: number[]; heat: number[] };
   harvest: { trees: Tiles; rock: Tiles; ores: { type: string; skill: number; hue: number }[] };
+  shrink: Record<string, number>;
 }
 const data = rulesJson as unknown as Rules;
 const classes = data.classes;
@@ -78,6 +79,8 @@ export const fishedTypes = data.world.fished;
 export const spellScrollGraphics: ReadonlySet<number> = new Set(Object.values(data.spellScrolls));
 // Trammel's public moongates by ServUO's own name for each (PublicMoongate.cs), typed by their names.
 export const moongateList = rulesJson.gates;
+// The item a creature shows as a figurine (ServUO ShrinkTable), by body.
+export const figurineOf = (body: number): number | undefined => data.shrink[body];
 
 const ancestors = (name: string) => {
   const chain: string[] = [];

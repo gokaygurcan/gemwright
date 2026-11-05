@@ -288,6 +288,12 @@ for (const [, x, y, z, label, name] of trammelGates.matchAll(
     z: Number(z) || 0,
     label: Number(label)
   };
+// The figurine the client shows for a creature as an item (Data/shrink.cfg, ServUO ShrinkTable).
+const shrink: Record<number, number> = {};
+for (const line of readFileSync(join(root, 'Data/shrink.cfg'), 'utf8').split('\n')) {
+  const [body, item] = line.trim().split(/\s+/);
+  if (body && item && !body.startsWith('#')) shrink[Number(body)] = Number(item);
+}
 const { stations, world, races } = ruleTables(root, scripts, classes);
 // Every creature's facts (rules-creatures.ts), by class, bases before their kinds.
 const creatureFactsOf = new Map<string, CreatureFacts | undefined>();
@@ -316,7 +322,7 @@ const output = new URL('./rules.json', import.meta.url).pathname;
 const source = 'ServUO Server and Scripts at the pinned revision';
 writeFileSync(
   output,
-  `${JSON.stringify({ schemaVersion: 1, source, classes, sb, reagents, races, skills, maps, smallOre, water, harvest, doors, spellScrolls, manaByCircle, stations, world, gates })}\n`
+  `${JSON.stringify({ schemaVersion: 1, source, classes, sb, reagents, races, skills, maps, smallOre, water, harvest, doors, spellScrolls, manaByCircle, stations, world, gates, shrink })}\n`
 );
 writeFileSync(
   new URL('./creatures.json', import.meta.url).pathname,
