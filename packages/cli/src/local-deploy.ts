@@ -2,7 +2,7 @@ import { chmod, cp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promi
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { clientVersion } from '@gemwright/common/config/shard';
+import { clientVersion, decisionProviders } from '@gemwright/common/config/shard';
 import { aiSettings, mapPattern } from '@gemwright/deployment/ai-deploy';
 import { packageClientFiles } from '@gemwright/deployment/client-files';
 import type { DeployParts, ServerAdapter } from '@gemwright/deployment/deploy';
@@ -133,7 +133,7 @@ export function localCompose(config: ShardConfig, state: LocalState) {
 }
 
 // Keys come from this environment when set; otherwise the ones saved earlier are kept.
-async function writeAiEnv(root: string) {
+async function writeAiEnv(root: string, config: ShardConfig) {
   const path = join(root, 'ai.env');
   const saved = await readFile(path, 'utf8').catch((error) => {
     if (error.code !== 'ENOENT') throw error;
@@ -145,8 +145,10 @@ async function writeAiEnv(root: string) {
       .filter(Boolean)
       .map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])
   );
-  for (const key of ['TYPESAFE_API_KEY', 'ANTHROPIC_API_KEY'])
-    if (process.env[key]) values[key] = process.env[key] as string;
+  const keys = new Set(['TYPESAFE_API_KEY', 'ANTHROPIC_API_KEY', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']);
+  for (const entry of decisionProviders(config.ai?.decisions))
+    if (entry.provider !== 'local' && entry.credentialEnv) keys.add(entry.credentialEnv);
+  for (const key of keys) if (process.env[key]) values[key] = process.env[key] as string;
   const text = Object.entries(values)
     .map(([key, value]) => `${key}=${value}\n`)
     .join('');
@@ -233,7 +235,7 @@ export async function deployLocal(
       await mkdir(join(root, 'ai'));
       await stageImage('ai', join(root, 'ai'), ['Dockerfile'], paths.ai);
       uploads.push({ service: 'ai', archive: maps.archive, digest: maps.digest, target: 'assets.tar.gz' });
-      await writeAiEnv(root);
+      await writeAiEnv(root, config);
     }
     state.parts = (['server', 'client', 'ai'] as const).filter(
       (part) => parts.includes(part) || state.parts.includes(part)

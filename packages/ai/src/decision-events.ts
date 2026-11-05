@@ -37,6 +37,7 @@ export function recordDecisions(checkpoint: Checkpoint) {
         configHash: trace.configHash,
         requestedModel: trace.requestedModel,
         resolvedModel: trace.resolvedModel,
+        attempts: trace.attempts,
         selected: trace.selected,
         candidates: trace.candidates,
         reason: trace.reason,

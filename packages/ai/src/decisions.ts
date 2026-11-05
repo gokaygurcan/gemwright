@@ -7,14 +7,16 @@ import type { PlayerSession } from '@gemwright/network/session';
 import { ActionInterrupted } from './action-errors';
 import { peopleSeen } from './appraise';
 import type { CharacterTemplate } from './config';
+import { DecisionChain } from './decision-chain';
 import { decisionContext, decisionContextRevision } from './decision-context';
 import { recordDecisions } from './decision-events';
+import { JEV_DAILY_TOKEN_ALLOWANCE, JEV_RESIDENT_TOKEN_ALLOWANCE, JevProvider } from './decision-jev';
+import { type DecisionCandidate, localDecision } from './decision-local';
 import {
   type ChoiceRequest,
-  costUsd,
   type DecisionConfig,
   type DecisionProvider,
-  JevProvider,
+  type ProviderAttempt,
   ProviderFailure
 } from './decision-provider';
 import { experienceSummary } from './experience';
@@ -40,6 +42,7 @@ export interface DecisionTrace {
   reason: string;
   requestedModel: string;
   resolvedModel?: string;
+  attempts?: ProviderAttempt[];
   proposal?: string;
   selected: string | null;
   confidence?: number;
@@ -80,13 +83,8 @@ export function underperforms(tally: DecisionTally | undefined): boolean {
   return divergent < agreeing - 0.1;
 }
 
+export type { DecisionCandidate } from './decision-local';
 export { decisionReport, mergeDecisionMemory } from './decision-report';
-
-export interface DecisionCandidate {
-  id: string;
-  description: string;
-  valid: () => boolean;
-}
 export interface DecisionPick {
   id: string;
   traceId: string;
@@ -231,6 +229,7 @@ export class DecisionCoordinator {
   private readonly save: (checkpoint: Checkpoint) => void;
   private readonly provider: DecisionProvider | null;
   private readonly configHash: string;
+  private readonly chained: boolean;
   private requests = 0;
   private nextRequestAt = 0;
   private busy = false;
@@ -245,7 +244,17 @@ export class DecisionCoordinator {
       recordDecisions(checkpoint);
       save(checkpoint);
     };
-    this.provider = config.provider === 'jev' ? (provider ?? new JevProvider(config)) : null;
+    const primary = config.providers[0];
+    this.chained = config.providers.length > 2 || primary?.provider === 'clef';
+    if (!primary || primary.provider === 'local') this.provider = null;
+    else if (provider) this.provider = provider;
+    else if (this.chained) {
+      if (!ledger) throw new Error('Decision fallback chain requires a persistent spend ledger');
+      this.provider = new DecisionChain(config, ledger);
+    } else
+      this.provider = process.env[primary.credentialEnv ?? 'TYPESAFE_API_KEY']
+        ? new JevProvider({ ...primary, timeoutMs: config.timeoutMs })
+        : null;
     this.configHash = hash(config);
   }
   reconcile(checkpoint: Checkpoint): void {
@@ -305,18 +314,11 @@ export class DecisionCoordinator {
     if (!checkpoint.decisions) this.reconcile(checkpoint);
     const memory = checkpoint.decisions;
     if (!memory) throw new Error('Decision memory unavailable');
-    const candidates = options.candidates.filter((candidate) => candidate.valid());
-    if (
-      !candidates.length ||
-      candidates.length > 8 ||
-      new Set(candidates.map((candidate) => candidate.id)).size !== candidates.length ||
-      candidates.some((candidate) => !/^[a-z][a-z0-9-]{0,63}$/.test(candidate.id))
-    )
-      throw new Error('Invalid decision candidates');
-    const baseline = candidates.find((candidate) => candidate.id === options.baseline) ?? candidates[0];
-    if (!baseline) throw new Error('Decision baseline unavailable');
+    const { candidates, baseline } = localDecision(options.candidates, options.baseline);
+    const primary = this.config.providers[0];
+    const model = primary && primary.provider !== 'local' ? primary.model : 'local';
     const request: ChoiceRequest = {
-      model: this.config.model,
+      model,
       state: {
         ...(options.state && typeof options.state === 'object' && !Array.isArray(options.state)
           ? structuredClone(options.state)
@@ -344,7 +346,7 @@ export class DecisionCoordinator {
       baseline: baseline.id,
       source: 'pending',
       reason: 'request-pending',
-      requestedModel: this.config.model,
+      requestedModel: model,
       selected: null,
       reservedInputTokens: 0,
       latencyMs: 0,
@@ -399,15 +401,16 @@ export class DecisionCoordinator {
                       ? 'run-budget'
                       : memory.budget.attempts >= this.config.maxRequestsPerDay
                         ? 'daily-request-budget'
-                        : costUsd(memory.budget.chargedInputTokens + reservation) > this.config.maxDailyCostUsd
+                        : !this.chained && memory.budget.chargedInputTokens + reservation > JEV_RESIDENT_TOKEN_ALLOWANCE
                           ? 'daily-cost-budget'
-                          : OPTIONAL_KINDS.has(options.kind) &&
+                          : !this.chained &&
+                              OPTIONAL_KINDS.has(options.kind) &&
                               this.ledger &&
-                              costUsd(this.ledger.tokens(day)) > this.config.maxPopulationDailyCostUsd * OPTIONAL_SHARE
+                              this.ledger.tokens(day) > JEV_DAILY_TOKEN_ALLOWANCE * OPTIONAL_SHARE
                             ? 'optional-kind-budget'
-                            : this.ledger &&
-                                costUsd(this.ledger.tokens(day) + reservation) >
-                                  pacedAllowance(this.config.maxPopulationDailyCostUsd)
+                            : !this.chained &&
+                                this.ledger &&
+                                this.ledger.tokens(day) + reservation > pacedAllowance(JEV_DAILY_TOKEN_ALLOWANCE)
                               ? 'population-cost-budget'
                               : Date.now() < this.nextRequestAt
                                 ? 'cooldown'
@@ -418,7 +421,7 @@ export class DecisionCoordinator {
     memory.budget.attempts++;
     memory.budget.chargedInputTokens += reservation;
     this.busy = true;
-    await this.ledger?.add(day, reservation);
+    if (!this.chained) await this.ledger?.add(day, reservation);
     trace.reservedInputTokens = reservation;
     this.save(checkpoint);
     this.nextRequestAt = Date.now() + this.config.minIntervalMs;
@@ -440,24 +443,33 @@ export class DecisionCoordinator {
       });
       const provider = this.provider;
       if (!provider) throw new Error('Decision provider missing');
-      const result = await Promise.race([provider.choose(request, controller.signal), cancelled]);
+      const result = await Promise.race([
+        provider.choose(request, controller.signal, (attempt) => {
+          trace.attempts ??= [];
+          const index = trace.attempts.findIndex((previous) => previous.provider === attempt.provider);
+          if (index === -1) trace.attempts.push(attempt);
+          else trace.attempts[index] = attempt;
+          this.save(checkpoint);
+        }),
+        cancelled
+      ]);
       trace.latencyMs = Date.now() - started;
       trace.resolvedModel = result.model;
+      trace.attempts = result.attempts;
       trace.proposal = result.choice;
       trace.confidence = result.confidence;
       trace.probabilities = result.probabilities;
       trace.inputTokens = result.inputTokens;
       trace.outputTokens = result.outputTokens;
       memory.budget.chargedInputTokens += result.inputTokens - reservation;
-      await this.ledger?.add(day, result.inputTokens - reservation);
+      if (!this.chained) await this.ledger?.add(day, result.inputTokens - reservation);
       return select(result.choice, 'model', 'validated-choice');
     } catch (error) {
       trace.latencyMs = Date.now() - started;
-      // The call produced nothing, so it costs nothing: without this refund a few timeouts spent the
-      // whole town's daily budget (every failure kept its full reservation charged).
       memory.budget.chargedInputTokens -= reservation;
-      await this.ledger?.add(day, -reservation);
+      if (!this.chained) await this.ledger?.add(day, -reservation);
       const failure = error instanceof ProviderFailure ? error : new ProviderFailure('provider-error');
+      trace.attempts = failure.attempts ?? trace.attempts;
       if (['http-401', 'http-403'].includes(failure.code)) this.disabled = true;
       this.nextRequestAt = Math.max(this.nextRequestAt, Date.now() + failure.retryAfterMs);
       return select(baseline.id, 'fallback', failure.code);

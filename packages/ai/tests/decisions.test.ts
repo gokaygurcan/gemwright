@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 
+import { JEV_RESIDENT_TOKEN_ALLOWANCE } from '../src/decision-jev';
 import { type ChoiceRequest, parseChoice, validateDecisionConfig } from '../src/decision-provider';
 import { DecisionCoordinator, OPTIONAL_KINDS, OPTIONAL_SHARE, pacedAllowance, reservedTokens } from '../src/decisions';
 import type { Checkpoint } from '../src/store';
@@ -65,14 +66,14 @@ test('a request reserves budget before transport, and a successful call keeps it
   const cp = checkpoint();
   let requests = 0;
   let charged = 0;
-  const config = validateDecisionConfig({ provider: 'jev', maxDailyCostUsd: 0.003 });
+  const config = validateDecisionConfig({ provider: 'jev' });
   const provider = {
     choose: async () => {
       requests++;
       charged = cp.decisions?.budget.chargedInputTokens ?? 0;
       expect(cp.decisions?.history.at(-1)?.source).toBe('pending');
       // A real call that used most of the day's allowance: the next one must be refused.
-      return { ...result, inputTokens: 72_000, outputTokens: 0 };
+      return { ...result, inputTokens: JEV_RESIDENT_TOKEN_ALLOWANCE, outputTokens: 0 };
     }
   };
   const options = {

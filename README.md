@@ -82,7 +82,7 @@ AI residents are ordinary players run by a separate service. Configure them in `
 "ai": { "population": 20, "decisions": "local" }
 ```
 
-`decisions` is `local` (built-in rules) or `jev` (TypeSafe's Jev; set `TYPESAFE_API_KEY` in the environment you deploy from). AI residents deploy to Railway or locally (`--local`) for now.
+`decisions` accepts `local`, `jev`, `clef`, or an ordered provider list. Each remote entry uses `provider` and `model`; end the list with `{ "provider": "local" }`. The `clef` shorthand selects Clef Flash → Jev → local. Set `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `TYPESAFE_API_KEY` in the environment you deploy from. AI residents deploy to Railway or locally (`--local`) for now.
 
 Name the parts to deploy: with no part flags `gemwright deploy` deploys the server; with any, it deploys exactly those.
 

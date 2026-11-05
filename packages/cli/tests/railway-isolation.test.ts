@@ -146,6 +146,45 @@ test('AI-only deployment and rerun preserve resource IDs and never mutate server
   }
 });
 
+test('AI deployment forwards credentials referenced by the ordered provider list', async () => {
+  const { dir, config } = await fixture();
+  const fake = provider();
+  fake.trust();
+  config.ai = {
+    decisions: [
+      { provider: 'clef', model: 'clef-flash', credentialEnv: 'GEMWRIGHT_TEST_CLEF' },
+      { provider: 'jev', model: 'jev-1.14.0', credentialEnv: 'GEMWRIGHT_TEST_JEV' },
+      { provider: 'local' }
+    ]
+  };
+  await writeFile(join(dir, 'gemwright.json'), JSON.stringify(config));
+  const names = ['GEMWRIGHT_TEST_CLEF', 'GEMWRIGHT_TEST_JEV', 'CLOUDFLARE_ACCOUNT_ID'];
+  const saved = names.map((key) => process.env[key]);
+  process.env.GEMWRIGHT_TEST_CLEF = 'clef-test-token';
+  process.env.GEMWRIGHT_TEST_JEV = 'jev-test-token';
+  process.env.CLOUDFLARE_ACCOUNT_ID = 'a'.repeat(32);
+  const original = processTools.command;
+  const command = spyOn(processTools, 'command').mockImplementation(async (args, cwd) =>
+    args[0] === 'railway' ? fake.run(args.slice(1)) : original(args, cwd)
+  );
+  try {
+    await deployAi({ loadShard, stageImage }, dir, join(dir, 'files'));
+    const variables = fake.calls.find((args) => args[0] === 'variable' && args[1] === 'set');
+    expect(variables).toContain('GEMWRIGHT_TEST_CLEF=clef-test-token');
+    expect(variables).toContain('GEMWRIGHT_TEST_JEV=jev-test-token');
+    expect(variables).toContain(`CLOUDFLARE_ACCOUNT_ID=${'a'.repeat(32)}`);
+    expect(variables?.some((value) => value.startsWith('CLOUDFLARE_API_TOKEN='))).toBe(false);
+    expect(variables).toContain('--skip-deploys');
+  } finally {
+    command.mockRestore();
+    names.forEach((key, index) => {
+      const value = saved[index];
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    });
+  }
+});
+
 test('external server needs no CLI-created server; client deployment changes only its own resources', async () => {
   const { dir, config } = await fixture(true);
   const fake = provider();

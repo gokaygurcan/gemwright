@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { clientVersion } from '@gemwright/common/config/shard';
+import { clientVersion, decisionProviders } from '@gemwright/common/config/shard';
 import type { ShardConfig } from '@gemwright/common/config/types';
 
 import { packageClientFiles } from './client-files';
@@ -71,10 +71,14 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
     const { state, flags, save } = await ensureService(join(directory, '.gemwright/ai.json'), name, target, run);
 
     const settings = aiSettings(shard);
-    const jev = shard.ai?.decisions === 'jev';
-    // Without a key here, the one already set on the service is kept (it is never cleared).
-    if (jev && !process.env.TYPESAFE_API_KEY)
-      progress('ai.decisions is jev and TYPESAFE_API_KEY is not set here; keeping the key already on the service.');
+    const providers = decisionProviders(shard.ai?.decisions);
+    const clef = providers.some((entry) => entry.provider === 'clef');
+    const credentials = new Set(
+      providers.flatMap((entry) => (entry.provider === 'local' || !entry.credentialEnv ? [] : [entry.credentialEnv]))
+    );
+    if (clef) credentials.add('CLOUDFLARE_ACCOUNT_ID');
+    for (const key of credentials)
+      if (!process.env[key]) progress(`${key} is not set here; keeping the value already on the AI service.`);
     const claude = shard.ai?.speech === 'claude';
     if (claude && !process.env.ANTHROPIC_API_KEY)
       throw new Error('ai.speech is claude, but ANTHROPIC_API_KEY is not set in this environment.');
@@ -85,7 +89,7 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
       `UO_HOST=${target.host}`,
       `UO_PORT=${target.port}`,
       `GEMWRIGHT_SHARD=${JSON.stringify(settings)}`,
-      ...(jev && process.env.TYPESAFE_API_KEY ? [`TYPESAFE_API_KEY=${process.env.TYPESAFE_API_KEY}`] : []),
+      ...[...credentials].flatMap((key) => (process.env[key] ? [`${key}=${process.env[key]}`] : [])),
       ...(claude ? [`ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY}`] : []),
       'RAILWAY_DOCKERFILE_PATH=Dockerfile',
       'RAILWAY_DEPLOYMENT_DRAINING_SECONDS=45',
@@ -147,7 +151,9 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
           directory,
           'AI bootstrap'
         );
-        progress(`AI residents deployed: ${shard.ai?.population ?? 10} residents, ${jev ? 'Jev' : 'local'} decisions.`);
+        progress(
+          `AI residents deployed: ${shard.ai?.population ?? 10} residents, ${providers.map((entry) => entry.provider).join(' → ')} decisions.`
+        );
         return;
       }
       if (status && ['FAILED', 'CRASHED', 'REMOVED'].includes(status))

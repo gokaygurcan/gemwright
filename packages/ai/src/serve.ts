@@ -1,7 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { clientVersion } from '@gemwright/common/config/shard';
+import { clientVersion, decisionProviders } from '@gemwright/common/config/shard';
+import type { DecisionSettings } from '@gemwright/common/config/types';
 import { validateConnection } from '@gemwright/network/connection';
 
 import { useShardAreas } from './area-build';
@@ -43,7 +44,7 @@ const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
   client?: { version: string };
   ai?: {
     population?: number;
-    decisions?: string;
+    decisions?: DecisionSettings;
     speech?: string;
     chaos?: number;
     wars?: boolean;
@@ -90,22 +91,13 @@ const connection = validateConnection({
   serverIndex: 0,
   timeoutMs: 20000
 });
-const decisionConfig = validateDecisionConfig(
-  shard.ai?.decisions === 'jev' && process.env.TYPESAFE_API_KEY
-    ? {
-        provider: 'jev',
-        model: 'jev-1.13.0',
-        minIntervalMs: 5000,
-        // Every resident shares one daily budget: $0.16 a day keeps the population under $5 a month.
-        maxRequestsPerRun: 1000,
-        maxRequestsPerDay: 200,
-        maxDailyCostUsd: 0.02,
-        maxPopulationDailyCostUsd: 0.16,
-        // Half the residents ask Jev, half decide locally, to compare them (analyze /decisions).
-        share: 0.5
-      }
-    : { provider: 'local' }
-);
+const decisionConfig = validateDecisionConfig({
+  providers: decisionProviders(shard.ai?.decisions),
+  minIntervalMs: 5000,
+  maxRequestsPerRun: 1000,
+  maxRequestsPerDay: 200,
+  share: shard.ai?.decisions === 'jev' ? 0.5 : 1
+});
 const dbPath = join(data, 'residents.sqlite');
 const store = new ResidentStore(dbPath, shard.id);
 try {

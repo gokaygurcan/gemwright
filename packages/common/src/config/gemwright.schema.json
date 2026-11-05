@@ -193,7 +193,53 @@
           "maximum": 300
         },
         "decisions": {
-          "enum": ["local", "jev"]
+          "oneOf": [
+            {
+              "enum": ["local", "jev", "clef"]
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "uniqueItems": true,
+              "items": [
+                {
+                  "$ref": "#/definitions/decisionLocal"
+                }
+              ]
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": [
+                {
+                  "$ref": "#/definitions/decisionRemote"
+                },
+                {
+                  "$ref": "#/definitions/decisionLocal"
+                }
+              ]
+            },
+            {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": [
+                {
+                  "$ref": "#/definitions/decisionRemote"
+                },
+                {
+                  "$ref": "#/definitions/decisionRemote"
+                },
+                {
+                  "$ref": "#/definitions/decisionLocal"
+                }
+              ]
+            }
+          ]
         },
         "speech": {
           "enum": ["authored", "claude"]
@@ -357,6 +403,54 @@
         }
       },
       "required": ["owner", "autoCreateAccounts"]
+    },
+    "decisionRemote": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "model"],
+          "properties": {
+            "provider": {
+              "const": "jev"
+            },
+            "model": {
+              "enum": ["jev-1.13.0", "jev-1.14.0"]
+            },
+            "credentialEnv": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "model"],
+          "properties": {
+            "provider": {
+              "const": "clef"
+            },
+            "model": {
+              "enum": ["clef", "clef-flash", "clef-omni"]
+            },
+            "credentialEnv": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+            }
+          }
+        }
+      ]
+    },
+    "decisionLocal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "const": "local"
+        }
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import { validateSchema } from '@gemwright/common/config/compatibility';
 import { expansions } from '@gemwright/common/game/expansions';
 import {
   createConfig,
@@ -9,6 +10,26 @@ import {
   timezoneOptions,
   validateName
 } from '@gemwright/server/config';
+
+test('decision providers use one ordered representation with matching runtime and JSON schema validation', () => {
+  const decisions = [
+    { provider: 'clef' as const, model: 'clef-flash' },
+    { provider: 'jev' as const, model: 'jev-1.14.0' },
+    { provider: 'local' as const }
+  ];
+  const config = createConfig({ client: { version: '7.0.45.1' }, ai: { decisions } });
+  expect(config.ai?.decisions).toEqual(decisions);
+  expect(() => validateSchema(config)).not.toThrow();
+  for (const bad of [
+    [{ provider: 'clef', model: 'clef-flash', budget: 1 }, { provider: 'local' }],
+    [{ provider: 'clef', model: 'jev-1.13.0' }, { provider: 'local' }],
+    [{ provider: 'local' }, { provider: 'jev', model: 'jev-1.13.0' }],
+    [{ provider: 'jev', model: 'jev-1.13.0' }]
+  ]) {
+    expect(() => validateSchema({ ...config, ai: { decisions: bad } })).toThrow();
+    expect(() => createConfig({ ...config, ai: { decisions: bad as typeof decisions } })).toThrow();
+  }
+});
 
 describe('shard identity', () => {
   test('drops apostrophes, folds case and collapses punctuation', () => {

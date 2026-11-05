@@ -57,7 +57,15 @@ try {
     await mkdir(target);
     run(['tar', '-xzf', join(temporary, pack.filename), '-C', target]);
     paths[component] = join(target, 'package');
-    const secrets = ['ANTHROPIC_API_KEY', 'TYPESAFE_API_KEY', 'NPM_TOKEN', 'NODE_AUTH_TOKEN', 'GITHUB_TOKEN']
+    const secrets = [
+      'ANTHROPIC_API_KEY',
+      'TYPESAFE_API_KEY',
+      'CLOUDFLARE_ACCOUNT_ID',
+      'CLOUDFLARE_API_TOKEN',
+      'NPM_TOKEN',
+      'NODE_AUTH_TOKEN',
+      'GITHUB_TOKEN'
+    ]
       .map((name) => ({ name, value: process.env[name] }))
       .filter((entry) => entry.value && entry.value.length >= 12);
     for (const file of pack.files as { path: string }[]) {

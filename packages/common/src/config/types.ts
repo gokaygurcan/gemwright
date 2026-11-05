@@ -1,3 +1,7 @@
+import type { DecisionSettings } from './decisions';
+
+export type { DecisionProviderSettings, DecisionSettings, RemoteDecisionSettings } from './decisions';
+
 import type { Expansion } from '../game/expansions';
 import type { Emulator } from './shard';
 
@@ -70,10 +74,10 @@ export interface ShardConfig {
   ai?: AiSettings;
 }
 
-// AI residents (gemwright deploy --ai): how many, and whether Jev or the local rules decide.
+// AI residents (gemwright deploy --ai): how many, and which provider decides.
 export interface AiSettings {
   population?: number;
-  decisions?: 'local' | 'jev';
+  decisions?: DecisionSettings;
   // Replies in each resident's own voice by Claude Haiku 5.5, guarded; authored lines otherwise.
   speech?: 'authored' | 'claude';
   // Races new residents are created as; human and elf by default (gargoyles need their own gear).

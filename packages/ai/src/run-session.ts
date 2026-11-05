@@ -162,8 +162,10 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     );
     // Residents outside the model's share decide locally: the baseline it is compared against.
     const config =
-      options.decisionConfig?.provider === 'jev' && !inModelShare(resident.id, options.decisionConfig.share)
-        ? { ...options.decisionConfig, provider: 'local' as const }
+      options.decisionConfig &&
+      options.decisionConfig.providers[0]?.provider !== 'local' &&
+      !inModelShare(resident.id, options.decisionConfig.share)
+        ? { ...options.decisionConfig, providers: [{ provider: 'local' as const }] }
         : options.decisionConfig;
     const decisions = config
       ? new DecisionCoordinator(

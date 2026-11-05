@@ -74,8 +74,32 @@ UO_HOST           ServUO endpoint (required)
 UO_PORT           Server port (default: 2593)
 GEMWRIGHT_SHARD   Shard configuration JSON (required)
 TYPESAFE_API_KEY  Required when ai.decisions is jev
+CLOUDFLARE_ACCOUNT_ID Required for Clef inference
+CLOUDFLARE_API_TOKEN  Workers AI token for Clef inference
 ANTHROPIC_API_KEY Required when ai.speech is claude
 ```
+
+Set `ai.decisions` to an ordered provider list:
+
+```json
+{
+  "ai": {
+    "decisions": [
+      { "provider": "clef", "model": "clef-flash" },
+      { "provider": "jev", "model": "jev-1.13.0" },
+      { "provider": "local" }
+    ]
+  }
+}
+```
+
+Providers run in order, falling back on exhaustion or failure. `clef` is shorthand for this list;
+`local` and `jev` remain supported. Standalone `--decisions` files use `providers` for the same list.
+Optional `credentialEnv` overrides the token variable. No Cloudflare Worker is needed.
+
+Budgets cover the whole population, persist across restarts, and reset at midnight UTC.
+Clef is capped at the free 10,000 neurons/day ($0.11); uncertain charges stay reserved.
+Other applications on the same paid account can consume that allowance and cause overage.
 
 ## License
 
