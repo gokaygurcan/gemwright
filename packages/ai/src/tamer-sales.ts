@@ -1,6 +1,7 @@
 import { PACK_ANIMAL_BODIES } from '@gemwright/common/game/bodies';
 import type { Entity } from '@gemwright/network/world';
 
+import { petSource } from './pets';
 import type { ProfessionContext } from './profession';
 import { offered, postOffer, shopShare, withdrawOffer } from './resident-offers';
 
@@ -14,8 +15,14 @@ const forSale = new WeakMap<object, Map<number, { kind: 'mount' | 'pack'; since:
 
 type Sale = { kind: 'mount' | 'pack'; since: number };
 const listed = (ctx: ProfessionContext) => {
-  const list = forSale.get(ctx.session) ?? new Map<number, Sale>();
-  forSale.set(ctx.session, list);
+  let list = forSale.get(ctx.session);
+  if (!list) {
+    const own = new Map<number, Sale>();
+    list = own;
+    forSale.set(ctx.session, own);
+    // Animals on offer follow the tamer and are waited for on the road like its companion (pets.ts).
+    petSource(ctx.session, 'for-sale', () => [...own.keys()]);
+  }
   return list;
 };
 

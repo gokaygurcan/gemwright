@@ -55,3 +55,26 @@ export async function gatherPets(
   phase('gathering-pets', `${behind().length} animal(s) out of sight; going through without them`);
   return false;
 }
+
+// On the road a pet that falls more than six tiles behind is waited for, up to eight seconds,
+// until it is within three; one that does not close in (told to stay, stuck) is not waited for
+// again for a minute. A pet out of sight is not waited for at all.
+const unwaited = new WeakMap<PlayerSession, Map<number, number>>();
+export async function waitForPets(
+  session: PlayerSession,
+  position: () => Position,
+  wait: (ms: number) => Promise<void>
+): Promise<boolean> {
+  const skip = unwaited.get(session) ?? new Map<number, number>();
+  unwaited.set(session, skip);
+  const away = (serial: number) => {
+    const at = session.world.entities.get(serial)?.position;
+    return at ? distance(position(), at) : 0;
+  };
+  const lagging = ownedPets(session).filter((serial) => away(serial) > 6 && (skip.get(serial) ?? 0) <= Date.now());
+  if (!lagging.length) return false;
+  const until = Date.now() + 8000;
+  while (lagging.some((serial) => away(serial) > 3) && Date.now() < until) await wait(250);
+  for (const serial of lagging) if (away(serial) > 3) skip.set(serial, Date.now() + 60_000);
+  return true;
+}

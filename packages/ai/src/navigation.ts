@@ -16,6 +16,7 @@ import { recordLifeAction } from './life-events';
 import { type Link, linkToward } from './links';
 import { noteNavigationStep } from './loop-watch';
 import { mountEquipment } from './mount-types';
+import { waitForPets } from './pets';
 import { registerTerrain } from './resident-context';
 import { rejectedSteps, rememberRejectedStep } from './route-memory';
 import { pickUpInReach } from './scavenge';
@@ -329,6 +330,9 @@ export function createNavigator(options: {
         // Now and then a stop on the way, as a person looks around (human-pace.ts).
         const pause = pauseFor(session, urgent);
         if (pause) await checkedDelay(pause, check);
+        // Animals following on the road are waited for when they fall behind (pets.ts).
+        if (accepted && !urgent && canPause(session))
+          await waitForPets(session, position, (ms) => checkedDelay(ms, check));
         // Every fourth step, loose valuables within reach are taken without leaving the route (not
         // by a thief sneaking up on a mark, whose stealth a lift could break).
         if (accepted && canPause(session) && (travelled & 3) === 0 && !options.walkOnly?.())
