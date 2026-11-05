@@ -190,3 +190,22 @@ test('a walk goes around ground where residents keep dying instead of through it
   // Not within a cell (8 tiles) of the deaths.
   expect(result.path?.some((p) => p.x >= 32 && p.x < 56 && p.y < 24)).toBe(false);
 });
+
+test('direct routes do not cut the corner of a dynamic obstacle', () => {
+  expect(directRoute(fake(), { x: 3523, y: 2577, z: 7 }, { x: 3522, y: 2576 }, 0, new Set(['3522,2577']))).toBeNull();
+});
+
+test('searched routes walk around the corner of a dynamic obstacle', () => {
+  const start = { x: 3523, y: 2577, z: 7 };
+  const blocked = new Set(['3522,2577']);
+  const result = new RouteSearch().run(fake(), { start, goal: { x: 3522, y: 2576 }, range: 0, blocked: [...blocked] });
+  expect(result.path?.at(-1)).toEqual({ x: 3522, y: 2576, z: 7 });
+  let previous = start;
+  for (const step of result.path ?? []) {
+    if (step.x !== previous.x && step.y !== previous.y) {
+      expect(blocked.has(`${step.x},${previous.y}`)).toBe(false);
+      expect(blocked.has(`${previous.x},${step.y}`)).toBe(false);
+    }
+    previous = step;
+  }
+});

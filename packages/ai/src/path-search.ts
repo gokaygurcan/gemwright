@@ -213,7 +213,12 @@ export class RouteSearch {
         if (
           nextZ === undefined ||
           Math.abs(nextZ - current.z) > MAX_STEP_Z ||
-          (dx && dy && (height(x, current.y) === undefined || height(current.x, y) === undefined))
+          (dx &&
+            dy &&
+            (blocked.has(`${x},${current.y}`) ||
+              blocked.has(`${current.x},${y}`) ||
+              height(x, current.y) === undefined ||
+              height(current.x, y) === undefined))
         )
           continue;
         const key = coordinate(x, y, nextZ);

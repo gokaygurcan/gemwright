@@ -17,6 +17,8 @@ export function isDoor(graphic: number, terrain: Pick<Terrain, 'tile'>): boolean
   return pairs.has(graphic) || !!(terrain.tile(graphic, true).flags & 0x20000000);
 }
 
+export const isOpenDoor = (graphic: number) => pairs.get(graphic) === 'open';
+
 function overlaps(entity: Entity, from: Point, to: Point) {
   const at = entity.position;
   if (!at || at.z >= Math.max(from.z, to.z) + 16 || at.z + 20 <= Math.min(from.z, to.z)) return false;

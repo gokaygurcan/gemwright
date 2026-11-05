@@ -6,10 +6,8 @@ import type { Position } from '@gemwright/network/world';
 
 import { areaHere, gateArea, strandedAt } from './areas';
 import { Blocked } from './blocked';
-import { threatsNear } from './danger';
 import { dangerAhead } from './danger-response';
 import { type Gate, moongates } from './gates';
-import { lasting } from './lasting';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { gatherPets } from './pets';
@@ -104,8 +102,6 @@ export async function travelByMoongate(
     );
   if (!from) throw new Blocked('unreachable', `No public moongate can be reached on foot from ${here.x},${here.y}`);
   if (from === to) return;
-  if (lasting('gate-ban', session.world.serial ?? -1).active(`${from}>${to}`))
-    throw new Blocked('unreachable', `The ${from} moongate to ${to} is barred for now (failed or dangerous lately)`);
   const item = [...session.world.entities.values()].find(
     (entity) => entity.graphic === moongate && entity.position && distance(position(), entity.position) <= 1
   );
@@ -128,40 +124,10 @@ export async function travelByMoongate(
   if (!gump || choice === undefined) throw new Error(`${to} was not offered on the Trammel moongate page`);
   session.replyGump(gump.serial, gump.id, 1, [choice]);
   // The far gate sets one down beside it, not always on the catalogued tile.
-  const crossing = lasting('gate-ban', session.world.serial ?? -1);
   try {
     await session.waitFor(() => distance(position(), target) <= 6 && session.world.map === 1, `arrival at ${to}`);
   } catch {
-    // One failed crossing is a hint, not a two-hour wall: the gate is tried again in ten minutes
-    // (a timeout or a monster can interrupt a single use), and a success clears the pair outright.
-    crossing.set(`${from}>${to}`, Date.now() + 10 * 60_000);
     throw new Blocked('unreachable', `The ${from} moongate did not take me to ${to}`);
   }
-  crossing.set(`${from}>${to}`, 0);
   phase('moongate-arrival', `Arrived through the ${to} moongate`);
-  // Monsters waiting at the far gate: straight back through it, as a player steps back in,
-  // and the road there is remembered as dangerous for a while.
-  const waiting = threatsNear(session, position(), 10);
-  if (waiting.length && !(self && ghosts.has(self.graphic)) && from !== to) {
-    const back = [...session.world.entities.values()].find(
-      (entity) => entity.graphic === moongate && entity.position && distance(position(), entity.position) <= 2
-    );
-    if (back) {
-      phase('moongate-retreat', `Monsters at the ${to} moongate; going back through it`);
-      session.use(back.serial);
-      const menu = await session
-        .waitFor(() => !!offered(), 'public moongate destinations', 3000)
-        .then(offered)
-        .catch(() => undefined);
-      const home = menu && moongateDestination(menu.layout, moongates[from].label);
-      if (menu && home !== undefined) {
-        session.replyGump(menu.serial, menu.id, 1, [home]);
-        await session.waitFor(() => distance(position(), moongates[from]) <= 2, `return to ${from}`).catch(() => {});
-        // Remembered, as the comment above promises: the same crossing is not taken into the same
-        // monsters again for half an hour; the resident finds another way or another town.
-        crossing.set(`${from}>${to}`, Date.now() + 30 * 60_000);
-        throw new Blocked('dangerous', `Monsters at the ${to} moongate`);
-      }
-    }
-  }
 }

@@ -295,3 +295,57 @@ test('a ghost walks straight past monsters to the healer: nothing can hurt it', 
   expect(required(f.world.position).x).toBe(110);
   expect(asked).toBe(false);
 }, 15_000);
+
+test('Orin walks around the swung-open New Haven gate leaf instead of cutting its corner', async () => {
+  const { RouteSearch } = await import('../src/path-search');
+  const f = fixture();
+  f.world.position = { x: 3523, y: 2577, z: 7, direction: 0 };
+  f.door(20, 0x846, 3522, 2577, 7);
+  f.door(21, 0x848, 3522, 2575, 7);
+  f.terrain.tile = () => ({ flags: 0x40, height: 20, layer: 0, name: 'wooden gate' });
+  f.terrain.cell = () => ({ land: { id: 0, x: 0, y: 0, z: 7 }, statics: [] });
+  f.terrain.pathAsync = async (start, goal, range, blocked) =>
+    new RouteSearch().run(f.terrain, { start, goal, range: range ?? 0, blocked: [...(blocked ?? [])] }).path;
+  let rejected = 0;
+  const steps = [
+    [0, -1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+    [-1, -1]
+  ];
+  f.session.walk = async (direction) => {
+    const at = required(f.world.position);
+    if (at.direction !== direction) {
+      at.direction = direction;
+      return true;
+    }
+    const [dx = 0, dy = 0] = steps[direction] ?? [];
+    const x = at.x + dx,
+      y = at.y + dy;
+    const occupied = (px: number, py: number) =>
+      [...f.world.entities.values()].some((e) => e.kind === 'item' && e.position?.x === px && e.position.y === py);
+    if (occupied(x, y) || (dx && dy && (occupied(x, at.y) || occupied(at.x, y)))) {
+      rejected++;
+      throw new Error('Server rejected a step through the open gate leaf');
+    }
+    f.world.position = { ...at, x, y };
+    return true;
+  };
+  const navigate = createNavigator({
+    session: f.session,
+    terrain: f.terrain,
+    check: () => {},
+    phase: () => {},
+    log: () => {},
+    purpose: 'escape',
+    localOnly: true
+  });
+  await navigate({ x: 3521, y: 2576 }, 0);
+  expect(rejected).toBe(0);
+  expect(f.world.position.x).toBe(3521);
+  expect(f.used).toEqual([]);
+});

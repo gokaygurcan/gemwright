@@ -4,10 +4,14 @@ import type { Position } from '@gemwright/network/world';
 
 import { areaOfPlace } from '../src/areas';
 import { Blocked } from '../src/blocked';
+import { threatsNear } from '../src/danger';
+import { interruptForDanger } from '../src/danger-response';
 import { type Dungeon, dungeonAt, dungeons, exitStair, floorAt } from '../src/dungeons';
 import { type Gate, moongates } from '../src/gates';
 import { destinationGate, travelJourney } from '../src/journey';
+import { lasting } from '../src/lasting';
 import { allLinks } from '../src/links';
+import { travelByMoongate } from '../src/moongate';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 import { useTestWorld } from './world-fixture';
@@ -141,4 +145,57 @@ test('dungeon exits follow real stairs through equal-depth floors', () => {
   };
   expect(exitStair(dungeon, required(dungeon.floors[0]), point)?.toFloor).toBe(1);
   expect(exitStair(dungeon, required(dungeon.floors[1]), point)?.toFloor).toBeNull();
+});
+
+test('a resident standing on the Minoc gate crosses despite a saved gate ban', async () => {
+  const f = travelFixture({ ...moongates.minoc, direction: 5 });
+  const ban = lasting('gate-ban', f.world.serial ?? -1);
+  ban.set('minoc>newhaven', Date.now() + 30 * 60_000);
+  try {
+    await travelByMoongate({ ...f.ctx, navigate: f.walk }, 'newhaven');
+    expect(f.crossings).toEqual(['newhaven']);
+    expect(f.ctx.position()).toMatchObject(moongates.newhaven);
+  } finally {
+    ban.set('minoc>newhaven', 0);
+  }
+});
+
+test('arrival near a threat leaves the resident at the destination for its own safety behavior', async () => {
+  const f = travelFixture({ ...moongates.minoc, direction: 5 });
+  const reply = f.session.replyGump;
+  f.session.replyGump = (...args) => {
+    reply(...args);
+    f.world.entities.set(20, { serial: 20, kind: 'item', graphic: 0xf6c, position: { ...f.ctx.position() } });
+    if (f.crossings.at(-1) === 'newhaven')
+      f.world.entities.set(30, {
+        serial: 30,
+        kind: 'mobile',
+        graphic: 0x12,
+        notoriety: 6,
+        position: { ...f.ctx.position(), x: f.ctx.position().x + 1 }
+      });
+  };
+  try {
+    await travelByMoongate({ ...f.ctx, navigate: f.walk }, 'newhaven');
+    expect(f.crossings).toEqual(['newhaven']);
+    expect(f.ctx.position()).toMatchObject(moongates.newhaven);
+    expect(threatsNear(f.session, f.ctx.position(), 10)).toHaveLength(1);
+    expect(() => interruptForDanger(f.session)).toThrow();
+  } finally {
+    lasting('gate-ban', f.world.serial ?? -1).set('minoc>newhaven', 0);
+  }
+});
+
+test('an unconfirmed crossing fails without inventing a ten-minute gate closure', async () => {
+  const f = travelFixture({ ...moongates.minoc, direction: 5 });
+  const reply = f.session.replyGump;
+  f.session.replyGump = () => {};
+  await expect(travelByMoongate({ ...f.ctx, navigate: f.walk }, 'newhaven')).rejects.toThrow('did not take me');
+  f.session.replyGump = reply;
+  try {
+    await travelByMoongate({ ...f.ctx, navigate: f.walk }, 'newhaven');
+    expect(f.crossings).toEqual(['newhaven']);
+  } finally {
+    lasting('gate-ban', f.world.serial ?? -1).set('minoc>newhaven', 0);
+  }
 });

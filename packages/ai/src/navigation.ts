@@ -6,7 +6,7 @@ import { bankWhileWalking } from './bank-gold';
 import { Blocked } from './blocked';
 import { rememberedDangerTiles, threatsNear } from './danger';
 import { directRoute } from './direct-route';
-import { createDoorOpener, isDoor, openNearbyDoors } from './doors';
+import { createDoorOpener, isDoor, isOpenDoor, openNearbyDoors } from './doors';
 import { inDungeon, leaveDungeon, takeLink } from './dungeon-exit';
 import { holdWhileEngaged, noteStep } from './engagement';
 import { land, takeOff } from './flight';
@@ -116,7 +116,10 @@ export function createNavigator(options: {
       for (const entity of session.world.entities.values()) {
         if (!entity.position || entity.serial === serial || distance(position(), entity.position) > 18) continue;
         const flags = entity.kind === 'item' ? terrain.tile(entity.graphic, true).flags : 0;
-        if ((entity.kind === 'mobile' && !dead) || (flags & 0x40 && !isDoor(entity.graphic, terrain))) {
+        if (
+          (entity.kind === 'mobile' && !dead) ||
+          (flags & 0x40 && (!isDoor(entity.graphic, terrain) || (!dead && isOpenDoor(entity.graphic))))
+        ) {
           if (Math.abs(entity.position.z - position().z) < 16) {
             occupied.add(`${entity.position.x},${entity.position.y}`);
             if (entity.kind === 'item') hard.add(`${entity.position.x},${entity.position.y}`);

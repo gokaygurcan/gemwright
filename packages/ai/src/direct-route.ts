@@ -25,7 +25,12 @@ export function directRoute(
     const next = terrain.stand(x, y, point.z, point);
     if (
       !next ||
-      (dx && dy && (!terrain.stand(x, point.y, point.z, point) || !terrain.stand(point.x, y, point.z, point)))
+      (dx &&
+        dy &&
+        (blocked.has(`${x},${point.y}`) ||
+          blocked.has(`${point.x},${y}`) ||
+          !terrain.stand(x, point.y, point.z, point) ||
+          !terrain.stand(point.x, y, point.z, point)))
     )
       break;
     path.push(next);
