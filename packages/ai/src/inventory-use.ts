@@ -191,6 +191,10 @@ export async function useAcquiredItems(session: PlayerSession): Promise<boolean>
   if (!ctx || !terrain || serial === null || !pack) return false;
   // A magic fish in the pack is a blessing going stale: eaten first, at the next safe pause.
   if (eatMagicFish(session)) return true;
+  // Its own robe in the pack (a gift, or the blessed one a death moved there) replaces the death
+  // robe now, not at the next bank visit. Loaded on use: death-robe.ts reaches this module again.
+  const { shedDeathRobe, wearsDeathRobe } = await import('./death-robe');
+  if (wearsDeathRobe(session) && (await shedDeathRobe(session, terrain, packItems(session, pack.serial)))) return true;
   busy.add(session);
   try {
     const blocked = refused.get(session) ?? new Map<number, number>();

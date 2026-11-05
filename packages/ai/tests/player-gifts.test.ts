@@ -154,3 +154,23 @@ test('a useful ground upgrade is picked up and equipped even with a passive anim
   expect(world.entities.get(21)?.parent).toBe(1);
   expect(world.entities.get(21)?.layer).toBe(1);
 });
+
+test('a robe of its own in the pack replaces the worn death robe at the next turn', async () => {
+  const f = socialFixture('miner');
+  f.terrain.tile = (id) =>
+    [0x1f03, 0x2fba].includes(id)
+      ? { flags: 0x400000, layer: 22, name: 'robe', height: 0 }
+      : { flags: 0, layer: 0, name: '', height: 0 };
+  f.world.entities.set(40, { serial: 40, kind: 'item', graphic: 0x1f03, hue: 2301, parent: 1, layer: 22 });
+  f.world.entities.set(41, { serial: 41, kind: 'item', graphic: 0x2fba, hue: 1105, parent: 10 });
+  f.session.dropAtFeet = async (serial) => {
+    f.world.entities.delete(serial);
+  };
+  f.session.equipItem = async (serial, layer) => {
+    const item = required(f.world.entities.get(serial));
+    f.world.entities.set(serial, { ...item, parent: 1, layer });
+  };
+  expect(await useAcquiredItems(f.session)).toBe(true);
+  expect(f.world.entities.has(40)).toBe(false);
+  expect(f.world.entities.get(41)?.layer).toBe(22);
+});
