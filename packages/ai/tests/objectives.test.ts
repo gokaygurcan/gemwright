@@ -4,7 +4,7 @@ import { ActionBusy } from '../src/action-errors';
 import { allServiceLocations, serviceLocations } from '../src/locations';
 import { meetNeeds, needPriority } from '../src/need-planning';
 import { residentNeeds } from '../src/needs';
-import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from '../src/objective-memory';
+import { completeObjective, errand, failObjective, objectiveBlocked, suppliesCondition } from '../src/objective-memory';
 import { atVendor } from '../src/vendor-visit';
 import { behaviorFixture, required } from './behavior-fixture';
 import { useTestWorld } from './world-fixture';
@@ -198,3 +198,43 @@ test("a miner buys the cheapest mining tool the town's tinker has on the counter
   expect(visits).toBe(1);
   expect(bought).toEqual([0xf39]);
 });
+
+for (const key of ['bank', 'sell:100,100'])
+  test(`${key} retries when new output arrives without doubling the resident's wealth`, async () => {
+    const f = behaviorFixture();
+    f.checkpoint.funds = { bank: 50_000, at: Date.now() };
+    if (key.startsWith('sell:'))
+      f.world.entities.set(20, { serial: 20, kind: 'item', graphic: 0x1bf2, amount: 1, parent: 10 });
+    let trips = 0;
+    const first = suppliesCondition(f.session, f.checkpoint);
+    expect(
+      await errand(f.ctx, key, 'settlement', async () => {
+        trips++;
+      })
+    ).toBe(false);
+    expect(
+      await errand(f.ctx, key, 'settlement', async () => {
+        trips++;
+      })
+    ).toBe(false);
+    expect(trips).toBe(1);
+    if (key === 'bank') {
+      required(f.world.entities.get(11)).amount = 1001;
+      required(f.world.status).gold = 1001;
+    } else required(f.world.entities.get(20)).amount = 2;
+    expect(suppliesCondition(f.session, f.checkpoint)).toBe(first);
+    expect(
+      await errand(f.ctx, key, 'settlement', async () => {
+        trips++;
+        if (key === 'bank') {
+          f.world.entities.delete(11);
+          required(f.checkpoint.funds).bank += 1001;
+        } else {
+          f.world.entities.delete(20);
+          required(f.world.entities.get(11)).amount = 1002;
+          required(f.world.status).gold = 1002;
+        }
+      })
+    ).toBe(true);
+    expect(trips).toBe(2);
+  });

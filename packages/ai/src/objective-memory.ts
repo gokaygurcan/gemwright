@@ -90,7 +90,9 @@ export async function errand(
     ctx.log(`Core work first: skipping ${what} until my own work has gained something`);
     return false;
   }
-  if (objectiveBlocked(checkpoint, key, suppliesCondition(session, checkpoint))) return false;
+  const condition = () =>
+    key === 'bank' || key.startsWith('sell:') ? holdings(session, checkpoint) : suppliesCondition(session, checkpoint);
+  if (objectiveBlocked(checkpoint, key, condition())) return false;
   const started = Date.now();
   const before = holdings(session, checkpoint);
   try {
@@ -112,7 +114,7 @@ export async function errand(
     if (sideErrand(key)) noteSideWork(session, Date.now() - started);
     return true;
   }
-  failObjective(checkpoint, key, suppliesCondition(session, checkpoint), `${what} gained nothing`);
+  failObjective(checkpoint, key, condition(), `${what} gained nothing`);
   ctx.log(`Gave up on ${what} for two hours: it gained nothing`);
   if (sideErrand(key)) noteSideWork(session, Date.now() - started);
   return false;
