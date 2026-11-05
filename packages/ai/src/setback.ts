@@ -62,9 +62,15 @@ async function handleSetback(
   try {
     await ctx.recover?.();
   } catch (error) {
-    if (ctx.session.phase !== 'ready') throw error;
+    if (!isSetback(ctx.session, error, false, ctx.deadline)) throw error;
   }
-  const practised = Date.now() < until ? await trainSupportingSkill({ ...ctx, until }).catch(() => 0) : 0;
+  const practised =
+    Date.now() < until
+      ? await trainSupportingSkill({ ...ctx, until }).catch((error) => {
+          if (!isSetback(ctx.session, error, false, ctx.deadline)) throw error;
+          return 0;
+        })
+      : 0;
   // Even maxed skills must not bypass a failed objective's retry deadline.
   const resume = practised ? until : Math.min(until, Date.now() + 15_000);
   while (Date.now() < resume) {
@@ -73,7 +79,7 @@ async function handleSetback(
     } catch (error) {
       // A guard fires while the resident waits out a failure (a loop interrupt, a blocked course):
       // that ends the wait, not the run. Only a session-level failure travels (disconnect, death).
-      if (ctx.session.phase !== 'ready') throw error;
+      if (!isSetback(ctx.session, error, false, ctx.deadline)) throw error;
       ctx.log(`Setback interrupted: ${error instanceof Error ? error.message : String(error)}`);
       break;
     }
@@ -88,7 +94,7 @@ export async function passSetback(...args: Parameters<typeof handleSetback>) {
   } catch (error) {
     // The same rule at the exit: a goal-level interruption raised while handling a setback used to
     // end the run, and a run ending is a logout — the town relogged for ever on "Going in circles".
-    if (ctx.session.phase !== 'ready') throw error;
+    if (!isSetback(ctx.session, error, false, ctx.deadline)) throw error;
     ctx.log(`Setback interrupted: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

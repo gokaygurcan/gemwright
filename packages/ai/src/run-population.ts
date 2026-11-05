@@ -67,9 +67,7 @@ export async function runPopulation(
         );
       log(`arriving as ${role}`);
       let failures = 0;
-      // A resident has a day: sessions run for hours and end at a safe place, then the habit's
-      // offline window is honoured. Continuous runs used to disable that entirely.
-      const naturalSessions = options.naturalSessions ?? true;
+      const naturalSessions = options.naturalSessions ?? !options.continuous;
       while (true) {
         const offlineUntil = naturalSessions
           ? (shared.store.get(resident.id)?.checkpoint.personal?.habits?.offlineUntil ?? 0)

@@ -43,3 +43,40 @@ test('a session-level failure during a setback still travels to the supervisor',
   );
   expect(passSetback(ctx, 'Repeatedly blocked: something else')).rejects.toThrow('Going in circles');
 });
+
+for (const failure of ['Runtime no longer owns this shard', 'Operation outcome is uncertain'])
+  test(`a connected session still propagates ${failure} out of setback handling`, async () => {
+    const f = behaviorFixture();
+    const error = new Error(failure);
+    const { ctx } = context(f, () => {
+      throw error;
+    });
+    await expect(passSetback(ctx, 'No stock')).rejects.toBe(error);
+  });
+
+for (const stage of ['recovery', 'training'] as const)
+  test(`ownership loss during setback ${stage} reaches the supervisor`, async () => {
+    const f = behaviorFixture();
+    const error = new Error('Runtime no longer owns this shard');
+    const { ctx } = context(f, () => {});
+    const recover = async () => {
+      throw error;
+    };
+    const options =
+      stage === 'recovery'
+        ? {
+            ...ctx,
+            recover,
+            check: () => {
+              throw new Blocked('stuck', 'Goal interrupted');
+            }
+          }
+        : {
+            ...ctx,
+            archetype: { id: 'test', primarySkills: [], supportingSkills: ['Hiding'] } as never,
+            check: () => {
+              throw error;
+            }
+          };
+    await expect(passSetback(options, 'No stock')).rejects.toBe(error);
+  });
