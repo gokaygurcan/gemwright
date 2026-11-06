@@ -21,7 +21,8 @@ const SECTIONS = [
   ['/loops', 'Loops'],
   ['/history', 'History'],
   ['/economy', 'Economy'],
-  ['/decisions', 'Decisions']
+  ['/decisions', 'Decisions'],
+  ['/questions', 'Questions']
 ] as const;
 
 function DocPage({ path }: { path: string }) {

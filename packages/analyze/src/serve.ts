@@ -18,6 +18,7 @@ import { deletePull, isStamp, listPulls, savesOf } from './pull-store';
 import { savedAt } from './pulls';
 import type { PullsResponse } from './pulls-api';
 import { readPulse } from './pulse';
+import { questionDoc, questionsDoc } from './questions';
 import { replayDoc } from './replay';
 import { readResidents, residentsDoc } from './residents';
 import { search } from './search';
@@ -175,6 +176,9 @@ const server = Bun.serve({
     '/api/page/history': () => page((o) => historyDoc(o.history)),
     '/api/page/economy': () => page((o) => economyDoc(o.saves)),
     '/api/page/decisions': () => page((o) => decisionsDoc(o.saves)),
+    '/api/page/questions': (request) =>
+      page((o) => questionsDoc(o.saves, Math.max(0, Number(new URL(request.url).searchParams.get('page')) || 0))),
+    '/api/page/question/:id': (request) => page((o) => questionDoc(o.saves, request.params.id), 'question'),
     '/api/page/search': (request) => {
       const query = new URL(request.url).searchParams.get('q') ?? '';
       return page((o) => searchDoc(o.analysis, query, search(o.analysis, query), client));
