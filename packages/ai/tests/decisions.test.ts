@@ -1,9 +1,12 @@
+import { Database } from 'bun:sqlite';
 import { expect, test } from 'bun:test';
 
 import { JEV_RESIDENT_TOKEN_ALLOWANCE } from '../src/decision-jev';
+import { DecisionLog } from '../src/decision-log';
 import { type ChoiceRequest, pacedAllowance, parseChoice, validateDecisionConfig } from '../src/decision-provider';
 import { DecisionCoordinator, OPTIONAL_KINDS, OPTIONAL_SHARE, reservedTokens } from '../src/decisions';
 import type { Checkpoint } from '../src/store';
+import { required } from './behavior-fixture';
 
 const checkpoint = (): Checkpoint => ({ goal: null, memories: [], relationships: {} });
 const candidates = [
@@ -223,4 +226,66 @@ test('a failed provider call gives its reservation back', async () => {
   });
   expect(pick?.id).toBe('mine');
   expect(spent).toBe(0);
+});
+
+test('every settled question is logged with its request and the answer, model or local', async () => {
+  const db = new Database(':memory:');
+  const log = new DecisionLog(db);
+  const options = {
+    kind: 'activity',
+    checkpoint: checkpoint(),
+    state: { health: 90 },
+    observationRevision: 1,
+    candidates,
+    baseline: 'mine',
+    stillCurrent: () => true
+  };
+  const answered = {
+    ...result,
+    attempts: [
+      {
+        provider: 'jev' as const,
+        model: 'jev-1.13.0',
+        reason: 'validated-choice',
+        latencyMs: 5,
+        wire: { url: 'https://jev', sent: '{"q":1}', status: 200, received: '{"a":1}' }
+      }
+    ]
+  };
+  const model = new DecisionCoordinator(
+    validateDecisionConfig({ provider: 'jev' }),
+    () => {},
+    { choose: async () => answered },
+    undefined,
+    (trace, request, exchanges) => log.record('r1', trace, request, exchanges)
+  );
+  await model.choose(options);
+  const local = new DecisionCoordinator(
+    validateDecisionConfig({ provider: 'local' }),
+    () => {},
+    undefined,
+    undefined,
+    (trace, request, exchanges) => log.record('r1', trace, request, exchanges)
+  );
+  await local.choose({ ...options, checkpoint: checkpoint() });
+  const rows = db
+    .query<
+      { provider: string; selected: string; request: Uint8Array<ArrayBuffer>; response: Uint8Array<ArrayBuffer> },
+      []
+    >('SELECT provider, selected, request, response FROM decision_log ORDER BY provider')
+    .all();
+  expect(rows.map((row) => [row.provider, row.selected])).toEqual([
+    ['jev', 'bank'],
+    ['local', 'mine']
+  ]);
+  const asked = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(required(rows[0]).request)));
+  expect(asked.state.health).toBe(90);
+  expect(asked.questions.action.criteria).toEqual({ mine: 'Mine', bank: 'Bank' });
+  expect(JSON.parse(new TextDecoder().decode(Bun.gunzipSync(required(rows[0]).response))).probabilities).toEqual(
+    result.probabilities
+  );
+  // The exact exchange is in the log, not in the checkpoint (it would bloat every save).
+  const logged = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(required(rows[0]).response)));
+  expect(logged.attempts[0].wire.sent).toBe('{"q":1}');
+  expect(JSON.stringify(options.checkpoint.decisions)).not.toContain('"wire"');
 });

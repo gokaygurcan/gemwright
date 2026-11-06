@@ -202,6 +202,8 @@ export function decisionGuard(session: PlayerSession, stopping?: () => boolean):
   return () => !stopping?.() && session.phase === 'ready' && snapshot() === initial;
 }
 
+const bare = ({ wire: _wire, ...attempt }: ProviderAttempt): ProviderAttempt => attempt;
+
 export const reservedTokens = (bytes: number) => Math.ceil((bytes / 4) * 1.25);
 
 export const OPTIONAL_KINDS: ReadonlySet<string> = new Set([
@@ -232,7 +234,9 @@ export class DecisionCoordinator {
     readonly config: DecisionConfig,
     save: (checkpoint: Checkpoint) => void,
     provider?: DecisionProvider,
-    private readonly ledger?: SpendLedger
+    private readonly ledger?: SpendLedger,
+    // Every settled question with its request, for the analyzer's list (decision-log.ts).
+    private readonly log?: (trace: DecisionTrace, request: ChoiceRequest, attempts?: ProviderAttempt[]) => void
   ) {
     this.save = (checkpoint) => {
       recordDecisions(checkpoint);
@@ -355,6 +359,8 @@ export class DecisionCoordinator {
         return false;
       }
     };
+    // The attempts with their raw exchanges, for the question log only: the checkpoint keeps them bare.
+    let exchanges: ProviderAttempt[] | undefined;
     const select = (id: string, source: DecisionTrace['source'], reason: string): DecisionPick | null => {
       const candidate = candidates.find((candidate) => candidate.id === id);
       if (!current() || !candidate?.valid()) {
@@ -363,12 +369,14 @@ export class DecisionCoordinator {
         trace.selected = null;
         trace.execution = { status: 'not-run' };
         this.save(checkpoint);
+        this.log?.(trace, request, exchanges);
         return null;
       }
       trace.source = source;
       trace.reason = reason;
       trace.selected = id;
       this.save(checkpoint);
+      this.log?.(trace, request, exchanges);
       logger('decisions').info(`[decision] ${options.kind}: ${id} (${source}; ${reason})`);
       return { id, traceId: trace.id };
     };
@@ -441,15 +449,16 @@ export class DecisionCoordinator {
         provider.choose(request, controller.signal, (attempt) => {
           trace.attempts ??= [];
           const index = trace.attempts.findIndex((previous) => previous.provider === attempt.provider);
-          if (index === -1) trace.attempts.push(attempt);
-          else trace.attempts[index] = attempt;
+          if (index === -1) trace.attempts.push(bare(attempt));
+          else trace.attempts[index] = bare(attempt);
           this.save(checkpoint);
         }),
         cancelled
       ]);
       trace.latencyMs = Date.now() - started;
       trace.resolvedModel = result.model;
-      trace.attempts = result.attempts;
+      exchanges = result.attempts;
+      trace.attempts = result.attempts?.map(bare);
       trace.proposal = result.choice;
       trace.confidence = result.confidence;
       trace.probabilities = result.probabilities;
@@ -463,7 +472,8 @@ export class DecisionCoordinator {
       memory.budget.chargedInputTokens -= reservation;
       if (!this.chained) await this.ledger?.add(day, -reservation);
       const failure = error instanceof ProviderFailure ? error : new ProviderFailure('provider-error');
-      trace.attempts = failure.attempts ?? trace.attempts;
+      exchanges = failure.attempts;
+      trace.attempts = failure.attempts?.map(bare) ?? trace.attempts;
       if (['http-401', 'http-403'].includes(failure.code)) this.disabled = true;
       this.nextRequestAt = Math.max(this.nextRequestAt, Date.now() + failure.retryAfterMs);
       return select(baseline.id, 'fallback', failure.code);

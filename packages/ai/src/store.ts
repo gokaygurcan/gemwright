@@ -7,6 +7,7 @@ import { lookOf } from './appearance';
 import { migrateCheckpoint } from './checkpoint-migrations';
 import { boundCheckpoint, type Checkpoint } from './checkpoint-types';
 import { allocatePopulation, type CharacterTemplate, type PopulationConfig, validateConfig } from './config';
+import { DecisionLog } from './decision-log';
 import { playerName } from './names';
 import { shardProfile } from './shard-profile';
 import { SpendLedger } from './spend-ledger';
@@ -296,6 +297,10 @@ export class ResidentStore {
 
   spendLedger() {
     return new SpendLedger(this.db, this.flush);
+  }
+
+  decisionLog() {
+    return new DecisionLog(this.db);
   }
 
   activityRecorder() {

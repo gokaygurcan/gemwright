@@ -14,7 +14,8 @@ import {
   type ChoiceResult,
   type DecisionProvider,
   ProviderFailure,
-  parseChoice
+  parseChoice,
+  type WireExchange
 } from './decision-provider';
 
 // Jev through the official SDK (@typesafe-ai/sdk). The API root is fixed in code, so a
@@ -27,8 +28,26 @@ const MAX_RESPONSE_BYTES = 64000;
 // Bun a body that ever had a reader counts as used, so the SDK's later text() throws "Body already
 // used". This fetch reads the body itself (bounded, cancellable) and hands the SDK a buffered
 // response that reports no stream body, so bufferResponse skips it while text() still works.
-export const bufferedFetch = async (input: string, init?: RequestInit): Promise<Response> => {
+// The body as it went out. The SDK zstd-compresses bodies of 1 KB and more (Content-Encoding:
+// zstd); the record keeps the JSON it carried, with the encoding and the bytes on the wire.
+function sentBody(init?: RequestInit): Pick<WireExchange, 'sent' | 'encoding' | 'bytes'> {
+  const body = init?.body;
+  if (typeof body === 'string') return { sent: body };
+  if (!(body instanceof Uint8Array)) return { sent: '' };
+  const encoding = new Headers(init?.headers).get('content-encoding') ?? undefined;
+  const plain = encoding === 'zstd' ? Bun.zstdDecompressSync(body) : body;
+  return { sent: new TextDecoder().decode(plain), encoding, bytes: body.byteLength };
+}
+
+export const bufferedFetch = async (
+  input: string,
+  init?: RequestInit,
+  record?: (exchange: WireExchange) => void
+): Promise<Response> => {
+  const exchange: WireExchange = { url: input, ...sentBody(init) };
+  record?.(exchange);
   const response = await fetch(input, { ...init, redirect: 'error' });
+  exchange.status = response.status;
   const reader = response.body?.getReader();
   const parts: Uint8Array[] = [];
   let size = 0;
@@ -44,6 +63,7 @@ export const bufferedFetch = async (input: string, init?: RequestInit): Promise<
       parts.push(part.value);
     }
   const buffered = Buffer.concat(parts);
+  exchange.received = buffered.toString('utf8');
   const wrap = (): Response => {
     const copy = new Response(buffered, {
       status: response.status,
@@ -59,6 +79,8 @@ export const bufferedFetch = async (input: string, init?: RequestInit): Promise<
 
 export class JevProvider implements DecisionProvider {
   private readonly client: TypeSafeClient;
+  // The exchange of the call in flight; a resident's coordinator asks one question at a time.
+  private exchange?: WireExchange;
   constructor(config: { model: string; credentialEnv?: string; timeoutMs: number }) {
     const credentialEnv = config.credentialEnv ?? 'TYPESAFE_API_KEY';
     const key = process.env[credentialEnv]?.trim();
@@ -70,11 +92,16 @@ export class JevProvider implements DecisionProvider {
       timeout: config.timeoutMs,
       retry: { maxRetries: 0 },
       logLevel: 'off',
-      fetch: bufferedFetch
+      fetch: (input: string, init?: RequestInit) =>
+        bufferedFetch(input, init, (exchange) => {
+          this.exchange = exchange;
+        })
     });
   }
   async choose(request: ChoiceRequest, signal: AbortSignal): Promise<ChoiceResult> {
     const { instructions, criteria } = request.questions.action;
+    this.exchange = undefined;
+    const fail = (code: string, retryAfterMs = 0) => new ProviderFailure(code, retryAfterMs, undefined, this.exchange);
     let result: unknown;
     try {
       result = await this.client.systemOne(
@@ -86,17 +113,19 @@ export class JevProvider implements DecisionProvider {
         { signal }
       );
     } catch (error) {
-      if (error instanceof APIUserAbortError) throw new ProviderFailure('cancelled');
-      if (error instanceof APITimeoutError) throw new ProviderFailure('timeout');
-      if (error instanceof RateLimitError)
-        throw new ProviderFailure('http-429', Math.min(error.retryAfterMs ?? 0, 600000));
-      if (error instanceof APIError) throw new ProviderFailure(`http-${error.status}`);
-      if (error instanceof APIConnectionError)
-        throw new ProviderFailure(signal.aborted ? 'cancelled' : 'network-error');
-      throw new ProviderFailure('invalid-response');
+      if (error instanceof APIUserAbortError) throw fail('cancelled');
+      if (error instanceof APITimeoutError) throw fail('timeout');
+      if (error instanceof RateLimitError) throw fail('http-429', Math.min(error.retryAfterMs ?? 0, 600000));
+      if (error instanceof APIError) throw fail(`http-${error.status}`);
+      if (error instanceof APIConnectionError) throw fail(signal.aborted ? 'cancelled' : 'network-error');
+      throw fail('invalid-response');
     }
     // The SDK types the answer; it is still checked against the offered candidates.
-    return parseChoice(result, request);
+    try {
+      return { ...parseChoice(result, request), wire: this.exchange };
+    } catch (error) {
+      throw error instanceof ProviderFailure ? fail(error.code) : error;
+    }
   }
 }
 

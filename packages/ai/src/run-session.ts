@@ -192,7 +192,12 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
       writePending();
       await store.flush();
     };
-    const decisions = config ? new DecisionCoordinator(config, save, undefined, store.spendLedger()) : undefined;
+    const decisionLog = store.decisionLog();
+    const decisions = config
+      ? new DecisionCoordinator(config, save, undefined, store.spendLedger(), (trace, request, exchanges) =>
+          decisionLog.record(resident.id, trace, request, exchanges)
+        )
+      : undefined;
     const connect = () =>
       connectionAdmission.run(async () => {
         await flush();

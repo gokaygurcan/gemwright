@@ -126,13 +126,15 @@ export class DecisionChain implements DecisionProvider {
         Object.assign(attempt, {
           reason: 'validated-choice',
           inputTokens: result.inputTokens,
-          outputTokens: result.outputTokens
+          outputTokens: result.outputTokens,
+          wire: result.wire
         });
         onAttempt?.(attempt);
         return { ...result, attempts };
       }
       const reason = failure?.code ?? 'provider-error';
       attempt.reason = reason;
+      attempt.wire = failure?.wire;
       onAttempt?.(attempt);
       const until =
         reason === 'daily-neuron-quota' || ['http-401', 'http-403'].includes(reason)

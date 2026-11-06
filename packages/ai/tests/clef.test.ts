@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { DecisionChain } from '../src/decision-chain';
 import { CLEF_DAILY_UNITS, CLEF_MODELS, ClefProvider } from '../src/decision-clef';
-import { JEV_DAILY_TOKEN_ALLOWANCE } from '../src/decision-jev';
+import { JEV_DAILY_TOKEN_ALLOWANCE, JevProvider } from '../src/decision-jev';
 import {
   type ChoiceRequest,
   type DecisionProvider,
@@ -76,7 +76,13 @@ test('Clef REST adapter uses the fixed endpoint, supplied choices, and validates
     expect(JSON.parse(init?.body as string)).toEqual(request);
     return Response.json(wire());
   });
-  expect(await client.choose(request, new AbortController().signal)).toEqual(answer());
+  const { wire: exchange, ...result } = await client.choose(request, new AbortController().signal);
+  expect(result).toEqual(answer());
+  // Exactly what went over the wire, both ways, without the credential.
+  expect(exchange?.sent).toBe(JSON.stringify(request));
+  expect(exchange?.received).toBe(JSON.stringify(wire()));
+  expect(exchange?.status).toBe(200);
+  expect(JSON.stringify(exchange)).not.toContain('test-token');
   const invalid = wire();
   invalid.result.answers.action.choice = 'teleport';
   const bad = new ClefProvider(accountId, 'test-token', async () => Response.json(invalid));
@@ -93,6 +99,16 @@ test('daily quota errors differ from temporary rate limits', async () => {
     );
     await expect(client.choose(request, new AbortController().signal)).rejects.toThrow(expected);
   }
+});
+
+test('a failed Clef call keeps the body it sent and the error it received', async () => {
+  const client = new ClefProvider(accountId, 'test-token', async () =>
+    Response.json({ success: false, errors: [{ code: 3036 }] }, { status: 429 })
+  );
+  const failure = await client.choose(request, new AbortController().signal).catch((error) => error);
+  expect(failure.wire?.sent).toBe(JSON.stringify(request));
+  expect(failure.wire?.status).toBe(429);
+  expect(JSON.parse(failure.wire?.received)).toEqual({ success: false, errors: [{ code: 3036 }] });
 });
 
 test('Clef succeeds first without spending Jev budget', async () => {
@@ -447,4 +463,35 @@ test('the daily allowance is paced across the UTC day, not spent at the first op
   expect(result.model).toBe('jev-1.13.0');
   expect(result.attempts?.[0]?.reason).toBe('daily-budget');
   db.close();
+});
+
+test('a Jev request the SDK compresses is recorded as the JSON it carried', async () => {
+  const realFetch = globalThis.fetch;
+  const key = process.env.TYPESAFE_API_KEY;
+  process.env.TYPESAFE_API_KEY = 'test-key';
+  let wireBytes = 0;
+  globalThis.fetch = (async (_input: string, init?: RequestInit) => {
+    wireBytes = (init?.body as Uint8Array | undefined)?.byteLength ?? 0;
+    return Response.json({
+      model: 'jev-1.14.0',
+      answers: { action: { type: 'choice', choice: 'bank', confidence: 0.9, probabilities: { work: 0.1, bank: 0.9 } } },
+      usage: { input_tokens: 100, output_tokens: 0 }
+    });
+  }) as typeof fetch;
+  try {
+    // Over a kilobyte: the SDK sends it zstd-compressed.
+    const large = { ...request, model: 'jev-1.14.0', state: { notes: 'x'.repeat(4000) } };
+    const result = await new JevProvider({ model: 'jev-1.14.0', timeoutMs: 2000 }).choose(
+      large,
+      new AbortController().signal
+    );
+    expect(result.wire?.encoding).toBe('zstd');
+    expect(result.wire?.bytes).toBe(wireBytes);
+    expect(JSON.parse(result.wire?.sent ?? '{}').state.notes).toBe('x'.repeat(4000));
+    expect(JSON.stringify(result.wire)).not.toContain('test-key');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (key === undefined) delete process.env.TYPESAFE_API_KEY;
+    else process.env.TYPESAFE_API_KEY = key;
+  }
 });

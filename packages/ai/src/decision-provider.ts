@@ -86,6 +86,18 @@ export interface ChoiceResult {
   inputTokens: number;
   outputTokens: number;
   attempts?: ProviderAttempt[];
+  wire?: WireExchange;
+}
+// One HTTP exchange with a provider, as it went over the wire: the body sent and the body received
+// (headers stay out: they carry the credential).
+export interface WireExchange {
+  url: string;
+  sent: string;
+  // How the body was compressed on the wire, and its size there.
+  encoding?: string;
+  bytes?: number;
+  status?: number;
+  received?: string;
 }
 export interface ProviderAttempt {
   provider: 'clef' | 'jev';
@@ -94,6 +106,7 @@ export interface ProviderAttempt {
   latencyMs: number;
   inputTokens?: number;
   outputTokens?: number;
+  wire?: WireExchange;
 }
 export interface DecisionProvider {
   choose(
@@ -106,7 +119,8 @@ export class ProviderFailure extends Error {
   constructor(
     readonly code: string,
     readonly retryAfterMs = 0,
-    readonly attempts?: ProviderAttempt[]
+    readonly attempts?: ProviderAttempt[],
+    readonly wire?: WireExchange
   ) {
     super(code);
   }

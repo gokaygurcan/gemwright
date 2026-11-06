@@ -3,7 +3,8 @@ import {
   type ChoiceResult,
   type DecisionProvider,
   ProviderFailure,
-  parseChoice
+  parseChoice,
+  type WireExchange
 } from './decision-provider';
 
 // Rounded-up rates and maximum billed input contexts: developers.cloudflare.com/workers-ai/models/clef/.
@@ -27,21 +28,22 @@ export class ClefProvider implements DecisionProvider {
 
   async choose(request: ChoiceRequest, signal: AbortSignal): Promise<ChoiceResult> {
     if (!Object.hasOwn(CLEF_MODELS, request.model)) throw new ProviderFailure('unsupported-model');
+    const url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/@cf/cloudflare/${request.model}`;
+    const wire: WireExchange = { url, sent: JSON.stringify(request) };
+    const fail = (code: string, retryAfterMs = 0) => new ProviderFailure(code, retryAfterMs, undefined, wire);
     let response: Response;
     try {
-      response = await this.transport(
-        `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/@cf/cloudflare/${request.model}`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(request),
-          redirect: 'error',
-          signal
-        }
-      );
+      response = await this.transport(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+        body: wire.sent,
+        redirect: 'error',
+        signal
+      });
     } catch {
-      throw new ProviderFailure(signal.aborted ? 'cancelled' : 'network-error');
+      throw fail(signal.aborted ? 'cancelled' : 'network-error');
     }
+    wire.status = response.status;
     const reader = response.body?.getReader();
     const parts: Uint8Array[] = [];
     let size = 0;
@@ -51,33 +53,35 @@ export class ClefProvider implements DecisionProvider {
           const part = await reader.read();
           if (part.done) break;
           size += part.value.byteLength;
-          if (size > 64000) throw new ProviderFailure('response-too-large');
+          if (size > 64000) throw fail('response-too-large');
           parts.push(part.value);
         }
       } finally {
         await reader.cancel();
       }
     }
-    let wire: { success?: boolean; result?: unknown; errors?: { code?: number }[] };
+    wire.received = Buffer.concat(parts).toString('utf8');
+    let envelope: { success?: boolean; result?: unknown; errors?: { code?: number }[] };
     try {
-      wire = JSON.parse(Buffer.concat(parts).toString('utf8'));
-      if (!wire || typeof wire !== 'object') throw new Error('Invalid envelope');
+      envelope = JSON.parse(wire.received);
+      if (!envelope || typeof envelope !== 'object') throw new Error('Invalid envelope');
     } catch {
-      throw new ProviderFailure(response.ok ? 'invalid-response' : `http-${response.status}`);
+      throw fail(response.ok ? 'invalid-response' : `http-${response.status}`);
     }
-    if (!response.ok || wire.success !== true) {
-      if (Array.isArray(wire.errors) && wire.errors.some((error) => error?.code === 3036))
-        throw new ProviderFailure('daily-neuron-quota');
+    if (!response.ok || envelope.success !== true) {
+      if (Array.isArray(envelope.errors) && envelope.errors.some((error) => error?.code === 3036))
+        throw fail('daily-neuron-quota');
       const retry = response.headers.get('retry-after');
       const delay = retry ? (/^\d+$/.test(retry) ? Number(retry) * 1000 : Date.parse(retry) - Date.now()) : 60000;
-      throw new ProviderFailure(
-        `http-${response.status}`,
-        Number.isFinite(delay) ? Math.max(0, Math.min(delay, 600000)) : 60000
-      );
+      throw fail(`http-${response.status}`, Number.isFinite(delay) ? Math.max(0, Math.min(delay, 600000)) : 60000);
     }
-    const result = parseChoice(wire.result, request);
-    if (result.inputTokens > CLEF_MODELS[request.model as ClefModel].context)
-      throw new ProviderFailure('invalid-usage');
-    return result;
+    let result: ChoiceResult;
+    try {
+      result = parseChoice(envelope.result, request);
+    } catch (error) {
+      throw error instanceof ProviderFailure ? fail(error.code) : error;
+    }
+    if (result.inputTokens > CLEF_MODELS[request.model as ClefModel].context) throw fail('invalid-usage');
+    return { ...result, wire };
   }
 }
