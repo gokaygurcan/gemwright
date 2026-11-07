@@ -32,6 +32,16 @@ export async function findMiningSite(options: {
     people.some((mobile) => mobile.position && distance(mobile.position, point) <= 4) ? 40 : 0;
   // Rocks within reach of monsters, or where they were lately seen, are left alone (danger.ts).
   const risky = unsafeCheck(session);
+  // Empty veins come in neighbourhoods: miners sharing a mountain strip whole stretches, and ore
+  // respawns ten to twenty minutes later (ServUO Mining.cs). Each empty 8x8 vein within two veins
+  // of a rock counts against it, so after an empty one the miner moves to fresh ground instead of
+  // trying every block next door in turn.
+  const depletedAround = (point: { x: number; y: number }) => {
+    let count = 0;
+    for (let bx = (point.x >> 3) - 2; bx <= (point.x >> 3) + 2; bx++)
+      for (let by = (point.y >> 3) - 2; by <= (point.y >> 3) + 2; by++) if (exhausted.has(`${bx},${by}`)) count++;
+    return count;
+  };
   const candidates = (await miningCatalog(terrain, origin, miningArea))
     .filter(
       (point) =>
@@ -46,7 +56,8 @@ export async function findMiningSite(options: {
         distance(origin, point) +
         learnedPlaceCost(residentContext(session)?.checkpoint, session.world.map ?? 1, point) +
         (anchor ? distance(point, anchor) * 0.4 : 0) +
-        crowding(point) -
+        crowding(point) +
+        depletedAround(point) * 12 -
         (point.floor ? 18 : 0)
     }));
   check();
