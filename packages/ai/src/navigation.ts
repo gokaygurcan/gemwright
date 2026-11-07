@@ -102,6 +102,7 @@ export function createNavigator(options: {
     // so these must not outlive the route like a locked door does.
     const rejected = new Map<string, number>();
     let nextStepAt = 0;
+    let resynced = false;
     while (distance(position(), goal) > range || (goal.z !== undefined && Math.abs(position().z - goal.z) > 8)) {
       check();
       // A ghost walks over creatures and through doors (ServUO Movement.cs: !m.Alive ignores doors,
@@ -149,6 +150,8 @@ export function createNavigator(options: {
             if (dx * dx + dy * dy <= r * r && Math.hypot(dx, dy) < now) avoid.add(`${at.x + dx},${at.y + dy}`);
       }
       seenThreats = new Set(wary.map((m) => m.serial));
+      const openOccupied = new Set(occupied);
+      const openHard = new Set(hard);
       if (avoid.size) {
         for (const key of avoid) occupied.add(key);
         for (const key of avoid) hard.add(key);
@@ -159,6 +162,15 @@ export function createNavigator(options: {
         path = await terrain.pathAsync(position(), goal, range, occupied, goal.z, session.signal, true, dead);
         if (!path && occupied.size > hard.size)
           path = await terrain.pathAsync(position(), goal, range, hard, goal.z, session.signal, true, dead);
+      }
+      // Where it was attacked lately only steers the route; nothing in sight now means no wall. With
+      // every way through remembered ground, it goes anyway (Rel'Ahm: "hostile creatures block every
+      // way" with none in view, a new taming ground every second, Nov 6).
+      if (!path?.length && avoid.size && !wary.length) {
+        avoid.clear();
+        path = await terrain.pathAsync(position(), goal, range, openOccupied, goal.z, session.signal, true, dead);
+        if (!path && openOccupied.size > openHard.size)
+          path = await terrain.pathAsync(position(), goal, range, openHard, goal.z, session.signal, true, dead);
       }
       if (!path?.length && [...rejected.values()].some((until) => until > Date.now() && until <= Date.now() + 2000)) {
         await Bun.sleep(1000);
@@ -185,7 +197,7 @@ export function createNavigator(options: {
           for (const point of path ?? []) {
             const direction = directionTo(position(), point);
             if (direction < 0) break;
-            await session.walk(direction);
+            await session.walk(direction, point.z);
             await Bun.sleep(220);
           }
         }
@@ -207,6 +219,17 @@ export function createNavigator(options: {
           'dangerous',
           `Hostile creatures block every way to ${goal.x},${goal.y} (${wary.map((m) => `${m.name ?? 'something'} 0x${m.graphic.toString(16)} at ${m.position?.x},${m.position?.y}`).join(', ')})`
         );
+      }
+      // No floor under the position we hold: our height has drifted from the shard's (a step's
+      // acknowledgement carries none), and no route can start from it. The shard's own position,
+      // once, then plan again (Finn Gray stood "at z10" under the New Haven bank floor for hours).
+      const here = position();
+      if (!path?.length && !resynced && !terrain.stand(here.x, here.y, here.z)) {
+        resynced = true;
+        if (await session.resyncPosition()) {
+          origins.clear();
+          continue;
+        }
       }
       if (!path?.length) {
         if (lockedDoor) throw new Blocked('locked-door', `Locked door blocks every route to ${goal.x},${goal.y}`);
