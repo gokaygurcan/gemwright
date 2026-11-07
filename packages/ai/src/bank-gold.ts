@@ -209,7 +209,14 @@ export async function queryBankBalance(
     ctx.log?.(`The banker did not give a balance (${cliloc}); keeping the last known balance`);
     return ctx.checkpoint.funds?.bank ?? 0;
   }
-  lifeEvent(session, 'bank_balance', 'observed', { before: ctx.checkpoint.funds?.bank ?? null, after: bank });
+  const expected = ctx.checkpoint.funds?.bank;
+  lifeEvent(session, 'bank_balance', 'observed', { before: expected ?? null, after: bank });
+  // Gold leaves the bank without passing through the pack (a vendor charging it, a house deed): a
+  // balance far from the expected one is said, so where the money went can be traced in the log.
+  if (expected !== undefined && Math.abs(bank - expected) >= 500)
+    ctx.log?.(
+      `Bank balance ${bank} gold, ${bank > expected ? 'up' : 'down'} ${Math.abs(bank - expected)} from the ${expected} I expected`
+    );
   ctx.checkpoint.funds = { bank, at: Date.now() };
   return bank;
 }

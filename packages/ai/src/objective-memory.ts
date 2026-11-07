@@ -95,6 +95,7 @@ export async function errand(
   if (objectiveBlocked(checkpoint, key, condition())) return false;
   const started = Date.now();
   const before = holdings(session, checkpoint);
+  let why = '';
   try {
     await run();
   } catch (error) {
@@ -108,14 +109,15 @@ export async function errand(
       (error instanceof Blocked && error.reason === 'stuck')
     )
       throw error;
+    why = ` (${error instanceof Error ? error.message : String(error)})`;
   }
   if (holdings(session, checkpoint) !== before) {
     completeObjective(checkpoint, key);
     if (sideErrand(key)) noteSideWork(session, Date.now() - started);
     return true;
   }
-  failObjective(checkpoint, key, condition(), `${what} gained nothing`);
-  ctx.log(`Gave up on ${what} for two hours: it gained nothing`);
+  failObjective(checkpoint, key, condition(), `${what} gained nothing${why}`);
+  ctx.log(`Gave up on ${what} for two hours: it gained nothing${why}`);
   if (sideErrand(key)) noteSideWork(session, Date.now() - started);
   return false;
 }

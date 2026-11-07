@@ -49,6 +49,8 @@ const crowded = (ctx: FighterContext, mobile: Entity) =>
         prey.has(other.graphic) && other.position && distance(mobile.position ?? ctx.position(), other.position) < 4
     ).length > 2;
 
+const quietAt = new WeakMap<object, number>();
+
 export async function chooseOpponent(
   ctx: FighterContext,
   options: { unreachable: Set<number>; decisions?: DecisionCoordinator; stopping?: () => boolean }
@@ -71,6 +73,7 @@ export async function chooseOpponent(
     .sort((a, b) => distance(position(), a.position ?? position()) - distance(position(), b.position ?? position()));
   const eligible: Entity[] = [];
   const avoided: number[] = [];
+  const turnedDown: string[] = [];
   for (const item of candidates) {
     check();
     const learned = encounterAdvice(
@@ -96,7 +99,18 @@ export async function chooseOpponent(
     }
     const current = session.world.entities.get(item.serial);
     if (!current?.position) continue;
-    if (!engageable(ctx, current).ok || crowded(ctx, current) || claimedByOther(ctx, current)) continue;
+    const engage = engageable(ctx, current);
+    const why = !engage.ok
+      ? engage.reason
+      : crowded(ctx, current)
+        ? 'crowded'
+        : claimedByOther(ctx, current)
+          ? 'claimed by another'
+          : undefined;
+    if (why) {
+      turnedDown.push(`${current.name ?? current.graphic}: ${why}`);
+      continue;
+    }
     eligible.push(current);
     if (eligible.length >= 3) break;
   }
@@ -105,6 +119,14 @@ export async function chooseOpponent(
     encounterAdvice(checkpoint, place(item), item.graphic, Date.now(), combatCapability(session), item.name).caution *
       20;
   eligible.sort((a, b) => score(a) - score(b));
+  // Nobody to fight, said why at most once a minute: an empty patrol looks the same in the log as
+  // a ground full of creatures each turned down for a reason.
+  if (!eligible.length && Date.now() - (quietAt.get(session) ?? 0) > 60_000) {
+    quietAt.set(session, Date.now());
+    ctx.log(
+      `No opponent: ${candidates.length} huntable in view, ${avoided.length} avoided after losses${turnedDown.length ? `; turned down ${turnedDown.slice(0, 4).join(', ')}` : ''}`
+    );
+  }
   if (!eligible.length && avoided.length) return { kind: 'avoid', until: Math.min(...avoided) };
   const baseline = eligible[0];
   // Ask the provider only when there is a real trade-off: an optional-tier target, or several
