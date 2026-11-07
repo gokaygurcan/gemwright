@@ -106,6 +106,10 @@ export const weaponSkill = (template: CharacterTemplate) =>
       'Wrestling')
     : 'Swordsmanship';
 const sets = new Map(Object.entries(families).map(([skill, ids]) => [skill, new Set(ids)]));
+// Gargoyles wield only gargish weapons and the others none of them (ServUO race requirements): a
+// human weapon bought for a gargoyle is refused and bought again, eight times in twenty minutes.
+const gargish = new Set(Object.values(gargishWeapons).flat());
+export const wieldableBy = (gargoyle: boolean, graphic: number) => gargish.has(graphic) === gargoyle;
 // Every melee weapon of any family: a stand-in when a fighter has none of its own (fighter-equipment.ts).
 export const meleeWeapons = new Set(
   ['Swordsmanship', 'Fencing', 'Mace Fighting'].flatMap((skill) => families[skill] ?? [])

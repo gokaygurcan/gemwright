@@ -17,7 +17,13 @@ import { actionScope } from './execution-session';
 import { rememberExperience } from './experience';
 import { rememberDeath } from './fight-confidence';
 import { Died, type FighterContext, Retreat } from './fighter-context';
-import { recoveryEquipmentReady, recoveryHealthReady, recoveryThreats, returnToRefuge } from './fighter-refuge';
+import {
+  recoveryEquipmentReady,
+  recoveryHealthReady,
+  recoveryThreats,
+  returnToRefuge,
+  weaponObtainable
+} from './fighter-refuge';
 import { distance } from './navigation';
 import { resurrectGhost } from './resurrection';
 
@@ -364,17 +370,28 @@ export function createFighterRecovery(
         !recoveryHealthReady(ctx) ||
         threats().length ||
         distance(position(), ctx.home.town) > 4 ||
-        !recoveryEquipmentReady(ctx)
+        (!recoveryEquipmentReady(ctx) && weaponObtainable(ctx))
       ) {
         persist();
+        // Not ready again straight after not being ready is a spin, not a recovery: the goal turn
+        // calls back at once and rest() returns at once at full health (Drovanis logged
+        // "recovering" four times a second). The second pass in a row waits.
+        if (Date.now() - notReadyAt < 2000) await checkedDelay(10_000, check);
+        notReadyAt = Date.now();
         return;
       }
       trip.recovery.stage = 'ready';
       trip.pending = 'return';
-      phase('recovery-ready', 'Living, equipped and recovered; reconciling the town trip before hunting again');
+      phase(
+        'recovery-ready',
+        recoveryEquipmentReady(ctx)
+          ? 'Living, equipped and recovered; reconciling the town trip before hunting again'
+          : 'Living and recovered, with no weapon to be had; hunting bare-handed to earn one'
+      );
       persist();
     }
   };
+  let notReadyAt = 0;
   const recover = async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {

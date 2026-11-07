@@ -1,4 +1,4 @@
-import type { PlayerSession } from '@gemwright/network/session';
+import { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
 import type { CharacterTemplate } from '../src/config';
@@ -39,6 +39,10 @@ export function behaviorFixture(profession = 'tailor') {
     target: () => {
       world.target = null;
     },
+    resyncPosition: async () => false,
+    // The real session's rule: a cursor left up over ten seconds is cancelled, a fresh one is not.
+    releaseStaleCursor: (now = Date.now()) =>
+      PlayerSession.prototype.releaseStaleCursor.call({ world, send: () => {} }, now),
     // The shard shows a container's contents when it is opened; anything else has no reply.
     use: (serial: number) => {
       if (world.entities.get(serial)?.parent !== undefined)

@@ -1,10 +1,14 @@
 import { expect, spyOn, test } from 'bun:test';
 
+import { gargishWeapons } from '@gemwright/common/game/items';
+
 import { ActionInterrupted } from '../src/action-errors';
 import { urgentAction } from '../src/action-purpose';
+import { wieldableBy } from '../src/fighter-context';
 import { createFighterRecovery } from '../src/fighter-recovery';
 import { createFighterTown } from '../src/fighter-town';
 import { distance } from '../src/navigation';
+import { failObjective, suppliesCondition } from '../src/objective-memory';
 import { required } from './behavior-fixture';
 import { corpseRecoveryFixture } from './fighter-fixture';
 import { useTestWorld } from './world-fixture';
@@ -25,9 +29,9 @@ function scenario() {
   required(f.world.entities.get(30)).position = { ...corpseSite };
   f.ctx.dead = () => [0x192, 0x193].includes(f.world.entities.get(1)?.graphic ?? 0);
   f.checkpoint.hunting = f.ctx.trip;
-  const phases: { phase: string; position: { x: number; y: number } }[] = [];
+  const phases: { phase: string; note: string; position: { x: number; y: number } }[] = [];
   const saves: string[] = [];
-  f.ctx.phase = (phase) => phases.push({ phase, position: { ...f.ctx.position() } });
+  f.ctx.phase = (phase, note) => phases.push({ phase, note, position: { ...f.ctx.position() } });
   f.ctx.persist = () => saves.push(JSON.stringify(f.ctx.trip));
   const walks: { x: number; y: number }[] = [];
   const escapes: { x: number; y: number }[] = [];
@@ -189,6 +193,27 @@ test('missing replacement equipment cannot be reported as recovered and equipped
   expect(f.phases.some((p) => p.phase === 'recovery-ready')).toBe(false);
 });
 
+test('a weaponless fighter with no gold to buy one leaves recovery to hunt bare-handed', async () => {
+  const f = scenario();
+  required(f.ctx.trip.recovery).stage = 'equipment';
+  f.services.prepareEquipment = async () => {};
+  f.ctx.checkpoint.funds = { bank: 5, at: Date.now() };
+  await f.controller().recover();
+  expect(f.ctx.trip.recovery?.stage).toBe('ready');
+  expect(f.phases.some((p) => p.phase === 'recovery-ready' && /bare-handed/.test(p.note))).toBe(true);
+});
+
+test('a weaponless fighter whose every weapon vendor sold nothing leaves recovery to hunt', async () => {
+  const f = scenario();
+  required(f.ctx.trip.recovery).stage = 'equipment';
+  f.services.prepareEquipment = async () => {};
+  const condition = suppliesCondition(f.ctx.session, f.ctx.checkpoint);
+  for (const stop of [...f.ctx.home.all('blacksmith'), ...f.ctx.home.all('weaponsmith')])
+    failObjective(f.ctx.checkpoint, `weapon:${stop.x},${stop.y}`, condition, 'buying a weapon gained nothing');
+  await f.controller().recover();
+  expect(f.ctx.trip.recovery?.stage).toBe('ready');
+});
+
 test('safe self-loot is observed, followed by return to refuge before readiness', async () => {
   const f = scenario();
   await f.controller().recover();
@@ -348,4 +373,35 @@ test('death while replacing equipment cannot restart retrieval at the lethal sit
   expect(f.counts().clicks).toBe(0);
   expect(f.ctx.trip.recovery).toMatchObject({ stage: 'ready', abandonCorpse: true });
   expect(f.ctx.position()).toMatchObject(refuge);
+});
+
+test('a gargoyle is only offered gargish weapons, and the others never gargish ones', () => {
+  const club = 0x13b4;
+  const gargish = Object.values(gargishWeapons).flat()[0] ?? 0;
+  expect(wieldableBy(true, club)).toBe(false);
+  expect(wieldableBy(true, gargish)).toBe(true);
+  expect(wieldableBy(false, club)).toBe(true);
+  expect(wieldableBy(false, gargish)).toBe(false);
+});
+
+test('a recovery that is not ready twice in a row waits instead of spinning', async () => {
+  const f = scenario();
+  required(f.ctx.trip.recovery).stage = 'equipment';
+  f.services.prepareEquipment = async () => {};
+  let slept = 0;
+  const sleep = spyOn(Bun, 'sleep').mockImplementation(async (ms) => {
+    slept += Number(ms);
+  });
+  const now = Date.now();
+  const clock = spyOn(Date, 'now').mockImplementation(() => now + slept);
+  try {
+    const recovery = f.controller();
+    await recovery.recover();
+    const first = slept;
+    await recovery.recover();
+    expect(slept - first).toBeGreaterThanOrEqual(10_000);
+  } finally {
+    sleep.mockRestore();
+    clock.mockRestore();
+  }
 });

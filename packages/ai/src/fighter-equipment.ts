@@ -3,11 +3,20 @@ import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
-import { chargedPurchase, fundsStale, queryBankBalance, spendableGold } from './bank-gold';
+import { chargedPurchase, fundsStale, queryBankBalance, refreshFunds, spendableGold } from './bank-gold';
 import { Blocked } from './blocked';
 import { travelNear } from './cemeteries';
-import { bandage, type FighterContext, healPotion, meleeWeapons, weaponSkill, weaponsFor } from './fighter-context';
+import {
+  bandage,
+  type FighterContext,
+  healPotion,
+  meleeWeapons,
+  weaponSkill,
+  weaponsFor,
+  wieldableBy
+} from './fighter-context';
 import { createFighterGear } from './fighter-gear';
+import { isGargoyle } from './flight';
 import { serviceLocations } from './locations';
 import { forcedToWork } from './loop-watch';
 import { prepareSpellbook } from './magery';
@@ -192,6 +201,10 @@ export function createFighterEquipment(
       // Put on whatever the bank provided before buying anything new.
       await gear.dress();
     }
+    // The bank pays for the weapon (vendors charge it), but a balance older than a quarter hour
+    // counts as nothing (bank-gold.ts): without asking first, every smith's price looked too high
+    // and the fighter walked from shop to shop buying nothing (Dunstan Miller, 125 gold, Nov 6).
+    if (!hasSword() && fundsStale(ctx.checkpoint)) await refreshFunds(ctx, ctx.home.city);
     // Penniless, there is nothing to buy: no walk past every shop (fighter.ts earns first).
     const broke = !fundsStale(ctx.checkpoint) && spendable() < 20;
     if (!hasSword() && broke) return;
@@ -217,17 +230,37 @@ export function createFighterEquipment(
                 return (
                   item &&
                   weaponsFor(ctx.template).has(item.graphic) &&
+                  wieldableBy(isGargoyle(session), item.graphic) &&
+                  !gear.refused.has(item.graphic) &&
                   (item.amount ?? 0) > 0 &&
                   stock?.parent === mobile.serial &&
                   offer.price > 0 &&
-                  offer.price <= spendable() - 30
+                  // No reserve held back: without a weapon there is no income to keep it for
+                  // (Vaelis Starbloom, 39 gold, a 15-gold weapon out of reach, Nov 6).
+                  offer.price <= spendable()
                 );
               })
               .sort((a, b) => a.price - b.price)[0];
-            if (!offer) continue;
+            if (!offer) {
+              const prices = stock.offers
+                .filter((o) => {
+                  const graphic = session.world.entities.get(o.serial)?.graphic ?? -1;
+                  return weaponsFor(ctx.template).has(graphic) && wieldableBy(isGargoyle(session), graphic);
+                })
+                .map((o) => o.price);
+              log(
+                `${mobile.name ?? 'A smith'} sells ${prices.length ? `my weapons from ${Math.min(...prices)} gold` : 'none of my weapons'}; I have ${spendable()} to spend`
+              );
+              continue;
+            }
             await approachVendor(ctx, mobile.serial);
-            await chargedPurchase(ctx, offer.price, () =>
-              session.purchaseItem(mobile.serial, offer.serial, ctx.backpack(), 1, offer.price)
+            // The weapon is the fighter's work tool: bought with whatever it has, not left to the
+            // plan's discretionary budget (a recover goal with 120 gold has none, bank-gold.ts).
+            await chargedPurchase(
+              ctx,
+              offer.price,
+              () => session.purchaseItem(mobile.serial, offer.serial, ctx.backpack(), 1, offer.price),
+              true
             );
             learning.record(mobile, Actions.buy, 'success');
             stats.replacementWeapons++;

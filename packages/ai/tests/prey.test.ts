@@ -79,6 +79,7 @@ test('an opponent disappearing during inspection does not stop the hunter', asyn
   Object.assign(ctx, {
     checkpoint: {},
     check: () => {},
+    log: () => {},
     session: {
       phase: 'ready',
       world: { ...ctx.session.world, map: 1, entities: new Map() },
