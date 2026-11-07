@@ -274,6 +274,20 @@ export class PlayerSession {
     }
   }
 
+  // Where the shard says the character stands (resync 0x22, answered by a full self update 0x20).
+  // A step's acknowledgement carries no height, so ours can drift across floors; this is the truth.
+  async resyncPosition(): Promise<boolean> {
+    this.requireReady();
+    const before = this.world.received.get(0x20) ?? 0;
+    this.send(Buffer.from([0x22, 0, 0]));
+    return this.waitFor(() => (this.world.received.get(0x20) ?? 0) > before, 'position resync', 3000, {
+      interruptible: false
+    }).then(
+      () => true,
+      () => false
+    );
+  }
+
   // The client's Help button (0x9B, 258 bytes): the server answers with its help gump.
   requestHelp(): void {
     this.requireReady();
@@ -455,10 +469,22 @@ export class PlayerSession {
       throw new Error('Sale did not remove the offered items');
   }
 
+  // Every flow that brings up a cursor answers it within seconds; one still up after ten was left
+  // behind (an answer that came too late, a flow that gave up) and would block every later use and
+  // skill for good. It is cancelled, as a player presses Escape. True when the cursor is free.
+  releaseStaleCursor(now = Date.now()): boolean {
+    const cursor = this.world.target;
+    if (!cursor) return true;
+    if (now - (cursor.at ?? now) < 10_000) return false;
+    this.send(packets.targetResponse(cursor, null));
+    this.world.target = null;
+    return true;
+  }
+
   use(serial: number): void {
     this.requireReady();
     if (!this.world.entities.has(serial)) throw new Error('Item is outside current observations');
-    if (this.world.target) throw new Error('Finish the current targeting first');
+    if (!this.releaseStaleCursor()) throw new Error('Finish the current targeting first');
     this.send(packets.useItem(serial));
   }
 
@@ -482,7 +508,7 @@ export class PlayerSession {
 
   useSkill(id: number, spell = false): void {
     this.requireReady();
-    if (this.world.target) throw new Error('Finish the current targeting first');
+    if (!this.releaseStaleCursor()) throw new Error('Finish the current targeting first');
     this.send(packets.useSkill(id, spell));
   }
 

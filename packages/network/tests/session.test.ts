@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { PlayerSession } from '@gemwright/network/session';
+import { WorldView } from '@gemwright/network/world';
 
 import { mockShard } from './mock-shard';
 
@@ -128,4 +129,20 @@ test('a full self update resets the movement sequence like ServUO', async () => 
     session.close();
     await shard.close();
   }
+});
+
+// Runeb, Nov 6: a cursor left up by a flow that gave up blocked every door, tool and skill for an
+// hour ("Finish the current targeting first"), and the miner retried every sixteen seconds.
+test('a cursor left up for more than ten seconds is cancelled before the next use', () => {
+  const sent: Buffer[] = [];
+  const world = new WorldView();
+  const session = { world, send: (packet: Buffer) => sent.push(packet) };
+  const release = PlayerSession.prototype.releaseStaleCursor;
+  world.target = { id: 7, ground: false, flags: 0, at: 1_000 };
+  expect(release.call(session, 5_000)).toBe(false);
+  expect(world.target).not.toBeNull();
+  expect(sent).toHaveLength(0);
+  expect(release.call(session, 12_000)).toBe(true);
+  expect(world.target).toBeNull();
+  expect(sent[0]?.[0]).toBe(0x6c);
 });

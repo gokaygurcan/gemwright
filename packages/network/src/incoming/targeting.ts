@@ -20,7 +20,12 @@ export const targetingPackets: [number, Decoder][] = [
       world.target =
         packet.readUInt8(6) === 3
           ? null
-          : { id: packet.readUInt32BE(2), ground: packet.readUInt8(1) === 1, flags: packet.readUInt8(6) };
+          : {
+              id: packet.readUInt32BE(2),
+              ground: packet.readUInt8(1) === 1,
+              flags: packet.readUInt8(6),
+              at: Date.now()
+            };
     }
   ],
   /*
@@ -47,7 +52,8 @@ export const targetingPackets: [number, Decoder][] = [
         id: packet.readUInt32BE(2),
         ground: packet.readUInt8(1) === 1,
         flags: packet.readUInt8(6),
-        multi: packet.readUInt16BE(18)
+        multi: packet.readUInt16BE(18),
+        at: Date.now()
       };
     }
   ]

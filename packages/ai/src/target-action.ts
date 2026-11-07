@@ -30,7 +30,7 @@ export async function useOn(
   aim: TargetLocation,
   options: CursorOptions
 ): Promise<Outcome> {
-  if (session.world.target) return { why: 'cursor-busy' };
+  if (!session.releaseStaleCursor()) return { why: 'cursor-busy' };
   return answerCursor(session, aim, options, use);
 }
 

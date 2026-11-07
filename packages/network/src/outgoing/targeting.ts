@@ -4,6 +4,8 @@ export interface TargetCursor {
   flags: number;
   // The house a multi-target cursor (0x99) places.
   multi?: number;
+  // When the shard put it up (ms), to tell an abandoned cursor from one being answered.
+  at?: number;
 }
 
 export interface TargetLocation {
