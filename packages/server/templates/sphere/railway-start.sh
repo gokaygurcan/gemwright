@@ -30,7 +30,8 @@ fi
 mkdir -p logs
 
 trap 'exit 0' TERM INT
-while [ ! -e /app/data/.client-ready ]; do
+# Docker deployments mount the shared game-file folder here, ready as it is.
+while [ ! -e /app/data/.client-ready ] && { [ -e /app/data/client.tar.gz ] || [ -z "$(ls -A /app/data/client 2>/dev/null)" ]; }; do
     if [ -e /app/data/client.tar.gz ]; then
         mkdir -p /app/data/client
         tar -xzf /app/data/client.tar.gz -C /app/data/client

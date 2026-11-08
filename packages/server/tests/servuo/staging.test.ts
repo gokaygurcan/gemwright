@@ -28,3 +28,19 @@ test('client packaging excludes unrelated files and duplicate x variants', async
   expect(names).not.toContain('map0x');
   expect(names).not.toContain('artLegacy');
 });
+
+test('the staged server reads the deployment game files and loads the scripts the image build compiled', async () => {
+  const { mkdir, readFile, writeFile } = await import('node:fs/promises');
+  const { applyDeploymentConfig } = await import('../../src/emulators/servuo/staging');
+  const server = await mkdtemp(join(tmpdir(), 'gemwright-servuo-config-'));
+  folders.push(server);
+  await mkdir(join(server, 'Config'));
+  await writeFile(join(server, 'Config/DataPath.cfg'), 'CustomPath=@C:\\UO\n');
+  await writeFile(join(server, 'Config/Compiler.cfg'), '# Forces scripts to be compiled at runtime.\nDynamic=True');
+  await applyDeploymentConfig(server);
+  expect(await readFile(join(server, 'Config/DataPath.cfg'), 'utf8')).toContain('CustomPath=data/client');
+  expect(await readFile(join(server, 'Config/Compiler.cfg'), 'utf8')).toContain('Dynamic=False');
+  await rm(join(server, 'Config/Compiler.cfg'));
+  await applyDeploymentConfig(server);
+  expect(await readFile(join(server, 'Config/Compiler.cfg'), 'utf8')).toContain('Dynamic=False');
+});

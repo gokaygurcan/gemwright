@@ -6,6 +6,7 @@ import { packageClientFiles as packageFiles } from '@gemwright/deployment/client
 import { assetPath } from '../../assets';
 import type { ShardConfig } from '../../config';
 import { required } from '../../required';
+import { copyShardFiles } from '../shard-files';
 import { checkoutSource, removeSourceHistory } from '../source';
 import { sphereConfigValue } from './config';
 import { applySphereCompatibility, sourcesFor } from './source';
@@ -50,9 +51,8 @@ export async function stageSphere(directory: string, config: ShardConfig): Promi
   await removeSourceHistory(server);
   await mkdir(join(context, 'shard'));
   for (const name of ['sphere.ini', 'sphereCrypt.ini', 'scripts'])
-    await cp(join(directory, name), join(context, 'shard', name), { recursive: true });
-  for (const name of ['accounts', 'save'])
-    await cp(join(directory, name), join(context, 'seed', name), { recursive: true });
+    await copyShardFiles(join(directory, name), join(context, 'shard', name));
+  for (const name of ['accounts', 'save']) await copyShardFiles(join(directory, name), join(context, 'seed', name));
   for (const [source, target] of [
     ['Dockerfile', 'Dockerfile'],
     ['railway-start.sh', 'start.sh'],
@@ -71,9 +71,10 @@ export async function stageSphere(directory: string, config: ShardConfig): Promi
 const clientPattern =
   /^(?:map[0-5](?:LegacyMUL\.uop|\.mul)|statics[0-5]\.mul|staidx[0-5]\.mul|(?:mapdif|mapdifl|stadif|stadifl|stadifi)[0-5]\.mul|multi\.(?:idx|mul)|hues\.mul|tiledata\.mul|verdata\.mul)$/i;
 
-export async function packageClientFiles(directory: string, sourcePath: string) {
-  const ini = await readFile(join(directory, 'sphere.ini'), 'latin1');
-  return packageFiles(directory, sourcePath, clientPattern, (names) => {
+export const sphereGameFiles = {
+  pattern: clientPattern,
+  async check(directory: string, names: string[]) {
+    const ini = await readFile(join(directory, 'sphere.ini'), 'latin1');
     const required = ['tiledata.mul', 'hues.mul', 'multi.idx', 'multi.mul'];
     for (let map = 0; map < 6; map++) {
       if (!sphereConfigValue(ini, `Map${map}`)) continue;
@@ -86,5 +87,9 @@ export async function packageClientFiles(directory: string, sourcePath: string) 
       throw new Error(
         `Sphere client files are missing: ${missing.join(', ')}. MultiCollection.uop is not a replacement for multi.idx/multi.mul in this Sphere version.`
       );
-  });
+  }
+};
+
+export function packageClientFiles(directory: string, sourcePath: string) {
+  return packageFiles(directory, sourcePath, clientPattern, (names) => sphereGameFiles.check(directory, names));
 }

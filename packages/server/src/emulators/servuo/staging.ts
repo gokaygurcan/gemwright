@@ -6,6 +6,7 @@ import { packageClientFiles as packageFiles } from '@gemwright/deployment/client
 import { assetPath } from '../../assets';
 import type { ShardConfig } from '../../config';
 import { required } from '../../required';
+import { copyShardFiles } from '../shard-files';
 import { checkoutSource, removeSourceHistory } from '../source';
 import { configValue, setConfigValue } from './config';
 import { applyServuoCompatibility, servuoSource } from './source';
@@ -38,6 +39,19 @@ export async function validateServuoShard(directory: string, config: ShardConfig
   }
 }
 
+// Deployed servers read the deployment's game files, and load the Scripts.dll each deploy's image
+// build compiled instead of compiling the scripts again at every start.
+export async function applyDeploymentConfig(server: string) {
+  const dataPath = join(server, 'Config/DataPath.cfg');
+  await writeFile(dataPath, setConfigValue(await readFile(dataPath, 'utf8'), 'CustomPath', 'data/client'));
+  const compiler = join(server, 'Config/Compiler.cfg');
+  const current = await readFile(compiler, 'utf8').catch((error) => {
+    if (error.code !== 'ENOENT') throw error;
+    return undefined;
+  });
+  await writeFile(compiler, current === undefined ? 'Dynamic=False\n' : setConfigValue(current, 'Dynamic', 'False'));
+}
+
 export async function stageServuo(
   directory: string,
   config: ShardConfig,
@@ -50,14 +64,13 @@ export async function stageServuo(
   await applyServuoCompatibility(server, required(config.source, 'emulator source').revision, options.ai);
   await removeSourceHistory(server);
   await rm(join(server, 'Config'), { recursive: true, force: true });
-  await cp(join(directory, 'Config'), join(server, 'Config'), { recursive: true });
-  const dataPath = join(server, 'Config/DataPath.cfg');
-  await writeFile(dataPath, setConfigValue(await readFile(dataPath, 'utf8'), 'CustomPath', 'data/client'));
+  await copyShardFiles(join(directory, 'Config'), join(server, 'Config'));
+  await applyDeploymentConfig(server);
   for (const folder of ['Scripts', 'Data']) {
     if ((await stat(join(directory, folder)).catch(() => undefined))?.isDirectory())
-      await cp(join(directory, folder), join(server, folder), { recursive: true });
+      await copyShardFiles(join(directory, folder), join(server, folder));
   }
-  await cp(join(directory, 'Saves'), join(context, 'seed/Saves'), { recursive: true });
+  await copyShardFiles(join(directory, 'Saves'), join(context, 'seed/Saves'));
   for (const [source, target] of [
     ['Dockerfile', 'Dockerfile'],
     ['railway-start.sh', 'start.sh'],
@@ -71,9 +84,15 @@ export async function stageServuo(
 const clientPattern =
   /^(?:map[0-5](?:LegacyMUL\.uop|\.mul)|statics[0-5]\.mul|staidx[0-5]\.mul|(?:mapdif|mapdifl|stadif|stadifl|stadifi)[0-5]\.mul|multi\.(?:idx|mul)|MultiCollection\.uop|tiledata\.mul|verdata\.mul)$/i;
 
-export function packageClientFiles(directory: string, sourcePath: string) {
-  return packageFiles(directory, sourcePath, clientPattern, (lower) => {
+// The game files the server reads, and the ones it cannot start without (lower-case names).
+export const servuoGameFiles = {
+  pattern: clientPattern,
+  check(_directory: string, lower: string[]) {
     if (!lower.includes('tiledata.mul') || !(lower.includes('map0.mul') || lower.includes('map0legacymul.uop')))
       throw new Error('Client files must include tiledata.mul and map0.mul or map0LegacyMUL.uop.');
-  });
+  }
+};
+
+export function packageClientFiles(directory: string, sourcePath: string) {
+  return packageFiles(directory, sourcePath, clientPattern, (lower) => servuoGameFiles.check(directory, lower));
 }

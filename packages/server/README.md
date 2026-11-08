@@ -21,7 +21,7 @@ Stages the emulator build context under the shard's .gemwright/deploy directory.
 Supported emulators: servuo, sphere, sphere-x, runuo, modernuo.
 ```
 
-The server exports no OpenTelemetry logs: ServUO writes plain text to its console and `Logs/`, read with `gemwright logs --server`.
+The server exports no OpenTelemetry logs: ServUO writes plain text to its console and `Logs/`, read with `gemwright shard logs --server`.
 
 ## License
 

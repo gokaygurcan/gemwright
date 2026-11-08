@@ -16,7 +16,7 @@ cp -a /opt/servuo/. /app/data/server/
 cd /app/data/server
 if [ ! -e data ]; then ln -s /app/data data; fi
 
-# gemwright restore uploads a pulled world to restore/Saves and restarts this service: the restored
+# gemwright shard restore uploads a pulled world to restore/Saves and restarts this service: the restored
 # saves replace the current ones here, before the server starts, and the replaced ones are kept.
 if [ -d /app/data/restore/Saves ]; then
     rm -rf Saves.before-restore
@@ -24,7 +24,7 @@ if [ -d /app/data/restore/Saves ]; then
     mv /app/data/restore/Saves Saves
     rm -rf /app/data/restore
     touch /app/data/.initialized
-    echo 'Restored the world saves from a gemwright pull.'
+    echo 'Restored the world saves from a gemwright shard pull.'
 fi
 if [ ! -e /app/data/.initialized ]; then
     if [ -e Saves ]; then
@@ -36,7 +36,8 @@ if [ ! -e /app/data/.initialized ]; then
 fi
 
 trap 'exit 0' TERM INT
-while [ ! -e /app/data/.client-ready ]; do
+# Docker deployments mount the shared game-file folder here, ready as it is.
+while [ ! -e /app/data/.client-ready ] && { [ -e /app/data/client.tar.gz ] || [ -z "$(ls -A /app/data/client 2>/dev/null)" ]; }; do
     if [ -e /app/data/client.tar.gz ]; then
         mkdir -p /app/data/client
         tar -xzf /app/data/client.tar.gz -C /app/data/client

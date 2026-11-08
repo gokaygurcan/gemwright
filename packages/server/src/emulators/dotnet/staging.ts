@@ -5,6 +5,7 @@ import { assetPath } from '../../assets';
 import type { ShardConfig } from '../../config';
 import { required } from '../../required';
 import { packageClientFiles } from '../servuo/staging';
+import { copyShardFiles } from '../shard-files';
 import { checkoutSource, removeSourceHistory } from '../source';
 import { applyDotnetCompatibility, type DotnetEmulator, dotnetSources } from './source';
 
@@ -46,13 +47,13 @@ export async function stageDotnet(directory: string, config: ShardConfig): Promi
   await checkoutSource(server, required(config.source, 'emulator source'));
   for (const folder of emulator === 'runuo' ? ['Scripts', 'Data'] : ['Projects/UOContent', 'Distribution/Data']) {
     await rm(join(server, folder), { recursive: true, force: true });
-    await cp(join(directory, folder), join(server, folder), { recursive: true });
+    await copyShardFiles(join(directory, folder), join(server, folder));
   }
   await applyDotnetCompatibility(server, required(config.source, 'emulator source').revision, emulator);
   await removeSourceHistory(server);
-  await cp(join(directory, 'Saves'), join(context, 'seed/Saves'), { recursive: true });
+  await copyShardFiles(join(directory, 'Saves'), join(context, 'seed/Saves'));
   if (emulator === 'modernuo')
-    await cp(join(directory, 'Configuration'), join(server, 'Distribution/Configuration'), { recursive: true });
+    await copyShardFiles(join(directory, 'Configuration'), join(server, 'Distribution/Configuration'));
   await mkdir(join(context, 'seed'), { recursive: true });
   for (const name of ['Dockerfile', 'railway-start.sh', 'start.sh']) {
     const source = name === 'Dockerfile' ? emulator : 'dotnet';
