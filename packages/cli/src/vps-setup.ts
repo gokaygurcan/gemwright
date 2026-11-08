@@ -30,6 +30,7 @@ export interface ServerInspection {
   compose: boolean;
   access: boolean;
   memoryKib?: number;
+  swapKib?: number;
 }
 
 export interface SetupStep {
@@ -41,16 +42,18 @@ export const inspectionScript = `id -un
 if [ -r /etc/os-release ] && grep -q '^ID=ubuntu$' /etc/os-release; then echo ubuntu; else echo other; fi
 if docker compose version >/dev/null 2>&1; then echo compose; else echo none; fi
 if docker info >/dev/null 2>&1; then echo access; else echo none; fi
-awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0`;
+awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0
+awk '/^SwapTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0`;
 
 export function parseInspection(output: string): ServerInspection {
-  const [user = '', os, compose, access, memory] = output.split('\n');
+  const [user = '', os, compose, access, memory, swap] = output.split('\n');
   return {
     user,
     ubuntu: os === 'ubuntu',
     compose: compose === 'compose',
     access: access === 'access',
-    ...(Number(memory) ? { memoryKib: Number(memory) } : {})
+    ...(Number(memory) ? { memoryKib: Number(memory) } : {}),
+    swapKib: Number(swap) || 0
   };
 }
 
@@ -79,6 +82,17 @@ ${sudo}systemctl enable --now docker`
     steps.push({
       label: `Add ${user} to the docker group, which is equivalent to root access on this server`,
       script: `${sudo}usermod -aG docker ${shellQuote(user)}`
+    });
+  // Startup peaks (the AI learning its routes, image loads) briefly outgrow small servers' memory;
+  // swap absorbs them instead of the kernel killing a service.
+  if (server.memoryKib && server.memoryKib < 4 * 1024 * 1024 && !server.swapKib)
+    steps.push({
+      label: `Add a 2 GB swap file (this server has ${Math.floor(server.memoryKib / 1024)} MiB of memory and no swap)`,
+      script: `if [ ! -e /swapfile ]; then
+    ${sudo}fallocate -l 2G /swapfile && ${sudo}chmod 600 /swapfile && ${sudo}mkswap /swapfile
+fi
+swapon --show=NAME --noheadings | grep -qx /swapfile || ${sudo}swapon /swapfile
+grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' | ${sudo}tee -a /etc/fstab >/dev/null`
     });
   const ports = [`${options.port}/tcp`, '2593/tcp', ...(options.client ? ['80/tcp', '443/tcp', '443/udp'] : [])];
   steps.push({

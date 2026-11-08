@@ -65,3 +65,17 @@ test('the vps block is recorded without disturbing other settings', async () => 
   });
   expect(saved.client).toEqual(shard.client);
 });
+
+test('small servers without swap get a swap file, others are left alone', () => {
+  const small = { ...ready, memoryKib: 1_960_000, swapKib: 0 };
+  const swap = setupSteps(small, { port: 22 }).find((step) => step.label.includes('swap'));
+  expect(swap?.label).toContain('1914 MiB');
+  expect(swap?.script).toContain('mkswap /swapfile');
+  expect(swap?.script).toContain('/etc/fstab');
+  expect(setupSteps({ ...small, swapKib: 2_097_148 }, { port: 22 }).some((step) => step.label.includes('swap'))).toBe(
+    false
+  );
+  expect(setupSteps({ ...small, memoryKib: 8_000_000 }, { port: 22 }).some((step) => step.label.includes('swap'))).toBe(
+    false
+  );
+});
