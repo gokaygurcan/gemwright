@@ -1,0 +1,36 @@
+---
+title: Analyze world saves
+description: Browse characters, items and mobiles in a pulled world save.
+sidebar:
+  order: 8
+---
+
+`@gemwright/analyze` reads ServUO world saves: a report in the terminal, or a browser view of characters, items and mobiles. It runs from a clone of the repository with Bun 1.4.3 or newer.
+
+```sh
+git clone https://github.com/gokaygurcan/gemwright.git
+cd gemwright
+bun install
+bun run build
+```
+
+First [pull](/docs/guides/backups/) your shard, then:
+
+```sh
+# browse the pulls of a shard
+bun packages/analyze/dist/src/serve.js --shard /path/to/my-shard --files ~/uo
+
+# or a Saves folder directly
+bun packages/analyze/dist/src/serve.js --local /path/to/Saves
+```
+
+Open `http://localhost:4100`. `--files` renders character art from your game files.
+
+For a text report:
+
+```sh
+bun packages/analyze/dist/src/index.js --saves /path/to/Saves
+bun packages/analyze/dist/src/index.js --saves /path/to/Saves --character "Lord British"
+```
+
+`--json <file>` exports characters and items; `--output <file>` writes the report to a file.

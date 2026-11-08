@@ -1,0 +1,42 @@
+---
+title: Run locally
+description: Run the shard on this machine with Docker Compose.
+sidebar:
+  order: 1
+---
+
+`--target local` runs the selected components as one Docker Compose project in `.gemwright/local/`. Each component is its own container; deploying one never restarts another. World saves and the resident database stay in Docker volumes across redeploys.
+
+```sh
+# the server; native clients log in at 127.0.0.1:2593
+gemwright shard deploy --target local --files ~/uo
+
+# the browser client at http://localhost:3000
+gemwright shard deploy --client --files ~/uo
+
+# AI residents; the server is rebuilt once with the AI patch
+gemwright shard deploy --server --ai --files ~/uo
+```
+
+`--files` can be left out when `clientFiles` is set in [`gemwright.json`](/docs/reference/configuration/). Deploying with a different set of game files replaces the set the named components use; the world stays as it is.
+
+## Other machines and ports
+
+```sh
+gemwright shard deploy --public-host 192.168.1.20 --server-port 2600 --client-port 8080
+```
+
+These values are kept for later deploys.
+
+## Start, stop and inspect
+
+```sh
+gemwright shard stop [--server] [--client] [--ai]
+gemwright shard start [--server] [--client] [--ai]
+gemwright shard status
+gemwright shard logs --server --follow
+```
+
+Stopping and starting never rebuilds; data stays in the volumes.
+
+Every emulator runs locally. On Apple Silicon, Sphere 0.56 builds and runs under x86-64 emulation, so its first build is slower.

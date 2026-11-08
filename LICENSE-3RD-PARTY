@@ -26,6 +26,11 @@ Bundled JavaScript
 - standardwebhooks 1.1.1: Apache-2.0 (package metadata says MIT), https://github.com/standard-webhooks/standard-webhooks/blob/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/LICENSE
 - Preact 11.1.1 (private analyzer): MIT, https://github.com/preactjs/preact/blob/11.1.1/LICENSE
 - Tailwind CSS 4.1.14 (private analyzer): MIT, https://github.com/tailwindlabs/tailwindcss/blob/v4.1.14/LICENSE
+- Astro 7.4.7 (website): MIT, https://github.com/withastro/astro/blob/main/LICENSE
+- React and React DOM 19.2.9 (website): MIT, https://github.com/facebook/react/blob/v19.2.9/LICENSE
+- Starlight 0.42.10 (website): MIT, https://github.com/withastro/starlight/blob/main/LICENSE
+- Expressive Code 0.44.3 (website): MIT, https://github.com/expressive-code/expressive-code/blob/main/LICENSE
+- Pagefind 1.6.0 (website): MIT, https://github.com/Pagefind/pagefind/blob/main/LICENSE
 
 CLI dependencies installed separately by npm
 - @clack/prompts 1.8.1: MIT, https://github.com/bombshell-dev/clack/blob/main/LICENSE

@@ -1,0 +1,37 @@
+---
+title: Update components
+description: Select and deploy newer server, client and AI versions.
+sidebar:
+  order: 4
+---
+
+`gemwright shard update` checks for newer compatible published versions of each component:
+
+```sh
+gemwright shard update
+```
+
+```text
+Update available: @gemwright/ai 0.10.0 → 0.11.0
+Run: gemwright shard update --ai --package-version 0.11.0
+Then: gemwright shard deploy --ai
+```
+
+Select an exact version for one component, then deploy it:
+
+```sh
+gemwright shard update --ai --package-version 0.11.0
+gemwright shard deploy --ai
+```
+
+Selecting writes [`packages`](/docs/reference/configuration/#packages) in `gemwright.json` and changes nothing that is running. A version that is not published, or not compatible with your configuration, fails without changing anything. Components without a selection use the versions the CLI carries.
+
+Updating one component never changes or restarts another. Persistent data and service identities are kept.
+
+## Updating the CLI
+
+```sh
+npm install --global gemwright@latest
+```
+
+The CLI tells you when a newer version is available.

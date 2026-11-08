@@ -53,3 +53,6 @@ test-shards/
 
 # Project licenses copied into contained package artifacts by the build.
 /packages/*/LICENSE
+
+# astro
+.astro

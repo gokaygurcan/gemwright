@@ -1,0 +1,40 @@
+---
+title: "@gemwright/ai"
+description: AI residents runtime and headless player sessions.
+sidebar:
+  order: 4
+---
+
+`@gemwright/ai` runs [AI residents](/docs/guides/ai-residents/): headless players that log in to a ServUO shard as real clients do. Each resident runs one loop:
+
+```txt
+perception → goal/planning → profession loops → action arbiter → network
+```
+
+`gemwright shard deploy --ai` deploys it for you. It runs on its own against any compatible server; see [Existing servers](/docs/guides/existing-server/).
+
+## Resident service
+
+Requires Bun 1.4.3 or newer.
+
+```sh
+npm install @gemwright/ai
+cd node_modules/@gemwright/ai
+AI_DATA=/path/to/data UO_HOST=127.0.0.1 GEMWRIGHT_SHARD="$(cat /path/to/gemwright.json)" bun dist/serve.js
+```
+
+| Variable | Meaning |
+| --- | --- |
+| `AI_DATA` | Persistent directory, including `assets/` (default: `/app/data`) |
+| `UO_HOST` | ServUO endpoint (required) |
+| `UO_PORT` | Server port (default: `2593`) |
+| `GEMWRIGHT_SHARD` | Shard configuration JSON (required) |
+| `TYPESAFE_API_KEY` | Required when decisions use Jev |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Required for Clef |
+| `ANTHROPIC_API_KEY` | Required when `ai.speech` is `claude` |
+
+## Tools
+
+`bun dist/index.js --help` lists commands to validate and plan a population, inspect residents, decisions, skills and dungeon runs, and run single sessions or a whole population against a server.
+
+[npm](https://www.npmjs.com/package/@gemwright/ai) · MIT

@@ -1,0 +1,40 @@
+---
+title: Concepts
+description: Shard projects, components, targets and versions.
+sidebar:
+  order: 2
+---
+
+## Shard project
+
+A shard project is a directory with a [`gemwright.json`](/docs/reference/configuration/). `gemwright init` creates it; every `gemwright shard` command reads it from the current directory. The file is validated before any change, and an invalid one fails with the field to fix. Keep the project in a private Git repository to track your changes.
+
+Gemwright keeps its working state in `.gemwright/` inside the project: local deployments, VPS bundles and [pulls](/docs/guides/backups/).
+
+## Components
+
+A shard has up to three components. Each is its own service and process: deploying or updating one never changes or restarts another.
+
+| Component | Flag | What it is |
+| --- | --- | --- |
+| Server | `--server` | The emulator: ServUO, Sphere, Sphere-X, RunUO or ModernUO. Native clients connect to it. |
+| Client | `--client` | A browser client host. Players log in from a web page. |
+| AI | `--ai` | [AI residents](/docs/guides/ai-residents/): headless players that live on the shard. ServUO only. |
+
+Flags combine. Without any, a command selects the components already deployed to the target, or the server the first time.
+
+The client and AI can also connect to a server Gemwright did not deploy; see [Existing servers](/docs/guides/existing-server/).
+
+## Targets
+
+A target is where components run:
+
+- **local**: Docker Compose on this machine. See [Run locally](/docs/guides/local/).
+- **vps**: Docker Compose on your Linux server; images are built on your machine and sent over SSH. See [VPS](/docs/guides/vps/).
+- **railway**: a Railway project, built by Railway. See [Railway](/docs/guides/railway/).
+
+`--target` picks one. A successful deploy saves it as `target` in `gemwright.json`, and later commands use it.
+
+## Versions
+
+The CLI carries the server, client and AI it was released with. [`gemwright shard update`](/docs/guides/updating/) selects another exact published version per component; selecting changes configuration only. Deploying is always explicit, and a version that cannot be retrieved never falls back to another.

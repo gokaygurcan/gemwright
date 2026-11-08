@@ -1,0 +1,32 @@
+---
+title: Existing servers
+description: Run the client or AI residents against a server Gemwright did not deploy.
+sidebar:
+  order: 6
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The client and AI residents can connect to any compatible server. Point them at it with [`connection`](/docs/reference/configuration/#connection) in `gemwright.json`:
+
+```json
+"connection": { "host": "login.example.com", "port": 2593 }
+```
+
+Then deploy only those components:
+
+```sh
+gemwright shard deploy --client
+```
+
+On Railway, `railway.server` names an existing server service in the same project instead.
+
+## AI residents
+
+AI residents need the ServUO AI patch, account creation, and the AI service as a trusted source on the server. When Gemwright deploys the server with `--server --ai`, it does all three. For a server it did not deploy, set these up yourself, then confirm it:
+
+```json
+"connection": { "host": "login.example.com", "port": 2593, "aiReady": true }
+```
+
+<Aside type="caution">AI residents support ServUO only for now.</Aside>

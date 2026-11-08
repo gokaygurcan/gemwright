@@ -1,0 +1,65 @@
+---
+title: Getting started
+description: Create a shard and run it on your machine in a few minutes.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+You need **Node.js 24 or newer**, **Docker** (Docker Desktop on macOS, or Docker Engine with the Compose plugin) and your own **Ultima Online game files**.
+
+<Steps>
+
+1. Install the CLI, or run it with `npx gemwright` instead.
+
+   ```sh
+   npm install --global gemwright
+   gemwright --help
+   ```
+
+2. Create a shard project. The questionnaire asks for a name, emulator, expansion and client version; `--yes` accepts the defaults.
+
+   ```sh
+   gemwright init my-shard
+   cd my-shard
+   ```
+
+   This writes [`gemwright.json`](/docs/reference/configuration/) and the files the emulator needs. A blank owner password is generated and shown once; save it. If you give it your game files directory, deploys can omit `--files`.
+
+3. Deploy the server on this machine, pointing at your game files.
+
+   ```sh
+   gemwright shard deploy --target local --files ~/uo
+   ```
+
+   The first start compiles scripts and can take several minutes. Native clients log in at `127.0.0.1:2593`.
+
+4. Add the browser client beside it.
+
+   ```sh
+   gemwright shard deploy --client --files ~/uo
+   ```
+
+   Open `http://localhost:3000`.
+
+</Steps>
+
+<Aside>
+  A successful deploy saves its target in `gemwright.json`, so later commands use it without `--target`.
+</Aside>
+
+## Populate the world
+
+Log in with the owner account you chose during `init`:
+
+- **ServUO**: `[createworld` opens the world-generation menu.
+- **RunUO**: `[Decorate` adds world decoration; spawning depends on your spawn scripts.
+- **Sphere-X**: `.add i_world_decorator` and `.add i_world_spawner`, then double-click each item.
+- **Sphere**: world generation depends on your script pack.
+
+## Next
+
+- [Concepts](/docs/start/concepts/): what a shard project contains and how components fit together.
+- Put it online on [Railway](/docs/guides/railway/) or [your own VPS](/docs/guides/vps/).
+- Add [AI residents](/docs/guides/ai-residents/).

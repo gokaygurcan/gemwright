@@ -1,0 +1,80 @@
+---
+import Command from '../components/Command';
+import '../styles/site.css';
+
+const docs = '/docs';
+const github = 'https://github.com/gokaygurcan/gemwright';
+const components = [
+  ['Server', 'ServUO, Sphere, Sphere-X, RunUO or ModernUO, configured from one file and pinned to exact sources.'],
+  ['Client', 'Players log in from a web page. No installs, next to native clients.'],
+  ['AI', 'Headless players who work, trade, fight and talk, so the world is never empty.']
+];
+const targets = [
+  ['Local', 'Docker Compose, one container per component.', `${docs}/guides/local/`],
+  ['VPS', 'Images built locally and shipped over SSH.', `${docs}/guides/vps/`],
+  ['Railway', 'Provisioned and built by Railway.', `${docs}/guides/railway/`]
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gemwright — Forge your own shard</title>
+    <meta name="description" content="Create, deploy and run your own Ultima Online shard, with a browser client and AI residents." />
+    <link rel="icon" href="/forge.png" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/"><img src="/forge.png" alt="" width="32" height="32" />Gemwright</a>
+      <nav>
+        <a href={docs}>Docs</a>
+        <a href={github}>GitHub</a>
+      </nav>
+    </header>
+    <main>
+      <section class="hero">
+        <!-- <img class="forge" src="/forge.png" alt="" width="100" height="100" /> -->
+        <h1>Forge your own shard</h1>
+        <p>Create, deploy and run your own Ultima Online shard, with a browser client and AI residents.</p>
+        <Command client:visible text="npx gemwright init my-shard" />
+        <div class="actions">
+          <a class="primary" href={`${docs}/start/getting-started/`}>Get started</a>
+          <a href="https://play.gemwright.org">Play now</a>
+        </div>
+      </section>
+      <section>
+        <h2>One shard, three parts</h2>
+        <div class="grid">
+          {components.map(([title, text]) => (
+            <article>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section>
+        <h2>Runs where you want</h2>
+        <div class="grid">
+          {targets.map(([title, text, href]) => (
+            <a class="card" href={href}>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+    <footer>
+      <p>
+        MIT licensed.
+        <br />
+        Emulators, script packs, clients and game assets keep their own licenses. You need your own Ultima Online game files.
+      </p>
+      <p>
+        Gemwright is an independent project, not affiliated with, endorsed or sponsored by Electronic Arts Inc. or Broadsword Online Games. Ultima Online is a trademark of Electronic Arts Inc.
+      </p>
+    </footer>
+  </body>
+</html>

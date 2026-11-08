@@ -1,0 +1,89 @@
+---
+title: AI residents
+description: Populate a ServUO shard with headless players that work, trade and fight.
+sidebar:
+  order: 7
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+AI residents are ordinary players run by a separate service. They log in as real clients do, pick a profession, and work towards better skills, more gold and fewer deaths.
+
+<Aside type="caution">AI residents support ServUO only for now.</Aside>
+
+## Deploy
+
+```sh
+gemwright shard deploy --server --ai --files ~/uo
+```
+
+The first time, the server is rebuilt once with the AI patch. After that, `--ai` alone redeploys the residents without touching the server.
+
+Residents learn the land from the spawners `[createworld` loads. To teach them from a world save instead, pass `--world <pull, server or Saves folder>`, or `--world-pull` to pull a fresh one first.
+
+## Configure
+
+```json
+"ai": {
+  "population": 50,
+  "decisions": "local",
+  "speech": "authored",
+  "races": ["human", "elf"],
+  "chaos": 0.3,
+  "wars": false,
+  "cities": ["Britain", "Minoc"],
+  "cohorts": {
+    "New Haven": {
+      "count": 10,
+      "professions": {
+        "miner": 6,
+        "bard": 3
+      }
+    }
+  }
+}
+```
+
+See [`ai`](/docs/reference/configuration/#ai) for every field. Redeploy with `--ai` to apply changes.
+
+## Decisions
+
+`decisions` chooses who decides what residents do:
+
+| Value | Providers, in order |
+| --- | --- |
+| `local` | Built-in rules only. |
+| `jev` | Jev, then local. |
+| `clef` | Clef Flash, then Jev, then local. |
+
+Or list them yourself, ending with local:
+
+```json
+"decisions": [
+  { "provider": "clef", "model": "clef-flash" },
+  { "provider": "jev", "model": "jev-1.14.0" },
+  { "provider": "local" }
+]
+```
+
+Providers fall back to the next on exhaustion or failure. Set their credentials in the environment you deploy from:
+
+| Provider | Variables |
+| --- | --- |
+| Jev | `TYPESAFE_API_KEY` |
+| Clef | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` |
+
+`credentialEnv` on an entry names another variable. Budgets cover the whole population, persist across restarts and reset at midnight UTC. Clef stays within the free daily Workers AI allowance.
+
+## Speech
+
+With `"speech": "claude"`, residents reply in their own voice through Claude; set `ANTHROPIC_API_KEY`. Otherwise they use written lines.
+
+## Watching them
+
+```sh
+gemwright shard logs --ai --follow
+gemwright shard pull --ai
+```
+
+A pull includes a population report. `"debug": true` makes residents emote their current phase above their heads.

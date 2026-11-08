@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@gemwright/website",
+  "description": "Gemwright landing page at gemwright.org",
+  "version": "0.11.0",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "homepage": "https://gemwright.org/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "apps/website"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build"
+  },
+  "dependencies": {
+    "@astrojs/react": "7.1.4",
+    "@astrojs/starlight": "0.42.10",
+    "astro": "7.4.7",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "satteri": "0.10.5"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "wrangler": "4.158.0"
+  }
+}

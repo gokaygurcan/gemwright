@@ -1,0 +1,33 @@
+---
+title: Pull and restore
+description: Download the shard's state and put it back.
+sidebar:
+  order: 5
+---
+
+## Pull
+
+`gemwright shard pull` saves a copy of the deployed shard: world saves, accounts and logs from the server, a consistent snapshot of the AI residents database with a population report, and recent service logs. Everything lands in `.gemwright/pulls/<time>/` with a `manifest.json` listing what came down.
+
+```sh
+gemwright shard pull
+gemwright shard pull --server --backups --cleanup
+```
+
+`--backups` adds the server's own Backups folder, `--output` picks another folder, and `--cleanup` keeps only the newest pull once this one completes. To pull on a schedule, run `gemwright shard pull --cleanup` from cron.
+
+Keep copies outside your hosting service as well.
+
+## Restore
+
+`gemwright shard restore` puts a pull back: the world saves (ServUO) and the AI residents database.
+
+```sh
+# the newest pull, everything in it
+gemwright shard restore
+
+# a specific pull, or some components
+gemwright shard restore --from .gemwright/pulls/<time> --server
+```
+
+Files are uploaded first; each service then restarts and swaps them in on boot. The replaced files stay beside them (`Saves.before-restore`, `residents.sqlite.before-restore`). Restoring disconnects everyone and returns the shard to that save, so the command asks first; `--yes` skips the question.

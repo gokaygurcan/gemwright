@@ -1,0 +1,16 @@
+---
+title: "@gemwright/server"
+description: Emulator setup and build staging. Private.
+sidebar:
+  order: 5
+---
+
+`@gemwright/server` prepares the emulator a shard runs: ServUO, Sphere, Sphere-X, RunUO or ModernUO. It writes emulator configuration from [`gemwright.json`](/docs/reference/configuration/), pins sources to exact revisions and stages the build context, with the ServUO AI patch when residents are enabled.
+
+It is private and bundled into [`@gemwright/cli`](/docs/packages/cli/). From a repository clone:
+
+```sh
+node packages/server/dist/staging.js /path/to/shard [--ai]
+```
+
+The server exports no OpenTelemetry logs. ServUO writes plain text to its console and `Logs/`; read them with `gemwright shard logs --server`.

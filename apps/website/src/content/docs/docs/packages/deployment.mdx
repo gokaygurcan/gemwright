@@ -1,0 +1,12 @@
+---
+title: "@gemwright/deployment"
+description: Targets, Railway provisioning, pull and restore. Private.
+sidebar:
+  order: 7
+---
+
+`@gemwright/deployment` deploys components to their targets: provisioning and deploying on Railway through the Railway CLI, resolving the saved target, staging client and AI files, and pulling and restoring shard state. It is a private library bundled into [`@gemwright/cli`](/docs/packages/cli/) and stays Node-compatible.
+
+```ts
+import { pull } from "@gemwright/deployment/pull";
+```

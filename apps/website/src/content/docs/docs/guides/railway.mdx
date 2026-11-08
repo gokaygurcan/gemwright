@@ -1,0 +1,47 @@
+---
+title: Deploy to Railway
+description: Host the shard on Railway, built by Railway.
+sidebar:
+  order: 3
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+
+1. Create a [Railway account](https://railway.com?referralCode=gokaygurcan). The referral link supports Gemwright.
+
+2. Install and sign in to the Railway CLI. Gemwright uses it and never installs or upgrades it for you.
+
+   ```sh
+   npm install --global @railway/cli
+   railway login
+   ```
+
+3. Deploy from the shard directory.
+
+   ```sh
+   gemwright shard deploy --target railway --files ~/uo
+   ```
+
+   The first deploy creates a Railway project, records it in `.gemwright/railway.json`, and adds a TCP proxy for port 2593 that native clients connect to.
+
+</Steps>
+
+Add components the same way:
+
+```sh
+# the server and the browser client
+gemwright shard deploy --server --client --files ~/uo
+
+# AI residents; the server is rebuilt once with the AI patch
+gemwright shard deploy --server --ai --files ~/uo
+```
+
+With [`sphere.mysql`](/docs/reference/configuration/#sphere) on, deploy adds a MySQL service to the same project and passes its connection details to the server.
+
+Railway services are started and stopped from the Railway dashboard; `status`, `logs`, [`pull`](/docs/guides/backups/) and [`restore`](/docs/guides/backups/) work as on any target.
+
+## Login hostname
+
+To give players a name such as `login.yourshard.com`, add a CNAME record pointing at the TCP proxy hostname.

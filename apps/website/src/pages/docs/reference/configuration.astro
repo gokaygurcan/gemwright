@@ -1,0 +1,93 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+import schema from '../../../../../../packages/common/src/config/gemwright.schema.json';
+
+type Node = {
+  $ref?: string;
+  type?: string;
+  enum?: unknown[];
+  const?: unknown;
+  oneOf?: unknown[];
+  description?: string;
+  required?: string[];
+  properties?: Record<string, Node>;
+  items?: Node | Node[];
+  additionalProperties?: boolean | Node;
+};
+
+const definitions = schema.definitions as Record<string, Node>;
+const resolve = (node: Node) => (node.$ref ? (definitions[node.$ref.split('/').at(-1) ?? ''] ?? node) : node);
+const kind = (node: Node): { values: string[]; list: boolean } => {
+  if (node.type === 'array' && node.items && !Array.isArray(node.items))
+    return { values: kind(resolve(node.items)).values, list: true };
+  if (node.const !== undefined) return { values: [JSON.stringify(node.const)], list: false };
+  if (node.enum) return { values: node.enum.map((value) => JSON.stringify(value)), list: false };
+  return { values: [node.oneOf ? 'see description' : (node.type ?? 'object')], list: false };
+};
+const rows = (
+  node: Node,
+  prefix = ''
+): { key: string; type: ReturnType<typeof kind>; required: boolean; text: string }[] =>
+  Object.entries(node.properties ?? {}).flatMap(([name, child]) => {
+    const value = resolve(child);
+    const key = `${prefix}${name}`;
+    return [
+      {
+        key,
+        type: kind(value),
+        required: node.required?.includes(name) ?? false,
+        text: child.description ?? value.description ?? ''
+      },
+      ...rows(value, `${key}.`)
+    ];
+  });
+const root = schema as Node;
+const top = Object.keys(root.properties ?? {});
+const groups = [
+  { title: 'Shard', keys: top.filter((key) => !resolve(root.properties?.[key] ?? {}).properties) },
+  ...top
+    .filter((key) => resolve(root.properties?.[key] ?? {}).properties)
+    .map((key) => ({ title: key, keys: [key] }))
+];
+---
+
+<StarlightPage
+  frontmatter={{ title: 'gemwright.json', description: 'Every field of the shard configuration file.' }}
+  headings={groups.map(({ title }) => ({ depth: 2, slug: title.toLowerCase(), text: title }))}
+>
+  <p>
+    <code>gemwright init</code> writes <code>gemwright.json</code>; <code>gemwright shard</code> commands read it from
+    the current directory. It is validated before any change, and an invalid file fails with the field to fix. Add
+    {' '}<code>"$schema"</code> to get completion and these descriptions in your editor.
+  </p>
+  {
+    groups.map(({ title, keys }) => (
+      <>
+        <h2 id={title.toLowerCase()}>{title}</h2>
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            {rows({ ...root, properties: Object.fromEntries(keys.map((key) => [key, root.properties?.[key] ?? {}])) }).map(
+              (row) => (
+                <tr>
+                  <td><code>{row.key}</code>{row.required && ' *'}</td>
+                  <td class="types">
+                    {row.type.list && 'list of '}
+                    {row.type.values.map((value) => (
+                      <>
+                        <code>{value}</code>{' '}
+                      </>
+                    ))}
+                  </td>
+                  <td>{row.text}</td>
+                </tr>
+              )
+            )}
+          </tbody>
+        </table>
+      </>
+    ))
+  }
+  <p>* required when its parent is present.</p>
+</StarlightPage>

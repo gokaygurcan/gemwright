@@ -1,0 +1,95 @@
+---
+import { Code } from '@astrojs/starlight/components';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+import { type CommandSpec, initSpec, options, shardSpecs } from '../../../../../../../packages/cli/src/commands';
+
+export function getStaticPaths() {
+  return [
+    { params: { command: undefined } },
+    { params: { command: 'init' } },
+    { params: { command: 'shard' } },
+    ...Object.keys(shardSpecs).map((name) => ({ params: { command: `shard/${name}` } }))
+  ];
+}
+
+const { command } = Astro.params;
+const name = command?.split('/').at(-1);
+const spec: CommandSpec | undefined =
+  command === 'init' ? initSpec : command?.startsWith('shard/') && name ? shardSpecs[name] : undefined;
+const title = command ? `gemwright ${command.replace('/', ' ')}` : 'CLI';
+const flag = (option: string) => {
+  const { type, short } = options[option] ?? {};
+  return `${short ? `-${short}, ` : ''}--${option}${type === 'string' ? ' <value>' : ''}`;
+};
+const headings = spec?.sections.map(([section]) => ({
+  depth: 2,
+  slug: section.toLowerCase().replaceAll(' ', '-'),
+  text: section
+}));
+---
+
+<StarlightPage frontmatter={{ title, description: spec?.summary }} headings={headings}>
+  {
+    !command && (
+      <>
+        <p>
+          Install nothing up front: run <code>npx gemwright</code>. Shard commands act on the <code>gemwright.json</code>{' '}
+          in the current directory.
+        </p>
+        <Code code={'gemwright init [directory] [options]\ngemwright shard <command> [options]'} lang="sh" />
+        <ul>
+          <li><a href="/docs/reference/cli/init/">gemwright init</a> — {initSpec.summary}</li>
+          <li><a href="/docs/reference/cli/shard/">gemwright shard</a> — Manage a shard and its components.</li>
+        </ul>
+        <p>Every command accepts <code>-h, --help</code>. <code>gemwright -V</code> prints the version.</p>
+      </>
+    )
+  }
+  {
+    command === 'shard' && (
+      <>
+        <Code code="gemwright shard <command> [options]" lang="sh" />
+        <table>
+          <thead><tr><th>Command</th><th>Summary</th></tr></thead>
+          <tbody>
+            {Object.entries(shardSpecs).map(([key, value]) => (
+              <tr>
+                <td><a href={`/docs/reference/cli/shard/${key}/`}><code>{key}</code></a></td>
+                <td>{value.summary}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p>
+          Component flags (<code>--server</code>, <code>--client</code>, <code>--ai</code>) combine. Without them, a
+          command selects the components already deployed to the target.
+        </p>
+      </>
+    )
+  }
+  {
+    spec && (
+      <>
+        <p>{spec.summary}</p>
+        <Code code={spec.usage} lang="sh" />
+        {spec.sections.map(([section, names]) => (
+          <>
+            <h2 id={section.toLowerCase().replaceAll(' ', '-')}>{section}</h2>
+            <table>
+              <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+              <tbody>
+                {names.map((option) => (
+                  <tr>
+                    <td><code>{flag(option)}</code></td>
+                    <td>{options[option]?.text}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ))}
+      </>
+    )
+  }
+</StarlightPage>

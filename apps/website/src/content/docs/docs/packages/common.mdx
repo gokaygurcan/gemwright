@@ -1,0 +1,12 @@
+---
+title: "@gemwright/common"
+description: Configuration schema, game data and asset codecs. Private.
+sidebar:
+  order: 9
+---
+
+`@gemwright/common` holds what other packages share: the [`gemwright.json`](/docs/reference/configuration/) schema and validation, component compatibility rules, game data (bodies, items, skills, maps, regions, expansions) and readers for client assets. It is a private, runtime-neutral library.
+
+```ts
+import { emulators } from "@gemwright/common/config/shard";
+```

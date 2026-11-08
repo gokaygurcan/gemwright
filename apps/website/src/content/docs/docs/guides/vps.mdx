@@ -1,0 +1,44 @@
+---
+title: Deploy to a VPS
+description: Run the shard with Docker Compose on your own Linux server.
+sidebar:
+  order: 2
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+On a VPS the shard runs in Docker Compose. Images are built on your machine and sent over SSH, so the server never compiles.
+
+<Steps>
+
+1. Prepare a new Ubuntu server once.
+
+   ```sh
+   gemwright shard setup --ssh user@your-server --client
+   ```
+
+   Setup shows what it will change, then installs Docker, gives a non-root user Docker access and opens the firewall ports (SSH, 2593, and 80/443 with `--client`) over one SSH session. Sudo asks for its password on the server. The result is saved to [`vps`](/docs/reference/configuration/#vps) in `gemwright.json`.
+
+2. Deploy.
+
+   ```sh
+   gemwright shard deploy --target vps --files ~/uo
+   ```
+
+   Without flags, the questionnaire asks for SSH access, game files and an optional browser-client domain.
+
+</Steps>
+
+## Browser client over HTTPS
+
+Point an A record at the server, then deploy the client with its hostname:
+
+```sh
+gemwright shard deploy --client --domain play.yourshard.com
+```
+
+## Review before installing
+
+`--prepare` writes the VPS bundle without installing or starting anything. `--install-deps` approves installing missing packages on the server.
+
+For native clients, point an A record such as `login.yourshard.com` at the server's public IPv4 address and set it as `--public-host`.
