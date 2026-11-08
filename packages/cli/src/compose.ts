@@ -103,6 +103,8 @@ export function composeProject(config: ShardConfig, state: LocalState, vps?: { d
       image: 'caddy:2.11-alpine',
       restart: 'unless-stopped',
       depends_on: { client: { condition: 'service_healthy' } },
+      // The domain in Caddy's own settings: a new one makes Compose recreate it with the new Caddyfile.
+      environment: { GEMWRIGHT_DOMAIN: vps.domain ?? '' },
       ports: ['80:80/tcp', '443:443/tcp', '443:443/udp'],
       volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy-data:/data', 'caddy-config:/config'],
       logging

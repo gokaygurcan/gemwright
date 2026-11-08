@@ -134,6 +134,8 @@ test('web deployment publishes only manifested assets and keeps relay ports priv
   expect(compose.services.client.environment.SERVER_NAME).toBe('Test $$shard');
   expect(compose.services.client.environment.PUBLIC_ORIGIN).toBe('https://play.example.com');
   expect(compose.services.caddy.ports).toContain('443:443/tcp');
+  // A changed domain changes Caddy's own configuration, so Compose recreates it with the new Caddyfile.
+  expect(compose.services.caddy.environment.GEMWRIGHT_DOMAIN).toBe('play.example.com');
   expect(await Bun.file(join(root, 'gamefiles/client.exe')).exists()).toBe(false);
   expect(await readFile(join(root, 'Caddyfile'), 'utf8')).toContain('reverse_proxy client:3000');
   await writeVpsBundle(directory, config, { publicHost: options.publicHost }, staged);
