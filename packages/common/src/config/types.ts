@@ -56,6 +56,14 @@ export interface ShardConfig {
   $schema?: string;
   packages?: Partial<Record<'server' | 'client' | 'ai', string>>;
   railway?: { project: string; environment: string; server?: string };
+  target?: 'local' | 'railway' | 'vps';
+  vps?: {
+    ssh?: string;
+    port?: number;
+    path?: string;
+    publicHost: string;
+    domain?: string;
+  };
   connection?: { host: string; port: number; aiReady?: boolean };
   name: string;
   adminEmail?: string;
@@ -74,7 +82,7 @@ export interface ShardConfig {
   ai?: AiSettings;
 }
 
-// AI residents (gemwright deploy --ai): how many, and which provider decides.
+// AI residents (gemwright shard deploy --ai): how many, and which provider decides.
 export interface AiSettings {
   population?: number;
   decisions?: DecisionSettings;

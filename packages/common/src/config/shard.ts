@@ -92,6 +92,8 @@ export function createConfig(
     $schema?: string;
     packages?: ShardConfig['packages'];
     railway?: ShardConfig['railway'];
+    target?: ShardConfig['target'];
+    vps?: ShardConfig['vps'];
     connection?: ShardConfig['connection'];
     client?: ShardConfig['client'];
     name?: string;
@@ -216,6 +218,8 @@ export function createConfig(
     ...(input.$schema ? { $schema: input.$schema } : {}),
     ...(input.packages ? { packages: { ...input.packages } } : {}),
     ...(input.railway ? { railway: { ...input.railway } } : {}),
+    ...(input.target ? { target: input.target } : {}),
+    ...(input.vps ? { vps: { ...input.vps } } : {}),
     ...(input.connection ? { connection: { ...input.connection } } : {}),
     ...(input.client ? { client: { ...input.client } } : {}),
     ...(input.runuo ? { runuo: { ...input.runuo } } : {}),
