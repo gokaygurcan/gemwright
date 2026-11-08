@@ -52,3 +52,25 @@ export function attachedCommand(args: string[], cwd = process.cwd()): Promise<vo
     });
   });
 }
+
+// macOS tar stores extended attributes as AppleDouble ._ entries unless told not to; Linux tar then
+// extracts them as files that builds read as source. Other tars ignore the variable; Finder and
+// AppleDouble files already on disk are left out too.
+export function createArchive(archive: string, root: string, names: string[], cwd: string) {
+  return command(
+    [
+      'env',
+      'COPYFILE_DISABLE=1',
+      'tar',
+      '--no-xattrs',
+      '--exclude=.DS_Store',
+      '--exclude=._*',
+      '-czf',
+      archive,
+      '-C',
+      root,
+      ...names
+    ],
+    cwd
+  );
+}

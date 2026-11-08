@@ -92,7 +92,7 @@ export async function checkAi(directory: string, config: ShardConfig, run: Railw
   const trusted = (variables.GEMWRIGHT_TRUSTED_HOSTS ?? '').split(/[\s,;]+/);
   if (!(target.aiPatched || variables.GEMWRIGHT_AI_PATCHED === '1') || !trusted.includes(`${name}.railway.internal`))
     throw new Error(
-      `Server AI prerequisites are missing. Separately run gemwright deploy --server --ai, or install the ServUO AI patch and set GEMWRIGHT_AI_PATCHED=1 and GEMWRIGHT_TRUSTED_HOSTS=${name}.railway.internal on the server. AI deployment did not change the server.`
+      `Server AI prerequisites are missing. Separately run gemwright shard deploy --server --ai, or install the ServUO AI patch and set GEMWRIGHT_AI_PATCHED=1 and GEMWRIGHT_TRUSTED_HOSTS=${name}.railway.internal on the server. AI deployment did not change the server.`
     );
   return target;
 }

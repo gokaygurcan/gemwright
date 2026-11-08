@@ -18,6 +18,7 @@ export interface ServerAdapter {
   validate: (directory: string, config: ShardConfig) => Promise<void>;
   stage: (directory: string, config: ShardConfig, options?: { ai?: boolean }) => Promise<string>;
   packageFiles: (directory: string, files: string) => Promise<{ archive: string; digest: string; bytes: number }>;
+  gameFiles: { pattern: RegExp; check: (directory: string, names: string[]) => void | Promise<void> };
 }
 interface Dependencies {
   loadShard: (directory: string) => Promise<ShardConfig>;
@@ -36,7 +37,7 @@ export interface RailwayState {
   clientDigest?: string;
   pendingClientDigest?: string;
   mysql?: { service?: string; name: string; creating?: boolean };
-  // The server build includes the AI patch (gemwright deploy --server --ai).
+  // The server build includes the AI patch (gemwright shard deploy --server --ai).
   aiPatched?: boolean;
 }
 export type RailwayCommand = <T>(args: string[]) => Promise<T>;
@@ -263,7 +264,7 @@ export async function deploy(
     throw new Error('Deploying the web client requires --files <path> or clientFiles in gemwright.json.');
   const webFiles = webClientPath ? await createManifest(webClientPath) : undefined;
   if (!(await isAvailable('railway')))
-    throw new Error('Railway CLI is missing. Install it and log in before running gemwright deploy.');
+    throw new Error('Railway CLI is missing. Install it and log in before running gemwright shard deploy.');
   const version = await command(['railway', '--version'], directory);
   if (!/^railway 5\.71\.0\s*$/.test(version))
     progress(
@@ -420,7 +421,7 @@ export async function deploy(
   }
   const proxies = await run<{ proxies: { endpoint: string }[] }>(['tcp-proxy', 'list', ...flags, '--json']);
   if (!client && !state.clientDigest) {
-    progress('Waiting for client files. Rerun gemwright deploy --files <directory> to import them.');
+    progress('Waiting for client files. Rerun gemwright shard deploy --files <directory> to import them.');
     return;
   }
   await waitForReadiness(

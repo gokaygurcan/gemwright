@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 
 import { type GameFile, parseManifest } from '@gemwright/client/files';
 
-import { command } from './process';
+import { createArchive } from './process';
 
 export async function createManifest(root: string): Promise<GameFile[]> {
   const files: GameFile[] = [];
@@ -33,18 +33,21 @@ export async function createManifest(root: string): Promise<GameFile[]> {
   return files;
 }
 
+const gameFilesArchive = (directory: string, digest: string) =>
+  join(directory, '.gemwright', `game-files-${digest}.tar.gz`);
+
 export async function packageClientFiles(
   directory: string,
   sourcePath: string,
   pattern: RegExp,
-  validate: (names: string[]) => void
+  validate: (names: string[]) => void | Promise<void>
 ): Promise<{ archive: string; digest: string; bytes: number }> {
   const source = resolve(sourcePath);
   const names = (await readdir(source, { withFileTypes: true }))
     .filter((entry) => entry.isFile() && pattern.test(entry.name))
     .map((entry) => entry.name)
     .sort();
-  validate(names.map((name) => name.toLowerCase()));
+  await validate(names.map((name) => name.toLowerCase()));
   const hash = createHash('sha256');
   let bytes = 0;
   for (const name of names) {
@@ -55,7 +58,7 @@ export async function packageClientFiles(
     }
   }
   const digest = hash.digest('hex');
-  const archive = join(directory, '.gemwright', `client-${digest}.tar.gz`);
-  if (!existsSync(archive)) await command(['tar', '--no-xattrs', '-czf', archive, '-C', source, ...names], directory);
+  const archive = gameFilesArchive(directory, digest);
+  if (!existsSync(archive)) await createArchive(archive, source, names, directory);
   return { archive, digest, bytes };
 }

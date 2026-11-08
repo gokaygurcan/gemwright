@@ -8,7 +8,7 @@ import { railway } from './providers/railway';
 import { required } from './required';
 import { readJson } from './state';
 
-// gemwright restore: puts a pull (gemwright pull) back on a Railway deployment. The world saves go
+// gemwright shard restore: puts a pull (gemwright shard pull) back on a Railway deployment. The world saves go
 // to the shard's volume and the resident database to the AI's, each into restore/ while the
 // services keep running; then each service restarts and its start script swaps the restored files
 // in on boot, after the previous process has stopped and written its last save. The replaced files
@@ -27,7 +27,7 @@ export async function newestPull(directory: string) {
   const found = stamps
     .map((stamp) => join(pulls, stamp))
     .find((path) => existsSync(join(path, 'server/Saves/Mobiles')) || existsSync(join(path, 'ai/residents.sqlite')));
-  if (!found) throw new Error('No pull to restore here: run gemwright pull first, or pass --from <pull folder>.');
+  if (!found) throw new Error('No pull to restore here: run gemwright shard pull first, or pass --from <pull folder>.');
   return found;
 }
 
@@ -97,6 +97,8 @@ export async function restore(
   if (want.ai && ai?.volume) {
     progress('Uploading the resident database...');
     await upload(ai.volume, database, '/restore/residents.sqlite');
+    const retired = join(source, 'ai/retired.json');
+    if (existsSync(retired)) await upload(ai.volume, retired, '/restore/retired.json');
   }
   if (want.server) {
     progress('Restarting the shard...');

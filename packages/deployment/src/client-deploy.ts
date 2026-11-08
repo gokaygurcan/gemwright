@@ -189,7 +189,7 @@ export async function deployClient(
                 const entry = stored.get(file.path.slice(parent === '.' ? 0 : parent.length + 1));
                 if (entry?.type !== 'file' || entry.size !== file.bytes)
                   throw new Error(
-                    `Incomplete game-file upload: ${file.path}. Rerun gemwright deploy --client to retry.`
+                    `Incomplete game-file upload: ${file.path}. Rerun gemwright shard deploy --client to retry.`
                   );
               }
             }
@@ -224,7 +224,7 @@ export async function deployClient(
       if (attempt % 6 === 0) progress(`Waiting for web client: ${status ?? 'pending'}...`);
       await sleep(5000);
     }
-    throw new Error('Client deployment is still pending; rerun gemwright deploy --client to resume.');
+    throw new Error('Client deployment is still pending; rerun gemwright shard deploy --client to resume.');
   } finally {
     await rm(context, { recursive: true, force: true });
   }

@@ -3,11 +3,13 @@ import { createWriteStream } from 'node:fs';
 import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+import { command } from './process';
 import { railway } from './providers/railway';
 import { required } from './required';
 import { readJson } from './state';
+import type { VpsRunner } from './target';
 
-// gemwright pull: a shard's state saved locally on demand. The server's world saves and accounts
+// gemwright shard pull: a shard's state saved locally on demand. The server's world saves and accounts
 // (Saves) and its logs (Logs), ServUO's own Backups when asked; the AI residents database as a
 // consistent snapshot (VACUUM INTO inside the container, so a live write never tears it) with the
 // population report; and recent service logs. Everything lands in .gemwright/pulls/<time>/ with
@@ -22,6 +24,7 @@ export interface PullParts {
   output?: string;
   // After a complete pull into .gemwright/pulls, delete every older pull there.
   cleanup?: boolean;
+  vps?: VpsRunner;
 }
 interface Entry {
   part: string;
@@ -53,22 +56,54 @@ export async function pull(
     }
   };
 
-  const vps = await readJson<{ target?: string; ssh?: string; remotePath?: string }>(
-    join(directory, '.gemwright/deployment.json')
-  );
-  if (vps?.target === 'vps') {
-    const { ssh, remotePath } = vps;
-    if (!ssh || !remotePath) throw new Error('This VPS deployment has no SSH destination to pull from.');
+  const { vps } = parts;
+  if (vps) {
     if (want.server) {
       const folders = ['server/Saves', 'server/Logs', ...(parts.backups ? ['server/Backups'] : [])];
-      await record('server', 'server.tar.gz', () =>
-        toFile(
-          ['ssh', ssh, `tar czf - -C ${quote(`${remotePath}/data`)} ${folders.map(quote).join(' ')}`],
-          join(out, 'server.tar.gz')
-        )
-      );
+      await record('server', 'server', async () => {
+        const archive = join(out, 'server.tar.gz');
+        await toFile(vps.shell(`tar czf - -C ${quote(`${vps.root}/data`)} ${folders.map(quote).join(' ')}`), archive);
+        await command(['tar', '-xzf', archive, '-C', out, '--exclude=._*'], directory);
+        await rm(archive);
+      });
     }
-    if (want.ai || want.logs) progress('AI residents and service logs are pulled from Railway deployments only.');
+    const { compose } = vps;
+    if (want.ai || want.logs) {
+      const deployed = JSON.parse(await command(vps.shell(`cat ${quote(`${vps.root}/state.json`)}`), directory));
+      if (want.ai && deployed.ai) {
+        // A consistent copy made inside the running container, so a live write never tears it.
+        const snapshot = `/tmp/pull-${stamp}.sqlite`;
+        const vacuum = `new (require('bun:sqlite').Database)('/app/data/residents.sqlite').exec("VACUUM INTO '${snapshot}'")`;
+        await mkdir(join(out, 'ai'), { recursive: true });
+        await record('ai', 'ai/residents.sqlite', () =>
+          toFile(
+            vps.shell(
+              `${compose(['exec', '-T', 'ai', 'bun', '-e', vacuum])} && ${compose(['exec', '-T', 'ai', 'cat', snapshot])}; ${compose(['exec', '-T', 'ai', 'rm', '-f', snapshot])}`
+            ),
+            join(out, 'ai/residents.sqlite')
+          )
+        );
+        await record('ai', 'ai/report.md', async () =>
+          writeFile(
+            join(out, 'ai/report.md'),
+            `${await command(vps.shell(compose(['exec', '-T', 'ai', 'bun', 'dist/report.js', '--db', '/app/data/residents.sqlite'])), directory)}\n`
+          )
+        );
+        await record('ai', 'ai/retired.json', async () =>
+          keepRetired(out, await command(vps.shell(compose(['exec', '-T', 'ai', 'sh', '-c', RETIRED])), directory))
+        );
+      } else if (want.ai && !all) progress('No AI residents are deployed here.');
+      if (want.logs) {
+        await mkdir(join(out, 'logs'), { recursive: true });
+        for (const part of ['server', ...(deployed.ai ? ['ai'] : [])])
+          await record('logs', `logs/${part}.log`, async () =>
+            writeFile(
+              join(out, `logs/${part}.log`),
+              `${await command(vps.shell(compose(['logs', '--no-color', '--tail', '5000', part])), directory)}\n`
+            )
+          );
+      }
+    }
   } else {
     const state = await readJson<{ project?: string; environment?: string; service?: string; volume?: string }>(
       join(directory, '.gemwright/railway.json')
@@ -145,6 +180,9 @@ export async function pull(
         );
         await writeFile(join(out, 'ai/report.md'), `${report}\n`);
       });
+      await record('ai', 'ai/retired.json', async () =>
+        keepRetired(out, await railway(['ssh', ...scope, '--service', aiService, RETIRED], directory))
+      );
     } else if (want.ai && !all) progress('No AI residents are deployed here.');
     if (want.logs) {
       await mkdir(join(out, 'logs'), { recursive: true });
@@ -194,6 +232,12 @@ function toFile(args: string[], path: string): Promise<void> {
 async function size(path: string): Promise<number | undefined> {
   const info = await stat(path).catch(() => undefined);
   return info?.isFile() ? info.size : undefined;
+}
+
+// The residents retired by hand, when there are any; restore puts them back with the database.
+export const RETIRED = 'if [ -f /app/data/retired.json ]; then cat /app/data/retired.json; fi';
+export async function keepRetired(out: string, text: string) {
+  if (text.trim()) await writeFile(join(out, 'ai/retired.json'), `${text.trim()}\n`);
 }
 
 const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;

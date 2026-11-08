@@ -161,7 +161,7 @@ export async function deployAi(dependencies: Dependencies, directory: string, ga
       if (attempt % 6 === 0) progress(`Waiting for the AI service: ${status ?? 'pending'}...`);
       await sleep(5000);
     }
-    throw new Error('AI deployment is still pending; rerun gemwright deploy --ai to resume.');
+    throw new Error('AI deployment is still pending; rerun gemwright shard deploy --ai to resume.');
   } finally {
     await rm(context, { recursive: true, force: true });
   }

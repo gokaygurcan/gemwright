@@ -21,12 +21,14 @@
     "./process": "./src/process.ts",
     "./providers/railway": "./src/providers/railway.ts",
     "./state": "./src/state.ts",
+    "./target": "./src/target.ts",
     "./deploy": "./src/deploy.ts",
     "./restore": "./src/restore.ts",
     "./ai-deploy": "./src/ai-deploy.ts",
     "./client-deploy": "./src/client-deploy.ts",
     "./client-files": "./src/client-files.ts",
-    "./service": "./src/service.ts"
+    "./service": "./src/service.ts",
+    "./world-files": "./src/world-files.ts"
   },
   "files": [
     "src/"

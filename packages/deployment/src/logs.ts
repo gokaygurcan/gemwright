@@ -4,7 +4,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { railway } from './providers/railway';
 import { readJson } from './state';
 
-// gemwright logs: the recent log lines of each deployed service, merged in time order and labelled
+// gemwright shard logs: the recent log lines of each deployed service, merged in time order and labelled
 // with the service they came from; --watch keeps following them. Lines are read through the
 // installed Railway CLI each time and never stored. A piped `railway logs` does not stream, so
 // following asks each service for what arrived since its last line.
@@ -29,8 +29,6 @@ export async function logs(
   warn: (line: string) => void = console.error,
   following = () => true
 ): Promise<void> {
-  const deployment = await readJson<{ target?: string }>(join(directory, '.gemwright/deployment.json'));
-  if (deployment?.target === 'vps') throw new Error('gemwright logs reads Railway deployments only.');
   type State = { project?: string; environment?: string; service?: string };
   const recorded: Record<Part, State | undefined> = {
     server: await readJson<State>(join(directory, '.gemwright/railway.json')),
