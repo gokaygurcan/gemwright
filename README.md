@@ -1,5 +1,7 @@
 # <img src="https://cdn.jsdelivr.net/npm/gemwright@latest/.github/small-forge.png" align="left" alt="Forge your own shard" width="50" height="50" /> Gemwright — Forge your own shard
 
+[gemwright.org](https://gemwright.org) · [Documentation](https://gemwright.org/docs)
+
 ## Motivation
 
 Gemwright makes it easier to start an Ultima Online shard and share it with friends. It brings emulator setup and deployment into a small CLI, leaving more time to shape your world.

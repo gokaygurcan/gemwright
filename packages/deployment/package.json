@@ -6,6 +6,7 @@
   "type": "module",
   "license": "MIT",
   "private": true,
+  "homepage": "https://gemwright.org/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gokaygurcan/gemwright.git",
