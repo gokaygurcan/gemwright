@@ -7,7 +7,8 @@ import { pull } from '@gemwright/deployment/pull';
 import { requireTarget, vpsRunner } from '@gemwright/deployment/target';
 import { loadShard } from '@gemwright/server/config';
 
-import { type CommandSpec, commandHelp, parseCommand, port, text } from './arguments';
+import { commandHelp, parseCommand, port, text } from './arguments';
+import { shardSpecs } from './commands';
 import { localLogs, localPower, localPull, localRestore, localStatus } from './local-ops';
 import { updatePackages } from './package-update';
 import { confirmRestore, restore } from './restore';
@@ -16,71 +17,13 @@ import { printStatus, railwayStatus, vpsStatus } from './status';
 import { vpsCompose, vpsRestore } from './vps-ops';
 import { setupServer } from './vps-setup';
 
-const components: [string, string[]] = ['Component selection', ['server', 'client', 'ai']];
-const targetOption: [string, string[]] = ['Target', ['target']];
-const specs: Record<string, CommandSpec> = {
-  setup: {
-    usage: 'gemwright shard setup [options]',
-    summary: 'Prepare a VPS for deployments.',
-    sections: [['VPS', ['ssh', 'ssh-port', 'public-host', 'client', 'yes']]]
-  },
-  deploy: {
-    usage: 'gemwright shard deploy [--server] [--client] [--ai] [--target <target>] [options]',
-    summary:
-      'Deploy selected components. Without component flags, the components already deployed to the target, or the server.',
-    sections: [
-      components,
-      targetOption,
-      ['General', ['files', 'yes']],
-      ['AI deployment', ['world', 'world-pull']],
-      ['Local deployment', ['server-port', 'client-port', 'public-host']],
-      ['VPS deployment', ['public-host', 'domain', 'prepare', 'ssh', 'ssh-port', 'remote-path', 'install-deps']]
-    ]
-  },
-  start: {
-    usage: 'gemwright shard start [options]',
-    summary: 'Start components.',
-    sections: [components, targetOption]
-  },
-  stop: { usage: 'gemwright shard stop [options]', summary: 'Stop components.', sections: [components, targetOption] },
-  status: {
-    usage: 'gemwright shard status [options]',
-    summary: 'Show deployment status.',
-    sections: [components, targetOption]
-  },
-  logs: {
-    usage: 'gemwright shard logs [options]',
-    summary: 'View service logs.',
-    sections: [components, targetOption, ['Logs', ['follow']]]
-  },
-  pull: {
-    usage: 'gemwright shard pull [options]',
-    summary: 'Download saves, data and backups.',
-    sections: [
-      ['Component selection', ['server', 'ai']],
-      targetOption,
-      ['Pull', ['logs', 'backups', 'output', 'cleanup']]
-    ]
-  },
-  restore: {
-    usage: 'gemwright shard restore [options]',
-    summary: 'Restore from a previous pull.',
-    sections: [['Component selection', ['server', 'ai']], targetOption, ['Restore', ['from', 'yes']]]
-  },
-  update: {
-    usage: 'gemwright shard update [--server] [--client] [--ai] [--package-version <exact>]',
-    summary: 'Select component package versions.',
-    sections: [components, ['Update', ['package-version']]]
-  }
-};
-
 export const shardHelp = `Manage a shard and its components.
 
 Usage:
   gemwright shard <command> [options]
 
 Commands:
-${Object.entries(specs)
+${Object.entries(shardSpecs)
   .map(([name, spec]) => `  ${name.padEnd(12)}${spec.summary.split('. ')[0]?.replace(/\.$/, '')}`)
   .join('\n')}
 
@@ -109,7 +52,7 @@ export async function shard(args: string[]): Promise<void> {
     console.log(shardHelp);
     return;
   }
-  const spec = specs[command];
+  const spec = shardSpecs[command];
   if (!spec) throw new Error(`Unknown command: gemwright shard ${command}. Run gemwright shard --help.`);
   const { values } = parseCommand(`shard ${command}`, spec, rest);
   if (values.help) {

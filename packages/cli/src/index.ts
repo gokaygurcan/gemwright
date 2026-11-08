@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 import chalk from 'chalk';
 
-import { type CommandSpec, commandHelp, parseCommand, text } from './arguments';
+import { commandHelp, parseCommand, text } from './arguments';
 import { assetPath } from './assets';
+import { initSpec } from './commands';
 import { initialize } from './init';
 import { Cancelled } from './prompts';
 import { shard } from './shard';
@@ -33,13 +34,6 @@ Examples:
 
 Run 'gemwright shard --help' for shard commands.`;
 
-const init: CommandSpec = {
-  usage: 'gemwright init [directory] [options]',
-  summary: 'Initialize a shard project.',
-  sections: [['Init', ['name', 'timezone', 'expansion', 'client-version', 'emulator', 'git', 'mysql', 'yes']]],
-  positional: true
-};
-
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const [command, ...rest] = args;
   if (command === '--version' || command === '-V') {
@@ -56,9 +50,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     throw new Error(`gemwright ${command} is now gemwright shard ${command}.`);
   if (command === 'shard') return shard(rest);
   if (command !== 'init') throw new Error(`Unknown command: ${command}. Run gemwright --help.`);
-  const { values, positionals } = parseCommand('init', init, rest);
+  const { values, positionals } = parseCommand('init', initSpec, rest);
   if (values.help) {
-    console.log(commandHelp(init));
+    console.log(commandHelp(initSpec));
     return;
   }
   if (positionals.length > 1) throw new Error('Expected at most one directory. Run gemwright init --help.');
