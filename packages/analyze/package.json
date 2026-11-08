@@ -20,13 +20,13 @@
     "build": "rm -rf dist && bun build src/index.ts src/serve.ts --outdir dist/src --target bun && bun web/build.ts dist/web"
   },
   "dependencies": {
-    "preact": "11.1.1"
+    "preact": "11.2.0"
   },
   "devDependencies": {
     "@gemwright/common": "workspace:*",
     "@gemwright/deployment": "workspace:*",
     "bun-plugin-tailwind": "0.1.2",
-    "tailwindcss": "4.3.4"
+    "tailwindcss": "4.3.5"
   },
   "files": [
     "dist/"
