@@ -1,5 +1,17 @@
 # @gemwright/cli
 
+## 0.11.0
+
+### Minor Changes
+
+- The CLI is now `gemwright init` and `gemwright shard <command>` (setup, deploy, start, stop, status, logs, pull, restore, update), each with its own flags and help. `--target local|railway|vps` replaces `--local`, and the last deployed target becomes the default. Old commands fail with the new one to use.
+
+- Local and VPS deployments keep one game-file folder, mounted read-only into every service and synced by checksum, so only changed files are copied or sent.
+
+- `gemwright shard status` shows each component as running, starting, stopped, failing or missing, on local, Railway and VPS deployments.
+
+- VPS deployments run Docker only: `gemwright shard setup` prepares a server over SSH, including swap on small servers; deploys check the server first, build images on the deploying machine, restart only the named components, run AI residents, serve the browser client over HTTPS on a configurable domain, and finish only when players can connect. Native VPS mode is removed.
+
 ## 0.10.0
 
 ### Minor Changes

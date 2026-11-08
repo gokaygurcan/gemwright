@@ -1,5 +1,18 @@
 # @gemwright/deployment
 
+## 0.11.0
+
+### Minor Changes
+
+- Pull, logs and restore follow the shard's target; VPS pulls include the AI snapshot, report and logs in the usual layout, and pulls and restores carry the retired resident list.
+
+### Patch Changes
+
+- Archives leave out macOS AppleDouble and Finder files.
+- Updated dependencies [`8931cff`]:
+  - @gemwright/common@0.11.0
+  - @gemwright/client@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes

@@ -1,5 +1,41 @@
 # @gemwright/ai
 
+## 0.11.0
+
+### Minor Changes
+
+- AI residents log every decision question with its request, the answer, and the exact body sent to and received from Clef and Jev, kept for a week.
+
+### Patch Changes
+
+- AI bards skip creatures their songs cannot affect for a while, and loot the coins of provoked fights before starting the next.
+
+- AI residents write their checkpoint at most every five seconds, keeping the event loop free so walking stays smooth.
+
+- AI residents put the death robe into their pack when changing into their own robe, and log why a death robe stays on.
+
+- AI fighters buy only weapons their race can wield, spend what they have on one, and hunt bare-handed when none can be had instead of waiting in town.
+
+- AI miners leave stretches of empty ore veins instead of trying every block next door.
+
+- AI residents try mounting again after the shard's action delay instead of giving up.
+
+- AI residents ride a horse from any adjacent tile, diagonals included, and chase a following horse that steps away.
+
+- AI residents accept map files mounted by Docker deployments, and a restored retired list replaces the current one with the resident database.
+
+- AI residents walk past ground where they were attacked lately when nothing is in sight, and recover their height from the shard when no route can start from it.
+
+- AI residents swap the death robe for a robe of their own in the pack at the next turn, not at the next bank visit.
+
+- Clef and Jev decisions spread their daily allowance across the UTC day instead of spending it at the first opportunity.
+
+- AI residents step at an even pace; work between steps no longer adds a pause after each one.
+
+- AI residents log unexpected bank balance changes, why an errand gained nothing, and why a hunt found no opponent.
+
+- AI residents wait on the road for pets that fall behind, including a tamer's animals on offer.
+
 ## 0.10.0
 
 ### Minor Changes

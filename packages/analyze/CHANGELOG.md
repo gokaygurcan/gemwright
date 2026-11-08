@@ -1,5 +1,19 @@
 # @gemwright/analyze
 
+## 0.11.0
+
+### Minor Changes
+
+- A Questions page lists every question residents asked, and each question's page shows its context, options, and the exact request and response.
+
+### Patch Changes
+
+- Mobile pages list the creatures that follow the character, including its ridden mount.
+
+- Mount items show their ridden animal's figurine.
+
+- Messages name the new `gemwright shard` commands.
+
 ## 0.10.0
 
 ### Minor Changes

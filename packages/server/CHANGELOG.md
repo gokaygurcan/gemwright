@@ -1,5 +1,15 @@
 # @gemwright/server
 
+## 0.11.0
+
+### Minor Changes
+
+- ServUO loads the scripts its image build compiled instead of compiling them again at every start, and server images accept a mounted game-file folder.
+
+### Patch Changes
+
+- Staging leaves macOS Finder and AppleDouble files out of shard folders, and the ServUO build keeps no compiler server running.
+
 ## 0.10.0
 
 ### Minor Changes
