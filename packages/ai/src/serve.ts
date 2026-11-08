@@ -24,7 +24,7 @@ import { Terrain } from './terrain';
 import { buildWorkAreas } from './work-area-build';
 import { applyWorld, type Cohorts, useCities, world } from './world';
 
-// The deployed AI service (gemwright deploy --ai): builds the population from world.json and the
+// The deployed AI service (gemwright shard deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
 // container lives, creating accounts by ordinary login as needed. Configuration comes from the
 // environment the deployment sets; all state lives on the /app/data volume.
@@ -124,7 +124,7 @@ if (count > 0) {
   const shardWorld = readShardWorld(join(data, 'world'));
   if (!shardWorld)
     throw new Error(
-      `No world files in ${join(data, 'world')} (Spawns/ and Regions.xml): run gemwright deploy --ai to upload them.`
+      `No world files in ${join(data, 'world')} (Spawns/ and Regions.xml): run gemwright shard deploy --ai to upload them.`
     );
   useShardWorld(shardWorld);
   logger('serve').info(`[serve] vendors and hunting grounds from ${shardWorld.spawners.length} spawners`);

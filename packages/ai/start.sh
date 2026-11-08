@@ -10,6 +10,8 @@ if [ -e /app/data/restore/residents.sqlite ]; then
     if [ -e /app/data/residents.sqlite ]; then mv /app/data/residents.sqlite /app/data/residents.sqlite.before-restore; fi
     rm -f /app/data/residents.sqlite-wal /app/data/residents.sqlite-shm
     mv /app/data/restore/residents.sqlite /app/data/residents.sqlite
+    # The residents retired by hand travel with the database they belong to.
+    if [ -e /app/data/restore/retired.json ]; then mv /app/data/restore/retired.json /app/data/retired.json; fi
     rm -rf /app/data/restore
     echo 'Restored the resident database from a gemwright pull.'
 fi
@@ -17,7 +19,8 @@ fi
 # The deployment uploads the map files the residents walk by as /app/data/assets.tar.gz.
 trap 'exit 0' TERM INT
 # A newer upload replaces the extracted files.
-while [ ! -e /app/data/.assets-ready ] || [ -e /app/data/assets.tar.gz ]; do
+# Docker deployments mount the shared game-file folder there instead, ready as it is.
+while { [ ! -e /app/data/.assets-ready ] && [ -z "$(ls -A /app/data/assets 2>/dev/null)" ]; } || [ -e /app/data/assets.tar.gz ]; do
     if [ -e /app/data/assets.tar.gz ]; then
         rm -rf /app/data/assets
         mkdir -p /app/data/assets
