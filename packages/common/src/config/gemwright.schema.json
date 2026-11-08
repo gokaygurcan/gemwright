@@ -6,27 +6,34 @@
   "required": ["name", "id", "timezone", "expansion", "emulator", "client"],
   "properties": {
     "$schema": {
-      "type": "string"
+      "type": "string",
+      "description": "Path or URL of this JSON Schema, for editor completion."
     },
     "schemaVersion": {
-      "const": 1
+      "const": 1,
+      "description": "Configuration format version. Missing means 1."
     },
     "name": {
       "type": "string",
-      "pattern": "^[ -~]{1,32}$"
+      "pattern": "^[ -~]{1,32}$",
+      "description": "Shard name players see, 1-32 printable ASCII characters."
     },
     "id": {
       "type": "string",
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "The name as a lowercase, hyphenated slug; must match name. Names services, folders and deployments."
     },
     "adminEmail": {
-      "type": "string"
+      "type": "string",
+      "description": "Support email written into the emulator configuration."
     },
     "url": {
-      "type": "string"
+      "type": "string",
+      "description": "Support website written into the emulator configuration. Sphere requires it without http(s)://."
     },
     "timezone": {
-      "type": "string"
+      "type": "string",
+      "description": "IANA timezone the shard runs in, e.g. Europe/London."
     },
     "expansion": {
       "enum": [
@@ -42,10 +49,12 @@
         "hs",
         "tol",
         "ej"
-      ]
+      ],
+      "description": "Expansion era the shard plays as, from base (pre-T2A) to ej (Endless Journey)."
     },
     "emulator": {
-      "enum": ["servuo", "sphere", "sphere-x", "runuo", "modernuo"]
+      "enum": ["servuo", "sphere", "sphere-x", "runuo", "modernuo"],
+      "description": "Server emulator the shard runs."
     },
     "client": {
       "type": "object",
@@ -53,112 +62,142 @@
       "properties": {
         "version": {
           "type": "string",
-          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Client version, four numbers such as 7.0.45.1. AI residents speak it too."
         }
       },
-      "required": ["version"]
+      "required": ["version"],
+      "description": "The classic client players connect with."
     },
     "source": {
-      "$ref": "#/definitions/source"
+      "$ref": "#/definitions/source",
+      "description": "Emulator source pinned to an exact revision."
     },
     "runuo": {
-      "$ref": "#/definitions/dotnet"
+      "$ref": "#/definitions/dotnet",
+      "description": "RunUO settings."
     },
     "modernuo": {
-      "$ref": "#/definitions/dotnet"
+      "$ref": "#/definitions/dotnet",
+      "description": "ModernUO settings."
     },
     "servuo": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "clientFiles": {
-          "type": "string"
+          "type": "string",
+          "description": "Folder with the UO client files; the default for --files."
         },
         "owner": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9_-]{1,16}$"
+          "pattern": "^[A-Za-z0-9_-]{1,16}$",
+          "description": "Owner (administrator) account name, 1-16 letters, digits, _ or -."
         },
         "autoCreateAccounts": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether logging in with a new account name creates the account."
         },
         "accountsPerIp": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Accounts allowed per IP address; 0 for unlimited."
         },
         "globalChat": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the global chat system is enabled."
         },
         "allowedClients": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Client kinds allowed to connect: AllowRegular, AllowUOTD, AllowGod and/or AllowEC (Config/Client.cfg)."
         }
       },
-      "required": ["owner", "autoCreateAccounts"]
+      "required": ["owner", "autoCreateAccounts"],
+      "description": "ServUO settings."
     },
     "sphere": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "scriptsSource": {
-          "$ref": "#/definitions/source"
+          "$ref": "#/definitions/source",
+          "description": "Sphere scripts source pinned to an exact revision."
         },
         "mysql": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether Sphere scripts use a MySQL database, added during deployment."
         },
         "clientFiles": {
-          "type": "string"
+          "type": "string",
+          "description": "Folder with the UO client files; the default for --files."
         },
         "autoCreateAccounts": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether logging in with a new account name creates the account."
         },
         "owner": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9_-]{1,16}$"
+          "pattern": "^[A-Za-z0-9_-]{1,16}$",
+          "description": "Owner (administrator) account name, 1-16 letters, digits, _ or -."
         },
         "maps": {
-          "enum": ["expansion", "felucca"]
+          "enum": ["expansion", "felucca"],
+          "description": "expansion: every map the expansion includes; felucca: Felucca only."
         },
         "mapSize": {
-          "enum": ["modern", "legacy"]
+          "enum": ["modern", "legacy"],
+          "description": "modern or legacy Felucca/Trammel map size; legacy cannot be used from ML onwards."
         },
         "clientEncryption": {
-          "enum": ["encrypted", "both", "unencrypted"]
+          "enum": ["encrypted", "both", "unencrypted"],
+          "description": "Which clients are accepted: encrypted, unencrypted or both."
         },
         "rules": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "combatFlags": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini CombatFlags."
             },
             "archeryMovementDelay": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini CombatArcheryMovementDelay."
             },
             "damageEra": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini CombatDamageEra."
             },
             "hitChanceEra": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini CombatHitChanceEra."
             },
             "speedEra": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini CombatSpeedEra."
             },
             "speedScaleFactor": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini SpeedScaleFactor."
             },
             "magicFlags": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini MagicFlags."
             },
             "racialFlags": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini RacialFlags."
             },
             "revealFlags": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini RevealFlags."
             },
             "npcAI": {
-              "type": "number"
+              "type": "number",
+              "description": "sphere.ini NPCAI."
             }
           },
           "required": [
@@ -172,7 +211,8 @@
             "racialFlags",
             "revealFlags",
             "npcAI"
-          ]
+          ],
+          "description": "Classic Sphere combat and rule values written to sphere.ini. Not supported on Sphere-X."
         }
       },
       "required": [
@@ -181,7 +221,8 @@
         "owner",
         "maps",
         "mapSize"
-      ]
+      ],
+      "description": "Sphere and Sphere-X settings."
     },
     "ai": {
       "type": "object",
@@ -190,7 +231,8 @@
         "population": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 300
+          "default": 0,
+          "description": "Number of AI residents."
         },
         "decisions": {
           "oneOf": [
@@ -239,25 +281,30 @@
                 }
               ]
             }
-          ]
+          ],
+          "description": "Who decides what residents do: local, jev, clef, or an ordered provider list ending in local. Earlier providers fall back to later ones."
         },
         "speech": {
-          "enum": ["authored", "claude"]
+          "enum": ["authored", "claude"],
+          "description": "authored: written lines; claude: replies in each resident's own voice by Claude (requires ANTHROPIC_API_KEY)."
         },
         "races": {
           "type": "array",
           "minItems": 1,
           "items": {
             "enum": ["human", "elf", "gargoyle"]
-          }
+          },
+          "description": "Races new residents are created as; human and elf by default."
         },
         "chaos": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "description": "How unpredictable residents are, 0 (always the direct way) to 1; 0.3 by default."
         },
         "wars": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the Order and Chaos guild alliances go to war with each other. Off by default."
         },
         "cities": {
           "description": "The only cities AI residents go to (shops, banks, healers, moongates and the grounds around them); every city when unset.",
@@ -303,12 +350,15 @@
               }
             },
             "required": ["count", "professions"]
-          }
+          },
+          "description": "Residents started in one city, keyed by city, counted within population: { \"New Haven\": { \"count\": 50, \"professions\": { \"miner\": 6 } } }."
         },
         "debug": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether residents emote their current phase above their heads. Off by default."
         }
-      }
+      },
+      "description": "AI residents (ServUO only): how many, how they decide and speak, and where they live."
     },
     "packages": {
       "type": "object",
@@ -316,17 +366,21 @@
       "properties": {
         "server": {
           "type": "string",
-          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "description": "Exact @gemwright/server version."
         },
         "client": {
           "type": "string",
-          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "description": "Exact @gemwright/client version."
         },
         "ai": {
           "type": "string",
-          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "description": "Exact @gemwright/ai version."
         }
-      }
+      },
+      "description": "Exact published component versions selected by gemwright shard update. Unset components use the versions carried by the CLI."
     },
     "railway": {
       "type": "object",
@@ -334,21 +388,26 @@
       "properties": {
         "project": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Railway project."
         },
         "environment": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Railway environment."
         },
         "server": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Existing Railway server service the client and AI connect to."
         }
       },
-      "required": ["project", "environment"]
+      "required": ["project", "environment"],
+      "description": "Railway project the shard deploys to."
     },
     "target": {
-      "enum": ["local", "railway", "vps"]
+      "enum": ["local", "railway", "vps"],
+      "description": "Default deployment target; saved by the last successful deploy."
     },
     "vps": {
       "type": "object",
@@ -356,27 +415,33 @@
       "properties": {
         "ssh": {
           "type": "string",
-          "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9_.@-]*$"
+          "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9_.@-]*$",
+          "description": "SSH destination: an alias or user@hostname."
         },
         "port": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 65535
+          "maximum": 65535,
+          "description": "SSH port; the SSH configuration's when unset."
         },
         "path": {
           "type": "string",
-          "pattern": "^[a-zA-Z0-9_/.-]+$"
+          "pattern": "^[a-zA-Z0-9_/.-]+$",
+          "description": "Dedicated deployment directory on the VPS; gemwright/<id> by default."
         },
         "publicHost": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9.-]+$"
+          "pattern": "^[A-Za-z0-9.-]+$",
+          "description": "Address native clients connect to."
         },
         "domain": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9.-]+$"
+          "pattern": "^[A-Za-z0-9.-]+$",
+          "description": "HTTPS hostname of the browser client."
         }
       },
-      "required": ["publicHost"]
+      "required": ["publicHost"],
+      "description": "VPS deployment settings."
     },
     "connection": {
       "type": "object",
@@ -384,18 +449,22 @@
       "properties": {
         "host": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9._:-]+$"
+          "pattern": "^[A-Za-z0-9._:-]+$",
+          "description": "Server host."
         },
         "port": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 65535
+          "maximum": 65535,
+          "description": "Server port, 2593 by default."
         },
         "aiReady": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Confirms the external server has the ServUO AI patch, account creation and a trusted AI source."
         }
       },
-      "required": ["host", "port"]
+      "required": ["host", "port"],
+      "description": "An existing server the client and AI connect to instead of a server deployed by Gemwright."
     }
   },
   "definitions": {
@@ -405,15 +474,18 @@
       "properties": {
         "repository": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Git repository."
         },
         "ref": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Branch or tag the revision was resolved from."
         },
         "revision": {
           "type": "string",
-          "pattern": "^[a-f0-9]{40}$"
+          "pattern": "^[a-f0-9]{40}$",
+          "description": "Full 40-character commit hash."
         }
       },
       "required": ["repository", "ref", "revision"]
@@ -423,14 +495,17 @@
       "additionalProperties": false,
       "properties": {
         "clientFiles": {
-          "type": "string"
+          "type": "string",
+          "description": "Folder with the UO client files; the default for --files."
         },
         "owner": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9_-]{1,16}$"
+          "pattern": "^[A-Za-z0-9_-]{1,16}$",
+          "description": "Owner (administrator) account name, 1-16 letters, digits, _ or -."
         },
         "autoCreateAccounts": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether logging in with a new account name creates the account."
         }
       },
       "required": ["owner", "autoCreateAccounts"]
@@ -450,7 +525,8 @@
             },
             "credentialEnv": {
               "type": "string",
-              "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+              "pattern": "^[A-Z][A-Z0-9_]{0,79}$",
+              "description": "Environment variable holding the provider credential."
             }
           }
         },
@@ -467,7 +543,8 @@
             },
             "credentialEnv": {
               "type": "string",
-              "pattern": "^[A-Z][A-Z0-9_]{0,79}$"
+              "pattern": "^[A-Z][A-Z0-9_]{0,79}$",
+              "description": "Environment variable holding the provider credential."
             }
           }
         }
