@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-// The pulls in a shard folder's .gemwright/pulls (gemwright pull), for the pulls page: what each
+// The pulls in a shard folder's .gemwright/pulls (gemwright shard pull), for the pulls page: what each
 // holds, its size, and deleting one.
 export interface PullInfo {
   stamp: string;

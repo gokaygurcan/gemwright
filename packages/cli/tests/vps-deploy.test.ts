@@ -6,9 +6,16 @@ import { join } from 'node:path';
 import { command } from '@gemwright/deployment/process';
 import { createConfig } from '@gemwright/server/config';
 
-import { validateVpsOptions, validateVpsPackageSelection, writeVpsBundle } from '../src/vps-deploy';
-import { nativePackages, shellQuote } from '../src/vps-native';
-import { createVpsUpload, inspectVpsDestination } from '../src/vps-remote';
+import {
+  builtImages,
+  builtServices,
+  bundleInstructions,
+  composeServices,
+  dockerPlatform,
+  validateVpsOptions,
+  writeVpsBundle
+} from '../src/vps-deploy';
+import { createVpsUpload, extractUpload, inspectVpsDestination } from '../src/vps-remote';
 
 const folders: string[] = [];
 afterEach(async () => {
@@ -21,9 +28,7 @@ async function fixture() {
   const staged = join(directory, 'staged');
   await mkdir(staged);
   await writeFile(join(staged, 'Dockerfile'), 'FROM scratch\n');
-  const archive = join(directory, 'client.tar.gz');
-  await writeFile(archive, 'client fixture');
-  return { directory, staged, client: { archive, digest: 'fixture-digest' } };
+  return { directory, staged };
 }
 
 test('VPS options reject endpoint injection and require a DNS hostname for HTTPS', () => {
@@ -33,64 +38,48 @@ test('VPS options reject endpoint injection and require a DNS hostname for HTTPS
     expect(() => validateVpsOptions({ publicHost: '203.0.113.1', client: true, domain })).toThrow();
   expect(() => validateVpsOptions({ publicHost: '203.0.113.1' })).not.toThrow();
   expect(() =>
-    validateVpsPackageSelection(createConfig({ client: { version: '7.0.45.1' }, packages: { server: '0.8.0' } }))
-  ).toThrow('Railway');
-  expect(() =>
-    validateVpsPackageSelection(createConfig({ client: { version: '7.0.45.1' }, packages: { client: '0.8.0' } }), true)
-  ).toThrow('Railway');
-  expect(() => validateVpsPackageSelection(createConfig({ client: { version: '7.0.45.1' } }))).not.toThrow();
-  expect(() =>
     validateVpsOptions({ publicHost: 'login.example.com', client: true, domain: 'play.example.com' })
   ).not.toThrow();
 });
 
-test('rebuilding a VPS bundle preserves the live world and consumed client archive', async () => {
-  const { directory, staged, client } = await fixture();
+test('rebuilding a VPS bundle preserves the live world', async () => {
+  const { directory, staged } = await fixture();
   const config = createConfig({ client: { version: '7.0.45.1' }, name: 'VPS test' });
   const options = { publicHost: '203.0.113.1' };
-  const root = await writeVpsBundle(directory, config, options, staged, client);
-  expect(await readFile(join(root, 'data/client.tar.gz'), 'utf8')).toBe('client fixture');
-  await rm(join(root, 'data/client.tar.gz'));
+  const root = await writeVpsBundle(directory, config, options, staged);
   await mkdir(join(root, 'data/server/Saves'), { recursive: true });
   await writeFile(join(root, 'data/.client-ready'), '');
   await writeFile(join(root, 'data/server/Saves/world.bin'), 'live world');
   await writeFile(join(staged, 'Dockerfile'), 'FROM ubuntu:24.04\n');
-  await writeVpsBundle(directory, config, options, staged, client);
+  await writeVpsBundle(directory, config, options, staged);
   expect(await readFile(join(root, 'data/server/Saves/world.bin'), 'utf8')).toBe('live world');
-  expect(await Bun.file(join(root, 'data/client.tar.gz')).exists()).toBe(false);
   expect(await readFile(join(root, 'shard/Dockerfile'), 'utf8')).toContain('ubuntu');
   const compose = JSON.parse(await readFile(join(root, 'compose.json'), 'utf8'));
-  expect(compose.services.shard.environment.GEMWRIGHT_PUBLIC_HOST).toBe('203.0.113.1');
-  expect(compose.services.shard.volumes).toEqual(['./data:/app/data']);
-  expect(compose.services.shard.stop_grace_period).toBe('2m');
-  await expect(writeVpsBundle(directory, config, options, staged, { ...client, digest: 'different' })).rejects.toThrow(
-    'Different client'
-  );
-  await expect(writeVpsBundle(directory, { ...config, emulator: 'sphere' }, options, staged, client)).rejects.toThrow(
+  expect(compose.services.server.environment.GEMWRIGHT_PUBLIC_HOST).toBe('203.0.113.1');
+  expect(compose.services.server.volumes).toEqual(['./data:/app/data', './gamefiles:/app/data/client:ro']);
+  expect(compose.services.server.stop_grace_period).toBe('2m');
+  expect(compose.services.server.healthcheck.test).toEqual(['CMD', 'bash', '-c', 'exec 3<>/dev/tcp/127.0.0.1/2593']);
+  expect(bundleInstructions(options)).toContain('--wait-timeout 900');
+  await expect(writeVpsBundle(directory, { ...config, emulator: 'sphere' }, options, staged)).rejects.toThrow(
     'another emulator'
   );
 });
 
-test('a fresh SSH destination receives cached client data without copying the workstation world', async () => {
-  const { directory, staged, client } = await fixture();
+test('an SSH upload carries the bundle without the workstation world', async () => {
+  const { directory, staged } = await fixture();
   const root = await writeVpsBundle(
     directory,
     createConfig({ client: { version: '7.0.45.1' } }),
     { publicHost: '203.0.113.1' },
-    staged,
-    client
+    staged
   );
-  await rm(join(root, 'data/client.tar.gz'));
-  await writeFile(join(root, 'data/.client-ready'), '');
   await writeFile(join(root, 'data/world.bin'), 'workstation world');
-  await writeFile(join(directory, '.gemwright', `client-${client.digest}.tar.gz`), 'cached client data');
-  const archive = await createVpsUpload(root, directory, ['shard', 'state.json'], '.incoming-test', client.digest);
+  const archive = await createVpsUpload(root, directory, ['shard', 'state.json'], '.incoming-test');
   const entries = (await command(['tar', '-tzf', archive], directory)).split('\n');
-  expect(entries).toContain('client-import/client.tar.gz');
+  expect(entries).toContain('state.json');
   expect(entries.some((entry) => entry.startsWith('data/'))).toBe(false);
   expect((await stat(archive)).mode & 0o777).toBe(0o600);
-  expect(await Bun.file(join(root, 'client-import/client.tar.gz')).exists()).toBe(false);
-  await expect(createVpsUpload(root, directory, ['shard'], '.incoming-failed', 'missing')).rejects.toThrow();
+  await expect(createVpsUpload(root, directory, ['shard', 'missing'], '.incoming-failed')).rejects.toThrow();
   expect(await Bun.file(join(root, '.incoming-failed.tar.gz')).exists()).toBe(false);
   expect(await readFile(join(root, 'data/world.bin'), 'utf8')).toBe('workstation world');
 });
@@ -101,7 +90,7 @@ test('interrupted first uploads can resume while unrelated destination contents 
   const remote = (script: string) => command(['sh', '-c', script], directory);
   expect(await inspectVpsDestination(destination, remote)).toBe('');
   await mkdir(join(destination, '.incoming-interrupted'), { recursive: true });
-  const state = { emulator: 'servuo', clientDigest: 'fixture-digest', method: 'native', client: false };
+  const state = { emulator: 'servuo', clientDigest: 'fixture-digest', client: false };
   await writeFile(join(destination, '.provisioning.json'), JSON.stringify(state));
   expect(JSON.parse(await inspectVpsDestination(destination, remote))).toEqual(state);
   await writeFile(join(destination, 'state.json'), JSON.stringify({ ...state, client: true }));
@@ -114,81 +103,123 @@ test('interrupted first uploads can resume while unrelated destination contents 
 });
 
 test('MySQL credentials persist across deployments and its port stays private', async () => {
-  const { directory, staged, client } = await fixture();
+  const { directory, staged } = await fixture();
   const config = { ...createConfig({ client: { version: '7.0.45.1' } }), sphere: { mysql: true } } as ReturnType<
     typeof createConfig
   >;
   const options = { publicHost: '203.0.113.1' };
-  const root = await writeVpsBundle(directory, config, options, staged, client);
+  const root = await writeVpsBundle(directory, config, options, staged);
   const secrets = await readFile(join(root, '.env'), 'utf8');
   expect(secrets).toMatch(/MYSQL_PASSWORD=[a-f0-9]{64}/);
   expect((await stat(join(root, '.env'))).mode & 0o777).toBe(0o600);
-  await writeVpsBundle(directory, config, options, staged, client);
+  await writeVpsBundle(directory, config, options, staged);
   expect(await readFile(join(root, '.env'), 'utf8')).toBe(secrets);
   const compose = JSON.parse(await readFile(join(root, 'compose.json'), 'utf8'));
   expect(compose.services.mysql.ports).toBeUndefined();
-  expect(compose.services.shard.depends_on.mysql.condition).toBe('service_healthy');
-  expect(nativePackages(config)).toContain('mysql-server');
-  expect(nativePackages(config)).not.toContain('mariadb-server');
+  expect(compose.services.server.depends_on.mysql.condition).toBe('service_healthy');
 });
 
 test('web deployment publishes only manifested assets and keeps relay ports private', async () => {
-  const { directory, staged, client } = await fixture();
+  const { directory, staged } = await fixture();
   const assets = join(directory, 'assets');
   await mkdir(assets);
   await writeFile(join(assets, 'tiledata.mul'), 'map fixture');
   await writeFile(join(assets, 'client.exe'), 'private executable');
   const config = createConfig({ client: { version: '7.0.45.1' }, name: 'Test $shard' });
   const options = { publicHost: '203.0.113.1', client: true, domain: 'play.example.com' };
-  const root = await writeVpsBundle(directory, config, options, staged, client, assets);
+  const root = await writeVpsBundle(directory, config, options, staged, assets);
   const compose = JSON.parse(await readFile(join(root, 'compose.json'), 'utf8'));
-  expect(compose.services.web.ports).toBeUndefined();
-  expect(compose.services.web.environment.UO_HOST).toBe('shard');
-  expect(compose.services.web.environment.SERVER_NAME).toBe('Test $$shard');
-  expect(compose.services.web.environment.PUBLIC_ORIGIN).toBe('https://play.example.com');
+  expect(compose.services.client.ports).toBeUndefined();
+  expect(compose.services.client.environment.UO_HOST).toBe('server');
+  expect(compose.services.client.environment.SERVER_NAME).toBe('Test $$shard');
+  expect(compose.services.client.environment.PUBLIC_ORIGIN).toBe('https://play.example.com');
   expect(compose.services.caddy.ports).toContain('443:443/tcp');
   expect(await Bun.file(join(root, 'gamefiles/client.exe')).exists()).toBe(false);
-  expect(await readFile(join(root, 'Caddyfile'), 'utf8')).toContain('reverse_proxy web:3000');
-  await expect(writeVpsBundle(directory, config, { publicHost: options.publicHost }, staged, client)).rejects.toThrow(
-    'Repeat --client'
-  );
+  expect(await readFile(join(root, 'Caddyfile'), 'utf8')).toContain('reverse_proxy client:3000');
+  await writeVpsBundle(directory, config, { publicHost: options.publicHost }, staged);
+  const kept = JSON.parse(await readFile(join(root, 'compose.json'), 'utf8'));
+  expect(kept.services.client.environment.PUBLIC_ORIGIN).toBe('https://play.example.com');
+  expect(kept.services.caddy).toBeDefined();
   await writeFile(join(assets, 'tiledata.mul'), 'different map fixture');
-  await expect(writeVpsBundle(directory, config, options, staged, client, assets)).rejects.toThrow(
-    'different game files'
-  );
-  expect(await readFile(join(root, 'gamefiles/tiledata.mul'), 'utf8')).toBe('map fixture');
+  await writeVpsBundle(directory, config, options, staged, assets);
+  expect(await readFile(join(root, 'gamefiles/tiledata.mul'), 'utf8')).toBe('different map fixture');
 });
 
-test('native bundle uses systemd wrappers and a loopback web relay without Docker configuration', async () => {
-  const { directory, staged, client } = await fixture();
-  const assets = join(directory, 'assets');
-  await mkdir(assets);
-  await writeFile(join(assets, 'tiledata.mul'), 'map fixture');
-  const config = createConfig({ client: { version: '7.0.45.1' }, name: "Owner's shard" });
+test('only a manual bundle prints manual installation steps', () => {
+  expect(bundleInstructions({ publicHost: '203.0.113.1' })).toContain('docker compose');
+  expect(bundleInstructions({ publicHost: '203.0.113.1', ssh: 'my-vps' })).toBeUndefined();
+});
+
+test('extracting an upload on the server skips AppleDouble entries', async () => {
+  const { directory } = await fixture();
+  const source = join(directory, 'source');
+  await mkdir(join(source, 'shard'), { recursive: true });
+  await writeFile(join(source, 'shard/Map.cs'), 'class Map {}');
+  await writeFile(join(source, 'shard/._Map.cs'), 'Mac OS X metadata');
+  await command(['tar', '-czf', join(directory, 'bundle.tar.gz'), '-C', source, 'shard'], directory);
+  const target = join(directory, 'incoming');
+  await mkdir(target);
+  await command(['sh', '-c', extractUpload(join(directory, 'bundle.tar.gz'), target)], directory);
+  expect(await Bun.file(join(target, 'shard/Map.cs')).exists()).toBe(true);
+  expect(await Bun.file(join(target, 'shard/._Map.cs')).exists()).toBe(false);
+});
+
+test('each deployment restarts only the services it names', async () => {
+  const { directory, staged } = await fixture();
+  const config = createConfig({ client: { version: '7.0.45.1' } });
+  const options = { publicHost: '203.0.113.1' };
+  await expect(
+    writeVpsBundle(directory, config, { ...options, server: false, client: true, domain: 'play.example.com' })
+  ).rejects.toThrow('Deploy the server');
+  await writeVpsBundle(directory, config, options, staged);
+  expect(composeServices(options, config)).toEqual(['server']);
+  expect(composeServices({ ...options, server: false, client: true }, config)).toEqual(['client', 'caddy']);
+  const sphere = { ...config, sphere: { mysql: true } } as typeof config;
+  expect(composeServices({ ...options, client: true }, sphere)).toEqual(['server', 'mysql', 'client', 'caddy']);
+});
+
+test('AI residents join a Docker VPS bundle only beside an AI-patched server', async () => {
+  const { directory, staged } = await fixture();
+  const config = createConfig({ client: { version: '7.0.45.1' } });
+  const world = join(directory, 'world-staged');
+  await mkdir(join(world, 'Spawns'), { recursive: true });
+  await mkdir(join(world, 'Decoration'), { recursive: true });
+  for (const file of ['Spawns/world.xml', 'Decoration/town.cfg', 'Regions.xml', 'teleporters.csv'])
+    await writeFile(join(world, file), '');
+  const options = { publicHost: '203.0.113.1' };
+  await expect(writeVpsBundle(directory, config, { ...options, ai: true }, staged, undefined, world)).rejects.toThrow(
+    'AI patch'
+  );
   const root = await writeVpsBundle(
     directory,
     config,
-    {
-      method: 'native',
-      publicHost: '203.0.113.1',
-      client: true,
-      domain: 'play.example.com'
-    },
+    { ...options, ai: true, aiPatched: true },
     staged,
-    client,
-    assets
+    undefined,
+    world
   );
-  expect(await Bun.file(join(root, 'compose.json')).exists()).toBe(false);
-  expect(await readFile(join(root, 'Caddyfile'), 'utf8')).toContain('reverse_proxy 127.0.0.1:3000');
-  expect(await readFile(join(root, 'start-web.sh'), 'utf8')).toContain('CLIENT_LISTEN_HOST=127.0.0.1');
-  const env = await readFile(join(root, 'native.env'), 'utf8');
-  expect(env).toContain(`SERVER_NAME=${shellQuote("Owner's shard")}`);
-  expect((await stat(join(root, 'native.env'))).mode & 0o777).toBe(0o600);
-  const install = await readFile(join(root, 'install-native.sh'), 'utf8');
-  expect(install).not.toContain('bun" build.ts');
-  expect(await Bun.file(join(root, 'web/bundle/server.js')).exists()).toBe(true);
-  expect(install).toContain('KillMode=mixed');
-  expect(install).toContain('TimeoutStopSec=120');
-  for (const emulator of ['servuo', 'sphere', 'sphere-x', 'runuo', 'modernuo'] as const)
-    expect(nativePackages({ ...config, emulator }).length).toBeGreaterThan(2);
+  const compose = JSON.parse(await readFile(join(root, 'compose.json'), 'utf8'));
+  expect(compose.services.ai.environment.UO_HOST).toBe('server');
+  expect(compose.services.ai.volumes).toContain('./world:/app/data/world:ro');
+  expect(compose.services.server.environment).toMatchObject({
+    GEMWRIGHT_AI_PATCHED: '1',
+    GEMWRIGHT_TRUSTED_HOSTS: 'ai'
+  });
+  expect((await stat(join(root, 'ai.env'))).mode & 0o777).toBe(0o600);
+  expect(await readFile(join(root, 'world/Regions.xml'), 'utf8')).toBe('');
+  expect(composeServices({ ...options, server: false, ai: true }, config)).toEqual(['ai']);
+  // A later server-only deploy keeps the residents and their trust.
+  await writeVpsBundle(directory, config, { ...options, aiPatched: true }, staged);
+  expect(JSON.parse(await readFile(join(root, 'compose.json'), 'utf8')).services.ai).toBeDefined();
+});
+
+test('images are built for the VPS architecture and only the built services are shipped', () => {
+  expect(dockerPlatform('x86_64')).toBe('linux/amd64');
+  expect(dockerPlatform('aarch64')).toBe('linux/arm64');
+  expect(() => dockerPlatform('riscv64')).toThrow('riscv64');
+  const config = { ...createConfig({ client: { version: '7.0.45.1' } }), sphere: { mysql: true } } as ReturnType<
+    typeof createConfig
+  >;
+  expect(builtServices(['server', 'mysql', 'client', 'caddy', 'ai'])).toEqual(['server', 'client', 'ai']);
+  expect(builtImages(config, ['server', 'ai'])).toEqual(['gemwright-gemwright-server', 'gemwright-gemwright-ai']);
 });

@@ -47,7 +47,7 @@ export async function updatePackages(
       await writeFile(`${path}.tmp`, `${JSON.stringify(original, null, 2)}\n`, { mode: 0o600 });
       await rename(`${path}.tmp`, path);
       progress(
-        `Selected ${packageNames[component]}@${options.version}. Apply explicitly: gemwright deploy --${component}`
+        `Selected ${packageNames[component]}@${options.version}. Apply explicitly: gemwright shard deploy --${component}`
       );
       return;
     }
@@ -65,7 +65,7 @@ export async function updatePackages(
     const current = config.packages?.[component] ?? baseline;
     if (latest && compareVersions(latest, current) > 0)
       progress(
-        `Update available: ${packageNames[component]} ${current} → ${latest}\nRun: gemwright update --${component} --package-version ${latest}\nThen: gemwright deploy --${component}`
+        `Update available: ${packageNames[component]} ${current} → ${latest}\nRun: gemwright shard update --${component} --package-version ${latest}\nThen: gemwright shard deploy --${component}`
       );
     else progress(`${packageNames[component]}: no newer compatible published version (selected ${current}).`);
   }

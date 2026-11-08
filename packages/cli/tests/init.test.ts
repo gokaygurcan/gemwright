@@ -202,9 +202,9 @@ test('--client is only accepted by deploy and requires game files', async () => 
   const directory = await temporaryFolder();
   const init = await run(['init', '--client'], directory);
   expect(init.code).toBe(1);
-  expect(init.stderr).toContain('only supported by deploy');
+  expect(init.stderr).toContain("Unknown option '--client'");
   await initialize({ directory, yes: true, 'client-version': '7.0.45.1' }, async () => source, loadConfig);
-  const deploy = await run(['deploy', '--client'], directory);
+  const deploy = await run(['shard', 'deploy', '--target', 'local', '--client'], directory);
   expect(deploy.code).toBe(1);
   expect(deploy.stderr).toContain('requires --files');
 });

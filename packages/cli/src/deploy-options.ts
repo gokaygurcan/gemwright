@@ -1,5 +1,5 @@
-import { readFile, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 import { loadShard } from '@gemwright/server/config';
 
@@ -9,8 +9,8 @@ import { answer, Cancelled } from './prompts';
 import { type VpsOptions, validateVpsOptions } from './vps-deploy';
 
 export interface DeployOptions extends VpsOptions {
-  target?: string;
   ssh?: string;
+  sshPort?: number;
   remotePath?: string;
   yes?: boolean;
 }
@@ -32,57 +32,15 @@ export async function deploymentOptions(
   interactive = !!process.stdin.isTTY
 ): Promise<DeployOptions> {
   const options = { ...input };
-  if (options.target && !['railway', 'vps'].includes(options.target))
-    throw new Error('Deployment target must be railway or vps.');
   const ask = interactive && !options.yes;
-  let saved: DeployOptions = {};
-  if (ask) {
-    saved = await readFile(join(directory, '.gemwright/deployment.json'), 'utf8').then(JSON.parse, (error) => {
-      if (error.code !== 'ENOENT') throw error;
-      return {};
-    });
-    prompts.intro('Deploy your shard');
-  }
-  options.target ??= ask
-    ? answer(
-        await prompts.select({
-          message: 'Where should this shard run?',
-          initialValue: saved.target ?? 'railway',
-          options: [
-            { value: 'railway', label: 'Railway' },
-            { value: 'vps', label: 'VPS / your own Linux server' }
-          ]
-        })
-      )
-    : 'railway';
-  if (options.target !== 'vps') {
-    if (
-      options.publicHost ||
-      options.domain ||
-      options.prepare ||
-      options.ssh ||
-      options.remotePath ||
-      options.installDeps ||
-      options.method
-    )
-      throw new Error(
-        '--public-host, --domain, --prepare, --ssh, --remote-path and --install-deps require --target vps.'
-      );
-    return options;
-  }
+  if (ask) prompts.intro('Deploy your shard to a VPS');
   const config = await loadShard(directory);
-  options.method ??= ask
-    ? answer(
-        await prompts.select({
-          message: 'How should the VPS run this shard?',
-          initialValue: saved.method ?? 'docker',
-          options: [
-            { value: 'docker', label: 'Docker Compose', hint: 'containers with persistent data' },
-            { value: 'native', label: 'Native systemd', hint: 'Ubuntu only; installs host packages and services' }
-          ]
-        })
-      )
-    : 'docker';
+  const { vps } = config;
+  options.ssh ??= vps?.ssh;
+  options.sshPort ??= vps?.port;
+  options.publicHost ??= vps?.publicHost;
+  if (options.client) options.domain ??= vps?.domain;
+  if (options.ssh) options.remotePath ??= vps?.path;
   if (ask && !options.prepare && !options.ssh) {
     const location = answer(
       await prompts.select({
@@ -100,7 +58,6 @@ export async function deploymentOptions(
       options.ssh = answer(
         await prompts.text({
           message: 'SSH destination (config alias or user@hostname)',
-          defaultValue: saved.ssh,
           placeholder: 'my-vps',
           validate(value) {
             try {
@@ -118,7 +75,7 @@ export async function deploymentOptions(
       ? answer(
           await prompts.text({
             message: 'Deployment directory on the VPS (relative to the SSH home directory, or absolute)',
-            defaultValue: saved.remotePath ?? `gemwright/${config.id}`,
+            defaultValue: `gemwright/${config.id}`,
             validate(value) {
               try {
                 validateRemotePath(value ?? '');
@@ -135,7 +92,6 @@ export async function deploymentOptions(
     options.publicHost = answer(
       await prompts.text({
         message: 'Public IPv4 address or login hostname',
-        defaultValue: saved.publicHost,
         validate(value) {
           try {
             validateVpsOptions({ publicHost: value });
@@ -149,14 +105,13 @@ export async function deploymentOptions(
     options.client = answer(
       await prompts.confirm({
         message: 'Deploy the browser client too? You can add it later.',
-        initialValue: saved.client ?? false
+        initialValue: false
       })
     );
   if (options.client && !options.domain && ask)
     options.domain = answer(
       await prompts.text({
         message: 'Browser client domain (DNS must point to the VPS)',
-        defaultValue: saved.domain,
         validate(value) {
           try {
             validateVpsOptions({ publicHost: options.publicHost, client: true, domain: value });
@@ -171,7 +126,6 @@ export async function deploymentOptions(
     options.files = answer(
       await prompts.text({
         message: 'Local UO game files directory',
-        defaultValue: saved.files,
         async validate(value) {
           if (!value || !(await stat(resolve(directory, value)).catch(() => undefined))?.isDirectory())
             return 'Choose an existing game files directory.';
@@ -185,7 +139,7 @@ export async function deploymentOptions(
       `Target: ${options.ssh ?? (options.prepare ? 'manual bundle' : 'this machine')}\n` +
         `Public login: ${options.publicHost}:2593\n` +
         `Browser client: ${options.client ? `https://${options.domain}` : 'not deployed'}\n` +
-        `Runtime: ${options.method === 'native' ? 'native systemd (Ubuntu only)' : 'Docker Compose'}. Automatic package installation supports Ubuntu only and requires approval; sudo may be required.`,
+        'Runtime: Docker Compose. Automatic package installation supports Ubuntu only and requires approval; sudo may be required.',
       'Deployment plan'
     );
     if (!answer(await prompts.confirm({ message: 'Continue with this deployment?', initialValue: true })))

@@ -1,19 +1,19 @@
-import { chmod, cp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { clientVersion, decisionProviders } from '@gemwright/common/config/shard';
-import { aiSettings, mapPattern } from '@gemwright/deployment/ai-deploy';
-import { packageClientFiles } from '@gemwright/deployment/client-files';
+import { mapPattern } from '@gemwright/deployment/ai-deploy';
 import type { DeployParts, ServerAdapter } from '@gemwright/deployment/deploy';
 import { attachedCommand, command } from '@gemwright/deployment/process';
 import { validateAiSettings } from '@gemwright/deployment/service';
 import { loadShard, type ShardConfig } from '@gemwright/server/config';
 
+import { shardWorldFiles, type WorldSource } from './ai-deploy';
 import { stageImage } from './assets';
+import { composeProject, writeAiEnv } from './compose';
 import { deployments } from './deploy';
 import { withServicePackages } from './service-packages';
-import { addMysql, installGameFiles } from './vps-deploy';
+import { addMysql, installWorldFiles, syncGameFiles } from './vps-deploy';
 
 type Part = 'server' | 'client' | 'ai';
 
@@ -43,119 +43,6 @@ export async function dockerCompose(directory: string) {
     throw new Error('Docker is not running. Start Docker Desktop (or your Docker engine) and retry.');
 }
 
-const composeLiteral = (value: string) => value.replaceAll('$', () => '$$');
-
-// The project file describes every part deployed so far; a deploy rebuilds only the parts it names.
-export function localCompose(config: ShardConfig, state: LocalState) {
-  const publicHost = state.publicHost ?? '127.0.0.1';
-  const bind = publicHost === '127.0.0.1' ? '127.0.0.1:' : '';
-  const host = state.parts.includes('server') ? 'server' : config.connection?.host;
-  const port = String(state.parts.includes('server') ? 2593 : (config.connection?.port ?? 2593));
-  const logging = { driver: 'json-file', options: { 'max-size': '10m', 'max-file': '3' } };
-  const compose: Record<string, unknown> = {};
-  const volumes: Record<string, unknown> = {};
-  if (state.parts.includes('server')) {
-    const environment: Record<string, string> = {
-      TZ: config.timezone,
-      GEMWRIGHT_PUBLIC_HOST: publicHost,
-      GEMWRIGHT_PUBLIC_PORT: String(state.serverPort ?? 2593)
-    };
-    if (state.aiPatched) Object.assign(environment, { GEMWRIGHT_AI_PATCHED: '1', GEMWRIGHT_TRUSTED_HOSTS: 'ai' });
-    compose.server = {
-      build: './server',
-      // Sphere 0.56 builds for x86-64 only; Docker emulates it on ARM machines.
-      ...(config.emulator === 'sphere' ? { platform: 'linux/amd64' } : {}),
-      restart: 'unless-stopped',
-      stop_grace_period: '2m',
-      ports: [`${bind}${state.serverPort ?? 2593}:2593/tcp`],
-      environment,
-      volumes: ['server-data:/app/data'],
-      healthcheck: {
-        test: ['CMD', 'bash', '-c', 'exec 3<>/dev/tcp/127.0.0.1/2593'],
-        interval: '10s',
-        timeout: '5s',
-        start_period: '15m',
-        retries: 6
-      },
-      logging
-    };
-    volumes['server-data'] = {};
-  }
-  if (state.parts.includes('client'))
-    compose.client = {
-      build: './client',
-      restart: 'unless-stopped',
-      ports: [`127.0.0.1:${state.clientPort ?? 3000}:3000/tcp`],
-      environment: {
-        UO_HOST: host,
-        UO_PORT: port,
-        SERVER_NAME: composeLiteral(config.name),
-        UO_CLIENT_VERSION: process.env.UO_CLIENT_VERSION ?? clientVersion(config),
-        UO_ENCRYPTION: process.env.UO_ENCRYPTION ?? '0'
-      },
-      volumes: ['./gamefiles:/app/data/gamefiles:ro'],
-      healthcheck: {
-        test: [
-          'CMD',
-          'bun',
-          '-e',
-          "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-        ],
-        interval: '10s',
-        timeout: '5s',
-        retries: 12
-      },
-      logging
-    };
-  if (state.parts.includes('ai'))
-    compose.ai = {
-      build: './ai',
-      restart: 'unless-stopped',
-      stop_grace_period: '45s',
-      environment: {
-        UO_HOST: host,
-        UO_PORT: port,
-        GEMWRIGHT_SHARD: composeLiteral(JSON.stringify(aiSettings(config)))
-      },
-      env_file: ['./ai.env'],
-      volumes: ['ai-data:/app/data'],
-      healthcheck: {
-        test: ['CMD', 'test', '-f', '/app/data/.ai-ready'],
-        interval: '5s',
-        timeout: '5s',
-        start_period: '10m',
-        retries: 12
-      },
-      logging
-    };
-  if (state.parts.includes('ai')) volumes['ai-data'] = {};
-  return { name: localProject(config), services: compose, volumes };
-}
-
-// Keys come from this environment when set; otherwise the ones saved earlier are kept.
-async function writeAiEnv(root: string, config: ShardConfig) {
-  const path = join(root, 'ai.env');
-  const saved = await readFile(path, 'utf8').catch((error) => {
-    if (error.code !== 'ENOENT') throw error;
-    return '';
-  });
-  const values = Object.fromEntries(
-    saved
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])
-  );
-  const keys = new Set(['TYPESAFE_API_KEY', 'ANTHROPIC_API_KEY', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']);
-  for (const entry of decisionProviders(config.ai?.decisions))
-    if (entry.provider !== 'local' && entry.credentialEnv) keys.add(entry.credentialEnv);
-  for (const key of keys) if (process.env[key]) values[key] = process.env[key] as string;
-  const text = Object.entries(values)
-    .map(([key, value]) => `${key}=${value}\n`)
-    .join('');
-  await writeFile(path, text, { mode: 0o600 });
-  await chmod(path, 0o600);
-}
-
 async function replace(staged: string, target: string) {
   await rm(`${target}.next`, { recursive: true, force: true });
   await cp(staged, `${target}.next`, { recursive: true });
@@ -164,7 +51,7 @@ async function replace(staged: string, target: string) {
 }
 
 export async function deployLocal(
-  options: DeployParts & { publicHost?: string; serverPort?: number; clientPort?: number },
+  options: DeployParts & { publicHost?: string; serverPort?: number; clientPort?: number; world?: WorldSource },
   directory = process.cwd()
 ) {
   directory = resolve(directory);
@@ -187,54 +74,49 @@ export async function deployLocal(
     if (!parts.includes('server') && !state.aiPatched && (server || !config.connection?.aiReady))
       throw new Error(
         server
-          ? 'The local server was built without the AI patch. Run gemwright deploy --local --server --ai.'
+          ? 'The local server was built without the AI patch. Run gemwright shard deploy --target local --server --ai.'
           : 'Confirm the external ServUO AI patch, account creation and trusted AI source separately; then set connection.aiReady: true.'
       );
   }
   if (!server && !config.connection?.host)
     throw new Error(
-      'Deploy the local server first (gemwright deploy --local --server), or set connection.host and connection.port.'
+      'Deploy the local server first (gemwright shard deploy --target local --server), or set connection.host and connection.port.'
     );
   await dockerCompose(directory);
   await mkdir(root, { recursive: true, mode: 0o700 });
   return withServicePackages(config, parts, async (paths) => {
-    const uploads: { service: string; archive: string; digest: string; target: string; reset?: string }[] = [];
+    const adapters: Record<string, ServerAdapter> = paths.server
+      ? (await import(pathToFileURL(join(paths.server, 'dist/staging.js')).href)).deployments
+      : deployments;
+    const emulator = adapters[config.emulator] as ServerAdapter;
+    const { gameFiles } = emulator;
+    const fileNames = (await readdir(assets)).map((name) => name.toLowerCase());
     if (parts.includes('server')) {
-      const adapters: Record<string, ServerAdapter> = paths.server
-        ? (await import(pathToFileURL(join(paths.server, 'dist/staging.js')).href)).deployments
-        : deployments;
-      const emulator = adapters[config.emulator] as ServerAdapter;
+      await gameFiles.check(directory, fileNames);
       await emulator.validate(directory, config);
       const aiPatch = config.emulator === 'servuo' && (!!options.ai || !!state.aiPatched);
       console.log(`Staging ${emulator.label} for local deployment...`);
       const staged = await emulator.stage(directory, config, { ai: aiPatch });
-      const client = await emulator.packageFiles(directory, assets);
-      // A different game file set replaces the server's copy; the start script extracts it on boot.
-      uploads.push({
-        service: 'server',
-        archive: client.archive,
-        digest: client.digest,
-        target: 'client.tar.gz',
-        reset: 'rm -rf /app/data/client /app/data/.client-ready'
-      });
       await replace(staged, join(root, 'server'));
       state.aiPatched = aiPatch;
     }
     if (parts.includes('client')) {
-      await installGameFiles(root, assets, state.parts.includes('client'), true);
       await rm(join(root, 'client'), { recursive: true, force: true });
       await mkdir(join(root, 'client'));
       await stageImage('client', join(root, 'client'), ['Dockerfile', '.dockerignore'], paths.client);
     }
     if (parts.includes('ai')) {
-      const maps = await packageClientFiles(directory, assets, mapPattern, (names) => {
-        if (!names.includes('tiledata.mul') || !names.some((n) => n.startsWith('map1')))
-          throw new Error('AI residents need tiledata.mul and the Trammel map (map1LegacyMUL.uop or map1.mul).');
-      });
+      if (!fileNames.includes('tiledata.mul') || !fileNames.some((name) => /^map1(?:\.mul|legacymul\.uop)$/.test(name)))
+        throw new Error('AI residents need tiledata.mul and the Trammel map (map1LegacyMUL.uop or map1.mul).');
+      const world = await shardWorldFiles(directory, config, options.world);
+      try {
+        await installWorldFiles(root, world);
+      } finally {
+        await rm(world, { recursive: true, force: true });
+      }
       await rm(join(root, 'ai'), { recursive: true, force: true });
       await mkdir(join(root, 'ai'));
       await stageImage('ai', join(root, 'ai'), ['Dockerfile'], paths.ai);
-      uploads.push({ service: 'ai', archive: maps.archive, digest: maps.digest, target: 'assets.tar.gz' });
       await writeAiEnv(root, config);
     }
     state.parts = (['server', 'client', 'ai'] as const).filter(
@@ -243,7 +125,14 @@ export async function deployLocal(
     if (options.publicHost) state.publicHost = options.publicHost;
     if (options.serverPort) state.serverPort = options.serverPort;
     if (options.clientPort) state.clientPort = options.clientPort;
-    const compose = localCompose(config, state);
+    // Every service mounts this one folder: the client's set when the client runs, else the server's
+    // set, else the maps the AI walks by.
+    await syncGameFiles(
+      root,
+      assets,
+      state.parts.includes('client') ? undefined : state.parts.includes('server') ? gameFiles.pattern : mapPattern
+    );
+    const compose = composeProject(config, state);
     if (config.sphere?.mysql && compose.services.server)
       await addMysql(root, compose.services.server as Record<string, unknown>, compose.services, compose.volumes);
     await writeFile(join(root, 'compose.json'), `${JSON.stringify(compose, null, 2)}\n`);
@@ -266,29 +155,6 @@ export async function deployLocal(
       await attachedCommand(['docker', 'compose', '-f', 'compose.json', 'up', '-d', '--wait', 'mysql'], root);
     const names = [...parts];
     await attachedCommand(['docker', 'compose', '-f', 'compose.json', 'build', ...names], root);
-    // Files reach the data volumes through a one-off container, before the service starts. Each
-    // volume records the set it holds, so a recreated or emptied volume gets the files again.
-    for (const upload of uploads)
-      await attachedCommand(
-        [
-          'docker',
-          'compose',
-          '-f',
-          'compose.json',
-          'run',
-          '--rm',
-          '--no-deps',
-          '-T',
-          '--entrypoint',
-          'sh',
-          '-v',
-          `${upload.archive}:/upload:ro`,
-          upload.service,
-          '-c',
-          `if [ "$(cat /app/data/.${upload.target}.digest 2>/dev/null)" != ${upload.digest} ]; then ${upload.reset ? `${upload.reset} && ` : ''}cp /upload /app/data/${upload.target}.tmp && mv /app/data/${upload.target}.tmp /app/data/${upload.target} && echo ${upload.digest} > /app/data/.${upload.target}.digest; fi`
-        ],
-        root
-      );
     await attachedCommand(
       [
         'docker',

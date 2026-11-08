@@ -7,7 +7,6 @@ import type { ShardConfig } from '@gemwright/common/config/types';
 import { loadSave, saveFormat } from '@gemwright/common/saves';
 import { savedDecoration, savedSpawnersXml } from '@gemwright/common/saves/world-files';
 import { deployAi as deploy } from '@gemwright/deployment/ai-deploy';
-import { pull } from '@gemwright/deployment/pull';
 import { loadShard } from '@gemwright/server/config';
 import { checkoutPaths } from '@gemwright/server/emulators/source';
 
@@ -17,7 +16,8 @@ import { stageImage } from './assets';
 // from the server (`--world-pull`), or by default the spawner files `[createworld` loads.
 export interface WorldSource {
   saves?: string;
-  pull?: boolean;
+  // Pulls the server's saves from wherever it is deployed into the given folder.
+  pull?: (output: string) => Promise<void>;
 }
 
 // The Saves folder of a pull, a server folder or the Saves folder itself.
@@ -36,7 +36,7 @@ export async function shardWorldFiles(directory: string, shard: ShardConfig, fro
     let saves = from.saves && savesFolder(resolve(from.saves));
     if (from.pull) {
       const output = join(directory, '.gemwright/pulls', new Date().toISOString().replace(/[:.]/g, '-'));
-      await pull({ server: true, output }, directory, console.log);
+      await from.pull(output);
       saves = savesFolder(output);
     }
     const spawns = saves ? [] : ['Spawns', 'RevampedSpawns'];

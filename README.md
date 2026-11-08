@@ -50,30 +50,30 @@ MySQL is off by default. On Railway, enabling it provisions a MySQL service in t
 
 ### Deploy your shard
 
-Run this from your shard directory and choose Railway or VPS in the questionnaire:
+Run this from your shard directory and choose where it runs: this machine, Railway or a VPS. The target is saved in `gemwright.json`, so later commands use it; `--target local`, `railway` or `vps` picks another:
 
 ```bash
 # in the project directory
-gemwright deploy
+gemwright shard deploy
 
 # after the initial deployment you can deploy services independently or in combination
-gemwright deploy [--server] [--client] [--ai]
+gemwright shard deploy [--server] [--client] [--ai]
 ```
 
 ```bash
 # deploy to Railway with your game files
 
 # deploy only the server (the default; --server says the same)
-gemwright deploy --target railway --files /path/to/game-files
+gemwright shard deploy --target railway --files /path/to/game-files
 
 # deploy the server and the web client
-gemwright deploy --target railway --files /path/to/game-files --server --client
+gemwright shard deploy --target railway --files /path/to/game-files --server --client
 
 # deploy only the web client, next to an already deployed server
-gemwright deploy --target railway --files /path/to/game-files --client
+gemwright shard deploy --target railway --files /path/to/game-files --client
 
 # add AI residents (ServUO): the server is rebuilt once with the AI patch
-gemwright deploy --target railway --files /path/to/game-files --server --ai
+gemwright shard deploy --target railway --files /path/to/game-files --server --ai
 ```
 
 AI residents are ordinary players run by a separate service. Configure them in `gemwright.json`:
@@ -82,43 +82,49 @@ AI residents are ordinary players run by a separate service. Configure them in `
 "ai": { "population": 20, "decisions": "local" }
 ```
 
-`decisions` accepts `local`, `jev`, `clef`, or an ordered provider list. Each remote entry uses `provider` and `model`; end the list with `{ "provider": "local" }`. The `clef` shorthand selects Clef Flash → Jev → local. Set `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `TYPESAFE_API_KEY` in the environment you deploy from. AI residents deploy to Railway or locally (`--local`) for now.
+`decisions` accepts `local`, `jev`, `clef`, or an ordered provider list. Each remote entry uses `provider` and `model`; end the list with `{ "provider": "local" }`. The `clef` shorthand selects Clef Flash → Jev → local. Set `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `TYPESAFE_API_KEY` in the environment you deploy from. AI residents deploy to Railway or locally (`--target local`) for now.
 
-Name the parts to deploy: with no part flags `gemwright deploy` deploys the server; with any, it deploys exactly those.
+Name the parts to deploy: any combination of `--server`, `--client` and `--ai` deploys exactly those. Without them, `gemwright shard deploy` redeploys the parts already deployed to the target, or the server the first time.
 
-For a VPS, the questionnaire asks for Docker Compose or native systemd (Ubuntu), SSH access, game files, and an optional browser-client domain:
+Prepare a new server once. Setup shows what it will change, then installs Docker, gives a non-root user Docker access and opens the firewall ports over one SSH session. Sudo asks for its password on the server, and the result is saved to `vps` in `gemwright.json`:
 
 ```bash
-gemwright deploy --target vps
+gemwright shard setup --ssh user@your-server
+```
+
+For a VPS, the questionnaire asks for SSH access, game files, and an optional browser-client domain. The shard runs in Docker Compose there; its images are built on your machine and sent over SSH, so the server never compiles:
+
+```bash
+gemwright shard deploy --target vps
 ```
 
 ### Run your shard locally
 
-With Docker running (Docker Desktop on macOS, or Docker Engine with the Compose plugin), `--local` runs the same parts on this machine as one Compose project in `.gemwright/local/`. Each part is its own container, and deploying one never restarts another. World saves and the resident database stay in that directory across redeploys.
+With Docker running (Docker Desktop on macOS, or Docker Engine with the Compose plugin), `--target local` runs the same parts on this machine as one Compose project in `.gemwright/local/`. Each part is its own container, and deploying one never restarts another. World saves and the resident database stay in that directory across redeploys.
 
 ```bash
 # the server; native clients log in at 127.0.0.1:2593
-gemwright deploy --local --files ~/uo
+gemwright shard deploy --target local --files ~/uo
 
 # add the browser client at http://localhost:3000 beside the local server
-gemwright deploy --local --client
+gemwright shard deploy --target local --client
 
 # add AI residents: the local server is rebuilt once with the AI patch
-gemwright deploy --local --server --ai
+gemwright shard deploy --target local --server --ai
 
 # let other machines on your network log in, on other ports (all kept for later deploys)
-gemwright deploy --local --public-host 192.168.1.20 --server-port 2600 --client-port 8080
+gemwright shard deploy --target local --public-host 192.168.1.20 --server-port 2600 --client-port 8080
 
 # stop and start parts without rebuilding; data stays in the Docker volumes
-gemwright stop --local [--server] [--client] [--ai]
-gemwright start --local [--server] [--client] [--ai]
+gemwright shard stop --target local [--server] [--client] [--ai]
+gemwright shard start --target local [--server] [--client] [--ai]
 ```
 
 Deploying with a different set of game files (`--files`) replaces the set each named part uses, and the world stays as it is.
 
 Every emulator runs locally. On Apple Silicon, Sphere 0.56 builds and runs under Docker's x86-64 emulation, so its first build is slower.
 
-`logs`, `pull` and `restore` accept `--local` too, and read or change the local deployment instead of Railway.
+`logs`, `pull` and `restore` use the saved target too; `--target` picks another.
 
 ### Pull your shard's state
 
@@ -126,28 +132,28 @@ Saves a copy of the deployed shard locally, on demand: the server's world saves,
 
 ```bash
 # in the project directory: everything
-gemwright pull
+gemwright shard pull
 
 # or only some parts; --backups adds the server's own Backups folder,
 # --cleanup deletes older pulls once this one is complete
-gemwright pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
+gemwright shard pull [--server] [--ai] [--logs] [--backups] [--output <dir>] [--cleanup]
 
 # from the local deployment
-gemwright pull --local
+gemwright shard pull --target local
 ```
 
-To pull on a schedule, run `gemwright pull --cleanup` from a cron job.
+To pull on a schedule, run `gemwright shard pull --cleanup` from a cron job.
 
 ### Restore a pull
 
-Puts a pull back on a Railway deployment, or the local one with `--local`: the world saves (ServUO) and the AI residents database. The files are uploaded to each volume first, then each service restarts and swaps them in on boot; the replaced files stay on the volume (`server/Saves.before-restore`, `residents.sqlite.before-restore`). Restoring the world disconnects everyone and returns the shard to that save, so the command always asks first.
+Puts a pull back on a Railway or local deployment: the world saves (ServUO) and the AI residents database. The files are uploaded to each volume first, then each service restarts and swaps them in on boot; the replaced files stay on the volume (`server/Saves.before-restore`, `residents.sqlite.before-restore`). Restoring the world disconnects everyone and returns the shard to that save, so the command always asks first.
 
 ```bash
 # the newest pull, everything in it
-gemwright restore
+gemwright shard restore
 
 # a specific pull, or only some parts; --yes skips the question
-gemwright restore [--from <pull folder>] [--server] [--ai] [--yes]
+gemwright shard restore [--from <pull folder>] [--server] [--ai] [--yes]
 ```
 
 The shard and AI services need a deployment made with this version, whose start scripts do the swap.

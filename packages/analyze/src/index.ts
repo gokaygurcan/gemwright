@@ -7,7 +7,7 @@ import { characterReport } from './character';
 import { newestPull } from './pulls';
 import { report } from './report';
 
-// A pulled world save (gemwright pull) made readable.
+// A pulled world save (gemwright shard pull) made readable.
 //   bun packages/analyze/src/index.ts [--saves <Saves folder>] [--output report.md]
 //     [--character <name or serial>] [--json <file>]
 // Without --saves: the newest pull under ./.gemwright/pulls. --character prints one character

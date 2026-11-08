@@ -219,6 +219,6 @@ export async function initialize(
     const path = /^[\w./-]+$/.test(target) ? target : `'${target.replaceAll("'", "'\\''")}'`;
     commands.push(`cd -- ${path}`);
   }
-  commands.push('gemwright deploy');
+  commands.push('gemwright shard deploy');
   prompts.outro(`Created ${configFilename} in ${directory}\n\nNext steps:\n  ${commands.join('\n  ')}`);
 }

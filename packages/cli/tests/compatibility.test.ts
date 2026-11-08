@@ -56,7 +56,7 @@ test('discovery reports an exact compatible update; explicit selection preserves
   const messages: string[] = [];
   const discover = async () => ['0.7.0', newer, '1.0.0'];
   await updatePackages({ component: 'ai' }, dir, discover, (s) => messages.push(s));
-  expect(messages.join('\n')).toContain(`gemwright update --ai --package-version ${newer}`);
+  expect(messages.join('\n')).toContain(`gemwright shard update --ai --package-version ${newer}`);
   expect(JSON.parse(await readFile(join(dir, 'gemwright.json'), 'utf8')).packages.ai).toBeUndefined();
   await updatePackages({ component: 'ai', version: newer }, dir, discover, () => {});
   expect((await loadShard(dir)).packages).toEqual({ client: '0.7.0', ai: newer });
@@ -84,4 +84,19 @@ test('a gemwright.json from before client.version names the field to add', () =>
     emulator: 'servuo'
   };
   expect(() => validateSchema(config)).toThrow('"client": { "version": "7.0.45.1" }');
+});
+
+test('the vps block survives loading and malformed values fail validation', () => {
+  const vps = { ssh: 'my-vps', path: 'gemwright/test', publicHost: '203.0.113.1' } as const;
+  expect(createConfig({ client: { version: '7.0.45.1' }, vps }).vps).toEqual(vps);
+  const base = { name: 'Test', id: 'test', timezone: 'Europe/London', expansion: 'ej', emulator: 'servuo' };
+  const shard = { ...base, client: { version: '7.0.45.1' } };
+  expect(() => validateSchema({ ...shard, vps })).not.toThrow();
+  for (const bad of [
+    { ssh: 'x' },
+    { ...vps, ssh: '-oProxyCommand=id' },
+    { ...vps, method: 'docker' },
+    { ...vps, token: 'x' }
+  ])
+    expect(() => validateSchema({ ...shard, vps: bad })).toThrow('Invalid gemwright.json');
 });

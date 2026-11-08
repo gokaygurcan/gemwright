@@ -2,30 +2,39 @@ import { randomBytes } from 'node:crypto';
 import { chmod, copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { isIP } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-import { clientVersion } from '@gemwright/common/config/shard';
+import type { GameFile } from '@gemwright/client/files';
 import { createManifest } from '@gemwright/deployment/client-files';
+import type { ServerAdapter } from '@gemwright/deployment/deploy';
 import { attachedCommand, command } from '@gemwright/deployment/process';
+import { validateAiSettings } from '@gemwright/deployment/service';
+import { worldFileNames } from '@gemwright/deployment/world-files';
 import { loadShard, type ShardConfig } from '@gemwright/server/config';
 
+import { shardWorldFiles, type WorldSource } from './ai-deploy';
 import { stageImage } from './assets';
+import { composeProject, writeAiEnv } from './compose';
 import { deployments } from './deploy';
-import { writeNativeBundle } from './vps-native';
+import { withServicePackages } from './service-packages';
+import { preflight, reachable } from './vps-preflight';
 import { localPrerequisites } from './vps-prerequisites';
 
 export interface VpsOptions {
   files?: string;
+  server?: boolean;
   client?: boolean;
+  ai?: boolean;
+  world?: WorldSource;
+  aiPatched?: boolean;
+  images?: Partial<Record<'client' | 'ai', string>>;
   publicHost?: string;
   domain?: string;
   prepare?: boolean;
-  method?: string;
   installDeps?: boolean;
 }
 
 export function validateVpsOptions(options: VpsOptions) {
-  if (options.method && !['docker', 'native'].includes(options.method))
-    throw new Error('--method must be docker or native.');
   const hostname = (value: string) =>
     value.length <= 253 && value.split('.').every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label));
   if (
@@ -44,9 +53,10 @@ export function validateVpsOptions(options: VpsOptions) {
 
 interface VpsState {
   emulator: string;
-  clientDigest: string;
   client: boolean;
-  method?: string;
+  ai?: boolean;
+  aiPatched?: boolean;
+  domain?: string;
 }
 
 const exists = async (path: string) =>
@@ -97,40 +107,52 @@ export async function addMysql(
   volumes['mysql-data'] = {};
 }
 
-// Copy only manifested files; executables and account files never enter the public directory.
-export async function installGameFiles(root: string, assets: string, installed: boolean, replace = false) {
-  const files = await createManifest(assets);
+// One folder of game files per deployment, mounted read-only into every service that reads them:
+// the selected set only (executables and account files never enter it), copying just the files
+// that are new or changed and removing those that left the selection.
+export async function syncGameFiles(root: string, assets: string, include?: RegExp) {
+  const files = (await createManifest(assets)).filter((file) => !include || include.test(file.path));
   const gamefiles = join(root, 'gamefiles');
   await mkdir(gamefiles, { recursive: true, mode: 0o755 });
   await chmod(gamefiles, 0o755);
-  if (installed && replace) {
-    const recorded = JSON.parse(await readFile(join(gamefiles, 'manifest.json'), 'utf8'));
-    if (JSON.stringify(recorded.files) !== JSON.stringify(files)) {
-      await rm(gamefiles, { recursive: true, force: true });
-      await mkdir(gamefiles, { recursive: true, mode: 0o755 });
-      installed = false;
+  const recorded: GameFile[] = await readFile(join(gamefiles, 'manifest.json'), 'utf8').then(
+    (text) => JSON.parse(text).files,
+    (error) => {
+      if (error.code !== 'ENOENT') throw error;
+      return [];
     }
-  }
-  if (!installed) {
-    for (const file of files) {
-      const target = join(gamefiles, file.path);
-      await mkdir(dirname(target), { recursive: true, mode: 0o755 });
-      await copyFile(join(assets, file.path), target);
-      await chmod(target, 0o644);
-      let parent = dirname(target);
-      while (parent !== root) {
-        await chmod(parent, 0o755);
-        if (parent === gamefiles) break;
-        parent = dirname(parent);
-      }
-    }
-  } else {
-    const recorded = JSON.parse(await readFile(join(gamefiles, 'manifest.json'), 'utf8'));
-    if (JSON.stringify(recorded.files) !== JSON.stringify(files))
-      throw new Error('The web client has different game files. They were not replaced.');
+  );
+  const wanted = new Set(files.map((file) => file.path));
+  const removed = recorded.filter((file) => !wanted.has(file.path)).map((file) => file.path);
+  for (const path of removed) await rm(join(gamefiles, path), { force: true });
+  const known = new Map(recorded.map((file) => [file.path, file.sha256]));
+  const copied: string[] = [];
+  for (const file of files) {
+    const target = join(gamefiles, file.path);
+    if (known.get(file.path) === file.sha256 && (await exists(target))) continue;
+    await mkdir(dirname(target), { recursive: true, mode: 0o755 });
+    await copyFile(join(assets, file.path), target);
+    await chmod(target, 0o644);
+    for (let parent = dirname(target); parent !== gamefiles; parent = dirname(parent)) await chmod(parent, 0o755);
+    copied.push(file.path);
   }
   await writeFile(join(gamefiles, 'manifest.json'), `${JSON.stringify({ files })}\n`, { mode: 0o644 });
   await chmod(join(gamefiles, 'manifest.json'), 0o644);
+  return { files, copied, removed };
+}
+
+// The world files AI residents learn the land from, mounted read-only into the AI service; a
+// staging that fails the check leaves the current folder as it is.
+export async function installWorldFiles(root: string, staged: string) {
+  const names = await worldFileNames(staged);
+  await rm(join(root, 'world.next'), { recursive: true, force: true });
+  for (const name of names) {
+    await mkdir(dirname(join(root, 'world.next', name)), { recursive: true });
+    await copyFile(join(staged, name), join(root, 'world.next', name));
+  }
+  await rm(join(root, 'world'), { recursive: true, force: true });
+  await rename(join(root, 'world.next'), join(root, 'world'));
+  return names.length;
 }
 
 // State stays outside the replaceable build contexts so rebuilds cannot erase a live world.
@@ -138,12 +160,12 @@ export async function writeVpsBundle(
   directory: string,
   config: ShardConfig,
   options: VpsOptions,
-  staged: string,
-  client: { archive: string; digest: string },
-  assets?: string
+  staged?: string,
+  assets?: string,
+  worldFiles?: string
 ) {
   validateVpsOptions(options);
-  const root = join(directory, options.method === 'native' ? '.gemwright/vps-native' : '.gemwright/vps');
+  const root = join(directory, '.gemwright/vps');
   const statePath = join(root, 'state.json');
   const previous: VpsState | undefined = await readFile(statePath, 'utf8').then(JSON.parse, (error) => {
     if (error.code !== 'ENOENT') throw error;
@@ -151,146 +173,140 @@ export async function writeVpsBundle(
   });
   if (previous && previous.emulator !== config.emulator)
     throw new Error('The VPS bundle belongs to another emulator. Use a separate shard directory.');
-  if (previous && (previous.method ?? 'docker') !== (options.method ?? 'docker'))
-    throw new Error('This bundle uses a different deployment method. Use a separate deployment directory.');
-  if (previous && previous.clientDigest !== client.digest)
-    throw new Error('Different client files are already recorded in this VPS bundle. They were not replaced.');
-  if (previous?.client && !options.client)
-    throw new Error('This VPS bundle includes a web client. Repeat --client and --domain to keep it deployed.');
+  if (!staged && !previous) throw new Error('Deploy the server to this VPS first: gemwright shard deploy --server.');
+  const withClient = !!options.client || !!previous?.client;
+  const withAi = !!options.ai || !!previous?.ai;
+  const aiPatched = staged ? !!options.aiPatched : !!previous?.aiPatched;
+  if (options.ai && !aiPatched)
+    throw new Error('The VPS server was built without the AI patch. Run gemwright shard deploy --server --ai.');
+  const domain = options.domain ?? previous?.domain;
   await mkdir(root, { recursive: true, mode: 0o700 });
   await mkdir(join(root, 'data'), { recursive: true });
-  if (!previous) {
-    const markers = [
-      '.initialized',
-      '.sphere-initialized',
-      '.sphere-x-initialized',
-      '.runuo-initialized',
-      '.modernuo-initialized',
-      '.client-ready'
-    ];
-    for (const marker of markers)
-      if (await exists(join(root, 'data', marker)))
-        throw new Error('Existing VPS data found without deployment state; refusing to import client files.');
-    await copyFile(client.archive, join(root, 'data/client.tar.gz.tmp'));
-    await rename(join(root, 'data/client.tar.gz.tmp'), join(root, 'data/client.tar.gz'));
+  if (staged) {
+    await rm(join(root, 'shard.next'), { recursive: true, force: true });
+    await cp(staged, join(root, 'shard.next'), { recursive: true });
+    await rm(join(root, 'shard'), { recursive: true, force: true });
+    await rename(join(root, 'shard.next'), join(root, 'shard'));
   }
-  await rm(join(root, 'shard.next'), { recursive: true, force: true });
-  await cp(staged, join(root, 'shard.next'), { recursive: true });
-  await rm(join(root, 'shard'), { recursive: true, force: true });
-  await rename(join(root, 'shard.next'), join(root, 'shard'));
-  const environment: Record<string, string> = { TZ: config.timezone, GEMWRIGHT_PUBLIC_HOST: options.publicHost ?? '' };
-  const shard: Record<string, unknown> = {
-    build: './shard',
-    restart: 'unless-stopped',
-    stop_grace_period: '2m',
-    ports: ['2593:2593/tcp'],
-    environment,
-    volumes: ['./data:/app/data'],
-    logging: { driver: 'json-file', options: { 'max-size': '10m', 'max-file': '3' } }
-  };
-  const services: Record<string, unknown> = { shard };
-  const volumes: Record<string, unknown> = {};
-  if (config.sphere?.mysql) await addMysql(root, shard, services, volumes);
+  if (options.client && !assets) throw new Error('Web client assets are required.');
+  // Every service shares the folder: the client's set when the client runs, else the server's.
+  if (assets)
+    await syncGameFiles(root, assets, withClient ? undefined : deployments[config.emulator].gameFiles.pattern);
   if (options.client) {
-    if (!assets) throw new Error('Web client assets are required.');
-    await installGameFiles(root, assets, !!previous?.client);
     await rm(join(root, 'web'), { recursive: true, force: true });
     await mkdir(join(root, 'web'));
-    await stageImage('client', join(root, 'web'), ['Dockerfile', '.dockerignore']);
-    services.web = {
-      build: './web',
-      restart: 'unless-stopped',
-      depends_on: ['shard'],
-      environment: {
-        UO_HOST: 'shard',
-        UO_PORT: '2593',
-        PUBLIC_ORIGIN: `https://${options.domain}`,
-        SERVER_NAME: config.name.replaceAll('$', () => '$$'),
-        UO_CLIENT_VERSION: process.env.UO_CLIENT_VERSION ?? clientVersion(config),
-        UO_ENCRYPTION: process.env.UO_ENCRYPTION ?? '0'
-      },
-      volumes: ['./gamefiles:/app/data/gamefiles:ro'],
-      healthcheck: {
-        test: [
-          'CMD',
-          'bun',
-          '-e',
-          "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-        ],
-        interval: '10s',
-        timeout: '5s',
-        retries: 12
-      }
-    };
-    services.caddy = {
-      image: 'caddy:2.11-alpine',
-      restart: 'unless-stopped',
-      depends_on: { web: { condition: 'service_healthy' } },
-      ports: ['80:80/tcp', '443:443/tcp', '443:443/udp'],
-      volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy-data:/data', 'caddy-config:/config']
-    };
-    volumes['caddy-data'] = {};
-    volumes['caddy-config'] = {};
-    await writeFile(join(root, 'Caddyfile'), `${options.domain} {\n    reverse_proxy web:3000\n}\n`);
+    await stageImage('client', join(root, 'web'), ['Dockerfile', '.dockerignore'], options.images?.client);
+    await writeFile(join(root, 'Caddyfile'), `${domain} {\n    reverse_proxy client:3000\n}\n`);
   }
-  const compose = { name: `gemwright-${config.id}`, services, ...(Object.keys(volumes).length ? { volumes } : {}) };
-  if (options.method === 'native') await writeNativeBundle(root, config, options);
-  else await writeFile(join(root, 'compose.json'), `${JSON.stringify(compose, null, 2)}\n`);
+  if (options.ai) {
+    if (!worldFiles) throw new Error('AI world files are required.');
+    await installWorldFiles(root, worldFiles);
+    await rm(join(root, 'ai'), { recursive: true, force: true });
+    await mkdir(join(root, 'ai'));
+    await stageImage('ai', join(root, 'ai'), ['Dockerfile'], options.images?.ai);
+    await writeAiEnv(root, config);
+  }
+  const compose = composeProject(
+    config,
+    {
+      emulator: config.emulator,
+      parts: ['server', ...(withClient ? (['client'] as const) : []), ...(withAi ? (['ai'] as const) : [])],
+      publicHost: options.publicHost,
+      aiPatched
+    },
+    { domain }
+  );
+  if (config.sphere?.mysql)
+    await addMysql(root, compose.services.server as Record<string, unknown>, compose.services, compose.volumes);
+  await writeFile(join(root, 'compose.json'), `${JSON.stringify(compose, null, 2)}\n`);
   await writeFile(
     `${statePath}.tmp`,
-    `${JSON.stringify({ emulator: config.emulator, clientDigest: client.digest, client: !!options.client, method: options.method ?? 'docker' }, null, 2)}\n`
+    `${JSON.stringify({ emulator: config.emulator, client: withClient, ai: withAi, aiPatched, ...(domain ? { domain } : {}) }, null, 2)}\n`
   );
   await rename(`${statePath}.tmp`, statePath);
   return root;
 }
 
-export function validateVpsPackageSelection(config: ShardConfig, client = false): void {
-  if (config.packages?.server || (client && config.packages?.client))
-    throw new Error(
-      'Exact service package selections currently deploy through Railway. Use Railway or explicitly remove the relevant package selections before using the CLI-carried VPS baseline.'
-    );
+// The Compose services a deployment builds and restarts; the others keep running untouched.
+export const composeServices = (options: VpsOptions, config: ShardConfig) => [
+  ...(options.server !== false ? ['server', ...(config.sphere?.mysql ? ['mysql'] : [])] : []),
+  ...(options.client ? ['client', 'caddy'] : []),
+  ...(options.ai ? ['ai'] : [])
+];
+
+// Images are built on the deploying machine for the VPS's architecture and shipped, so the VPS never
+// compiles; Compose names them after the project and service.
+export function dockerPlatform(machine: string) {
+  const platforms: Record<string, string> = {
+    x86_64: 'linux/amd64',
+    amd64: 'linux/amd64',
+    aarch64: 'linux/arm64',
+    arm64: 'linux/arm64'
+  };
+  const platform = platforms[machine.trim()];
+  if (!platform) throw new Error(`Gemwright cannot build images for a ${machine.trim()} VPS.`);
+  return platform;
+}
+export const builtServices = (services: string[]) =>
+  services.filter((service) => ['server', 'client', 'ai'].includes(service));
+export const builtImages = (config: ShardConfig, services: string[]) =>
+  builtServices(services).map((service) => `gemwright-${config.id}-${service}`);
+
+export function bundleInstructions(options: VpsOptions & { ssh?: string }) {
+  if (options.ssh) return undefined;
+  return 'Copy this entire directory (including hidden files) to the VPS, then run: docker compose -f compose.json up -d --build --wait --wait-timeout 900';
 }
 
-export async function deployVps(options: VpsOptions, directory = process.cwd()) {
+export async function deployVps(options: VpsOptions & { ssh?: string }, directory = process.cwd()) {
   validateVpsOptions(options);
   directory = resolve(directory);
   if (!options.prepare && process.platform !== 'linux')
     throw new Error('VPS deployment runs on Linux. Use --ssh to deploy remotely or --prepare to generate a bundle.');
   const config = await loadShard(directory);
-  validateVpsPackageSelection(config, options.client);
   const source =
     options.files ?? (config.emulator === 'sphere-x' ? config.sphere : config[config.emulator])?.clientFiles;
   if (!source) throw new Error('VPS deployment requires --files <path> or clientFiles in gemwright.json.');
-  const emulator = deployments[config.emulator];
-  await emulator.validate(directory, config);
-  console.log(`Staging ${emulator.label} for VPS deployment...`);
-  const staged = await emulator.stage(directory, config);
+  const bundle = join(directory, '.gemwright/vps');
+  if (!options.prepare) {
+    await preflight(options, bundle, await exists(join(bundle, 'state.json')), (script) =>
+      command(['sh', '-c', script], directory)
+    );
+  }
   const assets = resolve(directory, source);
-  const client = await emulator.packageFiles(directory, assets);
-  const root = await writeVpsBundle(directory, config, options, staged, client, assets);
+  const previous: VpsState | undefined = await readFile(join(bundle, 'state.json'), 'utf8').then(
+    JSON.parse,
+    () => undefined
+  );
+  if (options.ai) validateAiSettings(config);
+  const aiPatched = config.emulator === 'servuo' && (!!options.ai || !!previous?.aiPatched);
+  const components = (['server', 'client', 'ai'] as const).filter((part) =>
+    part === 'server' ? options.server !== false : !!options[part]
+  );
+  const root = await withServicePackages(config, components, async (paths) => {
+    const adapters: Record<string, ServerAdapter> = paths.server
+      ? (await import(pathToFileURL(join(paths.server, 'dist/staging.js')).href)).deployments
+      : deployments;
+    const emulator = adapters[config.emulator] as ServerAdapter;
+    let staged: string | undefined;
+    if (options.server !== false) {
+      await emulator.validate(directory, config);
+      console.log(`Staging ${emulator.label} for VPS deployment...`);
+      staged = await emulator.stage(directory, config, { ai: aiPatched });
+    }
+    const world = options.ai ? await shardWorldFiles(directory, config, options.world) : undefined;
+    try {
+      return await writeVpsBundle(directory, config, { ...options, aiPatched, images: paths }, staged, assets, world);
+    } finally {
+      if (world) await rm(world, { recursive: true, force: true });
+    }
+  });
   console.log(`VPS bundle: ${root}`);
   if (options.prepare) {
-    if (options.method === 'native')
-      console.log('Copy this entire directory to the VPS, then run: sudo sh install-native.sh');
-    else
-      console.log(
-        'Copy this entire directory (including hidden files) to the VPS, then run: docker compose -f compose.json up -d --build --wait --wait-timeout 180'
-      );
+    const instructions = bundleInstructions(options);
+    if (instructions) console.log(instructions);
     return root;
   }
-  const prerequisites = await localPrerequisites(options, config, root);
-  if (options.method === 'native') {
-    await attachedCommand(
-      [
-        ...(process.getuid?.() === 0 ? [] : ['sudo']),
-        'sh',
-        'install-native.sh',
-        ...(prerequisites.install ? ['--install-deps'] : [])
-      ],
-      root
-    );
-    return root;
-  }
+  const prerequisites = await localPrerequisites(options, root);
   await attachedCommand([...prerequisites.sudo, 'docker', 'compose', '-f', 'compose.json', 'config', '--quiet'], root);
   const containers = await command(
     [
@@ -315,22 +331,27 @@ export async function deployVps(options: VpsOptions, directory = process.cwd()) 
     )
       throw new Error('This Compose project belongs to another deployment directory.');
   }
+  const docker = [...prerequisites.sudo, 'docker'];
+  const services = composeServices(options, config);
+  await attachedCommand([...docker, 'compose', '-f', 'compose.json', 'build', ...services], root);
   await attachedCommand(
     [
-      ...prerequisites.sudo,
-      'docker',
+      ...docker,
       'compose',
       '-f',
       'compose.json',
       'up',
       '-d',
-      '--build',
+      '--no-deps',
+      '--remove-orphans',
       '--wait',
       '--wait-timeout',
-      '180'
+      '900',
+      ...services
     ],
     root
   );
+  await reachable(options.publicHost ?? '', 2593);
   console.log(`VPS containers started. Native client: ${options.publicHost}:2593`);
   if (options.client) console.log(`ClassicUO: https://${options.domain} (DNS must point to this VPS).`);
   return root;
