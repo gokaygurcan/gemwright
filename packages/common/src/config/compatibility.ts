@@ -41,6 +41,11 @@ export function validateSchema(input: unknown): asserts input is ShardConfig {
     throw new Error(
       'gemwright.json needs the classic client version players use, e.g. "client": { "version": "7.0.45.1" }'
     );
+  // Removed: residents are not assigned to cities; Young ones favour New Haven on their own.
+  if ((input as { ai?: { cohorts?: unknown } } | null)?.ai?.cohorts !== undefined)
+    throw new Error(
+      'gemwright.json ai.cohorts is no longer supported: residents are not assigned to cities. Delete ai.cohorts.'
+    );
   if (!validate(input))
     throw new Error(
       `Invalid gemwright.json: ${validate.errors?.map((error) => `${error.instancePath || '/'} ${error.message}`).join('; ')}`

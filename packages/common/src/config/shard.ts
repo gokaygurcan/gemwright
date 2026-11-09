@@ -164,7 +164,7 @@ export function createConfig(
       throw new Error('Invalid Sphere settings or scripts source.');
   }
   if (input.ai) {
-    const { population, decisions, speech, races, chaos, wars, cohorts, debug } = input.ai;
+    const { population, decisions, speech, races, chaos, wars, debug } = input.ai;
     decisionProviders(decisions);
     if (
       emulator !== 'servuo' ||
@@ -173,22 +173,11 @@ export function createConfig(
       (chaos !== undefined && (typeof chaos !== 'number' || !(chaos >= 0 && chaos <= 1))) ||
       (wars !== undefined && typeof wars !== 'boolean') ||
       (debug !== undefined && typeof debug !== 'boolean') ||
-      (cohorts !== undefined &&
-        (typeof cohorts !== 'object' ||
-          cohorts === null ||
-          Object.values(cohorts).some(
-            (c) =>
-              !Number.isInteger(c?.count) ||
-              c.count < 0 ||
-              typeof c.professions !== 'object' ||
-              c.professions === null ||
-              Object.values(c.professions).some((w) => typeof w !== 'number' || !(w >= 0))
-          ))) ||
       (races !== undefined &&
         (!Array.isArray(races) || !races.length || races.some((r) => !['human', 'elf', 'gargoyle'].includes(r))))
     )
       throw new Error(
-        'Invalid ai settings: ServUO only, population 0-300, speech authored or claude, races human, elf or gargoyle, chaos 0-1, wars true or false, debug true or false, cohorts { city: { count, professions: { id: weight } } }.'
+        'Invalid ai settings: ServUO only, population 0-300, speech authored or claude, races human, elf or gargoyle, chaos 0-1, wars true or false, debug true or false.'
       );
     // Elves arrive with Mondain's Legacy, gargoyles with Stygian Abyss.
     const era = expansions.findIndex((option) => option.value === expansion);

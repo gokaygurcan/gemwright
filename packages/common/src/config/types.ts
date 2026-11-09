@@ -95,9 +95,6 @@ export interface AiSettings {
   chaos?: number;
   // Whether the Order and Chaos guild alliances go to war with each other. Off by default.
   wars?: boolean;
-  // Residents of a fixed size started in one city, by profession weight, counted within
-  // population: { "New Haven": { count: 50, professions: { miner: 6, bard: 3 } } }.
-  cohorts?: Record<string, { count: number; professions: Record<string, number> }>;
   // The only cities residents go to; every city when unset.
   cities?: string[];
   // Whether every resident emotes the phase it is in above its head (watchStep): reads a stuck loop

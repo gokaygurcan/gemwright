@@ -331,28 +331,6 @@
             ]
           }
         },
-        "cohorts": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "count": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "professions": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "number",
-                  "minimum": 0
-                }
-              }
-            },
-            "required": ["count", "professions"]
-          },
-          "description": "Residents started in one city, keyed by city, counted within population: { \"New Haven\": { \"count\": 50, \"professions\": { \"miner\": 6 } } }."
-        },
         "debug": {
           "type": "boolean",
           "description": "Whether residents emote their current phase above their heads. Off by default."
