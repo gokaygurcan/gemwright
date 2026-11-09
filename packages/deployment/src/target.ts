@@ -67,3 +67,10 @@ export function vpsRunner(directory: string, config: Pick<ShardConfig, 'id' | 'v
       `(cd ${quote(root)} && if docker info >/dev/null 2>&1; then docker=docker; else docker='sudo -n docker'; fi && $docker compose -f compose.json ${args.map(quote).join(' ')})`
   };
 }
+
+// What a pull reads from: the VPS over SSH, else Railway. A local shard's saves are already here.
+export function pullFrom(directory: string, config: Pick<ShardConfig, 'id' | 'railway' | 'vps' | 'target'>) {
+  const target = requireTarget(directory, config);
+  if (target === 'local') throw new Error('This shard runs locally: its saves are already on this machine.');
+  return target === 'vps' ? { vps: vpsRunner(directory, config) } : {};
+}

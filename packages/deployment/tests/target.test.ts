@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { command } from '../src/process';
 import { pull } from '../src/pull';
-import { resolveTarget, vpsRunner } from '../src/target';
+import { pullFrom, resolveTarget, vpsRunner } from '../src/target';
 
 const folders: string[] = [];
 afterEach(async () => {
@@ -31,6 +31,14 @@ test('the named target wins, then the saved one, then the only deployment', asyn
   expect(() => resolveTarget(both, {}, 'cloud')).toThrow('local, railway or vps');
   expect(resolveTarget(await shard(), { vps })).toBe('vps');
   expect(resolveTarget(await shard(), {})).toBeUndefined();
+});
+
+test('a pull reads from the saved target, not always Railway', async () => {
+  const both = await shard(['railway.json']);
+  expect(pullFrom(both, { id: 'test', target: 'vps', vps: { ...vps, ssh: 'host' } }).vps?.root).toBe('gemwright/test');
+  expect(pullFrom(both, { id: 'test', target: 'railway', vps }).vps).toBeUndefined();
+  const local = await shard(['local/state.json']);
+  expect(() => pullFrom(local, { id: 'test' })).toThrow('locally');
 });
 
 test('an on-box VPS deployment pulls its saves into the shared pull layout', async () => {
