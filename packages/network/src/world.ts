@@ -1,4 +1,5 @@
 import { EntityMap } from './entity-map';
+import type { HouseDesign } from './house-design';
 import { decoders } from './incoming';
 import type { TargetCursor } from './packets';
 import type { PlayerStatus } from './status';
@@ -63,9 +64,14 @@ export class WorldView {
   partyInvite: { leader: number; at: number } | null = null;
   readonly healthChanges: HealthChange[] = [];
   readonly swings = new Map<number, { target: number; at: number }>();
+  // Each mobile's latest animation, as every client in view is sent it: `type` is the SA animation
+  // type (0 attack, 11 spell) of 0xE2, null for an old-style 0x6E action.
+  readonly animations = new Map<number, { type: number | null; action: number; at: number }>();
   readonly damage = new Map<number, { at: number; amount: number }>();
   readonly deaths = new Map<number, { corpse: number; position?: Position }>();
   lastContainerContents: number[] = [];
+  readonly houseDesigns = new Map<number, HouseDesign>();
+  readonly houseRevisions = new Map<number, number>();
   readonly entities = new EntityMap((serial, removed) => this.observations.entity(serial, removed));
   readonly journal: JournalEntry[] = [];
   readonly gumps = new Map<string, { serial: number; id: number; packed: boolean; layout: string }>();
@@ -78,6 +84,8 @@ export class WorldView {
 
   remove(serial: number): void {
     this.entities.delete(serial);
+    this.houseDesigns.delete(serial);
+    this.houseRevisions.delete(serial);
   }
 
   put(entity: Entity): void {

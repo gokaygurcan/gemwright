@@ -10,7 +10,7 @@ export const itemPackets: [number, Decoder][] = [
   Packet Build
   BYTE[1] Packet identifier
   BYTE[2] Unknown (1)
-  BYTE[1] Type (0 item, 1 multi)
+  BYTE[1] Type (0 item, 2 multi)
   BYTE[4] Serial
   BYTE[2] Graphic
   BYTE[1] Direction
@@ -30,6 +30,8 @@ export const itemPackets: [number, Decoder][] = [
         serial: packet.readUInt32BE(4),
         kind: 'item',
         graphic: packet.readUInt16BE(8),
+        multi: packet[3] === 2,
+        facet: world.map ?? undefined,
         amount: packet.readUInt16BE(11),
         position: { x: packet.readUInt16BE(15), y: packet.readUInt16BE(17), z: packet.readInt8(19), direction: 0 },
         flags: packet.readUInt8(23),

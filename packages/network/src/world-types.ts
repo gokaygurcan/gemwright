@@ -8,6 +8,8 @@ export interface Entity {
   serial: number;
   kind: 'mobile' | 'item';
   graphic: number;
+  multi?: boolean;
+  facet?: number;
   hue?: number;
   name?: string;
   position?: Position;

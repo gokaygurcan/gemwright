@@ -9,6 +9,7 @@ import { timed } from './diagnostics';
 import { ExecutionBoundary } from './execution-boundary';
 import { offersReply } from './gumps';
 import { dropAtFeet, equipItem, giveToMobile, moveItem } from './items';
+import { MovementTrail } from './movement-trail';
 import * as packets from './packets';
 import { refreshCharacterStatus, requestContext, resynchronize, SessionTiming } from './session-observation';
 
@@ -26,6 +27,7 @@ export type { CharacterRequest, Credentials, SessionPhase } from './session-type
 import type { CharacterRequest, Credentials, SessionPhase } from './session-types';
 
 export class PlayerSession {
+  readonly movementTrail = new MovementTrail();
   readonly movementCounts = { running: 0, walking: 0, turns: 0, rejected: 0 };
   readonly world = new WorldView();
   readonly timing = new SessionTiming();
@@ -57,6 +59,9 @@ export class PlayerSession {
     running: boolean;
     result?: boolean;
   } | null = null;
+
+  // Sees every packet as it is sent or received (a resident's full recording, ai recording.ts).
+  tap?: (direction: 'in' | 'out', packet: Buffer) => void;
 
   constructor(
     readonly config: ConnectionConfig,
@@ -98,6 +103,7 @@ export class PlayerSession {
     this.assertOwnership();
     if (this.failure) throw this.failure;
     if (!this.transport) throw new Error('No shard connection');
+    this.tap?.('out', packet);
     this.timing.sent(packet[0] ?? -1, packet[0] === 0x02 ? packet[2] : undefined);
     this.transport.write(packet);
   }
@@ -117,6 +123,7 @@ export class PlayerSession {
   }
 
   private receive(packet: Buffer): void {
+    this.tap?.('in', packet);
     this.lastPacketAt = Date.now();
     const opcode = packet.readUInt8(0);
     this.timing.received(opcode, opcode === 0x21 || opcode === 0x22 ? packet[1] : undefined);
@@ -167,7 +174,33 @@ export class PlayerSession {
       // ServUO zeroes NetState.Sequence with every full self update.
       this.sequence = 0;
     }
+    const beforeFacet = this.world.map;
+    const beforePosition = this.world.position && { ...this.world.position };
     timed('apply', () => this.world.apply(packet));
+    if (opcode === 0x22 && this.movement?.result && this.world.position)
+      this.movementTrail.record(this.movement.before, this.world.position, this.world.map);
+    if (
+      beforeFacet !== this.world.map ||
+      opcode === 0xd8 ||
+      opcode === 0xf3 ||
+      (opcode === 0xbf && packet.readUInt16BE(3) === 0x1d) ||
+      (opcode === 0x20 &&
+        beforePosition &&
+        this.world.position &&
+        (beforePosition.x !== this.world.position.x ||
+          beforePosition.y !== this.world.position.y ||
+          beforePosition.z !== this.world.position.z))
+    )
+      this.movementTrail.clear();
+    if (opcode === 0xbf && packet.readUInt16BE(3) === 0x1d) {
+      const serial = packet.readUInt32BE(5);
+      if (this.world.houseDesigns.get(serial)?.revision !== this.world.houseRevisions.get(serial)) {
+        const body = Buffer.alloc(6);
+        body.writeUInt16BE(0x1e);
+        body.writeUInt32BE(serial, 2);
+        this.send(packets.variable(0xbf, body));
+      }
+    }
     if (this.world.ready && this.world.serial !== null) this.phase = 'ready';
     timed('wake', () => this.events.emit('update'));
   }

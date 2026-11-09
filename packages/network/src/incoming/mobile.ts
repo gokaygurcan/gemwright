@@ -3,6 +3,15 @@ import { playerStatus, recordHealth } from '../status';
 import { text } from '../world';
 import type { Decoder } from './decoder';
 
+// Kept like swings: eight seconds, at most a thousand mobiles.
+function noteAnimation(world: Parameters<Decoder>[0], serial: number, type: number | null, action: number) {
+  const now = Date.now();
+  for (const [key, seen] of world.animations) if (now - seen.at > 8000) world.animations.delete(key);
+  if (world.animations.size >= 1000) world.animations.delete(world.animations.keys().next().value as number);
+  world.animations.set(serial, { type, action, at: now });
+  world.observations.entity(serial);
+}
+
 export const mobilePackets: [number, Decoder][] = [
   /*
   Health Bar Status
@@ -36,6 +45,30 @@ export const mobilePackets: [number, Decoder][] = [
   BYTE[4] Attacker serial
   BYTE[4] Defender serial
   */
+  /*
+  Mobile Animation (0x6E, before SA) and New Mobile Animation (0xE2)
+  Server shows a mobile animating to every client in view (ServUO Mobile.Animate): a weapon swing,
+  a spell cast, a hit taken. The swing packet (0x2F) reaches the attacker alone, so this is how a
+  defender sees its attacker.
+
+  0x6E, 14 bytes: BYTE[4] Serial, BYTE[2] Action, BYTE[2] Frames, BYTE[2] Repeat, BYTE[1] Reverse,
+  BYTE[1] Repeats, BYTE[1] Delay
+  0xE2, 10 bytes: BYTE[4] Serial, BYTE[2] Type, BYTE[2] Action, BYTE[1] Delay
+  */
+  [
+    0x6e,
+    (world, packet) => {
+      if (packet.length !== 14) throw new Error('Invalid mobile animation length');
+      noteAnimation(world, packet.readUInt32BE(1), null, packet.readUInt16BE(5));
+    }
+  ],
+  [
+    0xe2,
+    (world, packet) => {
+      if (packet.length !== 10) throw new Error('Invalid mobile animation length');
+      noteAnimation(world, packet.readUInt32BE(1), packet.readUInt16BE(5), packet.readUInt16BE(7));
+    }
+  ],
   [
     0x2f,
     (world, packet) => {

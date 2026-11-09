@@ -38,6 +38,7 @@
     "./replies": "./src/replies.ts",
     "./session": "./src/session.ts",
     "./session-observation": "./src/session-observation.ts",
+    "./speech": "./src/speech.ts",
     "./status": "./src/status.ts",
     "./trade": "./src/trade.ts",
     "./wait-options": "./src/wait-options.ts",

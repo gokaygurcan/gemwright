@@ -135,3 +135,22 @@ test('worn items keep the hue the shard sends with them', () => {
   world.apply(equip);
   expect(world.entities.get(11)?.hue).toBe(2301);
 });
+
+// Attacks are seen as the attacker's animation, sent to every client in view (ServUO Mobile.Animate:
+// 0xE2 on SA, 0x6E before); the swing itself (0x2F) goes to the attacker alone.
+test('a mobile animating is recorded, new style and old', () => {
+  const world = new WorldView();
+  const sa = Buffer.alloc(10);
+  sa[0] = 0xe2;
+  sa.writeUInt32BE(7, 1);
+  sa.writeUInt16BE(0, 5);
+  sa.writeUInt16BE(3, 7);
+  world.apply(sa);
+  expect(world.animations.get(7)).toMatchObject({ type: 0, action: 3 });
+  const old = Buffer.alloc(14);
+  old[0] = 0x6e;
+  old.writeUInt32BE(8, 1);
+  old.writeUInt16BE(5, 5);
+  world.apply(old);
+  expect(world.animations.get(8)).toMatchObject({ type: null, action: 5 });
+});

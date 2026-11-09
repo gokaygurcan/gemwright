@@ -92,6 +92,7 @@ export const packetLengths: Readonly<Record<number, number>> = {
   209: 2,
   211: 0,
   214: 0,
+  216: 0,
   220: 9,
   221: 0,
   223: 0,
