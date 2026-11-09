@@ -2,6 +2,7 @@ import { useMemo, useState } from 'preact/hooks';
 
 import type { Block, Cell } from '../src/doc';
 import { LineChart, MiniMap, Shares, Stats } from './charts';
+import { FlowChart } from './flow';
 
 // Renders a page's blocks (src/doc.ts): notes, headings, fact lists, tables that sort and filter,
 // preformatted text, item art and the server-drawn character scene.
@@ -152,6 +153,8 @@ export function BlockView({ block }: { block: Block }) {
           <img alt={block.alt} src={block.src} />
         </figure>
       );
+    case 'flow':
+      return <FlowChart block={block} />;
     case 'html':
       return (
         <>

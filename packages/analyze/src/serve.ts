@@ -1,11 +1,13 @@
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { loadShard } from '@gemwright/common/config/shard';
 import { pull } from '@gemwright/deployment/pull';
+import { pullFrom } from '@gemwright/deployment/target';
 
 import { type Analysis, analyze } from './analysis';
 import { findClientFiles } from './client';
-import { decisionsDoc } from './decisions';
+import { decisionDoc, decisionsDoc } from './decisions';
 import type { Doc } from './doc';
 import { economyDoc } from './economy';
 import { historyDoc, readHistory, recordHistory } from './history';
@@ -22,6 +24,7 @@ import { questionDoc, questionsDoc } from './questions';
 import { replayDoc } from './replay';
 import { readResidents, residentsDoc } from './residents';
 import { search } from './search';
+import { spentDoc } from './spent';
 import { readLasting, troubleDoc } from './trouble';
 
 // The app: built with Tailwind by web/build.ts, read from dist/web when built, and from source
@@ -99,10 +102,14 @@ const pulling: { running: boolean; lines: string[]; error?: string } = { running
 function fetchPull() {
   if (pulling.running) return;
   Object.assign(pulling, { running: true, lines: [], error: undefined });
-  pull({}, directory, (line) => {
-    pulling.lines.push(line);
-    console.log(line);
-  })
+  // Sphere's rules do not matter to a pull, only where the shard is deployed.
+  loadShard(directory, () => {})
+    .then((config) =>
+      pull(pullFrom(directory, config), directory, (line) => {
+        pulling.lines.push(line);
+        console.log(line);
+      })
+    )
     .catch((error) => {
       pulling.error = `Pull failed: ${error instanceof Error ? error.message : String(error)}`;
     })
@@ -175,7 +182,14 @@ const server = Bun.serve({
     '/api/page/loops': () => page((o) => loopsDoc(o.lasting)),
     '/api/page/history': () => page((o) => historyDoc(o.history)),
     '/api/page/economy': () => page((o) => economyDoc(o.saves)),
-    '/api/page/decisions': () => page((o) => decisionsDoc(o.saves)),
+    '/api/page/spent': () => page((o) => spentDoc(o.saves)),
+    '/api/page/decisions': (request) => {
+      const query = new URL(request.url).searchParams;
+      return page((o) =>
+        decisionsDoc(o.saves, Math.max(0, Number(query.get('page')) || 0), query.get('kind') ?? undefined)
+      );
+    },
+    '/api/page/decision/:id': (request) => page((o) => decisionDoc(o.saves, request.params.id), 'decision'),
     '/api/page/questions': (request) =>
       page((o) => questionsDoc(o.saves, Math.max(0, Number(new URL(request.url).searchParams.get('page')) || 0))),
     '/api/page/question/:id': (request) => page((o) => questionDoc(o.saves, request.params.id), 'question'),

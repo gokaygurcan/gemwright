@@ -450,6 +450,93 @@
   .doll .figure:has(a.hit) {
     cursor: pointer;
   }
+  .flow {
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+  }
+  .flow-step {
+    position: relative;
+    margin: 0 0 1.25rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .flow-step + .flow-step::before {
+    content: "";
+    position: absolute;
+    left: 1.25rem;
+    top: calc(-1.25rem - 1px);
+    height: 1.25rem;
+    border-left: 2px solid var(--line);
+  }
+  .flow-step p {
+    margin: 0.25rem 0 0;
+  }
+  .flow-end {
+    border-color: var(--accent);
+  }
+  .flow-check.failed {
+    border-color: var(--error);
+  }
+  .flow-note {
+    border-style: dashed;
+  }
+  .flow-exit {
+    font-weight: 600;
+  }
+  .flow-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+  }
+  .flow-option {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+  }
+  .flow-option.taken {
+    border: 2px solid var(--accent);
+  }
+  .flow-option.excluded {
+    opacity: 0.6;
+  }
+  .flow-option-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .flow-share {
+    height: 4px;
+    margin: 0.3rem 0;
+    background: var(--head);
+    border-radius: 2px;
+  }
+  .flow-share span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .flow-factors {
+    margin: 0;
+  }
+  .flow-factors div {
+    display: flex;
+    justify-content: space-between;
+  }
+  .flow-factors dt {
+    color: var(--muted);
+  }
+  .flow-factors dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
   @media (max-width: 640px) {
     .pull {
       grid-template-columns: 1fr;

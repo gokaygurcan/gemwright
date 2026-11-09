@@ -8,7 +8,7 @@ import { type Block, type Cell, type Doc, link, noDatabase, num } from './doc';
 // options offered and the answer, from Clef, Jev or the local rules. One question's page has its
 // whole context: the state, the instructions and the full response.
 const PAGE = 500;
-interface Row {
+export interface Row {
   id: string;
   at: number;
   name: string | null;
@@ -22,7 +22,7 @@ interface Row {
   request: Uint8Array<ArrayBuffer>;
   response: Uint8Array<ArrayBuffer>;
 }
-const unzip = (bytes: Uint8Array<ArrayBuffer>) => JSON.parse(new TextDecoder().decode(Bun.gunzipSync(bytes)));
+export const unzip = (bytes: Uint8Array<ArrayBuffer>) => JSON.parse(new TextDecoder().decode(Bun.gunzipSync(bytes)));
 interface Attempt {
   provider: string;
   model: string;
@@ -38,9 +38,9 @@ const pretty = (text: string) => {
     return text;
   }
 };
-const time = (at: number) => new Date(at).toISOString().slice(0, 19).replace('T', ' ');
+export const time = (at: number) => new Date(at).toISOString().slice(0, 19).replace('T', ' ');
 
-function open(saves: string) {
+export function open(saves: string) {
   const file = join(saves, '../../ai/residents.sqlite');
   if (!existsSync(file)) return undefined;
   const db = new Database(file, { readonly: true });
@@ -53,7 +53,7 @@ const unlogged: Doc = {
   title: 'Questions',
   blocks: [{ kind: 'note', text: 'This pull was taken before residents logged their questions.' }]
 };
-const SELECT = `SELECT d.*, r.proposed_name AS name FROM decision_log d LEFT JOIN residents r ON r.id = d.resident_id`;
+export const SELECT = `SELECT d.*, r.proposed_name AS name FROM decision_log d LEFT JOIN residents r ON r.id = d.resident_id`;
 
 export function questionsDoc(saves: string, page: number): Doc {
   const db = open(saves);
