@@ -2,6 +2,7 @@ import { ingot } from '@gemwright/common/game/items';
 import { Actions } from '@gemwright/network/replies';
 
 import { fundsStale, spendableGold } from './bank-gold';
+import { Blocked } from './blocked';
 import { craftRecipes } from './craft-training';
 import { serviceLocations } from './locations';
 import { vendorMenu } from './lumber-shop';
@@ -54,7 +55,12 @@ export function createIngotSeller(
     );
     // Smiths buy iron ingots (ServUO SBBlacksmith); the tool shops are a fallback route.
     for (const shop of [...serviceLocations(city, 'blacksmith'), ...shops]) {
-      await navigate(shop, 4);
+      try {
+        await navigate(shop, 4);
+      } catch (error) {
+        if (!(error instanceof Blocked)) throw error;
+        continue;
+      }
       for (const mobile of learning.order([...session.world.entities.values()], Actions.sell, [ingot])) {
         if (mobile.kind !== 'mobile' || !mobile.position || distance(position(), mobile.position) > 10) continue;
         if (mobile.serial === session.world.serial || learning.blocked(mobile, Actions.sell, [ingot])) continue;

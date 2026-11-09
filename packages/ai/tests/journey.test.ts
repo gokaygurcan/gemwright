@@ -80,7 +80,7 @@ for (const [from, to] of [
   test(`travel from ${from} to ${to} takes its own gate before walking to the destination`, async () => {
     const f = travelFixture({ ...moongates[from], direction: 0 });
     await travelJourney(f.ctx, moongates[to], 1, f.walk);
-    expect(f.legs[0]).toEqual(moongates[from]);
+    expect(f.legs[0]).toEqual({ x: moongates[from].x, y: moongates[from].y });
     expect(f.crossings).toEqual([to]);
     expect(f.legs.at(-1)).toEqual(moongates[to]);
   });
@@ -95,7 +95,7 @@ test('a destination gate must be on its connected land, regardless of straight-l
 test('a failed walk on the same land does not create pointless gate trips', async () => {
   const f = travelFixture({ ...moongates.britain, direction: 0 });
   await expect(
-    travelJourney(f.ctx, moongates.yew, 1, async () => {
+    travelJourney(f.ctx, { x: 1370, y: 1475 }, 1, async () => {
       throw new Blocked('unreachable', 'Locked in');
     })
   ).rejects.toThrow('Locked in');
@@ -198,4 +198,48 @@ test('an unconfirmed crossing fails without inventing a ten-minute gate closure'
   } finally {
     lasting('gate-ban', f.world.serial ?? -1).set('minoc>newhaven', 0);
   }
+});
+
+test('requesting the gate already serving this area does not walk to it', async () => {
+  const f = travelFixture({ x: 1646, y: 1604, z: 20, direction: 0 });
+  await travelByMoongate({ ...f.ctx, navigate: f.walk }, 'britain');
+  expect(f.legs).toEqual([]);
+  expect(f.crossings).toEqual([]);
+});
+
+for (const point of [
+  { x: 1969, y: 1409 },
+  { x: 1646, y: 1300 }
+])
+  test(`Britain travel to ${point.x},${point.y} goes directly without a distance-triggered gate detour`, async () => {
+    const f = travelFixture({ x: 1646, y: 1604, z: 20, direction: 0 });
+    await travelJourney(f.ctx, point, 3, f.walk);
+    expect(f.legs).toEqual([point]);
+    expect(f.crossings).toEqual([]);
+  });
+
+test('a useful gate pair can shorten a journey on the same connected mainland', async () => {
+  const f = travelFixture({ ...moongates.britain, direction: 0 });
+  await travelJourney(f.ctx, moongates.yew, 1, f.walk);
+  expect(f.crossings).toEqual(['yew']);
+});
+
+// Finn Gray, Nov 9: on Britain's outskirts every path search ran out, the cell was taken for a
+// pocket, and he walked to the britain moongate "to travel to britain".
+test('a failed path search never sends a resident through the gate of the town it stands in', async () => {
+  const f = travelFixture({ x: 1149, y: 1681, z: 0, direction: 0 });
+  // Searches from where it stands run out; from anywhere else they find the way.
+  f.terrain.pathAsync = async (from, to) =>
+    from.x === 1149 && from.y === 1681 ? null : [{ x: to.x, y: to.y, z: from.z }];
+  const gate = { x: moongates.britain.x, y: moongates.britain.y };
+  // Twice: a second failure marks the cell a pocket, which must not change the answer.
+  // As on the shard: the direct walk there finds no route.
+  const walk = async (point: { x: number; y: number; z?: number }) => {
+    if (point.x === 623 && point.y === 1505) throw new Blocked('unreachable', 'No walkable route to 623,1505');
+    return f.walk(point);
+  };
+  for (let attempt = 0; attempt < 2; attempt++)
+    await travelJourney(f.ctx, { x: 623, y: 1505 }, 1, walk).catch(() => {});
+  expect(f.legs).not.toContainEqual(gate);
+  expect(f.crossings).toEqual([]);
 });

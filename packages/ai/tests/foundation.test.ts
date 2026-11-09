@@ -17,7 +17,7 @@ function config() {
   const input = structuredClone(example);
   for (const template of input.templates) {
     template.version = 1;
-    if (template.id === 'britain-miner') template.creation.city = 'Britain';
+    if (template.id === 'britain-miner') template.creation.cities = { Britain: 1 };
   }
   return validateConfig(input);
 }
@@ -124,7 +124,7 @@ describe('resident persistence', () => {
       store.saveProgress(resident.id, resident.revision, checkpoint, binding);
       const miner = required(c.templates.find((t) => t.id === 'britain-miner'));
       miner.version = 2;
-      miner.creation.city = 'Minoc';
+      miner.creation.cities = { Minoc: 1 };
       miner.behavior.riskTolerance = 0.1;
       store.reconcile(c);
       const updated = required(store.list().find((r) => r.id === resident.id));
@@ -133,8 +133,8 @@ describe('resident persistence', () => {
       // Loading upgrades the checkpoint shape but preserves its content.
       expect(updated.checkpoint).toEqual({ ...checkpoint, schemaVersion: 2 });
       expect(updated.binding).toEqual(binding);
-      expect(store.template('britain-miner', 1)?.creation.city).toBe('Britain');
-      expect(store.template('britain-miner', 2)?.creation.city).toBe('Minoc');
+      expect(store.template('britain-miner', 1)?.creation.cities).toEqual({ Britain: 1 });
+      expect(store.template('britain-miner', 2)?.creation.cities).toEqual({ Minoc: 1 });
       expect(() => store.saveProgress(resident.id, resident.revision, checkpoint, binding)).toThrow(
         'revision conflict'
       );

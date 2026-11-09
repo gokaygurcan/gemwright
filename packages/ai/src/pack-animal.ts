@@ -31,7 +31,7 @@ const LOADS_BEFORE_BUYING = 3;
 const SAVINGS_BEYOND_PRICE = 1500;
 const PRICE = 631; // pack horse (SBAnimalTrainer); the llama is 565
 
-export function createPackAnimal(ctx: MountContext, city: string) {
+export function createPackAnimal(ctx: MountContext, city: () => string) {
   const { session, checkpoint, position, navigate, phase, persist, log, check } = ctx;
   checkpoint.packAnimal ??= { schemaVersion: 1, state: 'seeking' };
   const memory: MountMemory & { load?: number; searches?: number; abandoned?: number; fullLoads?: number } =
@@ -114,7 +114,7 @@ export function createPackAnimal(ctx: MountContext, city: string) {
     // Never seen at all (a delivery that went unconfirmed): it stands at the stables it came from.
     // Only on a belief: where it was seen, or the stables it was bought at or left in. A lost animal
     // never stabled is not waiting anywhere, and a walk to the trainer for it is a walk for nothing.
-    const trainer = pickLocation(city, 'animal-trainer');
+    const trainer = pickLocation(city(), 'animal-trainer');
     const believed = memory.state === 'purchase-pending' || !!memory.stabled;
     const where = memory.lastSeen ?? (trainer && believed ? { map: 1, x: trainer.x, y: trainer.y } : undefined);
     if (['missing', 'lost', 'purchase-pending'].includes(memory.state) && where && where.map === session.world.map) {

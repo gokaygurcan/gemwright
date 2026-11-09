@@ -4,7 +4,8 @@ import type { CharacterTemplate, PopulationConfig } from './config';
 import { logger } from './log';
 
 // World configuration (world/world.json): facets and cities in play, professions with their
-// archetype, behavior, creation skills, weighted homes and hunting grounds, and the population mix.
+// archetype, behavior, creation skills, weighted starting cities and hunting grounds, and the
+// population mix.
 export type Behavior =
   | 'miner'
   | 'lumberjack'
@@ -21,7 +22,7 @@ interface Profession {
   behavior: Behavior;
   share: number;
   creation: { namePrefix: string; skills: Record<string, number> };
-  homes: Record<string, number>;
+  startingCities: Record<string, number>;
   grounds?: Record<string, number>;
   trainingGoals: Record<string, number>;
   riskTolerance: number;
@@ -60,16 +61,11 @@ export type LifePhase = 'work' | 'dungeon' | 'errands' | 'leisure' | 'visit' | '
 export const world = JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8')) as World;
 if (world.schemaVersion !== 1) throw new Error('Unsupported world configuration');
 
-const slug = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 const enabledFacets = new Set(world.facets.filter((f) => f.enabled).map((f) => f.id));
 
 // The cities a shard's residents may go to (gemwright.json ai.cities): their shops, banks and
-// healers, the grounds and gates around them. Every city when unset. Homes stay as created: a
-// resident living elsewhere works from the nearest allowed town (towns.ts).
+// healers, the grounds and gates around them. Every city when unset. A resident outside them works
+// from the nearest allowed town (towns.ts).
 let allowedCities: Set<string> | undefined;
 export function useCities(cities?: readonly string[]) {
   if (!cities?.length) {
@@ -85,21 +81,22 @@ export function useCities(cities?: readonly string[]) {
   allowedCities = new Set(cities.map((city) => city.toLowerCase()));
 }
 export const cityAllowed = (city: string) => !allowedCities || allowedCities.has(city.toLowerCase());
-const allowedHome = (city: string) => {
+const allowedStart = (city: string) => {
   const entry = world.cities[city];
   return !!entry?.enabled && entry.startingCity && enabledFacets.has(entry.facet);
 };
 
-// Profession id from a generated template id (`<home>-<profession>`).
+// Profession of a template id: the profession itself (`macer`), or from a former city-prefixed
+// template (`<city>-<profession>`, whose residents store.ts reconcile moves to the plain one).
 export function professionOf(templateId: string): [string, Profession] | undefined {
   // The longest matching id wins: `yew-archer-tamer` is an archer-tamer, not a tamer.
   return Object.entries(world.professions)
-    .filter(([id]) => templateId.endsWith(`-${id}`))
+    .filter(([id]) => templateId === id || templateId.endsWith(`-${id}`))
     .sort(([a], [b]) => b.length - a.length)[0];
 }
 export const behaviorOf = (templateId: string): Behavior | undefined => professionOf(templateId)?.[1].behavior;
 
-// A stable weighted pick from `weights` for `key` (homes, grounds), so residents spread out.
+// A stable weighted pick from `weights` for `key` (starting cities, grounds), so residents spread out.
 export function weightedPick(weights: Record<string, number>, key: string): string | undefined {
   const entries = Object.entries(weights).filter(([, w]) => w > 0);
   const total = entries.reduce((sum, [, w]) => sum + w, 0);
@@ -112,15 +109,16 @@ export function weightedPick(weights: Record<string, number>, key: string): stri
   })?.[0];
 }
 
-// The template of one profession in one home city.
-function templateFor(id: string, p: Profession, city: string): CharacterTemplate {
+// The template of one profession. `cities` are only where a new character may start
+// (creation-request.ts); every trade works from wherever it stands (towns.ts).
+function templateFor(id: string, p: Profession, cities: Record<string, number>): CharacterTemplate {
   return {
-    id: `${slug(city)}-${id}`,
+    id,
     version: 1,
-    label: `${city} ${id}`,
+    label: id,
     creation: {
       namePrefix: p.creation.namePrefix,
-      city,
+      cities,
       skills: p.creation.skills,
       equipment: [],
       provisioning: 'normal-character-creation'
@@ -139,76 +137,38 @@ function templateFor(id: string, p: Profession, city: string): CharacterTemplate
   } as unknown as CharacterTemplate;
 }
 
-// One template per profession and allowed home city, with the profession's share split by home weight.
+// One template per profession that can start somewhere in play, weighted by its share.
 export function worldTemplates(): { template: CharacterTemplate; weight: number }[] {
   return Object.entries(world.professions).flatMap(([id, p]) => {
-    if (p.share <= 0) return [];
-    const homes = Object.entries(p.homes).filter(([city]) => allowedHome(city));
-    const total = homes.reduce((sum, [, w]) => sum + w, 0);
-    return homes.map(([city, weight]) => ({
-      weight: Math.max(1, Math.round((p.share * weight * 10) / total)),
-      template: templateFor(id, p, city)
-    }));
+    const cities = Object.fromEntries(
+      Object.entries(p.startingCities).filter(([city, w]) => w > 0 && allowedStart(city))
+    );
+    if (p.share <= 0 || !Object.keys(cities).length) return [];
+    return [{ weight: Math.max(1, Math.round(p.share * 10)), template: templateFor(id, p, cities) }];
   });
 }
 
-// A shard's cohorts (gemwright.json ai.cohorts): residents of a fixed size started in one city,
-// by profession weight, e.g. { "New Haven": { count: 50, professions: { miner: 6, ... } } }.
-export type Cohorts = Record<string, { count: number; professions: Record<string, number> }>;
-
-// Each cohort's templates and the number of residents for each, split by profession weight.
-export function cohortTemplates(cohorts: Cohorts = {}): { template: CharacterTemplate; count: number }[] {
-  return Object.entries(cohorts).flatMap(([city, cohort]) => {
-    if (!allowedHome(city)) return [];
-    const entries = Object.entries(cohort.professions).filter(([id]) => world.professions[id]);
-    const total = entries.reduce((sum, [, w]) => sum + w, 0);
-    const exact = entries.map(([id, w]) => ({ id, exact: total ? (cohort.count * w) / total : 0 }));
-    const counts = new Map(exact.map((e) => [e.id, Math.floor(e.exact)]));
-    let left = cohort.count - [...counts.values()].reduce((a, b) => a + b, 0);
-    for (const e of [...exact].sort((a, b) => (b.exact % 1) - (a.exact % 1)))
-      if (left-- > 0) counts.set(e.id, (counts.get(e.id) ?? 0) + 1);
-    return entries.map(([id]) => ({
-      template: templateFor(id, world.professions[id] as Profession, city),
-      count: counts.get(id) ?? 0
-    }));
-  });
-}
-
-// Adds the world's templates to a population (keeping existing ones) and allocates `count` residents
-// across them by weight, the shard's cohorts first.
-export function applyWorld(
-  population: PopulationConfig,
-  requested: number,
-  shardCohorts: Cohorts = {}
-): PopulationConfig {
+// Adds the world's templates to a population (keeping existing ones) and allocates `requested`
+// residents across them: one per profession first, so even a small population meets every kind of
+// character, then the rest by weight (largest remainder).
+export function applyWorld(population: PopulationConfig, requested: number): PopulationConfig {
   const max = world.population?.max;
   if (max !== undefined && requested > max)
     logger('world').info(`[world] ${requested} residents requested; world.json caps the population at ${max}`);
   const wanted = max === undefined ? requested : Math.min(requested, max);
-  // Cohorts first, at their fixed size; the main population takes the rest.
-  const cohorts = cohortTemplates(shardCohorts);
-  const cohortTotal = cohorts.reduce((sum, c) => sum + c.count, 0);
-  const count = Math.max(0, wanted - cohortTotal);
   const generated = worldTemplates();
   const existing = new Set(population.templates.map((t) => t.id));
   const raw = population as unknown as { templates: unknown[] };
-  for (const { template } of [...generated, ...cohorts]) if (!existing.has(template.id)) raw.templates.push(template);
-  // Spread first, then weight: one resident per profession, then one per home, then the rest by
-  // weight (largest remainder), so even a small population meets every kind of character.
+  for (const { template } of generated) if (!existing.has(template.id)) raw.templates.push(template);
   const counts = generated.map((g) => ({ templateId: g.template.id, count: 0 }));
-  const profession = (id: string) => professionOf(id)?.[0] ?? id;
   const byWeight = [...generated.keys()].sort((a, b) => (generated[b]?.weight ?? 0) - (generated[a]?.weight ?? 0));
-  let left = count;
-  const seen = new Set<string>();
-  for (const pass of ['profession', 'home'] as const)
-    for (const index of byWeight) {
-      const entry = counts[index];
-      if (!entry || left <= 0 || entry.count > 0) continue;
-      if (pass === 'profession' && seen.has(profession(entry.templateId))) continue;
-      seen.add(profession(entry.templateId));
-      entry.count++;
-      left--;
-    }
+  let left = wanted;
+  for (const index of byWeight) {
+    const entry = counts[index];
+    if (!entry || left <= 0) continue;
+    entry.count++;
+    left--;
+  }
   const total = generated.reduce((sum, g) => sum + g.weight, 0);
   const shares = generated.map((g, index) => ({ index, exact: (left * g.weight) / total }));
   for (const share of shares) {
@@ -220,17 +180,10 @@ export function applyWorld(
     const entry = counts[share.index];
     if (entry && left-- > 0) entry.count++;
   }
-  // A cohort larger than what was asked for is cut to fit, from the end of its list.
-  let room = wanted - counts.reduce((sum, c) => sum + c.count, 0);
-  const cohortCounts = cohorts.map((c) => {
-    const n = Math.max(0, Math.min(c.count, room));
-    room -= n;
-    return { templateId: c.template.id, count: n };
-  });
   return {
     ...population,
     targetPopulation: wanted,
     // Zero counts stay listed: a population of zero is valid and parks everyone.
-    allocation: { mode: 'fixed', entries: [...counts, ...cohortCounts] }
+    allocation: { mode: 'fixed', entries: counts }
   } as PopulationConfig;
 }

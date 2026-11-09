@@ -3,8 +3,8 @@ import { distance } from './navigation';
 // Where the population is, for spreading it out: no crowd on one screen, nobody alone across the
 // map. Each resident reports its position whenever it changes phase (relationships.ts); choices
 // of a destination (a leisure spot, a town to visit, a cemetery, a dungeon) weigh how many
-// residents are already there. Like the allocator that gives residents their homes, this is the
-// population's arrangement, not any one character's knowledge; up close, residents still judge by
+// residents are already there. Like the allocator that spreads new residents over starting
+// cities, this is the population's arrangement, not any one character's knowledge; up close, residents still judge by
 // what they observe.
 const where = new Map<number, { x: number; y: number; at: number }>();
 const STALE_MS = 10 * 60_000;

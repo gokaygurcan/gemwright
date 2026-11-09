@@ -13,7 +13,7 @@ import { socialFixture } from './social-fixture';
 function fixture(selected: 'work' | 'dungeon') {
   const f = socialFixture('miner');
   f.template.behavior.activities = [];
-  f.template.creation = { ...f.template.creation, city: 'Britain', skills: {} };
+  f.template.creation = { ...f.template.creation, cities: { Britain: 1 }, skills: {} };
   f.world.entities.set(12, { serial: 12, kind: 'item', graphic: 0xe85, parent: 10 });
   f.ctx.dungeon = async () => true;
   f.ctx.dungeonReady = () => true;
@@ -106,4 +106,37 @@ test('a hard need decides the life phase before the weights do', () => {
   f.checkpoint.funds = { bank: 5000, at: Date.now() };
   rememberBalance(f.ctx.session, 5000);
   expect(needPhase(f.ctx, valid)).toBeUndefined();
+});
+
+test('a life choice logs its whole path: local gates, the weighted roll and the model answer', async () => {
+  const f = fixture('work');
+  let steps: string[] = [];
+  let factors: object | undefined;
+  f.ctx.decisions = new DecisionCoordinator(
+    validateDecisionConfig({ provider: 'jev', minIntervalMs: 0 }),
+    () => {},
+    {
+      choose: async (request) => ({
+        model: request.model,
+        choice: 'work',
+        confidence: 1,
+        probabilities: Object.fromEntries(
+          Object.keys(request.questions.action.criteria).map((key) => [key, key === 'work' ? 1 : 0])
+        ),
+        inputTokens: 100,
+        outputTokens: 1
+      })
+    },
+    undefined,
+    (_trace, _request, _attempts, flow) => {
+      steps = flow.steps.map((step) => `${step.kind}:${step.label}`);
+      factors = flow.steps.find((step) => step.kind === 'fork')?.options[0]?.factors;
+    }
+  );
+  await chooseLifePhase(f.ctx);
+  expect(steps).toContain('check:Has its tools and supplies');
+  expect(steps).toContain('fork:Weighted roll over the phases');
+  expect(steps).toContain('check:Ask a model');
+  expect(steps.at(-1)).toMatch(/^fork:.+ answered$/);
+  expect(Object.keys(factors ?? {})).toEqual(['timeShare', 'shade', 'goal', 'season', 'drive']);
 });

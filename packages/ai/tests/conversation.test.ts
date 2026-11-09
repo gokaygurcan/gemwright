@@ -149,7 +149,7 @@ test("Haiku's answers keep to the resident's facts", () => {
   const facts = {
     me: 'Martin Ash',
     profession: 'fisherman',
-    home: 'Britain',
+    town: 'Britain',
     doing: 'Fishing, and mostly waiting for a bite.',
     goingTo: 'I am walking to the water.',
     needs: ['a fishing pole: I cannot work without one'],

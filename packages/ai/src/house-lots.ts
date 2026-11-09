@@ -88,7 +88,7 @@ export function houseOf(owner: string): HouseRecord | undefined {
   return row ? record(row) : undefined;
 }
 
-// The resident's claim, or the free lot nearest `near` (its home bank), claimed now. A claim
+// The resident's claim, or the free lot nearest `near` (the bank of the town it is in), claimed now. A claim
 // left unused for a day lapses, so a resident that never got there frees its lot.
 export function claimLot(owner: string, near: { x: number; y: number }): HouseRecord | undefined {
   const held = houseOf(owner);

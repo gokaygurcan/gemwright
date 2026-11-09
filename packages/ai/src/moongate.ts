@@ -7,7 +7,7 @@ import type { Position } from '@gemwright/network/world';
 import { areaHere, gateArea, strandedAt } from './areas';
 import { Blocked } from './blocked';
 import { dangerAhead } from './danger-response';
-import { type Gate, moongates } from './gates';
+import { type Gate, gateOpen, moongates, nearestGate } from './gates';
 import type { createNavigator } from './navigation';
 import { distance } from './navigation';
 import { gatherPets } from './pets';
@@ -17,6 +17,11 @@ import { placeAllowed } from './towns';
 import { reachableFrom } from './unreachable';
 
 const ghosts = GHOST_BODIES;
+// PublicMoongate.cs: already there, too far, not allowed, criminal, in combat, too busy, dragging.
+// A gate's catalogued height is the stock map's; a shard can raise the ground under it (Magincia's
+// stands at z 31), and walking to z 0 there never arrived. The tile is what matters.
+const onFoot = (gate: Gate) => ({ x: moongates[gate].x, y: moongates[gate].y });
+const refusals = new Set([1019003, 1019002, 1019004, 1005561, 1005564, 1049616, 1071955]);
 
 // Walks to the nearest public moongate that can be reached on foot and steps through to `to`, as
 // any player travels. A gate across water (an island town seen from the shore) is skipped for the
@@ -35,9 +40,16 @@ export async function travelByMoongate(
   if (!placeAllowed(moongates[to]))
     throw new Blocked('unreachable', `The ${to} moongate leads out of the allowed cities`);
   const here = position();
-  const order = (Object.keys(moongates) as Gate[]).sort(
-    (a, b) => distance(here, moongates[a]) - distance(here, moongates[b])
-  );
+  // A pocket (-1: nothing known could be walked to) says nothing of whose land it stands on, as
+  // little as an unknown cell does.
+  const area = areaHere(here);
+  if (nearestGate(here) === to && (area === undefined || area === -1 || area === gateArea(moongates[to]))) {
+    phase('moongate-unnecessary', `Already in the area served by the ${to} gate; continuing directly`);
+    return;
+  }
+  const order = (Object.keys(moongates) as Gate[])
+    .filter((gate) => gateOpen(gate, here))
+    .sort((a, b) => distance(here, moongates[a]) - distance(here, moongates[b]));
   const target = moongates[to];
   let from: Gate | undefined;
   // A gate within walking range first: walking to a far one crosses the wilds (and its monsters).
@@ -51,7 +63,10 @@ export async function travelByMoongate(
   // Standing in a pocket the area catalogue knows nothing of (areas.ts locates one by walking to a
   // known place, and a pocket caches as -1) leaves no own gates at all: the nearest gates on the map
   // are still worth walking to, or the resident could never leave the wilds it woke up in.
-  const candidates = near.length ? near : own.length ? own.slice(0, 3) : order.slice(0, 3);
+  // Never the destination's own gate: a gate does not lead to itself.
+  const candidates = (near.length ? near : own.length ? own.slice(0, 3) : order.slice(0, 3)).filter(
+    (gate) => gate !== to
+  );
   let dangerVetoed = 0;
   // Route memory is another resident's hint, not proof for this one: the nearest gate it can reach
   // is always tried once, and only later candidates respect the shared "lately unreachable" list.
@@ -65,7 +80,7 @@ export async function travelByMoongate(
     fresh = false;
     phase('moongate-travel', `Walking to the ${candidate} moongate to travel to ${to}`);
     try {
-      await navigate(moongates[candidate], 1);
+      await navigate(onFoot(candidate), 1);
     } catch (error) {
       if (error instanceof Blocked && error.reason === 'unreachable') continue;
       throw error;
@@ -81,7 +96,7 @@ export async function travelByMoongate(
   if (!from && nearest && dangerVetoed > 0 && dangerVetoed >= candidates.length) {
     phase('moongate-travel', `Every road to a moongate is watched; trying the ${nearest} gate anyway`);
     try {
-      await navigate(moongates[nearest], 1);
+      await navigate(onFoot(nearest), 1);
       from = nearest;
     } catch (error) {
       if (!(error instanceof Blocked && error.reason === 'unreachable')) throw error;
@@ -116,6 +131,7 @@ export async function travelByMoongate(
     if (position().x === gate.x && position().y === gate.y) await navigate({ x: gate.x + 2, y: gate.y }, 1);
     await navigate(gate, 0);
   } else session.use(item.serial);
+  const heard = new Set(session.world.journal);
   const offered = () =>
     [...session.world.gumps.values()].find((gump) => moongateDestination(gump.layout, target.label) !== undefined);
   await session.waitFor(() => !!offered(), 'public moongate destinations');
@@ -127,7 +143,12 @@ export async function travelByMoongate(
   try {
     await session.waitFor(() => distance(position(), target) <= 6 && session.world.map === 1, `arrival at ${to}`);
   } catch {
-    throw new Blocked('unreachable', `The ${from} moongate did not take me to ${to}`);
+    // The gate's own refusal (criminal, in combat, too busy, not allowed there), when it gave one.
+    const refusal = session.world.journal.find((entry) => !heard.has(entry) && refusals.has(entry.cliloc ?? 0));
+    throw new Blocked(
+      'unreachable',
+      `The ${from} moongate did not take me to ${to}${refusal ? ` (refused: ${refusal.cliloc})` : ''}`
+    );
   }
   phase('moongate-arrival', `Arrived through the ${to} moongate`);
 }

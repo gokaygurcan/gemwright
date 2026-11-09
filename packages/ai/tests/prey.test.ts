@@ -32,25 +32,36 @@ function fighter(options: {
     [skillId('Healing'), value(options.healing ?? 0)]
   ]);
   return {
-    session: { world: { skills, childrenOf: () => [{ layer: 1, graphic: 0x13ff }] } },
+    session: {
+      world: {
+        serial: 1,
+        skills,
+        deaths: new Map(),
+        entities: new Map(),
+        swings: new Map(),
+        animations: new Map(),
+        childrenOf: () => [{ layer: 1, graphic: 0x13ff }]
+      }
+    },
     template: { behavior: { riskTolerance: 0.5 } },
     status: () => ({ hits: 90, maxHits: 90, armor: options.armor ?? 0 }),
     position: () => ({ x: 0, y: 10, z: 0, direction: 0 }),
     nearby: () => options.others ?? [],
+    dead: () => false,
     count: () => 30
   } as unknown as FighterContext;
 }
 
-test('common undead are always engageable; casters require readiness', () => {
+test('opponent health and caster pressure determine whether an encounter is worthwhile', () => {
   const novice = fighter({ swords: 40, tactics: 40 });
-  expect(engageable(novice, mobile(1, 3, 'a zombie')).ok).toBe(true);
+  expect(engageable(novice, { ...mobile(1, 3, 'a zombie'), hits: 1, maxHits: 100 }).ok).toBe(true);
   const wraith = engageable(novice, mobile(2, 26, 'a wraith'));
   expect(wraith.ok).toBe(false);
-  expect(wraith.reason).toContain('swordsmanship');
+  expect(wraith.reason).toContain('incoming');
   // Bram's live profile (swords 60, tactics 55, no resist) lost three of three caster fights.
   expect(engageable(fighter({ swords: 60, tactics: 55, armor: 16 }), mobile(2, 26, 'a wraith')).ok).toBe(false);
   const ready = fighter({ swords: 75, tactics: 70, armor: 20, resist: 45, healing: 60 });
-  expect(engageable(ready, mobile(2, 26, 'a wraith')).ok).toBe(true);
+  expect(engageable(ready, { ...mobile(2, 26, 'a wraith'), hits: 1, maxHits: 100 }).ok).toBe(true);
 });
 
 test('a lich needs exceptional readiness and a lich lord is never engaged', () => {
@@ -64,12 +75,12 @@ test('a dangerous undead nearby rules out an otherwise easy target', () => {
   const lich = mobile(5, 24, 'a lich', 14);
   const result = engageable(fighter({ swords: 40, tactics: 40, others: [lich] }), mobile(6, 3, 'a zombie'));
   expect(result.ok).toBe(false);
-  expect(result.reason).toContain('a lich');
+  expect(result.reason).toContain('incoming');
 });
 
 test('a body shared by several undead is resolved by the observed name', () => {
   const ready = fighter({ swords: 60, tactics: 55 });
-  expect(engageable(ready, mobile(7, 153, 'a ghoul')).ok).toBe(true);
+  expect(engageable(ready, { ...mobile(7, 153, 'a ghoul'), hits: 1, maxHits: 100 }).ok).toBe(true);
   expect(engageable(ready, mobile(8, 153, 'a mongbat')).ok).toBe(false);
 });
 
@@ -93,4 +104,11 @@ test('an opponent disappearing during inspection does not stop the hunter', asyn
     throw new Error('Connection lost');
   };
   await expect(chooseOpponent(ctx, { unreachable: new Set() })).rejects.toThrow('Connection lost');
+});
+
+test('an orc at the edge of a camp brings the camp: taken alone, declined with the camp in reach', () => {
+  const camp = [11, 12, 13, 14, 15].map((serial) => mobile(serial, 17, 'an orc', 16));
+  const finn = (others: Entity[]) => fighter({ swords: 80, tactics: 80, armor: 20, healing: 60, others });
+  expect(engageable(finn([]), mobile(10, 17, 'an orc')).ok).toBe(true);
+  expect(engageable(finn(camp), mobile(10, 17, 'an orc')).ok).toBe(false);
 });

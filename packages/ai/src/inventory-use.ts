@@ -18,6 +18,7 @@ import {
   yarn
 } from '@gemwright/common/game/items';
 import { graphicsOf } from '@gemwright/common/game/rules';
+import { CommandRejected } from '@gemwright/network/errors';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
@@ -245,7 +246,10 @@ export async function useAcquiredItems(session: PlayerSession): Promise<boolean>
         blocked.set(item.serial, Date.now() + 10 * 60_000);
         // The shard refused it: another race, gender or requirement this client cannot read. It is
         // no use here, so a shop gets it; not while mounted, when two free hands are only temporary.
-        if (!mountEquipment(session.world)) markForSale(ctx, item.serial, 'the shard refused to wear it');
+        // Anything else (a change not confirmed in time) proves nothing about the piece: it is tried
+        // again after the pause above, never sold for it.
+        const rejected = error instanceof CommandRejected && error.code === 'equipment-rejected';
+        if (rejected && !mountEquipment(session.world)) markForSale(ctx, item.serial, 'the shard refused to wear it');
         for (const piece of old)
           if (piece.layer && !session.world.childrenOf(serial).some((held) => held.layer === piece.layer))
             await session.equipItem(piece.serial, piece.layer).catch(() => {});

@@ -1,5 +1,6 @@
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import type { PlayerSession } from '@gemwright/network/session';
+import type { Entity } from '@gemwright/network/world';
 
 import { canPause, checkedDelay, takingUrgentAction, urgentAction } from './action-purpose';
 import { bankWhileWalking } from './bank-gold';
@@ -10,14 +11,17 @@ import { createDoorOpener, isDoor, isOpenDoor, openNearbyDoors } from './doors';
 import { inDungeon, leaveDungeon, takeLink } from './dungeon-exit';
 import { holdWhileEngaged, noteStep } from './engagement';
 import { land, takeOff } from './flight';
+import { houseBarriers } from './geometry';
 import { assertNotHalted } from './gm';
-import { pauseFor, slip, walkingPace } from './human-pace';
+import { pauseFor, walkingPace } from './human-pace';
 import { recordLifeAction } from './life-events';
 import { type Link, linkToward } from './links';
 import { noteNavigationStep } from './loop-watch';
 import { mountEquipment } from './mount-types';
+import { observedTerrain } from './observed-terrain';
 import { waitForPets } from './pets';
 import { registerTerrain } from './resident-context';
+import { retraceStep } from './retrace-step';
 import { rejectedSteps, rememberRejectedStep } from './route-memory';
 import { pickUpInReach } from './scavenge';
 import { directionTo, type Terrain } from './terrain';
@@ -42,12 +46,14 @@ export function createNavigator(options: {
   purpose?: 'combat' | 'escape';
   // Gate approaches and dungeon stair steps are individual walking legs.
   localOnly?: boolean;
-  // Steer around hostile creatures in sight (default on; off for a fighter at its hunting ground).
-  wary?: () => boolean;
+  // Which hostile creatures in sight to steer around: every one by default; a fighter, only those
+  // whose fight it would not take.
+  avoid?: (mobile: Entity) => boolean;
   // Never run (a hidden thief sneaking up on a mark).
   walkOnly?: () => boolean;
 }) {
-  const { session, terrain, check, phase, log } = options;
+  const { session, check, phase, log } = options;
+  const terrain = options.terrain.directory ? observedTerrain(options.terrain, session) : options.terrain;
   registerTerrain(session, terrain);
   const serial = session.world.serial;
   if (serial === null) throw new Error('Navigation requires a character');
@@ -103,6 +109,7 @@ export function createNavigator(options: {
     const rejected = new Map<string, number>();
     let nextStepAt = 0;
     let resynced = false;
+    const retraced = new Set<string>();
     while (distance(position(), goal) > range || (goal.z !== undefined && Math.abs(position().z - goal.z) > 8)) {
       check();
       // A ghost walks over creatures and through doors (ServUO Movement.cs: !m.Alive ignores doors,
@@ -114,10 +121,11 @@ export function createNavigator(options: {
       if (visits > 8) throw new Blocked('unreachable', `Route cycles at ${originKey} toward ${goal.x},${goal.y}`);
       for (const [key, until] of rejectedSteps(session, terrain, position())) rejected.set(key, until);
       for (const [key, until] of rejected) if (until <= Date.now()) rejected.delete(key);
-      const hard = new Set([...blocked, ...rejected.keys()]);
+      const hard = new Set([...blocked, ...rejected.keys(), ...houseBarriers(terrain.geometry, position(), goal)]);
       const occupied = new Set(hard);
       for (const entity of session.world.entities.values()) {
         if (!entity.position || entity.serial === serial || distance(position(), entity.position) > 18) continue;
+        if (entity.multi) continue;
         const flags = entity.kind === 'item' ? terrain.tile(entity.graphic, true).flags : 0;
         if (
           (entity.kind === 'mobile' && !dead) ||
@@ -134,11 +142,11 @@ export function createNavigator(options: {
       // is what the walk is for (a hunter closing on its target near the goal). With no way
       // around, the walk stops here instead of running through them.
       const avoid = new Set<string>();
-      const careful = !dead && options.purpose !== 'combat' && (options.wary?.() ?? true);
+      const careful = !dead && options.purpose !== 'combat';
       if (careful && !takingUrgentAction(session))
         for (const key of rememberedDangerTiles(session, position())) avoid.add(key);
       const wary = (careful ? threatsNear(session, position(), 18) : []).filter(
-        (m) => m.position && distance(m.position, goal) > range + 3
+        (m) => m.position && distance(m.position, goal) > range + 3 && (options.avoid?.(m) ?? true)
       );
       for (const m of wary) {
         const at = m.position as { x: number; y: number };
@@ -156,6 +164,7 @@ export function createNavigator(options: {
         for (const key of avoid) occupied.add(key);
         for (const key of avoid) hard.add(key);
       }
+      const plannedGeometry = terrain.geometry?.revision;
       let path = detouring ? null : directRoute(terrain, position(), goal, range, occupied, goal.z);
       if (!path) {
         detouring = true;
@@ -231,6 +240,16 @@ export function createNavigator(options: {
           continue;
         }
       }
+      if (!path?.length && terrain.geometry && !terrain.stand(position().x, position().y, position().z)) {
+        if (await retraceStep(session, check, openDoors, retraced, log)) {
+          origins.clear();
+          continue;
+        }
+        throw new Blocked(
+          'geometry',
+          `No observed walkable surface at ${position().x},${position().y},${position().z}; cannot plan an exit until structure geometry is available`
+        );
+      }
       if (!path?.length) {
         if (lockedDoor) throw new Blocked('locked-door', `Locked door blocks every route to ${goal.x},${goal.y}`);
         // No way on foot: a teleporter whose far end is nearer the goal (links.ts), walked onto.
@@ -251,6 +270,13 @@ export function createNavigator(options: {
       for (let index = 0; index < path.length; index++) {
         const point = path[index];
         if (!point) break;
+        if (terrain.geometry?.revision !== plannedGeometry) {
+          rejected.clear();
+          origins.clear();
+          detouring = true;
+          log('Observed structure changed; discarding the old route and replanning');
+          break;
+        }
         assertNotHalted(session);
         check();
         // A new hostile creature in sight: plan again around it.
@@ -325,6 +351,11 @@ export function createNavigator(options: {
           detouring = true;
           break;
         }
+        const observedStep = terrain.stand(point.x, point.y, position().z, position());
+        if (!observedStep || observedStep.z !== point.z) {
+          detouring = true;
+          break;
+        }
         // The shard walks one step when the ground changes by a little; sixteen stones down in one
         // step is a fall through a floor, not a step, and it refuses it. The path search can offer
         // such a step when the goal's z sits on another surface (a shop below a balcony), and the
@@ -340,7 +371,7 @@ export function createNavigator(options: {
         // pickups, banking) overlaps it instead of adding a pause after it.
         await Bun.sleep(Math.max(0, nextStepAt - performance.now()));
         const sentAt = performance.now();
-        const accepted = await session.walk(slip(direction, urgent), point.z, running);
+        const accepted = await session.walk(direction, point.z, running);
         noteStep(session);
         if (accepted) noteNavigationStep(session);
         const mounted = !!mountEquipment(session.world);
@@ -365,7 +396,7 @@ export function createNavigator(options: {
         if (accepted && (travelled & 3) === 3) failures = 0;
         if (accepted && ++travelled % 64 === 0)
           log(
-            `${mounted ? 'mounted ' : ''}${running ? 'running' : 'walking'} at ${position().x},${position().y}; stamina ${status().stamina}/${status().maxStamina}`
+            `${mounted ? 'mounted ' : ''}${running ? 'running' : 'walking'} at ${position().x},${position().y}; heading to ${goal.x},${goal.y} within ${range} tiles; stamina ${status().stamina}/${status().maxStamina}`
           );
         if (!accepted || distance(position(), point) !== 0) {
           // A tile refused twice with nobody seen on it is terrain the server disagrees with; keep it
@@ -407,7 +438,7 @@ export function createNavigator(options: {
         .sort()
         .join('|');
       const refusals = [...rejectedSteps(session, terrain, from).keys()].sort().join(';');
-      const key = `${refusals}:${session.world.map}:${from.x >> 7},${from.y >> 7},${from.z}:${goal.x},${goal.y},${goal.z ?? '*'}:${range}:${doors}`;
+      const key = `${terrain.geometry?.revision ?? 'base'}:${refusals}:${session.world.map}:${from.x >> 7},${from.y >> 7},${from.z}:${goal.x},${goal.y},${goal.z ?? '*'}:${range}:${doors}`;
       const previous = failuresByRoute.get(key);
       if (previous && previous.until > Date.now() && !(await openNearbyDoors(session, terrain, from, openDoors))) {
         throw previous.error;

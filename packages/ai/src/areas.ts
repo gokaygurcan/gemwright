@@ -26,6 +26,8 @@ export function useAreas(areas: Areas, fingerprint: string) {
   version = fingerprint;
 }
 const cells = lasting('area-of');
+// Cells where one search for their area failed, and when.
+const doubts = new Map<string, number>();
 const cellKey = (p: { x: number; y: number }) => `${version}:${p.x >> 4},${p.y >> 4}`;
 
 // Every catalogued place.
@@ -94,8 +96,19 @@ export async function locate(terrain: Terrain, at: { x: number; y: number; z: nu
   }
   // Nothing known within 300 tiles at all: the wilds, not a pocket; left unknown.
   if (!near.length) return undefined;
-  // A pocket (no known place could be walked to from here) is retried sooner: one failed walk, a
-  // monster in the way or a river, must not strand this cell for two hours.
+  // One failed search is no proof of a pocket: a search runs out (a busy path worker, a crowd in the
+  // way), and a town's outskirts taken for a pocket sent residents through their own town's gate.
+  // Only a second failure, on a later look, makes it one; until then the cell stays unknown.
+  if (found === -1) {
+    const first = doubts.get(key);
+    if (first === undefined || Date.now() - first > 20 * 60_000) {
+      doubts.set(key, Date.now());
+      return undefined;
+    }
+  }
+  doubts.delete(key);
+  // A pocket is retried sooner: one failed walk, a monster in the way or a river, must not strand
+  // this cell for two hours.
   const ttl = found === -1 ? 20 * 60_000 : 2 * 3_600_000;
   cells.set(key, Math.floor((Date.now() + ttl) / 1000) * 10_000 + found + 2);
   return found;

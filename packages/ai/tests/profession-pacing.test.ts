@@ -8,7 +8,7 @@ test('a shared plan that consumes a turn without progress cannot spin the profes
   const f = socialFixture('tailor');
   f.template.creation = {
     namePrefix: 'Test',
-    city: 'Britain',
+    cities: { Britain: 1 },
     skills: { Tailoring: 50 },
     equipment: [],
     provisioning: 'normal-character-creation'

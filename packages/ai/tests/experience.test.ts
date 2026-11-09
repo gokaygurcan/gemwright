@@ -56,9 +56,12 @@ test('danger is local, temporary and cannot be inferred from disconnects or refu
   rememberExperience(state, combat, now);
   rememberExperience(state, { ...combat, outcome: 'interrupted' }, now);
   expect(state.experience?.events).toHaveLength(1);
-  expect(encounterAdvice(state, place, 3, now).avoidUntil).toBe(now + 600000);
+  expect(encounterAdvice(state, place, 3, now).caution).toBeGreaterThan(0);
+  expect(encounterAdvice(state, place, 3, now).avoidUntil).toBe(0);
   expect(encounterAdvice(state, { ...place, map: 0 }, 3, now).samples).toBe(0);
-  expect(encounterAdvice(state, { ...place, x: 1600 }, 3, now).samples).toBe(0);
+  expect(encounterAdvice(state, { ...place, x: 1600 }, 3, now).caution).toBeLessThan(
+    encounterAdvice(state, place, 3, now).caution
+  );
   expect(encounterAdvice(state, place, 4, now).samples).toBe(0);
   expect(encounterAdvice(state, place, 3, now + 86400001).caution).toBe(0);
 });
@@ -108,14 +111,15 @@ test('committed experience survives a resident database reopen and changes advic
     store = new ResidentStore(file, config.shardId);
     const restored = store.list().find((row) => row.id === resident.id);
     if (!restored) throw new Error('Missing restored resident');
-    expect(encounterAdvice(restored.checkpoint, place, 3, now).avoidUntil).toBe(now + 600000);
+    expect(encounterAdvice(restored.checkpoint, place, 3, now).caution).toBeGreaterThan(0);
+    expect(encounterAdvice(restored.checkpoint, place, 3, now).avoidUntil).toBe(0);
   } finally {
     store.close();
     rmSync(directory, { recursive: true, force: true });
   }
 });
 
-test('emergency retreats from casters set a cooldown, and repeated losses a longer one', () => {
+test('caster retreats increase estimated danger without a timed prohibition', () => {
   const state = checkpoint();
   reconcileExperience(state, now);
   // Live spectre fight: largest hit 26/76 (0.34), driven down to 25/76.
@@ -129,7 +133,30 @@ test('emergency retreats from casters set a cooldown, and repeated losses a long
     damageRatio: 0.7
   };
   rememberExperience(state, retreat, now);
-  expect(encounterAdvice(state, place, 26, now + 60_000).avoidUntil).toBe(now + 15 * 60_000);
+  const first = encounterAdvice(state, place, 26, now + 60_000);
+  expect(first.avoidUntil).toBe(0);
+  expect(first.caution).toBeGreaterThan(0);
   rememberExperience(state, { ...retreat, id: 'wraith', at: now + 120_000 }, now + 120_000);
-  expect(encounterAdvice(state, place, 26, now + 180_000).avoidUntil).toBe(now + 120_000 + 60 * 60_000);
+  const repeated = encounterAdvice(state, place, 26, now + 180_000);
+  expect(repeated.avoidUntil).toBe(0);
+  expect(repeated.caution).toBeGreaterThan(first.caution);
+});
+
+test('a productive withdrawal carries less negative evidence than the same damage with no opponent progress', () => {
+  const productive = checkpoint(),
+    wasted = checkpoint();
+  const retreat = {
+    ...combat,
+    outcome: 'retreat' as const,
+    lowestHealthRatio: 0.5,
+    largestLossRatio: 0.1,
+    damageRatio: 0.5
+  };
+  rememberExperience(productive, { ...retreat, opponentProgress: 0.7 }, now);
+  rememberExperience(wasted, { ...retreat, opponentProgress: 0 }, now);
+  const progressAdvice = encounterAdvice(productive, place, 3, now);
+  const wastedAdvice = encounterAdvice(wasted, place, 3, now);
+  expect(progressAdvice.caution).toBeLessThan(wastedAdvice.caution);
+  expect(progressAdvice.avoidUntil).toBe(0);
+  expect(wastedAdvice.avoidUntil).toBe(0);
 });

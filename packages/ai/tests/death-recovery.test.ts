@@ -1,4 +1,4 @@
-import { expect, spyOn, test } from 'bun:test';
+import { expect, setSystemTime, spyOn, test } from 'bun:test';
 
 import { gargishWeapons } from '@gemwright/common/game/items';
 
@@ -24,7 +24,7 @@ function scenario() {
   f.world.entities.delete(2);
   f.world.position = { ...refuge };
   required(f.world.entities.get(1)).position = f.world.position;
-  f.ctx.home = { ...f.ctx.home, town: refuge };
+  f.ctx.services = { ...f.ctx.services, bank: refuge };
   f.ctx.trip.deathSite = { ...corpseSite };
   required(f.world.entities.get(30)).position = { ...corpseSite };
   f.ctx.dead = () => [0x192, 0x193].includes(f.world.entities.get(1)?.graphic ?? 0);
@@ -157,7 +157,7 @@ for (const event of ['hostile', 'damage', 'poison'] as const)
     await f.controller().recover();
     expect(f.counts().clicks).toBe(0);
     expect(f.ctx.stats.abandonedCorpses).toBe(1);
-    expect(f.ctx.trip.pending).toBe('return');
+    expect(f.ctx.trip.pending).toBe(event === 'hostile' ? 'hunt' : 'return');
     expect(f.ctx.position()).toMatchObject(refuge);
     expect(f.ctx.state.recoveringCorpse).toBe(false);
   });
@@ -184,23 +184,16 @@ test('low health or poisoning cannot finish replacement recovery even when rest 
   }
 });
 
-test('missing replacement equipment cannot be reported as recovered and equipped', async () => {
-  const f = scenario();
-  required(f.ctx.trip.recovery).stage = 'equipment';
-  f.services.prepareEquipment = async () => {};
-  await f.controller().recover();
-  expect(f.ctx.trip.recovery?.stage).toBe('equipment');
-  expect(f.phases.some((p) => p.phase === 'recovery-ready')).toBe(false);
-});
-
-test('a weaponless fighter with no gold to buy one leaves recovery to hunt bare-handed', async () => {
-  const f = scenario();
-  required(f.ctx.trip.recovery).stage = 'equipment';
-  f.services.prepareEquipment = async () => {};
-  f.ctx.checkpoint.funds = { bank: 5, at: Date.now() };
-  await f.controller().recover();
-  expect(f.ctx.trip.recovery?.stage).toBe('ready');
-  expect(f.phases.some((p) => p.phase === 'recovery-ready' && /bare-handed/.test(p.note))).toBe(true);
+test('a weaponless fighter leaves recovery to hunt bare-handed, whatever its funds', async () => {
+  for (const funds of [undefined, { bank: 5, at: Date.now() }, { bank: 5000, at: Date.now() }]) {
+    const f = scenario();
+    required(f.ctx.trip.recovery).stage = 'equipment';
+    f.services.prepareEquipment = async () => {};
+    f.ctx.checkpoint.funds = funds;
+    await f.controller().recover();
+    expect(f.ctx.trip.recovery?.stage).toBe('ready');
+    expect(f.phases.some((p) => p.phase === 'recovery-ready' && /bare-handed/.test(p.note))).toBe(true);
+  }
 });
 
 test('a weaponless fighter whose every weapon vendor sold nothing leaves recovery to hunt', async () => {
@@ -208,7 +201,7 @@ test('a weaponless fighter whose every weapon vendor sold nothing leaves recover
   required(f.ctx.trip.recovery).stage = 'equipment';
   f.services.prepareEquipment = async () => {};
   const condition = suppliesCondition(f.ctx.session, f.ctx.checkpoint);
-  for (const stop of [...f.ctx.home.all('blacksmith'), ...f.ctx.home.all('weaponsmith')])
+  for (const stop of [...f.ctx.services.all('blacksmith'), ...f.ctx.services.all('weaponsmith')])
     failObjective(f.ctx.checkpoint, `weapon:${stop.x},${stop.y}`, condition, 'buying a weapon gained nothing');
   await f.controller().recover();
   expect(f.ctx.trip.recovery?.stage).toBe('ready');
@@ -220,7 +213,7 @@ test('safe self-loot is observed, followed by return to refuge before readiness'
   expect(f.counts().clicks).toBe(1);
   expect(f.ctx.stats.recoveredItems).toBe(2);
   expect(f.ctx.trip.recovery?.stage).toBe('ready');
-  expect(f.ctx.trip.pending).toBe('return');
+  expect(f.ctx.trip.pending).toBe('hunt');
   expect(f.ctx.position()).toMatchObject(refuge);
   expect(f.phases.filter((p) => p.phase === 'recovery-ready').every((p) => distance(p.position, refuge) <= 4)).toBe(
     true
@@ -322,11 +315,12 @@ test('an attempt is persisted before travel and readiness only after the observe
   expect(f.ctx.position()).toMatchObject(refuge);
 });
 
-test('a service moving the resident away cannot turn replacement recovery into readiness', async () => {
+test('a service moving the resident into danger cannot turn replacement recovery into readiness', async () => {
   const f = scenario();
   required(f.ctx.trip.recovery).stage = 'equipment';
   f.services.rest = async () => {
     f.world.position = { ...corpseSite };
+    hostile(f);
   };
   await f.controller().recover();
   expect(f.ctx.trip.recovery?.stage).toBe('equipment');
@@ -346,17 +340,6 @@ test('a ghost with no route out of a dungeon cannot be reported as resurrected o
   expect(f.ctx.stats.resurrections).toBe(0);
   expect(f.ctx.trip.recovery?.stage).toBe('healer');
   expect(f.phases.some((p) => p.phase === 'resurrected' || p.phase === 'recovery-ready')).toBe(false);
-});
-
-test('a replacement weapon only observed in the backpack cannot be reported as equipped', async () => {
-  const f = scenario();
-  required(f.ctx.trip.recovery).stage = 'equipment';
-  f.services.prepareEquipment = async () => {
-    f.world.entities.set(40, { serial: 40, kind: 'item', graphic: 0x13b9, parent: 10 });
-  };
-  await f.controller().recover();
-  expect(f.ctx.trip.recovery?.stage).toBe('equipment');
-  expect(f.phases.some((p) => p.phase === 'recovery-ready')).toBe(false);
 });
 
 test('death while replacing equipment cannot restart retrieval at the lethal site', async () => {
@@ -387,7 +370,7 @@ test('a gargoyle is only offered gargish weapons, and the others never gargish o
 test('a recovery that is not ready twice in a row waits instead of spinning', async () => {
   const f = scenario();
   required(f.ctx.trip.recovery).stage = 'equipment';
-  f.services.prepareEquipment = async () => {};
+  required(f.world.status).hits = 50;
   let slept = 0;
   const sleep = spyOn(Bun, 'sleep').mockImplementation(async (ms) => {
     slept += Number(ms);
@@ -403,5 +386,45 @@ test('a recovery that is not ready twice in a row waits instead of spinning', as
   } finally {
     sleep.mockRestore();
     clock.mockRestore();
+  }
+});
+
+test('recovery can complete away from the bank without sending an equipped fighter back', async () => {
+  const f = scenario();
+  required(f.ctx.trip.recovery).stage = 'equipment';
+  f.services.rest = async () => {
+    f.world.position = { ...refuge, x: refuge.x + 20 };
+  };
+  await f.controller().recover();
+  expect(f.ctx.trip.recovery?.stage).toBe('ready');
+  expect(distance(f.ctx.position(), refuge)).toBe(20);
+  expect(f.ctx.trip.pending).toBe('hunt');
+});
+
+test('an equipped fighter regenerates while moving and keeps its progress on the next recovery turn', async () => {
+  const f = scenario();
+  required(f.ctx.trip.recovery).stage = 'equipment';
+  f.world.entities.set(40, { serial: 40, kind: 'item', graphic: 0x13b9, parent: 1, layer: 1 });
+  required(f.world.status).hits = 30;
+  let now = Date.now();
+  setSystemTime(now);
+  f.terrain.pathAsync = async (from) => [{ ...from, x: from.x + 1 }];
+  f.session.refreshStatus = async () => {
+    now += 30_000;
+    setSystemTime(now);
+  };
+  const sleep = spyOn(Bun, 'sleep').mockImplementation(async () => {});
+  const town = createFighterTown(f.ctx, async () => {});
+  try {
+    await town.rest();
+    const first = f.ctx.position().x;
+    expect(first).toBeGreaterThan(refuge.x);
+    await town.rest();
+    expect(f.ctx.position().x).toBeGreaterThan(first);
+    expect(f.escapes).toEqual([]);
+    expect(f.ctx.trip.recovery?.stage).toBe('equipment');
+  } finally {
+    sleep.mockRestore();
+    setSystemTime();
   }
 });

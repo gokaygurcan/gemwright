@@ -8,10 +8,17 @@ import { Actions, ShardCraft } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
 import { tally } from './activity';
-import { canSpendOnTraining, chargedPurchase, recordTrainingSpend, refreshFunds, TOOLS } from './bank-gold';
+import {
+  canSpendOnTraining,
+  chargedPurchase,
+  recordTrainingSpend,
+  refreshFunds,
+  type SpendLimits,
+  TOOLS
+} from './bank-gold';
 import { bankKept } from './craft-banking';
 import { sellCrafted as sell } from './craft-sales';
-import { learnQuality, quality } from './item-quality';
+import { learnQuality, shopSafe } from './item-quality';
 import type { ServiceType } from './locations';
 import { buttonFor, CREATED, EXCEPTIONAL, FAILED, STOP } from './miner-crafting';
 import type { MountContext } from './mount-types';
@@ -126,7 +133,7 @@ export type CraftContext = Pick<
   // Exceptional pieces stay in the pack for the resident market instead of the bank (bowyers).
   holdExceptional?: boolean;
   // Spending limits for tools and materials (bank-gold.ts); crafting for profit uses BUSINESS.
-  limits?: { reserve: number; perHour: number };
+  limits?: SpendLimits;
   persist?: () => void;
   done?: () => boolean;
   onBlocked?: (reason: 'materials' | 'tool' | 'station' | 'menu') => void;
@@ -201,8 +208,7 @@ export async function trainCraft(
       (!craft.tools.has(item.graphic) || spareTools.includes(item.serial))
   );
   await learnQuality(session, leftovers);
-  for (const item of leftovers)
-    if (quality(session.world.entities.get(item.serial) ?? item) === 'normal') made.add(item.serial);
+  for (const item of leftovers) if (shopSafe(session.world.entities.get(item.serial) ?? item)) made.add(item.serial);
   let attempts = 0;
   phase('training', `Practising ${craft.skill}`);
   const groups = new Set(craft.recipes.map((r) => String(r.group)));

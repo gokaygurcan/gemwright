@@ -35,6 +35,7 @@ const holds = new WeakMap<PlayerSession, { by: number; name?: string }>();
 export function registerCheckpoint(session: PlayerSession, checkpoint: Checkpoint) {
   checkpoints.set(session, checkpoint);
 }
+export const checkpointOf = (session: PlayerSession) => checkpoints.get(session);
 
 export function halt(session: PlayerSession, speaker: { serial: number; name?: string }) {
   const hold = { by: speaker.serial, name: speaker.name };

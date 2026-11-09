@@ -52,7 +52,7 @@ export interface WorkOrder {
 }
 export interface PersonalGoal {
   id: string;
-  kind: 'supplies' | 'mount' | 'equipment' | 'skill' | 'home' | 'supply-order';
+  kind: 'supplies' | 'mount' | 'equipment' | 'skill' | 'supply-order';
   description: string;
   target: number;
   progress: number;

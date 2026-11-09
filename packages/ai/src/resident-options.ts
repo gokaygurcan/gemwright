@@ -10,7 +10,6 @@ export interface ResidentOptions {
   assets: string;
   template: CharacterTemplate;
   seconds: number;
-  overland?: boolean;
   peers?: ReadonlyMap<number, string>;
   label?: string;
   checkpoint: Checkpoint;

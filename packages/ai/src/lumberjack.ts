@@ -20,6 +20,7 @@ import { createLumberTown } from './lumber-town';
 import { treeStatics } from './lumber-trees';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
+import { observedTerrain } from './observed-terrain';
 import { createPackAnimal } from './pack-animal';
 import { failResidentGoal } from './resident-goal';
 import { observeResident } from './resident-observation';
@@ -34,7 +35,7 @@ import { trainSupportingSkill } from './skill-training';
 import { answerDanger } from './skirmish';
 import { learnedPlaceCost } from './strategy-learning';
 import { Terrain } from './terrain';
-import { TownChanged, townFor } from './towns';
+import { townFor } from './towns';
 import { reachRegion, workArea } from './work-areas';
 
 const log = logPile;
@@ -58,7 +59,7 @@ export async function runLumberjack(options: ResidentOptions) {
   const city = woods.city.toLowerCase();
   const serial = session.world.serial;
   if (serial === null || session.world.map !== 1) throw new Error('The lumberjack supports Trammel Britain');
-  const terrain = Terrain.shared(options.assets, 1);
+  const terrain = observedTerrain(Terrain.shared(options.assets, session.world.map ?? 1), session);
   const deadline = Date.now() + options.seconds * 1000;
   const checkpoint = structuredClone(options.checkpoint);
   checkpoint.landmarks ??= { forges: [] };
@@ -241,8 +242,8 @@ export async function runLumberjack(options: ResidentOptions) {
       backpack: backpackSerial
     };
     // A riding horse waits for savings: a newcomer's first gold goes on its work (mounts.ts).
-    mounts = createMountController(animals, city, 1000);
-    packs = createPackAnimal(animals, city);
+    mounts = createMountController(animals, () => city, 1000);
+    packs = createPackAnimal(animals, () => city);
     // Hurt on the way (fetching animals, walking to the woods): clear of danger, then the loop
     // carries on, instead of the run ending and starting over into the same trouble.
     try {
@@ -416,7 +417,7 @@ export async function runLumberjack(options: ResidentOptions) {
       }
     }
   } catch (error) {
-    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
+    if (error instanceof SessionBreak) throw error;
     stopped = options.stopping?.()
       ? 'Lumberjack stopped by shutdown signal'
       : error instanceof Error

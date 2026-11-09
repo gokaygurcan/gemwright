@@ -4,7 +4,6 @@ import { graphicOf } from '@gemwright/common/game/rules';
 import { chaosOf } from './chaos';
 import { type HouseRecord, houseOf, housingOpen, updateHouse } from './house-lots';
 import { backpackOf, buyHouse, buyOne, houseGoal, ownerOf, ownsHouse, type Purchase, travelTo } from './housing';
-import { quality } from './item-quality';
 import type { LifeContext } from './life';
 import { distance } from './navigation';
 import { useOn } from './target-action';
@@ -12,7 +11,7 @@ import { useOn } from './target-action';
 // A resident with a house lives with it: it goes to buy one once its savings reach the goal
 // (housing.ts), visits it about once a day (opening its door refreshes ServUO's decay timer for
 // the owner, HouseDoors.cs), keeps a secured wooden box there for its valuables, and sometimes
-// spends its leisure at home. Nothing is ever deleted: a house outlives its owner's deaths.
+// spends its leisure there. Nothing is ever deleted: a house outlives its owner's deaths.
 const BOX = graphicOf('WoodenBox');
 const nextCheck = new WeakMap<LifeContext['session'], number>();
 // After an attempt: blocked lots are retried at once on another lot, everything else waits.
@@ -52,8 +51,8 @@ export async function housingTurn(ctx: LifeContext): Promise<boolean> {
   return true;
 }
 
-// Leisure at home now and then (life.ts): true when the time was spent there.
-export async function leisureAtHome(ctx: LifeContext, until: number): Promise<boolean> {
+// Leisure in its own house now and then (life.ts): true when the time was spent there.
+export async function leisureInHouse(ctx: LifeContext, until: number): Promise<boolean> {
   const house = houseOf(ownerOf(ctx));
   if (house?.status !== 'placed' || Math.random() >= 0.3) return false;
   await visitHouse(ctx, house, Math.max(30_000, until - Date.now()));
@@ -77,7 +76,7 @@ async function walkLine(ctx: LifeContext, x: number, toY: number) {
 
 async function visitHouse(ctx: LifeContext, house: HouseRecord, stay: number) {
   const { session } = ctx;
-  ctx.phase('home', `Going home to my ${house.house ?? 'house'}`);
+  ctx.phase('house', `Going to my ${house.house ?? 'house'}`);
   // A box for the house, bought on the way while there is none yet.
   const box = () => session.world.childrenOf(backpackOf(ctx)).find((i) => i.graphic === BOX);
   if (!house.storage && !box()) await buyOne(ctx, 'provisioner', BOX).catch(() => false);
@@ -95,7 +94,7 @@ async function visitHouse(ctx: LifeContext, house: HouseRecord, stay: number) {
     return;
   }
   await furnish(ctx, house, box()?.serial);
-  ctx.phase('home', 'At home for a while');
+  ctx.phase('house', 'In my house for a while');
   const until = Date.now() + stay;
   while (Date.now() < until && session.phase === 'ready') {
     ctx.check();
@@ -125,15 +124,13 @@ async function furnish(ctx: LifeContext, house: HouseRecord, carriedBox?: number
   const box = session.world.entities.get(storage);
   if (!box?.position || distance(ctx.position(), box.position) > 2) return;
   const keep = new Set(ctx.checkpoint.keep ?? []);
-  const valuables = session.world
-    .childrenOf(backpackOf(ctx))
-    .filter((i) => i.graphic !== gold && (keep.has(i.serial) || ['artifact', 'magic'].includes(quality(i))));
+  const valuables = session.world.childrenOf(backpackOf(ctx)).filter((i) => i.graphic !== gold && keep.has(i.serial));
   for (const item of valuables.slice(0, 20)) {
     await session.moveItem(item.serial, storage).catch(() => {});
     if (keep.has(item.serial)) ctx.checkpoint.keep = (ctx.checkpoint.keep ?? []).filter((s) => s !== item.serial);
   }
   if (valuables.length) {
-    ctx.log(`Stored ${Math.min(20, valuables.length)} valuables at home`);
+    ctx.log(`Stored ${Math.min(20, valuables.length)} valuables in my house`);
     ctx.persist();
   }
 }

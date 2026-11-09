@@ -1,7 +1,7 @@
 import { graphicOf, graphicsOf, shopPrices } from '@gemwright/common/game/rules';
 import type { Entity } from '@gemwright/network/world';
 
-import { quality } from './item-quality';
+import { traits } from './item-quality';
 import type { ServiceType } from './locations';
 
 // What residents trade with each other (market.ts), and for each good the NPC shop's buying and
@@ -86,5 +86,5 @@ export const goodMatch = (good: Good) => {
   return (item: Entity) =>
     graphics.includes(item.graphic) &&
     (!item.hue || good === 'cloth') &&
-    (!def.exceptional || quality(item) === 'exceptional');
+    (!def.exceptional || !!traits(item)?.exceptional);
 };

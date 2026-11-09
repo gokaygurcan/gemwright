@@ -1,9 +1,8 @@
 import { gold } from '@gemwright/common/game/items';
 
 import { absence } from './absence';
-import { tally } from './activity';
 import { recoverWithAid } from './aid-recovery';
-import { knownBankGold } from './bank-gold';
+import { carriedGold, knownBankGold } from './bank-gold';
 import { Blocked, type BlockedReason, blockedReason } from './blocked';
 import { atGround, fightBack, groundOf, nextGround, patrolPoints, retreatedFrom, travelToGround } from './cemeteries';
 import type { DecisionPick } from './decisions';
@@ -11,22 +10,24 @@ import { dungeonTurn } from './dungeon-turn';
 import { escortOpportunity } from './escort';
 import { actionScope, checkAction, yieldForInteraction } from './execution-session';
 import { reconcileExperience } from './experience';
+import { fightConfidence } from './fight-confidence';
 import { createFighterCombat } from './fighter-combat';
 import {
   Ambushed,
   Died,
   type FighterContext,
   ghosts,
-  homeOf,
   huntable,
   newFighterStats,
   observedThreat,
-  Retreat
+  Retreat,
+  servicesIn
 } from './fighter-context';
 import { fighterDungeon, fighterLife } from './fighter-dungeon';
 import { fightOpponent } from './fighter-encounter';
 import { createFighterEquipment } from './fighter-equipment';
 import { createFighterErrands } from './fighter-errands';
+import { gearCheckDue } from './fighter-gear';
 import { chooseOpponent } from './fighter-hunt';
 import { createCorpseLooter, fellAlongside } from './fighter-loot';
 import { createFighterRecovery } from './fighter-recovery';
@@ -35,26 +36,28 @@ import { registerFighterSocial } from './fighter-social';
 import { createFighterInventory, initializeFighter } from './fighter-startup';
 import { createFighterTown } from './fighter-town';
 import { fieldUpkeep, planTownTrip } from './fighter-trip';
+import { createKillCollection } from './fighter-victory';
 import { residentTurn } from './goal-turn';
 import { lifeTurn } from './life';
 import { logger } from './log';
 import { watchStep } from './loop-watch';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator, distance } from './navigation';
+import { observedTerrain } from './observed-terrain';
 import { playerPartyTurn } from './player-party';
+import { startReflex } from './reflex';
 import { observeResident } from './resident-observation';
 import type { ResidentOptions } from './resident-options';
 import { SessionBreak } from './session-habits';
 import { isSetback, passSetback } from './setback';
 import { trainSupportingSkill } from './skill-training';
 import { Terrain } from './terrain';
-import { TownChanged, townFor } from './towns';
+import { townFor } from './towns';
 
 export async function runFighter(options: ResidentOptions) {
   const { session, template } = options;
   const serial = session.world.serial;
   if (serial === null || session.world.map !== 1) throw new Error('Fighter needs Trammel');
-  const home = homeOf(townFor(session, 'fighter'), () => session.world.position ?? { x: 0, y: 0 });
   const checkpoint = structuredClone(options.checkpoint);
   reconcileExperience(checkpoint);
   options.decisions?.reconcile(checkpoint);
@@ -64,7 +67,7 @@ export async function runFighter(options: ResidentOptions) {
   const trip = checkpoint.hunting;
   if (checkpoint.decisions?.history.at(-1)?.execution.status === 'failed' && trip.killsSinceBank > 0)
     trip.pending = 'return';
-  const terrain = Terrain.shared(options.assets, 1);
+  const terrain = observedTerrain(Terrain.shared(options.assets, session.world.map ?? 1), session);
   const deadline = Date.now() + options.seconds * 1000;
   const tag = options.label ? `fighter:${options.label}` : 'fighter';
   const log = (message: string) => logger('fighter').info(`[${tag}] ${message}`);
@@ -80,7 +83,7 @@ export async function runFighter(options: ResidentOptions) {
       session,
       checkpoint,
       template,
-      city: home.city,
+      city: townFor(session, 'fighter'),
       peers: options.peers,
       decisions: options.decisions,
       persist
@@ -112,26 +115,29 @@ export async function runFighter(options: ResidentOptions) {
   };
   session.setActivityCheck?.(check);
   let mounts: ReturnType<typeof createMountController> | undefined;
-  let travelling = false;
+  let gearCheckedAt = 0;
   let checkingRoad = false;
-  let roadSteps = 0;
   const groundNavigate = createNavigator({
     session,
     terrain,
     check,
     phase,
     log,
-    // A fighter's road is full of its prey: steering around the undead and waiting for them to move
-    // on is what left fighters standing still in front of the very monsters they came to kill. It
-    // walks its route; checkFighter engages what attacks it (or retreats when it cannot win).
-    wary: () => false,
+    // Sizing up what it sees on every step: it gives a wide berth to a fight it would not take, and
+    // takes on one it would, rather than walking into the middle of a crowd to judge it there.
+    avoid: (mobile) => !fightConfidence(ctx, mobile).ok,
     onStep: async () => {
-      if (!options.overland || !travelling || checkingRoad || ++roadSteps % 24 !== 0) return;
+      if (
+        checkingRoad ||
+        state.inCombat ||
+        !nearby().some((m) => huntable(m, unreachable) && fightConfidence(ctx, m).ok)
+      )
+        return;
       checkingRoad = true;
       try {
         const choice = await chooseOpponent(ctx, { unreachable, stopping: options.stopping });
         if (choice.kind === 'fight') {
-          phase('road-encounter', `Engaging observed undead ${choice.opponent.serial} while travelling`);
+          phase('road-encounter', `Engaging observed ${choice.opponent.name ?? 'creature'} on the way`);
           await defeat(choice.opponent);
           await fieldUpkeep(ctx, heal);
         }
@@ -169,7 +175,9 @@ export async function runFighter(options: ResidentOptions) {
     );
   const ctx: FighterContext = {
     session,
-    home,
+    get services() {
+      return servicesIn(townFor(session, 'fighter'), () => session.world.position ?? { x: 0, y: 0 });
+    },
     template,
     terrain,
     checkpoint,
@@ -204,7 +212,7 @@ export async function runFighter(options: ResidentOptions) {
           (e) => e.position && observedThreat(e, session.world.combatant) && distance(point, e.position) < 10
         )
     },
-    home.city
+    () => ctx.services.city
   );
   const combat = createFighterCombat(ctx);
   const { combatAssessment, drinkPotion, heal } = combat;
@@ -226,6 +234,7 @@ export async function runFighter(options: ResidentOptions) {
       reason
     );
   const lootCorpse = createCorpseLooter(ctx, dress);
+  const killCollection = createKillCollection(ctx, lootCorpse);
   const errands = createFighterErrands(ctx, {
     sellLoot,
     bank,
@@ -240,19 +249,16 @@ export async function runFighter(options: ResidentOptions) {
     );
     state.inCombat = false;
     session.setWarMode(false);
-    stats.kills++;
     idlePatrols = 0;
     blockedStreak = 0;
-    trip.killsSinceBank++;
     persist();
-    const death = session.world.deaths.get(defeated.serial);
-    if (death) tally(session, 'kills');
+    killCollection.record(defeated.serial);
+    for (const other of fellAlongside(ctx, before, defeated.serial)) killCollection.remember(other);
     phase('looting', 'Collecting valuables from the defeated undead');
     await Bun.sleep(600);
     // The corpse serial can arrive as 0 (or not at all): the looter finds the fresh corpse where
     // the opponent fell instead of walking away from a kill with the gold still on it.
-    await lootCorpse(death);
-    for (const other of fellAlongside(ctx, before, defeated.serial)) await lootCorpse(other);
+    await killCollection.collect();
     delete trip.encounter;
     persist();
   };
@@ -262,6 +268,11 @@ export async function runFighter(options: ResidentOptions) {
   let initialized = false;
   let outcome = 'completed';
   let blocked: BlockedReason | undefined;
+  const stopReflex = startReflex(ctx, (serial) => {
+    killCollection.record(serial);
+    idlePatrols = 0;
+    blockedStreak = 0;
+  });
   try {
     let turnAt = 0;
     while (Date.now() < deadline) {
@@ -301,6 +312,7 @@ export async function runFighter(options: ResidentOptions) {
           // deadlines and loop-watch's pending interrupt all rely on being checked here.
           check();
           if (consumed) return;
+          await killCollection.collect();
           const attacker = ambusher;
           ambusher = undefined;
           if (await fightBack(ctx, attacker, defeat)) return;
@@ -329,14 +341,13 @@ export async function runFighter(options: ResidentOptions) {
           if (await dungeonTurn(below, false)) return;
           const town = { sellLoot, bank, restock };
           if (!atGround(ctx) && (await lifeTurn(fighterLife(ctx, below, town, options.decisions)))) return;
-          if (!atGround(ctx)) {
-            travelling = true;
-            try {
-              await travelToGround(ctx, options.overland);
-            } finally {
-              travelling = false;
-            }
+          // The last balance it saw, stale or not: armor shopping asks the bank again before buying.
+          const lastFunds = carriedGold(session, ctx.backpack()) + (checkpoint.funds?.bank ?? 0);
+          if (!atGround(ctx) && gearCheckDue(lastFunds, gearCheckedAt)) {
+            gearCheckedAt = Date.now();
+            await prepareEquipment();
           }
+          if (!atGround(ctx)) await travelToGround(ctx);
           phase('choosing-opponent', 'Looking for an opponent I can take on');
           const choice = await chooseOpponent(ctx, {
             unreachable,
@@ -359,10 +370,7 @@ export async function runFighter(options: ResidentOptions) {
             if (++idlePatrols > 6 + (template.behavior.temperament?.patrolOffset ?? 0)) {
               idlePatrols = 0;
               absence(serial).note('ground', groundOf(trip).center);
-              trip.ground = options.overland
-                ? ({ Britain: 'Yew', Yew: 'Britain', Cove: 'Vesper', Vesper: 'Cove' }[trip.ground ?? 'Britain'] ??
-                  'Britain')
-                : nextGround(ctx);
+              trip.ground = nextGround(ctx);
               persist();
               phase('changing-ground', `Nothing to hunt here lately; moving on to ${trip.ground}`);
               return;
@@ -436,7 +444,8 @@ export async function runFighter(options: ResidentOptions) {
           // A road to this ground that cannot be walked (a gate pair gone bad, no route at all) is
           // grounds to hunt elsewhere for a while: "another course" means another graveyard.
           if (/moongate|no route|no public route|walk/i.test(error.message)) {
-            const elsewhere = nextGround(ctx);
+            absence(serial).note('ground', groundOf(trip).center);
+            const elsewhere = nextGround(ctx, /moongate/i.test(error.message));
             if (elsewhere !== trip.ground) {
               log(`The road to the ${trip.ground} is closed; hunting at the ${elsewhere} instead`);
               trip.ground = elsewhere;
@@ -457,11 +466,12 @@ export async function runFighter(options: ResidentOptions) {
           trip.pending = 'return';
           phase('retreating', error.message);
           session.setWarMode(false);
-          drinkPotion();
           // The retreat itself can be interrupted (hurt again on the way, a danger check inside the
-          // recovery): that ends this turn, not the session — the return stays pending and the next
-          // turn leaves. Ending the run here made every street fight a logout/login.
+          // recovery, the potion's own command under the interrupted turn): that ends this turn, not
+          // the session — the return stays pending and the next turn leaves. Ending the run here made
+          // every street fight a logout/login.
           try {
+            drinkPotion();
             if (await recoverWithAid(ctx, heal)) trip.pending = 'hunt';
           } catch (interrupted) {
             if (session.phase !== 'ready') throw interrupted;
@@ -479,13 +489,14 @@ export async function runFighter(options: ResidentOptions) {
       }
     }
   } catch (error) {
-    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
+    if (error instanceof SessionBreak) throw error;
     outcome = error instanceof Error ? error.message : String(error);
     blocked = blockedReason(error);
     options.decisions?.finish(checkpoint, activeDecision, options.stopping?.() ? 'interrupted' : 'failed', outcome);
     options.decisions?.finish(checkpoint, returnDecision, options.stopping?.() ? 'interrupted' : 'failed', outcome);
     phase('stopped', outcome);
   } finally {
+    stopReflex();
     if (session.phase === 'ready') {
       if (session.world.target) session.target(null);
       session.setWarMode(false);

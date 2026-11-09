@@ -4,9 +4,7 @@ import type { PlayerSession } from '@gemwright/network/session';
 import { canPause } from './action-purpose';
 
 // Human timing on the road (navigation.ts): people walk, not run, through a crowd or when leading
-// someone; they stop now and then for a few seconds; they react a moment late to danger; and once
-// in a long while they take a wrong step. Never when fleeing or fighting, and never so often that
-// the route itself changes.
+// someone; they stop now and then for a few seconds and react a moment late to danger.
 const escorting = new WeakSet<PlayerSession>();
 export const setEscorting = (session: PlayerSession, on: boolean) =>
   on ? escorting.add(session) : escorting.delete(session);
@@ -33,12 +31,6 @@ export function walkingPace(session: PlayerSession) {
 export function pauseFor(session: PlayerSession, urgent: boolean) {
   if (urgent || !canPause(session) || Math.random() >= 1 / 300) return 0;
   return 2000 + Math.random() * 4000;
-}
-
-// A wrong step about once in 500: the direction one turn off.
-export function slip(direction: number, urgent: boolean) {
-  if (urgent || Math.random() >= 1 / 500) return direction;
-  return (direction + (Math.random() < 0.5 ? 1 : 7)) % 8;
 }
 
 // How long a person takes to react to danger: a third of a second to a second.

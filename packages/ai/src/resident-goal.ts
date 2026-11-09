@@ -2,12 +2,13 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 import type { PlayerSession } from '@gemwright/network/session';
 
+import type { DecisionFlow } from './decision-flow';
 import { proposeGoals, riskBudget, selectGoal } from './goal-policy';
 import { describeIntent, type PlanningContext, planningCondition, type ResidentIntent } from './intent';
 import { intentEvidence, intentRationale } from './intent-evidence';
 import { lifeEvent } from './life-events';
 import { type PlanAssumption, progressAssumption } from './plan-assumptions';
-import { planBudget, reserveSpend, spendWithinPlan } from './plan-budget';
+import { planBudget, purchaseAffordable, reserveSpend, spendWithinPlan } from './plan-budget';
 import { type PlanOutcome, rememberPlan } from './plan-memory';
 import { observePlans } from './plan-observations';
 import type { Checkpoint } from './store';
@@ -115,9 +116,9 @@ export function goalStatus(session: PlayerSession) {
     last: memory?.last ?? null
   };
 }
-export function interruptGoal(session: PlayerSession, reason: string) {
+export function interruptGoal(session: PlayerSession, reason: string, scope: 'work' | 'route' = 'work') {
   const checkpoint = bindings.get(session);
-  if (checkpoint) blockGoal(checkpoint, reason, Date.now(), snapshots.get(session)?.());
+  if (checkpoint) blockGoal(checkpoint, reason, Date.now(), snapshots.get(session)?.(), scope);
   leases.delete(session);
 }
 export function failResidentGoal(session: PlayerSession, reason: string) {
@@ -157,11 +158,17 @@ export function attachGoal(session: PlayerSession) {
   permits.set(session, 'trade');
 }
 
-export function blockGoal(checkpoint: Checkpoint, reason: string, now = Date.now(), state?: GoalSituation) {
+export function blockGoal(
+  checkpoint: Checkpoint,
+  reason: string,
+  now = Date.now(),
+  state?: GoalSituation,
+  scope: 'work' | 'route' = 'work'
+) {
   const memory = checkpoint.workGoal;
   const goal = memory?.active;
   if (!memory || !goal) return;
-  if (goal.step !== 'wait') {
+  if (scope === 'work' && goal.step !== 'wait') {
     memory.failed ??= {};
     const failureKey = goal.step === 'income' ? 'income' : goal.key;
     memory.failed[failureKey] = {
@@ -185,7 +192,7 @@ export function blockGoal(checkpoint: Checkpoint, reason: string, now = Date.now
       session,
       'objective',
       'failed',
-      { ...memory.last },
+      { ...memory.last, scope },
       `objective:${session.world.serial}:${goal.started}:${goal.key}`
     );
   delete memory.active;
@@ -209,7 +216,12 @@ export function goalResult(goal: ResidentGoal, state: GoalSituation): string | u
     return 'Trade skill increased within budget';
 }
 
-export function chooseGoal(checkpoint: Checkpoint, state: GoalSituation, now = Date.now()): ResidentGoal {
+export function chooseGoal(
+  checkpoint: Checkpoint,
+  state: GoalSituation,
+  now = Date.now(),
+  flow?: DecisionFlow
+): ResidentGoal {
   checkpoint.workGoal ??= {};
   const memory = checkpoint.workGoal;
   const died = (goal: ResidentGoal) =>
@@ -365,7 +377,7 @@ export function chooseGoal(checkpoint: Checkpoint, state: GoalSituation, now = D
     }
     return goal;
   }
-  const proposal = selectGoal(checkpoint, state, now);
+  const proposal = selectGoal(checkpoint, state, now, flow);
   const { kind, key } = proposal;
   const step: GoalStep =
     proposal.step ??
@@ -412,7 +424,11 @@ export function plannedSpendAllowed(session: PlayerSession, cost: number): boole
   if (!goal || !checkpoint) return true;
   if (!spendWithinPlan(goal, cost)) return false;
   const current = workEvidence(session, checkpoint);
-  return goal.before.bankKnown === current.bankKnown && goal.before.funds - current.funds + cost <= goal.budget;
+  return (
+    purchaseAffordable(current.funds, cost) &&
+    goal.before.bankKnown === current.bankKnown &&
+    goal.before.funds - current.funds + cost <= goal.budget
+  );
 }
 
 export function leaseGoal(session: PlayerSession, goal: ResidentGoal) {
@@ -420,11 +436,24 @@ export function leaseGoal(session: PlayerSession, goal: ResidentGoal) {
   permits.set(session, goal.step);
 }
 
-export function reservePlannedSpend(session: PlayerSession, cost: number) {
-  const settle = reserveSpend(bindings.get(session)?.workGoal?.active, cost);
+export function reservePlannedSpend(session: PlayerSession, cost: number, essential = false) {
+  const goal = bindings.get(session)?.workGoal?.active;
+  const budget = goal?.intent?.budget;
+  if (essential && goal) {
+    goal.budget += cost;
+    if (budget) budget.maxSpend += cost;
+  }
+  const settle = reserveSpend(goal, cost);
   planSaves.get(session)?.();
+  let settled = false;
   return (result: 'confirmed' | 'refused' | 'unknown') => {
+    if (settled) return;
+    settled = true;
     settle(result);
+    if (essential && goal && result === 'refused') {
+      goal.budget -= cost;
+      if (budget) budget.maxSpend -= cost;
+    }
     planSaves.get(session)?.();
   };
 }

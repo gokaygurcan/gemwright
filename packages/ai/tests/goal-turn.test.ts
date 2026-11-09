@@ -161,8 +161,9 @@ test('a training purchase cannot exceed its plan budget and permissions restore 
   required(f.world.skills.get(skillId('Mining'))).base = 50;
   await residentTurn(f.ctx, { trade: 'miner', keep: () => true });
   let purchases = 0;
+  const over = required(f.checkpoint.workGoal?.active).budget + 1;
   await expect(
-    chargedPurchase(f.ctx, 301, async () => {
+    chargedPurchase(f.ctx, over, async () => {
       purchases++;
     })
   ).rejects.toThrow('budget');

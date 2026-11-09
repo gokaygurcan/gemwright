@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "Single world configuration: which facets and cities are in play, which professions exist, where each lives and works, and the population mix. Templates and allocation are generated from it (src/world.ts). Lore: Minoc mines (Britannian Mining Company), Yew timber and rangers, Vesper port and fishing, Moonglow mages, Britain bards, Trinsic paladins (Honor), Jhelom fighters (Valor), Skara Brae rangers (Spirituality).",
+  "note": "Single world configuration: which facets and cities are in play, which professions exist, where a new character of each may start, and the population mix. Templates and allocation are generated from it (src/world.ts). Lore: Minoc mines (Britannian Mining Company), Yew timber and rangers, Vesper port and fishing, Moonglow mages, Britain bards, Trinsic paladins (Honor), Jhelom fighters (Valor), Skara Brae rangers (Spirituality).",
   "facets": [
     {
       "id": 1,
@@ -118,7 +118,7 @@
           "Blacksmith": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Minoc": 1
       },
       "trainingGoals": {
@@ -141,7 +141,7 @@
           "Carpentry": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Yew": 3,
         "Britain": 1
       },
@@ -165,7 +165,7 @@
           "Cooking": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Vesper": 3,
         "Moonglow": 1,
         "Jhelom": 1
@@ -190,7 +190,7 @@
           "Arms Lore": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Britain": 2,
         "Magincia": 1,
         "Moonglow": 1
@@ -214,7 +214,7 @@
           "Tactics": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Trinsic": 3,
         "Jhelom": 2,
         "Britain": 2
@@ -246,7 +246,7 @@
           "Tactics": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Jhelom": 3,
         "Trinsic": 2,
         "Britain": 1
@@ -278,7 +278,7 @@
           "Tactics": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Trinsic": 2,
         "Jhelom": 2,
         "Minoc": 1,
@@ -311,7 +311,7 @@
           "Tactics": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Skara Brae": 3,
         "Yew": 3,
         "Britain": 1
@@ -342,7 +342,7 @@
           "Tactics": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Jhelom": 2,
         "Moonglow": 2,
         "Trinsic": 1
@@ -373,7 +373,7 @@
           "Eval Int": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Moonglow": 4,
         "Britain": 1,
         "Magincia": 1
@@ -404,7 +404,7 @@
           "Provocation": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Britain": 4,
         "Minoc": 1,
         "Vesper": 1
@@ -437,7 +437,7 @@
           "Animal Lore": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Yew": 2,
         "Skara Brae": 2,
         "Vesper": 1
@@ -463,7 +463,7 @@
           "Hiding": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Britain": 2,
         "Vesper": 1,
         "Magincia": 1
@@ -490,7 +490,7 @@
           "Archery": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Yew": 2,
         "Skara Brae": 1
       },
@@ -515,7 +515,7 @@
           "Magery": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Moonglow": 2,
         "Britain": 1,
         "Vesper": 1
@@ -539,7 +539,7 @@
           "Archery": 50
         }
       },
-      "homes": {
+      "startingCities": {
         "Yew": 2,
         "Britain": 1
       },
@@ -562,7 +562,7 @@
           "Inscription": 50
         }
       },
-      "homes": {},
+      "startingCities": {},
       "trainingGoals": {
         "Magery": 100,
         "Inscription": 100,
@@ -584,7 +584,7 @@
           "Magery": 50
         }
       },
-      "homes": {},
+      "startingCities": {},
       "trainingGoals": {
         "Necromancy": 100,
         "Magery": 100,

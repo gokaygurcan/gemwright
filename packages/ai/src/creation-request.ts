@@ -5,6 +5,7 @@ import type { CharacterRequest } from '@gemwright/network/session';
 import { appearanceOf } from './appearance';
 import { shardProfile } from './shard-profile';
 import type { Resident, ResidentStore } from './store';
+import { weightedPick } from './world';
 
 // A new resident's first login creates its character from its template; a bound one logs in.
 export function creationRequest(store: ResidentStore, resident: Resident, enabled: boolean): CharacterRequest {
@@ -18,9 +19,12 @@ export function creationRequest(store: ResidentStore, resident: Resident, enable
     const id = skillId(skill);
     return { id, value };
   });
+  // A stable weighted pick per resident: its own start, not the whole template's.
+  const city = weightedPick(template.creation.cities ?? {}, resident.id);
+  if (!city) throw new Error(`Template ${template.id} names no starting city`);
   const create = {
     name,
-    city: template.creation.city,
+    city,
     skills,
     appearance: appearanceOf(resident.id, shardProfile().races)
   };

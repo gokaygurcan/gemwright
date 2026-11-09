@@ -1,5 +1,6 @@
 import { parentPort, workerData } from 'node:worker_threads';
 
+import { geometryView } from './geometry';
 import { RouteCorridors } from './path-corridors';
 import type { RouteRequest } from './path-search';
 import type { Corridor } from './route-waypoints';
@@ -14,7 +15,8 @@ parentPort?.on(
     if ('corridors' in message) return search.useCorridors(message.corridors);
     const cancelled = new Int32Array(message.cancellation);
     try {
-      const result = search.run(terrain, message.request, () => Atomics.load(cancelled, 0) !== 0);
+      const observed = message.request.geometry ? geometryView(terrain, message.request.geometry) : terrain;
+      const result = search.run(observed, message.request, () => Atomics.load(cancelled, 0) !== 0);
       parentPort?.postMessage({ id: message.id, result });
     } catch (error) {
       parentPort?.postMessage({ id: message.id, error: error instanceof Error ? error.message : String(error) });

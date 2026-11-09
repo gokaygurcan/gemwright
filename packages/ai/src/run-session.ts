@@ -20,12 +20,12 @@ import { runFighter } from './fighter';
 import { runFisher } from './fisher';
 import { registerCheckpoint } from './gm';
 import { watchForGuards } from './guards';
-import { registerHaven } from './haven';
 import { LIFE_GOAL } from './life-goal';
 import { logger } from './log';
 import { runLumberjack } from './lumberjack';
 import { runMiner } from './miner';
 import type { RuntimeOwnership } from './ownership';
+import { recordDecision, recordSession } from './recording';
 import { enableSessionHabits } from './resident-context';
 import { withRuntime } from './runtime';
 import { registerDurability } from './session-durability';
@@ -34,7 +34,6 @@ import { recordSkills } from './skill-snapshots';
 import { maintainLocks } from './stat-locks';
 import type { Resident, ResidentStore } from './store';
 import { emitEvent, inSession, makeEvent } from './telemetry';
-import { TownChanged } from './towns';
 
 export { withRuntime } from './runtime';
 
@@ -128,8 +127,6 @@ export interface ResidentOptions {
     assets: string;
   };
   decisionConfig?: DecisionConfig;
-  // Walk to distant cemeteries instead of taking a moongate (load tests); off by default.
-  overland?: boolean;
   naturalSessions?: boolean;
 }
 
@@ -194,9 +191,10 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     };
     const decisionLog = store.decisionLog();
     const decisions = config
-      ? new DecisionCoordinator(config, save, undefined, store.spendLedger(), (trace, request, exchanges) =>
-          decisionLog.record(resident.id, trace, request, exchanges)
-        )
+      ? new DecisionCoordinator(config, save, undefined, store.spendLedger(), (trace, request, exchanges, flow) => {
+          decisionLog.record(resident.id, trace, request, exchanges, flow);
+          recordDecision(resident.id, { trace, request, exchanges });
+        })
       : undefined;
     const connect = () =>
       connectionAdmission.run(async () => {
@@ -204,6 +202,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         ownership.assert();
         runtime.session?.close();
         const session = new PlayerSession(options.connection, () => ownership.assert());
+        recordSession(session, residentId);
         registerDurability(session, flush);
         runtime.session = session;
         shared.track(residentId, session);
@@ -260,7 +259,6 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     if (options.minerAssets || options.fighterAssets || options.lumberjackAssets || options.profession) {
       const totals: Record<string, number> = {};
       const behave = async (session: PlayerSession, seconds: number) => {
-        registerHaven(session, template);
         if (options.naturalSessions) enableSessionHabits(session);
         registerCheckpoint(session, resident.checkpoint);
         const peers = new Map(
@@ -271,7 +269,6 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         );
         const common = {
           label: resident.proposedName,
-          overland: options.overland,
           peers,
           session,
           template: personalTemplate(template, resident.id),
@@ -369,8 +366,6 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
               return await behave(session, seconds);
             } catch (error) {
               if (error instanceof SessionBreak) return SESSION_BREAK;
-              // Its town stopped supporting the work: the next run starts from one that does.
-              if (error instanceof TownChanged) return 'town-changed';
               throw error;
             } finally {
               releaseLocks();

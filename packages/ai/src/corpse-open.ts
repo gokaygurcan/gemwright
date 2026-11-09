@@ -41,11 +41,21 @@ export async function openCorpse(
 ): Promise<{ corpse: number; items: Entity[] } | { why: 'not-found' | 'too-far' | 'denied' }> {
   const { session } = ctx;
   const declared = death?.corpse;
-  const body =
+  const findBody = () =>
     declared && session.world.entities.get(declared)?.graphic === corpseGraphic
       ? session.world.entities.get(declared)
       : // A kill that drifted is still found: without a death position the search reaches further.
         corpseNear(session, death?.position ?? ctx.position(), death?.position ? 4 : 8, skip);
+  let body = findBody();
+  if (!body?.position && death) {
+    if (death.position) await ctx.navigate(death.position, 1);
+    await session
+      .waitFor(() => !!findBody()?.position, 'observed corpse after confirmed death', 4000)
+      .catch((error) => {
+        if (session.phase !== 'ready') throw error;
+      });
+    body = findBody();
+  }
   if (!body?.position) return { why: 'not-found' };
   const at = body.position;
   await ctx.navigate(at, 1);

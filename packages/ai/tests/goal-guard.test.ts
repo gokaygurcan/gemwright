@@ -55,3 +55,32 @@ test('an expired plan interrupts once, clears its lease, and allows setback reco
     clock.mockRestore();
   }
 });
+
+test('idle travel failure is scoped to its route even when the activity phase is not named travel', async () => {
+  const { recordLifeAction } = await import('../src/life-events');
+  let now = 4_000_000;
+  const clock = spyOn(Date, 'now').mockImplementation(() => now);
+  try {
+    const f = behaviorFixture();
+    const state = {
+      evidence: workEvidence(f.session, f.checkpoint),
+      safe: true,
+      ready: true,
+      learning: false,
+      earningNeeded: true
+    };
+    registerGoal(f.session, f.checkpoint);
+    chooseGoal(f.checkpoint, state, now);
+    watchStep(f.session, 'test', 'income', 'Walking to the work site');
+    await expect(
+      recordLifeAction(f.session, 'travel', {}, async () => {
+        now += 301_000;
+        checkLoop(f.session);
+      })
+    ).rejects.toBeInstanceOf(Stuck);
+    expect(f.checkpoint.workGoal?.failed?.earn).toBeUndefined();
+    expect(chooseGoal(f.checkpoint, state, now).step).toBe('trade');
+  } finally {
+    clock.mockRestore();
+  }
+});

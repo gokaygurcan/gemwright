@@ -1,6 +1,8 @@
 import { moongateList } from '@gemwright/common/game/rules';
 
 import { areaHere, areaOfPlace, gateArea } from './areas';
+import { townAt } from './locations';
+import { cityAllowed } from './world';
 
 // Trammel public moongates from the ServUO rules (PublicMoongate.PMList.Trammel): gate location and
 // the destination's label in the gate menu. Arrival is at the destination gate itself.
@@ -11,9 +13,16 @@ export type Gate = keyof typeof moongates;
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
+// A gate in a city the shard keeps residents out of (gemwright.json ai.cities) is never a route
+// there, but always the way out for one already standing in that city (an island like Magincia).
+export const gateOpen = (gate: Gate, from: { x: number; y: number }) => {
+  const town = townAt(moongates[gate], '');
+  return cityAllowed(town) || townAt(from, '') === town;
+};
+
 export const nearestGate = (point: { x: number; y: number }): Gate => {
   const area = areaOfPlace(point) ?? areaHere(point);
-  const gates = Object.keys(moongates) as Gate[];
+  const gates = (Object.keys(moongates) as Gate[]).filter((gate) => gateOpen(gate, point));
   const own = area === undefined ? [] : gates.filter((gate) => gateArea(moongates[gate]) === area);
   return (
     [...(own.length ? own : gates)].sort((a, b) => distance(point, moongates[a]) - distance(point, moongates[b]))[0] ??

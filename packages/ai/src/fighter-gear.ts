@@ -5,7 +5,7 @@ import { Notoriety } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
 import type { Entity } from '@gemwright/network/world';
 
-import { chargedPurchase, fundsStale, spendableGold } from './bank-gold';
+import { chargedPurchase, fundsStale, refreshFunds, spendableGold } from './bank-gold';
 import { travelNear } from './cemeteries';
 import { type FighterContext, weaponsFor } from './fighter-context';
 import { approachVendor } from './mobile-approach';
@@ -51,6 +51,10 @@ const armorLayers = new Set<number>([
   Layer.Arms
 ]);
 const ARMOR_RESERVE = 750;
+// A fighter leaving town with money to spare looks at its gear, at most every half hour: waiting
+// for a finished hunt left a rich fighter who seldom finished one in its starting armor.
+export const gearCheckDue = (spendable: number, checkedAt: number, now = Date.now()) =>
+  spendable >= ARMOR_RESERVE + 30 && now - checkedAt >= 30 * 60_000;
 // Below this share of its maximum durability a piece is retired and replaced (no NPC repairs on
 // ServUO pub57; repair needs Blacksmithy at a forge and anvil).
 const WORN_SHARE = 0.25;
@@ -114,7 +118,14 @@ export function createFighterGear(
     );
     if (robe && isDeathRobe(robe) && replacement) {
       phase('dressing', 'Discarding the death robe');
-      await session.dropAtFeet(robe.serial);
+      // A refused ground drop (busy tile, house) puts it in the pack instead; never a reason to stop.
+      await session
+        .dropAtFeet(robe.serial)
+        .catch(() => session.moveItem(robe.serial, ctx.backpack()))
+        .catch((error) => {
+          if (session.phase !== 'ready') throw error;
+          log(`Kept the death robe on: ${error instanceof Error ? error.message : error}`);
+        });
     }
     // A candle or torch in the off hand gives way to a shield (tiledata LightSource), or is
     // simply put away; tidyPack then drops it.
@@ -278,14 +289,19 @@ export function createFighterGear(
 
   // With spare funds, fill empty armor slots from an ordinary blacksmith, one affordable piece each.
   const upgradeArmor = async () => {
-    if (fundsStale(ctx.checkpoint)) return;
+    // A stale balance is asked for, never a silent reason to skip: thousands banked bought nothing.
+    if (fundsStale(ctx.checkpoint)) await refreshFunds(ctx, ctx.services.city);
+    if (fundsStale(ctx.checkpoint)) {
+      log('Bank balance unknown; armor shopping waits until it is checked');
+      return;
+    }
     const spendable = () => spendableGold(session, ctx.backpack(), ctx.checkpoint);
     // A candle, torch, or lantern (tiledata LightSource) in the off hand blocks no shield: Parry only
     // trains with a shield held, so the light goes into the pack when a shield arrives.
     const light = holdsLight;
     if (spendable() < ARMOR_RESERVE + 30) return;
     phase('armor-shopping', `Looking for armor upgrades with ${spendable()} gold available`);
-    await travelNear(ctx, ctx.home.one('blacksmith'), 5);
+    await travelNear(ctx, ctx.services.one('blacksmith'), 5);
     for (const mobile of nearby()) {
       check();
       if (mobile.notoriety !== Notoriety.invulnerable) continue;

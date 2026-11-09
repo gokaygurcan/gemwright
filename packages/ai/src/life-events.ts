@@ -26,7 +26,12 @@ export const currentLifeTarget = (session: PlayerSession) => {
   const target = targets.get(session);
   return target && Date.now() - target.at < 30_000 ? target.serial : undefined;
 };
-const actions = new AsyncLocalStorage<{ session: PlayerSession; id: string }>();
+const actions = new AsyncLocalStorage<{ session: PlayerSession; id: string; type: string }>();
+
+export const lifeActionType = (session: PlayerSession) => {
+  const current = actions.getStore();
+  return current?.session === session ? current.type : undefined;
+};
 
 export function registerLifeEvents(
   session: PlayerSession,
@@ -100,7 +105,7 @@ export function beginLifeAction(session: PlayerSession, type: string, details: R
   return {
     id,
     run<T>(action: () => T): T {
-      return actions.run({ session, id }, () =>
+      return actions.run({ session, id, type }, () =>
         inTrace({ actionId: id, parentId: traceContext()?.actionId, traceId: traceContext()?.traceId ?? id }, action)
       );
     },

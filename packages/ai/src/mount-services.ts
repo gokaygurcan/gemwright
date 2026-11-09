@@ -20,7 +20,8 @@ const HORSE = soldAs('Horse');
 // (pack-animal.ts); `memory.horse` holds whichever animal the memory is for.
 export function createMountServices(
   ctx: MountContext,
-  city: string,
+  // The town it is in or nearest to, read when needed: no resident is bound to a town.
+  city: () => string,
   reserve: number,
   animal: { bodies: ReadonlySet<number>; name: string } = { bodies: horseBodies, name: 'horse' }
 ) {
@@ -38,7 +39,7 @@ export function createMountServices(
   // The trainer charges carried gold, then the bank balance, so funding only needs a current balance.
   const fund = async () => {
     if (!fundsStale(ctx.checkpoint)) return;
-    for (const bank of serviceLocations(city, 'banker')) {
+    for (const bank of serviceLocations(city(), 'banker')) {
       await navigate(bank, 4);
       for (const mobile of learning.order(mobiles(), Actions.bank)) {
         check();
@@ -101,10 +102,10 @@ export function createMountServices(
       return;
     }
     // Why no animal was bought, reported when the attempt ends without one.
-    let why = `no animal trainer near the ${city} stables offered a ${animal.name}`;
-    // The home city's stables, or, in a town without any (Yew, Moonglow, Vesper, Jhelom, Magincia),
+    let why = `no animal trainer near the ${city()} stables offered a ${animal.name}`;
+    // This town's stables, or, in a town without any (Yew, Moonglow, Vesper, Jhelom, Magincia),
     // the nearest towns that have them, reached by moongate when far, as a player would.
-    const own = serviceLocations(city, 'animal-trainer');
+    const own = serviceLocations(city(), 'animal-trainer');
     const stops = own.length
       ? own
       : allServiceLocations('animal-trainer')

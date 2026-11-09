@@ -1,5 +1,6 @@
 export type BlockedReason =
   | 'unreachable'
+  | 'geometry'
   | 'locked-door'
   | 'no-vendor'
   | 'insufficient-funds'

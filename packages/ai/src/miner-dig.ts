@@ -27,7 +27,7 @@ export async function digSite(
     phase: (value: string, note: string) => void;
     log: (message: string) => void;
     navigate: MinerServicesContext['navigate'];
-    home: { x: number; y: number };
+    townBank: { x: number; y: number };
     exhausted: { add: (key: string) => void };
     progress: { packRejected: boolean };
   },
@@ -40,7 +40,7 @@ export async function digSite(
   },
   start: number
 ) {
-  const { session, terrain, check, position, phase, log, navigate, home, exhausted, progress } = ctx;
+  const { session, terrain, check, position, phase, log, navigate, townBank, exhausted, progress } = ctx;
   let attempts = 0;
   for (let batch = 0; batch < 40; batch++) {
     check();
@@ -49,7 +49,7 @@ export async function digSite(
     // A monster arriving mid-dig: leave the rock for town (danger.ts remembers the spot).
     if (threatsNear(session, position(), 8).length) {
       phase('avoiding', 'Monsters about; leaving the rock for town');
-      await urgentAction(session, 'escape', () => navigate(home, 5)).catch(() => {});
+      await urgentAction(session, 'escape', () => navigate(townBank, 5)).catch(() => {});
       break;
     }
     const last = session.world.journal.at(-1);

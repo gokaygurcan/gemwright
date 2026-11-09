@@ -3,6 +3,7 @@ import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
 import { packItems } from './inventory';
+import { knownNewbied } from './item-quality';
 
 // Over its maximum weight a character cannot walk (ServUO WeightOverloading). Like a player, it
 // puts down what is cheapest for its weight (ore and logs before finished goods, never gold, tools
@@ -22,6 +23,8 @@ const spots = [-1, 0, 1].flatMap((x) => [-1, 0, 1].map((y) => ({ x, y })));
 // Why the last put-down failed, for the log.
 export const refusals = new WeakMap<PlayerSession, string>();
 export async function putDown(session: PlayerSession, serial: number, turn = 0): Promise<boolean> {
+  // A newbied piece is its owner's for good (item-quality.ts): never left on the ground.
+  if (knownNewbied(session, serial)) return false;
   for (let n = 0; n < 3; n++) {
     const before = session.world.status?.weight ?? 0;
     const spot = spots[(turn + n * 4) % spots.length] ?? { x: 0, y: 0 };

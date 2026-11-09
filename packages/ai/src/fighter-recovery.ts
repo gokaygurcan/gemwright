@@ -15,17 +15,11 @@ import {
 import { dungeonWalker, inAnyDungeon } from './dungeon-tools';
 import { actionScope } from './execution-session';
 import { rememberExperience } from './experience';
-import { rememberDeath } from './fight-confidence';
 import { Died, type FighterContext, Retreat } from './fighter-context';
-import {
-  recoveryEquipmentReady,
-  recoveryHealthReady,
-  recoveryThreats,
-  returnToRefuge,
-  weaponObtainable
-} from './fighter-refuge';
+import { recoveryEquipmentReady, recoveryHealthReady, recoveryThreats, returnToRefuge } from './fighter-refuge';
 import { distance } from './navigation';
 import { resurrectGhost } from './resurrection';
+import { keepsFailing } from './trouble';
 
 export function resurrectionButton(layout: string): number | undefined {
   const commands = gumpCommands(layout);
@@ -46,11 +40,13 @@ export function corpseRecoveryChoice(input: {
   attempts: number;
   healthRatio: number;
   threats: number;
+  // The death site keeps killing residents (trouble.ts): what killed it is likely still there.
+  deadlySite?: boolean;
 }): 'recover' | 'replace' | 'seek-help' | 'wait' {
   if (input.policy === 'seek-help') return 'seek-help';
   if (input.policy === 'replace-equipment' || !Number.isFinite(input.ageMs) || input.ageMs > 15 * 60_000)
     return 'replace';
-  if (input.threats > 0 || input.attempts >= 2) return 'replace';
+  if (input.threats > 0 || input.attempts >= 2 || input.deadlySite) return 'replace';
   if (!Number.isFinite(input.healthRatio) || input.healthRatio < 0.9) return 'wait';
   return 'recover';
 }
@@ -161,7 +157,6 @@ export function createFighterRecovery(
       trip.deathSite = { ...lastSeen };
       trip.recovery.locationSource = 'last-seen';
     }
-    rememberDeath(session);
     phase('death-recorded', 'Preserving the recovery goal and observed death location');
     persist();
   };
@@ -174,7 +169,8 @@ export function createFighterRecovery(
       session.setWarMode(false);
       // The closest healer or ankh, anywhere on the map (moongate when far).
       // Fighters weigh their corpse trip themselves (corpseRecoveryChoice), so no automatic one.
-      if (dead()) await resurrectGhost(ctx, false);
+      if (dead())
+        await resurrectGhost({ ...ctx, recoveryDestination: () => trip.deathSite ?? ctx.services.bank }, false);
       if (dead()) throw new Died('Resurrection was not confirmed by a living body');
       stats.resurrections++;
       if (!trip.recovery) throw new Error('Missing persisted death recovery');
@@ -198,7 +194,8 @@ export function createFighterRecovery(
         ageMs: Date.now() - Date.parse(recovery.diedAt),
         attempts: recovery.attempts,
         healthRatio: status().hits / Math.max(1, status().maxHits),
-        threats: threats().length
+        threats: threats().length,
+        deadlySite: !!trip.deathSite && keepsFailing(trip.deathSite)
       });
     let selected = choice();
     if (selected === 'recover' && !recoveryHealthReady(ctx)) selected = 'wait';
@@ -362,16 +359,11 @@ export function createFighterRecovery(
       await recoverCorpse();
     }
     if (trip.recovery.stage === 'equipment') {
-      await returnToRefuge(ctx);
+      if (!recoveryEquipmentReady(ctx)) await returnToRefuge(ctx);
       await services.prepareEquipment();
       await services.equip();
       await services.rest();
-      if (
-        !recoveryHealthReady(ctx) ||
-        threats().length ||
-        distance(position(), ctx.home.town) > 4 ||
-        (!recoveryEquipmentReady(ctx) && weaponObtainable(ctx))
-      ) {
+      if (!recoveryHealthReady(ctx) || threats().length) {
         persist();
         // Not ready again straight after not being ready is a spin, not a recovery: the goal turn
         // calls back at once and rest() returns at once at full health (Drovanis logged
@@ -381,11 +373,11 @@ export function createFighterRecovery(
         return;
       }
       trip.recovery.stage = 'ready';
-      trip.pending = 'return';
+      trip.pending = trip.loot.length ? 'return' : 'hunt';
       phase(
         'recovery-ready',
         recoveryEquipmentReady(ctx)
-          ? 'Living, equipped and recovered; reconciling the town trip before hunting again'
+          ? 'Living, equipped and recovered; continuing toward the hunting ground'
           : 'Living and recovered, with no weapon to be had; hunting bare-handed to earn one'
       );
       persist();

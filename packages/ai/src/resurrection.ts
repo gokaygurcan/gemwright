@@ -16,7 +16,7 @@ import { moongates, nearestGate } from './gates';
 import { recordEvent } from './gossip';
 import { tidyPack } from './inventory';
 import { lasting } from './lasting';
-import { allServiceLocations } from './locations';
+import { allServiceLocations, pickLocation, townAt } from './locations';
 import { mendAfterDeath } from './mend';
 import { travelByMoongate } from './moongate';
 import type { MountContext } from './mount-types';
@@ -35,7 +35,12 @@ export function useShardAnkhs(placements: Placement[]) {
   ankhs.splice(0, ankhs.length, ...placements.filter((p) => isAnkh(p.type)).map(({ x, y, z }) => ({ x, y, z })));
 }
 
-type Ctx = Pick<MountContext, 'session' | 'serial' | 'terrain' | 'position' | 'navigate' | 'check' | 'phase' | 'log'>;
+type Ctx = Pick<
+  MountContext,
+  'session' | 'serial' | 'terrain' | 'position' | 'navigate' | 'check' | 'phase' | 'log'
+> & {
+  recoveryDestination?: () => { x: number; y: number } | undefined;
+};
 
 export const isGhost = (ctx: Pick<Ctx, 'session' | 'serial'>) =>
   ghosts.has(ctx.session.world.entities.get(ctx.serial)?.graphic ?? 0);
@@ -50,7 +55,7 @@ function effort(from: { x: number; y: number }, to: { x: number; y: number }) {
 
 // A far healer is reached by walking on from its moongate. When residents keep dying on that walk
 // (the orcs between the Minoc moongate and Cove), the ghost passes safely but rises on the wrong side
-// of them, and dies again going home: two deaths of the last day near that leg put it last.
+// of them, and dies again walking back: two deaths of the last day near that leg put it last.
 export function deadlyWalk(option: { x: number; y: number }) {
   const gate = moongates[nearestGate(option)];
   const [minX, maxX] = [Math.min(gate.x, option.x) - 20, Math.max(gate.x, option.x) + 20];
@@ -124,7 +129,7 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
         !met.has(m.serial) &&
         distance(position(), m.position) <= 18
     );
-    for (const npc of npcs.slice(0, 8)) {
+    for (const npc of npcs) {
       await session.inspectProperties(npc.serial).catch(() => {});
       const title = session.world.entities.get(npc.serial)?.properties?.find((p) => p.cliloc === 1050045);
       if (!/the (wandering )?healer\s*$/i.test(title?.arguments ?? '') || !npc.position) continue;
@@ -196,8 +201,7 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
           if (session.phase !== 'ready') throw error;
         });
         // Townsfolk crowd the healer's spot: the healer is the NPC whose name property (1050045)
-        // ends "the healer" or "the wandering healer"; guildmasters are not healers. Failing that,
-        // the NPC nearest the known spot.
+        // ends "the healer" or "the wandering healer"; no other NPC can offer this service.
         const npcs = [...session.world.entities.values()]
           .filter(
             (m) =>
@@ -208,7 +212,7 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
           )
           .sort((a, b) => distance(option, a.position ?? option) - distance(option, b.position ?? option));
         let healer: (typeof npcs)[number] | undefined;
-        for (const npc of npcs.slice(0, 6)) {
+        for (const npc of npcs) {
           await session.inspectProperties(npc.serial).catch(() => {});
           const title = session.world.entities.get(npc.serial)?.properties?.find((p) => p.cliloc === 1050045);
           if (/the (wandering )?healer\s*$/i.test(title?.arguments ?? '')) {
@@ -216,7 +220,6 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
             break;
           }
         }
-        healer ??= npcs[0];
         if (!healer) missed.note('healer', option);
         if (!healer)
           log(
@@ -295,8 +298,18 @@ export async function resurrectGhost(ctx: Ctx, recoverCorpse = true) {
   const pack = session.world.childrenOf(ctx.serial).find((item) => item.layer === Layer.Backpack)?.serial;
   if (pack !== undefined) await tidyPack(session, pack, log, ctx.terrain).catch(() => {});
   // A few hit points after resurrection: healed first, or the first blow kills it again (mend.ts).
-  if (pack !== undefined) await mendAfterDeath({ ...ctx, backpack: () => pack }, log);
-  // Dying again and again where it stands: out through the Help menu, home (stuck.ts).
+  if (pack !== undefined)
+    await mendAfterDeath(
+      {
+        ...ctx,
+        backpack: () => pack,
+        recoveryDestination:
+          ctx.recoveryDestination ??
+          (() => (recoverCorpse ? fell : pickLocation(townAt(position(), 'Britain'), 'banker', position())))
+      },
+      log
+    );
+  // Dying again and again where it stands: out through the Help menu to a town (stuck.ts).
   noteDeath(session);
   if (dyingOverAndOver(session)) {
     const city = 'city' in ctx && typeof ctx.city === 'string' ? ctx.city : 'Britain';

@@ -18,7 +18,7 @@ const names = /^an? (zombie|skeleton)$/i;
 // Health these bodies carry (Zombie 28-42, Skeleton 34-48); a stronger variant sharing a body
 // graphic is left alone.
 const mostHits = 60;
-// BaseCreature.PackBodyPartOrBones: graveyard refuse a thief drops instead of carrying it home.
+// BaseCreature.PackBodyPartOrBones: graveyard refuse a thief drops instead of carrying it off.
 export const refuse = new Set(bodyParts.flatMap(graphicsOf));
 // Human and player bodies are never cased. Town NPCs refuse the peek and players refuse the theft.
 const humans = HUMAN_ELF_BODIES;
@@ -27,7 +27,7 @@ const humans = HUMAN_ELF_BODIES;
 
 export type TheftGround = (typeof cemeteries)[number];
 
-// The cemetery nearest the home town, the one a thief would walk to, as fighters reach theirs.
+// The cemetery nearest the town it works from, the one a thief would walk to, as fighters reach theirs.
 export function groundFor(town: { x: number; y: number }): TheftGround {
   const [first, ...rest] = cemeteries;
   if (!first) throw new Error('No theft grounds are configured');

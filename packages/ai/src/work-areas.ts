@@ -34,14 +34,14 @@ export function useWorkAreas(kind: 'mining' | 'woods', areas: WorkArea[]) {
 export function workArea(
   kind: 'mining' | 'woods',
   key: string,
-  home?: string,
+  town?: string,
   usable?: (area: WorkArea) => boolean,
   near?: { x: number; y: number }
 ): WorkArea {
   // The areas of the town it works from (towns.ts) come first, its own reserved ones (weight 0:
   // New Haven's mountains and woods) included; the weighted pick spreads residents among them.
   const usableAreas = usable ? catalog[kind].filter((area) => usable(area)) : catalog[kind];
-  const local = home ? usableAreas.filter((a) => a.city.toLowerCase() === home.toLowerCase()) : [];
+  const local = town ? usableAreas.filter((a) => a.city.toLowerCase() === town.toLowerCase()) : [];
   const own = local.find((a) => a.weight === 0);
   if (own) return own;
   // A town without such an area: the nearest one elsewhere, never a random trip across the land.

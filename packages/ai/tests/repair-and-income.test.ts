@@ -7,6 +7,9 @@ import { usefulGift } from '../src/inventory-use';
 import { serviceLocations } from '../src/locations';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 function repairFixture() {
   const f = socialFixture('swordsman');
@@ -66,6 +69,9 @@ test('loot collects gold before heavy equipment and only accounts for actual rec
   f.world.entities.set(31, { serial: 31, kind: 'item', graphic: 0x13fe, parent: 30 });
   f.world.entities.set(32, { serial: 32, kind: 'item', graphic: 0xeed, parent: 30, amount: 120 });
   f.world.entities.set(33, { serial: 33, kind: 'item', graphic: 0xf16, parent: 30, amount: 2 });
+  f.world.entities.set(34, { serial: 34, kind: 'item', graphic: 0xa2a, parent: 30 });
+  f.world.entities.set(35, { serial: 35, kind: 'item', graphic: 0x1b76, parent: 30, layer: 2 });
+  f.world.entities.set(60, { serial: 60, kind: 'item', graphic: 0x1b76, parent: 1, layer: 2 });
   f.session.use = () => {
     f.world.received.set(0x3c, 1);
   };
@@ -91,9 +97,10 @@ test('loot collects gold before heavy equipment and only accounts for actual rec
     nearby: () => []
   } as unknown as FighterContext;
   await createCorpseLooter(ctx, async () => {})({ corpse: 30 });
-  expect(moved).toEqual([32, 33, 31]);
-  expect(stats.looted).toBe(2);
-  expect(trip.loot).toEqual([33]);
+  expect(moved[0]).toBe(32);
+  expect([...moved].sort((a, b) => a - b)).toEqual([31, 32, 33, 34, 35]);
+  expect(stats.looted).toBe(4);
+  expect([...trip.loot].sort((a, b) => a - b)).toEqual([33, 34, 35]);
   expect(f.checkpoint.personal?.economy?.lootedGold).toBe(120);
 });
 

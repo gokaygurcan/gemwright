@@ -9,7 +9,7 @@ import { lootProvoked } from './bard-loot';
 import { Blocked } from './blocked';
 import { cemeteries } from './cemeteries';
 import { prey, recognised } from './fighter-prey';
-import { HAVEN_CITY, isHavenTemplate } from './haven';
+import { HAVEN_CITY, prefersHaven } from './haven';
 import { allServiceLocations } from './locations';
 import { distance } from './navigation';
 import { type ProfessionContext, type ProfessionOptions, runProfession } from './profession';
@@ -33,6 +33,8 @@ const ALREADY_DISCORDED = 1049537;
 // the pair too far apart, a target that cannot be incited, a pet loyal to its master.
 const UNPROVOKABLE = [1049446, 1049450, 501589, 501590];
 const unplayable = new WeakMap<object, Map<number, number>>();
+const plays = new WeakMap<object, Map<number, number>>();
+const PLAYS_PER_TARGET = 4;
 export const playable = (ctx: ProfessionContext, mobile: Entity) =>
   (unplayable.get(ctx.session)?.get(mobile.serial) ?? 0) <= Date.now();
 
@@ -76,6 +78,19 @@ export async function play(ctx: ProfessionContext, skill: keyof typeof DELAY, ta
       );
       return false;
     }
+    // The same creature played at again and again gains nothing (Herbert Garrow at one pair of
+    // undead for a day): after a few plays it is left alone for a while and the bard moves on.
+    const counts = plays.get(session) ?? new Map<number, number>();
+    plays.set(session, counts);
+    for (const target of targets) {
+      const count = (counts.get(target.serial) ?? 0) + 1;
+      counts.set(target.serial, count);
+      if (count < PLAYS_PER_TARGET) continue;
+      counts.delete(target.serial);
+      const skip = unplayable.get(session) ?? new Map<number, number>();
+      unplayable.set(session, skip);
+      skip.set(target.serial, Date.now() + 600_000);
+    }
   }
   return true;
 }
@@ -115,10 +130,10 @@ export const runBard = (options: ProfessionOptions) =>
         if (!ctx.carried().some((i) => instruments.has(i.graphic)))
           throw new Blocked('missing-tool', 'No instrument bought');
       }
-      // A New Haven bard plays where it lives (haven.ts).
-      const grounds = isHavenTemplate(template)
-        ? { [HAVEN_CITY]: 1 }
-        : (professionOf(template.id)?.[1].grounds ?? { Britain: 1 });
+      // A Young bard favours New Haven's cemetery: half its choices, the rest its usual grounds (haven.ts).
+      const usual = professionOf(template.id)?.[1].grounds ?? { Britain: 1 };
+      const weight = Object.values(usual).reduce((sum, w) => sum + w, 0);
+      const grounds = prefersHaven(session) ? { ...usual, [HAVEN_CITY]: (usual[HAVEN_CITY] ?? 0) + weight } : usual;
       const groundName = weightedPick(grounds, `${ctx.serial}:${Math.floor(Date.now() / 1_800_000)}`) ?? 'Britain';
       const ground = cemeteries.find((c) => c.name === groundName) ?? cemeteries[0];
       if (!ground) return;

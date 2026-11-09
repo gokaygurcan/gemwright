@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
 
+import { CommandRejected } from '@gemwright/network/errors';
+
 import { betterEquipment, useAcquiredItems } from '../src/inventory-use';
 import { scavenge } from '../src/scavenge';
 import { guardTradeTick } from '../src/trade-guard';
@@ -179,3 +181,18 @@ test('a robe of its own in the pack replaces the worn death robe at the next tur
   expect(f.world.entities.get(40)?.parent).toBe(10);
   expect(f.world.entities.get(41)?.layer).toBe(22);
 });
+
+// Finn Gray, Nov 9: two pieces "refused" every few minutes and marked for sale; any failure, a
+// change the server had not confirmed yet among them, was taken for the shard refusing the piece.
+for (const [why, error, sold] of [
+  ['an unconfirmed change', new Error('Equipment change unconfirmed'), false],
+  ['the shard refusing it', new CommandRejected('equipment-rejected', 'You cannot wear that'), true]
+] as const)
+  test(`an upgrade that fails to go on through ${why} is ${sold ? '' : 'not '}put up for sale`, async () => {
+    const { session, checkpoint } = equipmentFixture();
+    session.equipItem = async () => {
+      throw error;
+    };
+    await useAcquiredItems(session);
+    expect((checkpoint.forSale ?? []).includes(21)).toBe(sold);
+  });

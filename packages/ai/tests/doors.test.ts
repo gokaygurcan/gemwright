@@ -286,7 +286,7 @@ test('a ghost walks straight past monsters to the healer: nothing can hurt it', 
     check: () => {},
     phase: (phase) => phases.push(phase),
     log: (line) => f.logs.push(line),
-    wary: () => {
+    avoid: () => {
       asked = true;
       return true;
     }

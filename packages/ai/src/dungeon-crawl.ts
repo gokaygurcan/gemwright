@@ -5,7 +5,7 @@ import { chooseDungeon, dungeonNamed, exitStair, floorAt, rollGoal } from './dun
 import { Died, Retreat } from './fighter-context';
 import { soloDungeons } from './progression';
 
-// A dungeon run after UO Offline's crawler: walk to a home dungeon (or now and then a far one),
+// A dungeon run after UO Offline's crawler: walk to a nearby dungeon (or now and then a far one),
 // go down its entrance, and on each floor roll the next room or stairway down. The role's work
 // (fight, pet, music, theft) clears what it can in view and unvisited rooms are preferred;
 // stairways down weigh more with skill, so depth thins out. A run timer, a town need or a retreat
@@ -31,7 +31,7 @@ export const runMinutes = (random = Math.random) =>
 // Starts a solo run when both primaries are at 100.0; below that a party is mustered instead.
 export function startSoloRun(ctx: DungeonContext, random = Math.random): boolean {
   if (!soloDungeons(ctx.session, ctx.template.archetype) || random() >= DUNGEON_SHARE) return false;
-  const dungeon = chooseDungeon(ctx.home, random);
+  const dungeon = chooseDungeon(ctx.position(), random);
   const minutes = runMinutes(random);
   ctx.checkpoint.dungeon = newRun(dungeon.name, Date.now() + minutes * 60_000);
   ctx.persist();

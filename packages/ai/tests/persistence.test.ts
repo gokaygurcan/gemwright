@@ -21,7 +21,7 @@ async function fixture(count?: number) {
   if (count) input.targetPopulation = count;
   for (const t of input.templates) {
     t.version = 1;
-    if (t.id === 'britain-miner') t.creation.city = 'Britain';
+    if (t.id === 'britain-miner') t.creation.cities = { Britain: 1 };
   }
   store.reconcile(validateConfig(input));
   await store.flush();
@@ -192,4 +192,58 @@ test('future row-returning mutations cannot bypass durable replay', async () => 
   } finally {
     await f.close();
   }
+});
+
+test('a population lowered to the residents already playing keeps exactly those', () => {
+  const store = new ResidentStore(':memory:', example.shardId);
+  const config = (count: number) => {
+    const input = structuredClone(example);
+    input.targetPopulation = count;
+    return validateConfig(input);
+  };
+  store.reconcile(config(6));
+  const [m1, m2, , s1, , s3] = store.list();
+  const retired = new Set([required(m1).id, required(m2).id, required(s3 ?? s1).id]);
+  store.reconcile(config(6), retired);
+  const playing = store
+    .list()
+    .filter((r) => r.desiredActive)
+    .map((r) => r.id);
+  expect(playing).toHaveLength(3);
+  store.reconcile(config(3), retired);
+  expect(
+    store
+      .list()
+      .filter((r) => r.desiredActive)
+      .map((r) => r.id)
+  ).toEqual(playing);
+});
+
+test("residents of a former city-prefixed template move to their profession's template, ids and play kept", () => {
+  const store = new ResidentStore(':memory:', example.shardId);
+  const prefixed = structuredClone(example);
+  prefixed.targetPopulation = 4;
+  store.reconcile(validateConfig(prefixed));
+  const before = store.list().filter((r) => r.templateId === 'britain-swordsman');
+  const playing = store
+    .list()
+    .filter((r) => r.desiredActive)
+    .map((r) => r.id);
+  const plain = structuredClone(prefixed);
+  for (const t of plain.templates) if (t.id === 'britain-swordsman') t.id = 'swordsman';
+  for (const e of plain.allocation.entries) if (e.templateId === 'britain-swordsman') e.templateId = 'swordsman';
+  store.reconcile(validateConfig(plain));
+  expect(
+    store
+      .list()
+      .filter((r) => r.templateId === 'swordsman')
+      .map((r) => r.id)
+  ).toEqual(before.map((r) => r.id));
+  expect(
+    store
+      .list()
+      .filter((r) => r.desiredActive)
+      .map((r) => r.id)
+      .sort()
+  ).toEqual(playing.sort());
 });

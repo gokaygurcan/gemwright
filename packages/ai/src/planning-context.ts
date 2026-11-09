@@ -8,20 +8,34 @@ import { distance } from './navigation';
 import { perceptionFor } from './perception-session';
 import type { ProfessionContext } from './profession';
 import { selfNow } from './self';
+import { canBeat, selfState } from './self-state';
 import type { WorkEvidence } from './work-evidence';
 
 export function planningContext(ctx: ProfessionContext, evidence: WorkEvidence): PlanningContext {
   const model = perceptionFor(ctx.session);
   const self = model.self();
   const visible = model.visibleEntities('mobile');
-  const caution = visible.filter((entity) => entity.risk.value === 'caution').length;
+  // A creature is risk only when this resident would lose to it (the fight forecast the combat
+  // reflex uses): mongbats are a swordsman's work, not a reason to stop working. Each threat counts
+  // once, in the death risk below, never again through uncertainty or the escape route.
+  const me = selfState(ctx.session, false);
+  const beatable = (serial: number) => {
+    const mobile = ctx.session.world.entities.get(serial);
+    return !!mobile && canBeat(ctx.session, me, mobile);
+  };
+  const threats = visible.filter((entity) => entity.risk.value !== 'unknown' && !beatable(entity.serial));
+  const caution = threats.filter((entity) => entity.risk.value === 'caution').length;
+  // Hurt by nothing in view (poison, an archer out of sight) stays immediate; hurt only by what it
+  // can beat is a fight it is winning.
+  const hurt = self.underAttack || self.damagedRecently;
   const immediate =
-    visible.some((entity) => entity.risk.value === 'immediate') || self.underAttack || self.damagedRecently;
-  const uncertainty = Math.min(1, 0.2 + caution * 0.2 + (self.poison.kind === 'unknown' ? 0.3 : 0));
+    threats.some((entity) => entity.risk.value === 'immediate') ||
+    (hurt && (!me.attackers.length || me.attackers.some((mobile) => !canBeat(ctx.session, me, mobile))));
+  const uncertainty = Math.min(1, 0.2 + (self.poison.kind === 'unknown' ? 0.3 : 0));
   const bank = [...serviceLocations(townAt(ctx.position(), ctx.city), 'banker')].sort(
     (a, b) => distance(ctx.position(), a) - distance(ctx.position(), b)
   )[0];
-  const escapeKnown = !!bank && distance(ctx.position(), bank) <= 18 && caution === 0 && !immediate;
+  const escapeKnown = !!bank && distance(ctx.position(), bank) <= 18 && !immediate;
   const _equipment = ctx.session.world
     .childrenOf(ctx.serial)
     .filter((item) => item.layer !== Layer.Backpack && item.layer !== Layer.Bank)

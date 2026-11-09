@@ -16,9 +16,13 @@ export class RouteCorridors {
     const blocked = new Set(request.blocked);
     const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
       Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
-    const key = `${request.goal.x},${request.goal.y},${request.range},${request.targetZ ?? ''}`;
+    const key = `${request.geometry?.revision ?? 'base'}:${request.start.z}:${request.goal.x},${request.goal.y},${request.range},${request.targetZ ?? ''}`;
     // A long walk joins the public road corridors first; a straight line is for short stretches.
-    if (distance(request.start, request.goal) > 96) {
+    if (
+      !request.geometry?.tiles.length &&
+      !request.geometry?.houses?.length &&
+      distance(request.start, request.goal) > 96
+    ) {
       const local = this.waypoints.run(terrain, request, this.search, cancelled);
       if (local) return { ...local, elapsedMs: performance.now() - began };
     }

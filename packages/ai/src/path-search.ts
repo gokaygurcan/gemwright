@@ -1,9 +1,12 @@
 // biome-ignore-all lint/style/noNonNullAssertion: typed-array reads in the A* inner loop; every index is bounded by how the search arrays are built, and a fallback per read would cost the hottest code in the AI.
+
 import { landKind } from '@gemwright/common/game/land';
 
+import type { GeometrySnapshot } from './geometry';
 import type { Point, Terrain } from './terrain';
 
 export interface RouteRequest {
+  geometry?: GeometrySnapshot;
   start: Point;
   goal: { x: number; y: number };
   range: number;

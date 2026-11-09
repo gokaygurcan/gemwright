@@ -1,7 +1,7 @@
 import { Layer } from '@gemwright/network/layers';
 
 import { knownBankGold } from './bank-gold';
-import { nearAnyGround, returnHome } from './cemeteries';
+import { nearAnyGround, returnToNearestTown } from './cemeteries';
 import { replaceDeathRobe } from './death-robe';
 import { escortOpportunity } from './escort';
 import { type FighterContext, meleeWeapons, observedThreat, weaponsFor } from './fighter-context';
@@ -29,11 +29,11 @@ export function createFighterErrands(
     acquireMount: () => Promise<unknown>;
   }
 ) {
-  const { session, home, log, status, checkpoint } = ctx;
+  const { session, log, status, checkpoint } = ctx;
   // The general trades' helpers take a ProfessionContext; a fighter's covers the same ground.
   const asProfession = (): ProfessionContext => ({
     ...ctx,
-    city: home.city,
+    city: ctx.services.city,
     carried: (pack?: number) => session.world.childrenOf(pack ?? ctx.backpack()),
     progress: {},
     practise: async () => 0
@@ -47,11 +47,11 @@ export function createFighterErrands(
       await insuranceTurn(asProfession()).catch(() => false);
       await useScrolls(asProfession()).catch(() => {});
       await scribeTurn(asProfession()).catch(() => false);
-      await markHere(asProfession(), `${home.city} bank`).catch(() => false);
+      await markHere(asProfession(), `${ctx.services.city} bank`).catch(() => false);
     }
     await healOthers(ctx, log);
     // The trip was the decision: sell everything a shop buys (the basket threshold only decides
-    // whether to make a trip at all, not whether a fish steak travels home again).
+    // whether to make a trip at all, not whether a fish steak travels back again).
     await sellingTurn(asProfession(), true).catch(() => false);
     await town.prepareEquipment();
   };
@@ -61,13 +61,13 @@ export function createFighterErrands(
 
   const leaveGround = async () => {
     session.setWarMode(false);
-    await returnHome(ctx);
+    await returnToNearestTown(ctx);
     if (nearAnyGround(ctx.position()) || ctx.nearby().some((mobile) => observedThreat(mobile, session.world.combatant)))
-      await ctx.escapeNavigate(home.town, 4);
+      await ctx.escapeNavigate(ctx.services.bank, 4);
   };
   const returnToTown = async () => {
-    // A caster with a rune for home recalls out instead of walking back through the wilds.
-    if (!(await recallNear(asProfession(), home.town).catch(() => false))) await leaveGround();
+    // A caster with a rune for a town bank recalls out instead of walking back through the wilds.
+    if (!(await recallNear(asProfession(), ctx.services.bank).catch(() => false))) await leaveGround();
     await town.sellLoot();
     await town.bank();
     // In town with the loot banked: an escort to another town pays well (escort.ts).
@@ -100,7 +100,11 @@ export function createFighterErrands(
     if (armed || inHand) return false;
     // Unarmed after a death: the spare weapon kept in the bank first (insurance.ts).
     if (!armed && (await insuranceTurn(asProfession()).catch(() => false))) return true;
-    await replaceDeathRobe({ ...ctx, city: home.city, carried: (pack: number) => session.world.childrenOf(pack) });
+    await replaceDeathRobe({
+      ...ctx,
+      city: ctx.services.city,
+      carried: (pack: number) => session.world.childrenOf(pack)
+    });
     // No spare: it hunts bare-handed (fighter-equipment.ts equip) until the loot buys a weapon.
     // No begging, escorting or waiting in town: none of them earns a weapon.
     return false;

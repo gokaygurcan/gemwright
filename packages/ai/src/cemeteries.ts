@@ -4,19 +4,22 @@ import { strandedAt, withinReach } from './areas';
 import { Blocked } from './blocked';
 import { chaosOf } from './chaos';
 import { fightConfidence, strikesFromAfar } from './fight-confidence';
-import { Ambushed, type FighterContext, observedThreat, Retreat } from './fighter-context';
-import { combatSkill, goldOf, readyFor, teaches } from './fighter-prey';
-import { type Gate, moongates, nearestGate } from './gates';
+import { Ambushed, type FighterContext, observedThreat } from './fighter-context';
+import { combatSkill, fightCost, goldOf, teaches } from './fighter-prey';
+import { type Gate, nearestGate } from './gates';
 import { haven, onHaven, prefersHaven } from './haven';
+import { travelJourney } from './journey';
 import { lasting } from './lasting';
 import { monsters } from './monster-reference';
 import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
+import { canBeat, selfState } from './self-state';
 import { spawnGrounds as buildGrounds } from './spawn-grounds';
 import type { Rect, Spawner } from './spawns';
 import { residentsNear } from './spread';
 import { learnedPlaceCost } from './strategy-learning';
 import { placeAllowed } from './towns';
+import { keepsFailing } from './trouble';
 import { WALKING_LIMIT } from './tuning';
 
 // Trammel cemeteries (uo.com "Cemeteries" list) that hold undead spawners on the pinned shard
@@ -70,7 +73,6 @@ export function useShardSpawns(world: { spawners: Spawner[]; regions: Rect[] }) 
 }
 const reach = (ground: Ground) => ground.radius ?? HUNTING_RADIUS;
 // Residents at a cemetery beyond which a fighter moving on looks elsewhere.
-const CROWDED = 8;
 // Farther than this, a route is taken through a moongate instead of walked.
 
 // A stranded fighter hunts where it stands (areas.ts): a ground named after its spot.
@@ -106,27 +108,20 @@ export const patrolPoints = (ground: Ground) => {
   );
 };
 
-// Where to hunt next once the current ground runs dry: the cemeteries, and every overland spawn
-// whose creatures this fighter's skills meet for at least half of what lives there (fighter-prey.ts
-// `readyFor`: a fight costs at most half its health). Nearer grounds, ones whose creatures still
-// teach it (`teaches`) and quieter ones (spread.ts) are preferred, gold breaks ties; with more
-// combat skill the plain cemeteries lose their pull, and chaos shuffles the order a little. A
-// crowded ground is passed over.
-// Whether a ground's creatures suit this fighter: it meets at least half of what lives there, and
-// none that attacks on sight is beyond it. Such a creature attacks whoever it sees, chosen opponent
-// or not (the Cove graveyard's lich, Haven Island's ettins): a ground with one waits until the
-// fighter could take it on, whatever else lives there.
-export function groundFits(ctx: FighterContext, ground: Ground): boolean {
+// Access and spawn data decide which grounds exist; relative danger affects their score.
+export function groundFits(_ctx: FighterContext, ground: Ground): boolean {
   // Only around the cities the shard allows (gemwright.json ai.cities).
   if (!ground.name.startsWith(LOCAL) && !placeAllowed(ground.center)) return false;
-  const kinds = Object.entries(ground.creatures ?? {});
-  const total = kinds.reduce((n, [, count]) => n + count, 0);
-  const fit = kinds.filter(([type]) => readyFor(ctx, type)).reduce((n, [, count]) => n + count, 0);
-  if (ground.creatures && fit * 2 < total) return false;
-  return !kinds.some(([type]) => monsters.find((m) => m.type === type)?.aggressive && !readyFor(ctx, type));
+  return (
+    !ground.creatures ||
+    Object.keys(ground.creatures).some((type) =>
+      monsters.some((monster) => monster.type === type && monster.aggressive)
+    )
+  );
 }
 
-export function nextGround(ctx: FighterContext): string {
+// `onFoot`: a gate just failed it, so only grounds it can walk to from here, when there are any.
+export function nextGround(ctx: FighterContext, onFoot = false, includeCurrent = false): string {
   const here = ctx.position();
   const current = groundOf(ctx.trip).name;
   // The skill it fights with, not its highest: a maxed Anatomy says nothing about its sword arm.
@@ -135,7 +130,10 @@ export function nextGround(ctx: FighterContext): string {
   const young = prefersHaven(ctx.session);
   const options = grounds.flatMap((ground) => {
     const present = residentsNear(ground.center, reach(ground), ctx.serial);
-    if (ground.name === current || present >= CROWDED || absence(ctx.serial).seen('ground', ground.center)) return [];
+    if ((!includeCurrent && ground.name === current) || absence(ctx.serial).seen('ground', ground.center)) return [];
+    // Where residents' walks keep failing or residents keep dying (trouble.ts) is not chosen until
+    // the reports expire.
+    if (keepsFailing(ground.center)) return [];
     // Only grounds it can walk to, or reach through a moongate (areas.ts): never one out at sea.
     if (!withinReach(here, ground.center)) return [];
     if (!groundFits(ctx, ground)) return [];
@@ -145,7 +143,12 @@ export function nextGround(ctx: FighterContext): string {
     // Skill comes from creatures near the character's own skill: a ground where most of them still
     // teach is worth up to 400 tiles more walking; gold only breaks ties.
     const teaching = kinds.filter(([type]) => teaches(ctx, type)).reduce((n, [, count]) => n + count, 0);
+    const expectedLoss = Math.sqrt(
+      kinds.reduce((sum, [type, count]) => sum + count * fightCost(ctx, type) ** 2, 0) / Math.max(1, total)
+    );
+    const pressure = expectedLoss * (1 + Math.sqrt(total) / (1 + reach(ground) / 16));
     const cost =
+      pressure * 1000 +
       distance(here, ground.center) +
       learnedPlaceCost(ctx.checkpoint, ctx.session.world.map ?? 1, ground.center) +
       (ground.creatures ? 0 : Math.max(0, skill - 60) * 8) +
@@ -154,30 +157,21 @@ export function nextGround(ctx: FighterContext): string {
       Math.min(gold, 100) +
       Math.random() * 300 * chaosOf(ctx.session) +
       (young && !onHaven(ground.center) ? 300 : 0);
-    return [{ name: ground.name, cost }];
+    return [{ name: ground.name, cost, center: ground.center }];
   });
-  return options.sort((a, b) => a.cost - b.cost)[0]?.name ?? (young ? 'New Haven' : 'Britain');
+  const walkable = options.filter((option) => distance(here, option.center) <= WALKING_LIMIT);
+  return (
+    (onFoot && walkable.length ? walkable : options).sort((a, b) => a.cost - b.cost)[0]?.name ??
+    (young ? 'New Haven' : 'Britain')
+  );
 }
 
-// Reaches a far point the way a player would: through the moongate nearest to it, then on foot.
+// Navigation owns walking legs, connected areas and transit.
 export async function travelNear(ctx: FighterContext, point: { x: number; y: number }, range: number) {
-  const gate = nearestGate(point);
-  const viaGate = async () => {
-    if (distance(ctx.position(), moongates[gate]) > 2) await travelByMoongate(ctx, gate);
-  };
-  if (distance(ctx.position(), point) > WALKING_LIMIT) await viaGate();
-  try {
-    await ctx.navigate(point, range);
-  } catch (error) {
-    // Close but across water (an island town from the shore): take the gate, then walk.
-    if (!(error instanceof Blocked) || error.reason !== 'unreachable' || distance(ctx.position(), moongates[gate]) <= 2)
-      throw error;
-    await viaGate();
-    await ctx.navigate(point, range);
-  }
+  await ctx.navigate(point, range);
 }
 
-export async function travelToGround(ctx: FighterContext, overland = false) {
+export async function travelToGround(ctx: FighterContext) {
   // Stranded (no moongate in its walkable area): it hunts right here until help moves it; once
   // out, a real ground again.
   const here = ctx.position();
@@ -194,8 +188,9 @@ export async function travelToGround(ctx: FighterContext, overland = false) {
     return;
   }
   // A ground chosen before (a saved trip) is held to the same test as a new choice.
-  if (ctx.trip.ground?.startsWith(LOCAL) || !groundFits(ctx, groundOf(ctx.trip))) {
-    ctx.trip.ground = nextGround(ctx);
+  const selected = nextGround(ctx, false, true);
+  if (ctx.trip.ground !== selected) {
+    ctx.trip.ground = selected;
     ctx.persist();
   }
   const ground = groundOf(ctx.trip);
@@ -203,37 +198,24 @@ export async function travelToGround(ctx: FighterContext, overland = false) {
     'travelling-to-graveyard',
     `Heading to ${ground.creatures ? `the ${ground.name}` : `the ${ground.name} cemetery`}`
   );
-  if (!overland && distance(ctx.position(), ground.center) > WALKING_LIMIT) await travelByMoongate(ctx, ground.gate);
   try {
     await ctx.navigate(ground.center, 3);
   } catch (error) {
-    // A cemetery across water from here: through its moongate, then on foot.
-    if (overland || !(error instanceof Blocked) || error.reason !== 'unreachable') throw error;
-    await travelByMoongate(ctx, ground.gate);
-    try {
-      await ctx.navigate(ground.center, 3);
-    } catch (again) {
-      // Not even from its moongate: another ground next time, not the same failed walk.
-      if (again instanceof Blocked && again.reason === 'unreachable') {
-        ctx.trip.ground = nextGround(ctx);
-        ctx.persist();
-        ctx.log(`Cannot reach the ${ground.name}; hunting at the ${groundOf(ctx.trip).name} instead`);
-      }
-      throw again;
+    if (error instanceof Blocked && (error.reason === 'unreachable' || error.reason === 'dangerous')) {
+      absence(ctx.serial).note('ground', ground.center);
+      ctx.trip.ground = nextGround(ctx);
+      ctx.persist();
+      ctx.log(`Cannot reach the ${ground.name}; hunting at the ${groundOf(ctx.trip).name} instead`);
     }
+    throw error;
   }
 }
 
-// Town trips (bank, vendors, healer) go to the fighter's home town; from a distant cemetery the
-// way back is the moongate nearest home.
-// The way home is itself the escape: being hit on the way must not cancel it (fighter.ts check()
+// Town trips (bank, vendors, healer) go to the nearest town with a fighter's services (towns.ts).
+// The way there is itself the escape: being hit on the way must not cancel it (fighter.ts check()
 // retreats on damage outside combat, which would restart this trip on every step).
-export async function returnHome(ctx: FighterContext) {
-  const home = ctx.home.town;
-  if (distance(ctx.position(), home) <= WALKING_LIMIT) return;
-  const gate = nearestGate(home);
-  if (distance(ctx.position(), moongates[gate]) > 2)
-    await urgentAction(ctx.session, 'escape', () => travelByMoongate(ctx, gate));
+export async function returnToNearestTown(ctx: FighterContext) {
+  await urgentAction(ctx.session, 'escape', () => travelJourney(ctx, ctx.services.bank, 4, ctx.escapeNavigate));
 }
 
 // What is swinging at it first (the server's swing packet names attacker and target), else the
@@ -282,25 +264,22 @@ const attackerNear = (ctx: FighterContext) => {
 
 // Hurt twice within half an hour on the same ground: it is beyond it for now, so another one.
 export function retreatedFrom(ctx: FighterContext) {
-  const ground = groundOf(ctx.trip).name;
-  const recent = (ctx.checkpoint.retreats ?? []).filter((r) => r.ground === ground && r.at > Date.now() - 1_800_000);
-  ctx.checkpoint.retreats = [...recent, { ground, at: Date.now() }];
-  if (!recent.length) return;
-  ctx.trip.ground = nextGround(ctx);
-  ctx.checkpoint.retreats = [];
-  ctx.log(`Hurt twice at the ${ground}; hunting at the ${groundOf(ctx.trip).name} instead`);
+  ctx.log(
+    `Withdrew from ${groundOf(ctx.trip).name}; reassessing the observed encounter rather than banning its creature types`
+  );
 }
 
 // Hurt outside a fight: it turns on the attacker when it expects to walk away (fight-confidence.ts),
 // otherwise it gets to safety.
 export function hurtOnTheWay(ctx: FighterContext) {
   const attacker = attackerNear(ctx);
-  if (attacker && !ctx.state.inCombat && fightConfidence(ctx, attacker.mobile, attacker.engaged).ok)
-    throw new Ambushed(attacker.mobile);
-  // A scratch from something unseen (poison, a far archer) is no reason to walk home: a player
-  // carries on while healthy and leaves only when it starts to tell.
-  if (!attacker && ctx.status().hits >= ctx.status().maxHits * 0.5) return;
-  throw new Retreat('Taking damage outside combat; returning to safety even when the attacker is unknown');
+  // One it can beat is fought back by the combat tick (reflex.ts), never run from.
+  const self = selfState(ctx.session, ctx.dead());
+  if (self.attackers.some((mobile) => canBeat(ctx.session, self, mobile))) return;
+  if (attacker && !ctx.state.inCombat && fightConfidence(ctx, attacker.mobile).ok) throw new Ambushed(attacker.mobile);
+  // Anything else is the combat tick's to answer (reflex.ts): it flees from what it cannot beat, and
+  // from unseen harm once it starts to tell, as an escape no hit cancels. A retreat thrown here was
+  // cancelled by the next hit on its own first step, and the fighter stood still until it died.
 }
 
 // Attacked on the way (hurtOnTheWay): it fights the attacker now, wherever this is. True when it did.

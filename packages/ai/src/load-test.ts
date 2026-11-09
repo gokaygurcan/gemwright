@@ -51,7 +51,7 @@ const save = (name: string, value: unknown) =>
 const append = (name: string, value: unknown) =>
   appendFileSync(`${output}/${name}`, `${JSON.stringify(value)}\n`, { mode: 0o600 });
 const original = validateConfig(await Bun.file(`${data}/population.json`).json());
-// The population comes from the world configuration (world/world.json): professions, homes, mix.
+// The population comes from the world configuration (world/world.json): professions, starting cities, mix.
 const population = applyWorld(structuredClone(original), count);
 validateConfig(population);
 save('population.json', population);

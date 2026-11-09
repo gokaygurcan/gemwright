@@ -23,9 +23,9 @@ import type { Terrain } from './terrain';
 import { reachableFrom } from './unreachable';
 
 export { bandage, healPotion };
-// A fighter's home town: its bank is the town point, and every service comes from that city, falling
-// back to Britain's when the city has none (world.json decides where fighters live).
-export function homeOf(city: string, position?: () => { x: number; y: number }) {
+// The services of the town a fighter is in or nearest to (towns.ts), falling back to Britain's when
+// the city has none: no fighter is bound to a town, so this follows wherever it stands.
+export function servicesIn(city: string, position?: () => { x: number; y: number }) {
   // Landmarks that proved unreachable from here are tried last.
   const usable = (list: readonly Landmark[]) =>
     position ? list.filter((l) => reachableFrom(l, position()) && withinReach(position(), l)) : list;
@@ -47,7 +47,7 @@ export function homeOf(city: string, position?: () => { x: number; y: number }) 
   const bank = all('banker')[0];
   return {
     city: serviceLocations(city, 'banker').length ? city : 'Britain',
-    town: bank ?? serviceLocations('Britain', 'banker')[0] ?? position?.() ?? { x: 0, y: 0 },
+    bank: bank ?? serviceLocations('Britain', 'banker')[0] ?? position?.() ?? { x: 0, y: 0 },
     get banks() {
       return all('banker');
     },
@@ -58,7 +58,7 @@ export function homeOf(city: string, position?: () => { x: number; y: number }) 
     one
   };
 }
-export type Home = ReturnType<typeof homeOf>;
+export type TownServices = ReturnType<typeof servicesIn>;
 export const ghosts = GHOST_BODIES;
 
 import { GHOST_BODIES } from '@gemwright/common/game/bodies';
@@ -136,7 +136,8 @@ export function observedThreat(mobile: Entity, combatant: number | null = null):
 
 export interface FighterContext {
   session: PlayerSession;
-  home: Home;
+  // Read afresh on every access: the town it stands in or nearest to now.
+  services: TownServices;
   template: CharacterTemplate;
   terrain: Terrain;
   checkpoint: Checkpoint;

@@ -9,7 +9,7 @@ import { distance } from './navigation';
 import { petSource } from './pets';
 import { animalFromResident } from './resident-offers';
 
-export function createMountController(ctx: MountContext, city: string, reserve = 250) {
+export function createMountController(ctx: MountContext, city: () => string, reserve = 250) {
   const { session, checkpoint, position, persist, check, phase, log } = ctx;
   if (checkpoint.mount && checkpoint.mount.schemaVersion !== 1) throw new Error('Unsupported mount memory schema');
   checkpoint.mount ??= { schemaVersion: 1, state: 'seeking' };
@@ -213,7 +213,7 @@ export function createMountController(ctx: MountContext, city: string, reserve =
     if (GARGOYLE_BODIES.has(session.world.entities.get(ctx.serial)?.graphic ?? 0)) return;
     if (observe() || (memory.retryAfter ?? 0) > Date.now()) return;
     if (await ride()) return;
-    if (memory.state === 'missing' && (await recoverMissingMount(ctx, city, memory, discover))) {
+    if (memory.state === 'missing' && (await recoverMissingMount(ctx, city(), memory, discover))) {
       nextAttempt = 0;
       await ride();
       return;

@@ -2,9 +2,9 @@ import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 
 import { chaosOf } from './chaos';
+import { DecisionFlow } from './decision-flow';
 import { type DecisionPick, decisionGuard, decisionState, requireDecision } from './decisions';
 import { driveBias } from './drives';
-import { prefersHaven } from './haven';
 import { packFull } from './inventory';
 import type { LifeContext } from './life';
 import { residentNeeds } from './needs';
@@ -35,7 +35,7 @@ const describe: Record<LifePhase, string> = {
   dungeon: 'Go on a dungeon run, alone or with a party',
   errands: 'Run errands in town: bank, sell, restock',
   leisure: 'Spend some time at the bank or an inn among other people',
-  visit: 'Travel to another town for a while, then come home',
+  visit: 'Travel to another town for a while',
   practice: 'Practise a supporting skill or rest somewhere safe'
 };
 const mean = ([low, high]: [number, number]) => (low + high) / 2;
@@ -85,70 +85,90 @@ function season(phase: LifePhase, now = new Date()) {
 // purse, a missing tool or a pack full of unsold goods is not a preference. Without these gates the
 // weights below could happily roll leisure on a broke resident with a broken pickaxe. Everything
 // else — skill curve, season, learned drives, temperament — still decides as it did.
-export function needPhase(ctx: LifeContext, valid: LifePhase[]): LifePhase | undefined {
+export function needPhase(ctx: LifeContext, valid: LifePhase[], flow = new DecisionFlow()): LifePhase | undefined {
   const want = (phase: LifePhase) => (valid.includes(phase) ? phase : undefined);
   const needs = residentNeeds(ctx.session, ctx.checkpoint, ctx.template);
-  if (needs.some((need) => need.kind === 'tool' || need.kind === 'supply')) return want('errands');
+  const kit = needs.filter((need) => need.kind === 'tool' || need.kind === 'supply');
+  const missing = kit.map((need) => need.kind).join(', ');
+  if (!flow.check('Has its tools and supplies', !kit.length, missing, kit.length ? want('errands') : undefined))
+    return want('errands');
   const serial = ctx.session.world.serial;
   const pack =
     serial === null || serial === undefined
       ? undefined
       : ctx.session.world.childrenOf(serial).find((item) => item.layer === Layer.Backpack);
-  if (pack && packFull(ctx.session, pack.serial, 0.85)) return want('errands');
-  if (needs.some((need) => need.kind === 'income')) return want('work');
+  const full = !!pack && packFull(ctx.session, pack.serial, 0.85);
+  if (!flow.check('Pack under 85% full', !full, undefined, full ? want('errands') : undefined)) return want('errands');
+  const broke = needs.some((need) => need.kind === 'income');
+  if (!flow.check('Has income enough', !broke, undefined, broke ? want('work') : undefined)) return want('work');
   return undefined;
 }
 
-function localPick(ctx: LifeContext, valid: LifePhase[]): LifePhase {
-  const need = needPhase(ctx, valid);
+function localPick(ctx: LifeContext, valid: LifePhase[], flow: DecisionFlow): LifePhase {
+  const need = needPhase(ctx, valid, flow);
   if (need) return need;
   const { sociability, riskTolerance } = ctx.template.behavior;
   const curve = skillCurve(skillProgress(ctx));
-  // Traits (temperament.ts): a homebody seldom visits other towns; a restless one goes out more.
-  const { homebody = 1, restlessness = 1 } = ctx.template.behavior.temperament ?? {};
+  // Traits (temperament.ts): a restless one goes out more.
+  const { restlessness = 1 } = ctx.template.behavior.temperament ?? {};
   const shade: Partial<Record<LifePhase, number>> = {
     work: curve.work,
     practice: curve.practice,
     leisure: (0.5 + sociability) * (curve.leisure ?? 1),
-    visit: ((0.5 + sociability) * (curve.visit ?? 1) * restlessness) / homebody,
+    visit: (0.5 + sociability) * (curve.visit ?? 1) * restlessness,
     dungeon: 0.5 + riskTolerance
   };
-  const weights = valid.map(
-    (p) =>
-      ((mix?.[p] ?? 0) / mean(config.minutes[p])) *
-      (shade[p] ?? 1) *
-      goalPhaseBias(ctx, p) *
-      season(p) *
-      driveBias(ctx, p)
-  );
-  let roll = Math.random() * weights.reduce((sum, w) => sum + w, 0);
-  for (const [i, p] of valid.entries()) {
-    roll -= weights[i] ?? 0;
-    if (roll <= 0) return p;
+  const options = valid.map((p) => {
+    const factors = {
+      timeShare: (mix?.[p] ?? 0) / mean(config.minutes[p]),
+      shade: shade[p] ?? 1,
+      goal: goalPhaseBias(ctx, p),
+      season: season(p),
+      drive: driveBias(ctx, p)
+    };
+    return { id: p, factors, weight: Object.values(factors).reduce((product, f) => product * f, 1) };
+  });
+  const total = options.reduce((sum, o) => sum + o.weight, 0);
+  const roll = Math.random() * total;
+  let left = roll;
+  let taken: LifePhase = 'work';
+  for (const o of options) {
+    left -= o.weight;
+    if (left <= 0) {
+      taken = o.id;
+      break;
+    }
   }
-  return 'work';
+  return flow.fork(
+    'Weighted roll over the phases',
+    options,
+    taken,
+    `Rolled ${roll.toFixed(3)} of ${total.toFixed(3)}; a phase's chance is its weight over the total`
+  ) as LifePhase;
 }
 
 export async function chooseLifePhase(ctx: LifeContext): Promise<{ phase: LifePhase; pick: DecisionPick | null }> {
   // Practice only while a supporting skill can still rise (skill-training.ts): maxed ones are done.
-  // A Young resident of New Haven stays out of dungeons until it outgrows Young (haven.ts); visiting
-  // other towns is its own choice.
-  const young = prefersHaven(ctx.session);
   const valid = phases.filter((p) =>
-    young && p === 'dungeon'
-      ? false
-      : p === 'dungeon'
-        ? !!ctx.dungeon && !!ctx.dungeonReady?.()
-        : p === 'practice'
-          ? trainable(ctx.session, ctx.template.archetype).length > 0
-          : true
+    p === 'dungeon'
+      ? !!ctx.dungeon && !!ctx.dungeonReady?.()
+      : p === 'practice'
+        ? trainable(ctx.session, ctx.template.archetype).length > 0
+        : true
   );
-  let baseline = localPick(ctx, valid);
+  const flow = new DecisionFlow();
+  const closed = phases.filter((p) => !valid.includes(p));
+  if (closed.length) flow.note('Closed phases', closed.join(', '));
+  let baseline = localPick(ctx, valid, flow);
   // A change of plans (chaos.ts): a planned visit or leisure sometimes becomes something else.
-  if (['visit', 'leisure'].includes(baseline) && Math.random() < chaosOf(ctx.session) / 3) {
+  if (
+    ['visit', 'leisure'].includes(baseline) &&
+    !flow.check('Keeps to the plan', Math.random() >= chaosOf(ctx.session) / 3, 'Chance of a change: chaos / 3')
+  ) {
     const instead = localPick(
       ctx,
-      valid.filter((p) => p !== baseline)
+      valid.filter((p) => p !== baseline),
+      flow
     );
     ctx.log(`Changed my mind: ${instead} instead of ${baseline}`);
     baseline = instead;
@@ -163,11 +183,12 @@ export async function chooseLifePhase(ctx: LifeContext): Promise<{ phase: LifePh
       timeSplit: mix,
       // How far the build has come (0-1): low means train, high means enjoy (skillCurve).
       skillProgress: Number(skillProgress(ctx).toFixed(2)),
-      home: ctx.city
+      town: ctx.city
     }),
     candidates: valid.map((p) => ({ id: p, description: describe[p], valid: () => true })),
     baseline,
-    stillCurrent: decisionGuard(ctx.session)
+    stillCurrent: decisionGuard(ctx.session),
+    flow
   });
   requireDecision(pick);
   const chosen = (valid.find((p) => p === pick?.id) ?? baseline) as LifePhase;

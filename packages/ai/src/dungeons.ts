@@ -50,13 +50,13 @@ export const dungeonNamed = (name: string | undefined) => dungeons.find((dungeon
 export const nearestEntry = (dungeon: Dungeon, from: { x: number; y: number }) =>
   [...dungeon.entries].sort((a, b) => distance(from, a.from) - distance(from, b.from))[0];
 
-// A town's own dungeons are its two nearest by entrance; a fifth of runs go to any other.
+// The two dungeons nearest where it stands, by entrance; a fifth of runs go to any other.
 export const AWAY_CHANCE = 0.2;
-export function chooseDungeon(home: { x: number; y: number }, random = Math.random): Dungeon {
+export function chooseDungeon(from: { x: number; y: number }, random = Math.random): Dungeon {
   const byDistance = [...dungeons].sort(
     (a, b) =>
-      distance(home, nearestEntry(a, home)?.from ?? a.entrance) -
-      distance(home, nearestEntry(b, home)?.from ?? b.entrance)
+      distance(from, nearestEntry(a, from)?.from ?? a.entrance) -
+      distance(from, nearestEntry(b, from)?.from ?? b.entrance)
   );
   const pool = random() < AWAY_CHANCE ? byDistance.slice(2) : byDistance.slice(0, 2);
   // Within the pool, dungeons already full of residents are less likely (spread.ts).

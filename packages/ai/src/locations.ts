@@ -5,6 +5,7 @@ import { isForge, type Placement } from './decoration';
 import { servicesOf } from './shops';
 import type { Spawner, Town } from './spawns';
 import { reachableFrom } from './unreachable';
+import { cityAllowed } from './world';
 
 export type ServiceType =
   | 'animal-trainer'
@@ -43,10 +44,10 @@ export function useTowns(found: Town[]) {
 const gap = (at: { x: number; y: number }, r: { x: number; y: number; width: number; height: number }) =>
   Math.max(r.x - at.x, at.x - (r.x + r.width - 1), r.y - at.y, at.y - (r.y + r.height - 1), 0);
 
-// The town a resident is in, else the nearest within 250 tiles (by its region), else its home town:
-// shops, banks and shelter come from where it is, not from where it was born.
-export function townAt(at: { x: number; y: number }, home: string): string {
-  let best = home;
+// The town a resident is in, else the nearest within 250 tiles (by its region), else `fallback`:
+// shops, banks and shelter come from where it is.
+export function townAt(at: { x: number; y: number }, fallback: string): string {
+  let best = fallback;
   let nearest = 250;
   for (const town of towns)
     for (const rect of town.rects) {
@@ -131,7 +132,10 @@ export function useShardForges(placements: Placement[]) {
 
 // Every place of one service, across all towns.
 export function allServiceLocations(service: ServiceType): Landmark[] {
-  return [...places].flatMap(([k, list]) => (k.endsWith(`:${service}`) ? list.map(landmark) : []));
+  // Never a shop in a city the shard keeps residents out of (gemwright.json ai.cities).
+  return [...places].flatMap(([k, list]) =>
+    k.endsWith(`:${service}`) ? list.filter((place) => cityAllowed(place.city)).map(landmark) : []
+  );
 }
 
 // Where to go for a service: any of the town's places of that kind, at random, so residents do

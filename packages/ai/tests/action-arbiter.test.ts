@@ -171,3 +171,29 @@ test('an observed refusal is a failure, not a claimed successful outcome', async
   expect(arbiter.history.some((event) => event.command === 'walk' && event.stage === 'failed')).toBe(true);
   expect(arbiter.history.some((event) => !event.command && event.stage === 'failed')).toBe(true);
 });
+
+// Finn Gray, Nov 9: "Fighting back stopped: Command resources busy: setWarMode". The action the
+// fight interrupted still held war mode while its last atomic command finished.
+test('a preempting reflex waits for the interrupted action to let go before taking war mode', async () => {
+  const arbiter = new ActionArbiter();
+  const step = deferred();
+  const warMode = command({ name: 'setWarMode', resources: ['hands'], async: false, atomic: false });
+  const work = arbiter
+    .run('work', 'walk', async () => {
+      arbiter.execute(warMode, () => {});
+      await arbiter.execute(command({ name: 'walk', resources: ['movement', 'hands'] }), () => step.promise);
+    })
+    .catch(() => {});
+  await Bun.sleep(0);
+  let set = 0;
+  const reflex = arbiter.run('reflex', 'fight back', async () => {
+    arbiter.interruptBelow('reflex', new ActionInterrupted('attacked'));
+    const released = arbiter.preempted('reflex');
+    step.resolve();
+    await released;
+    arbiter.execute(warMode, () => set++);
+  });
+  await reflex;
+  await work;
+  expect(set).toBe(1);
+});

@@ -130,7 +130,7 @@ test('a pending purchase without a visible owned horse never issues another purc
     state: 'purchase-pending',
     pending: { vendor: 8, stock: 7, price: 550, at: Date.now(), map: 1, x: 100, y: 100, z: 0, before: [] }
   };
-  await createMountController(ctx, 'Britain').acquire();
+  await createMountController(ctx, () => 'Britain').acquire();
   expect(counts()).toEqual({ buys: 0, uses: 0, walks: 0, followTarget: undefined, says: [] });
   expect(ctx.checkpoint.mount.pending).toBeDefined();
 });
@@ -138,7 +138,7 @@ test('a pending purchase without a visible owned horse never issues another purc
 test('reconnect recognizes actual mount equipment, then gathering dismounts, follows and remounts the owned horse', async () => {
   const { ctx, world, equipment, counts } = fixture();
   world.entities.set(equipment.serial, equipment);
-  const controller = createMountController(ctx, 'Britain');
+  const controller = createMountController(ctx, () => 'Britain');
   await controller.acquire();
   expect(ctx.checkpoint.mount?.state).toBe('riding');
   expect(counts().buys).toBe(0);
@@ -153,7 +153,7 @@ test('reconnect recognizes actual mount equipment, then gathering dismounts, fol
 test('an owned horse a diagonal step away is ridden where it stands (BaseMount InRange 1)', async () => {
   const { ctx, world, horse, counts } = fixture();
   world.entities.set(horse.serial, { ...horse, position: { x: 101, y: 101, z: 0, direction: 0 } });
-  expect(await createMountController(ctx, 'Minoc').ride()).toBe(true);
+  expect(await createMountController(ctx, () => 'Minoc').ride()).toBe(true);
   expect(counts().walks).toBe(0);
 });
 
@@ -168,14 +168,14 @@ test('a double-click inside the shard action delay is tried again, not timed out
       world.entities.set(equipment.serial, equipment);
     }
   };
-  expect(await createMountController(ctx, 'Minoc').ride()).toBe(true);
+  expect(await createMountController(ctx, () => 'Minoc').ride()).toBe(true);
   expect(uses).toBe(2);
 });
 
 test('friend commands alone cannot establish ownership', async () => {
   const { ctx, world, horse, counts } = fixture(false);
   world.entities.set(horse.serial, horse);
-  expect(await createMountController(ctx, 'Britain').ride()).toBe(false);
+  expect(await createMountController(ctx, () => 'Britain').ride()).toBe(false);
   expect(ctx.checkpoint.mount?.horse).toBeUndefined();
   expect(counts().uses).toBe(0);
 });
@@ -196,7 +196,7 @@ test('an unavailable horse context does not stop gathering after a confirmed dis
   ctx.session.context = async () => {
     throw new Error('Timed out waiting for context menu');
   };
-  const controller = createMountController(ctx, 'Britain');
+  const controller = createMountController(ctx, () => 'Britain');
   await controller.dismountForGathering();
   expect(world.entities.has(equipment.serial)).toBe(false);
   expect(ctx.checkpoint.mount?.note).toContain('not confirmed');

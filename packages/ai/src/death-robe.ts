@@ -5,6 +5,7 @@ import { soldAs } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
+import type { SpendLimits } from './bank-gold';
 import type { CraftContext } from './craft-training';
 import { isGargoyle } from './flight';
 import { logger } from './log';
@@ -92,7 +93,7 @@ function shedTrouble(session: PlayerSession, why: string) {
 // A robe or a shirt from a tailor (ServUO SBTailor).
 const ROBE = soldAs('Robe');
 const SHIRT = soldAs('Shirt');
-const CLOTHES = { reserve: 50, perHour: 100 };
+const CLOTHES: SpendLimits = { reserve: 50, perHour: 100, share: 0.05 };
 const lastTry = new WeakMap<PlayerSession, number>();
 
 // New clothes for a resident still in the death robe with nothing of its own: from a resident

@@ -119,9 +119,9 @@ export function createFighterEquipment(
   };
   const gear = createFighterGear(ctx, services.contextAction);
   const bankSupplies = async () => {
-    // The home town's banks; Britain's only for a town without one. (Crossing the map to another
+    // This town's banks; Britain's only for a town without one. (Crossing the map to another
     // bank finds the same box, and the trip back is where penniless fighters died.)
-    const banks = ctx.home.banks.length ? ctx.home.banks : serviceLocations('Britain', 'banker');
+    const banks = ctx.services.banks.length ? ctx.services.banks : serviceLocations('Britain', 'banker');
     // Bankers wander around their spawn point, so a bank visit looks from a few spots before
     // giving up on that bank: the landmark, then a few tiles to either side.
     const spots = (landmark: { x: number; y: number }) => [
@@ -204,7 +204,7 @@ export function createFighterEquipment(
     // The bank pays for the weapon (vendors charge it), but a balance older than a quarter hour
     // counts as nothing (bank-gold.ts): without asking first, every smith's price looked too high
     // and the fighter walked from shop to shop buying nothing (Dunstan Miller, 125 gold, Nov 6).
-    if (!hasSword() && fundsStale(ctx.checkpoint)) await refreshFunds(ctx, ctx.home.city);
+    if (!hasSword() && fundsStale(ctx.checkpoint)) await refreshFunds(ctx, ctx.services.city);
     // Penniless, there is nothing to buy: no walk past every shop (fighter.ts earns first).
     const broke = !fundsStale(ctx.checkpoint) && spendable() < 20;
     if (!hasSword() && broke) return;
@@ -212,8 +212,8 @@ export function createFighterEquipment(
       // Bows come from the bowyer; melee weapons from the smiths.
       const vendors =
         weaponSkill(ctx.template) === 'Archery'
-          ? ctx.home.all('bowyer')
-          : [...ctx.home.all('blacksmith'), ...ctx.home.all('weaponsmith')];
+          ? ctx.services.all('bowyer')
+          : [...ctx.services.all('blacksmith'), ...ctx.services.all('weaponsmith')];
       for (const stop of vendors) {
         if (hasSword()) break;
         // A smith that sells nothing is not walked to again for two hours (objective-memory.ts).
@@ -274,12 +274,12 @@ export function createFighterEquipment(
     // Casters (primary or support Magery) carry a spellbook with their vendor combat spells.
     const archetype = ctx.template.archetype;
     if (archetype && [...archetype.primarySkills, ...archetype.supportingSkills].includes('Magery'))
-      await prepareSpellbook({ ...ctx, city: ctx.home.city, carried: (pack) => contents(pack) });
+      await prepareSpellbook({ ...ctx, city: ctx.services.city, carried: (pack) => contents(pack) });
     restockAfter = Date.now() + 120_000;
     await services.restock();
     await session.refreshStatus();
     await gear.upgradeArmor();
-    await trainingVisit(ctx, ctx.home.city);
+    await trainingVisit(ctx, ctx.services.city);
   };
   return { equip, prepareEquipment, dress: gear.dress };
 }

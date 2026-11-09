@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, setSystemTime, test } from 'bun:test';
 
 import { nextGround, travelToGround } from '../src/cemeteries';
 import type { FighterContext } from '../src/fighter-context';
@@ -43,7 +43,7 @@ test('overland travel walks to the selected mainland cemetery without using a mo
       calls.push({ point, range });
     }
   });
-  await travelToGround(ctx, true);
+  await travelToGround(ctx);
   expect(calls).toEqual(['travelling-to-graveyard', { point: { x: 722, y: 1119 }, range: 3 }]);
 });
 
@@ -141,7 +141,7 @@ test('a fighter set on a ground it is not ready for, from before, goes elsewhere
     persist: () => {},
     checkpoint: {}
   });
-  await travelToGround(fighter, true).catch(() => {});
+  await travelToGround(fighter).catch(() => {});
   expect(fighter.trip.ground).not.toBe('mongbat and ettin near 3470,2741');
 });
 
@@ -154,4 +154,62 @@ test('a ground a fighter found nothing to hunt on is not its next pick for a whi
   if (!left) throw new Error(`no ground ${first}`);
   absence(fighter.serial).note('ground', left.center);
   for (let i = 0; i < 10; i++) expect(nextGround(fighter)).not.toBe(first);
+});
+
+test('ordinary hunting travel delegates a distant mainland destination to navigation without a forced gate', async () => {
+  const calls: unknown[] = [];
+  const ctx = Object.assign(macer(72, 1430, 1555), {
+    phase: (value: string) => calls.push(value),
+    persist: () => {},
+    navigate: async (point: unknown, range: number) => {
+      calls.push({ point, range });
+    }
+  });
+  await travelToGround(ctx);
+  const { groundOf } = await import('../src/cemeteries');
+  expect(calls).toEqual(['travelling-to-graveyard', { point: groundOf(ctx.trip).center, range: 3 }]);
+});
+
+// Finn Gray, Nov 9: the shared trouble list held four "unreachable" reports for his hunting target,
+// and he kept choosing it and walking for minutes until the walk failed again.
+test('a ground every resident keeps failing to reach is not chosen', async () => {
+  const { noteTrouble } = await import('../src/trouble');
+  // Minutes apart, as on the shard.
+  const start = Date.now();
+  for (let i = 0; i < 4; i++) {
+    setSystemTime(start + i * 60_000);
+    noteTrouble({ x: 722, y: 1119 }, 'unreachable');
+  }
+  const calls: unknown[] = [];
+  const ctx = Object.assign(macer(72, 1430, 1555), {
+    phase: () => {},
+    persist: () => {},
+    navigate: async (point: unknown) => {
+      calls.push(point);
+    }
+  });
+  await travelToGround(ctx);
+  setSystemTime();
+  expect(calls).not.toContainEqual({ x: 722, y: 1119 });
+});
+
+// Finn Gray, Nov 9: killed in an orc camp, he was sent back to hunt in it as soon as he healed.
+test('a ground where residents keep dying is not chosen', async () => {
+  const { noteTrouble } = await import('../src/trouble');
+  const start = Date.now();
+  for (let i = 0; i < 2; i++) {
+    setSystemTime(start + i * 60_000);
+    noteTrouble({ x: 722, y: 1119 }, 'deadly');
+  }
+  const calls: unknown[] = [];
+  const ctx = Object.assign(macer(72, 1430, 1555), {
+    phase: () => {},
+    persist: () => {},
+    navigate: async (point: unknown) => {
+      calls.push(point);
+    }
+  });
+  await travelToGround(ctx);
+  setSystemTime();
+  expect(calls).not.toContainEqual({ x: 722, y: 1119 });
 });

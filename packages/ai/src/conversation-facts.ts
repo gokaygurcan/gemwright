@@ -61,7 +61,7 @@ export function factSheet(
   return {
     me,
     profession: professionOf(template.id)?.[0] ?? template.label,
-    home: city,
+    town: city,
     doing: activityLine(checkpoint),
     goingTo: planLine(checkpoint),
     needs: residentNeeds(session, checkpoint, template).map((need) => `${need.what}: ${need.why}`),

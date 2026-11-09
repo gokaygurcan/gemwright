@@ -4,7 +4,9 @@ import { dirname, join } from 'node:path';
 import { loopLag } from './activity';
 import { decisionReport } from './decisions';
 import { logger } from './log';
+import { startRecording } from './recording';
 import { type ResidentOptions, runResident, withRuntime } from './run-session';
+import { onlineResidents } from './store';
 import { inTrace } from './telemetry';
 import { temperamentOf } from './temperament';
 
@@ -21,10 +23,16 @@ export async function runPopulation(
   }
 ) {
   return withRuntime(options, async (shared) => {
+    // online.json (store.ts): when present, only the residents it lists log in; the rest stay
+    // active and offline until added.
+    const online = onlineResidents(dirname(options.dbPath));
     const residents = shared.store
       .list()
-      .filter((resident) => resident.desiredActive)
+      .filter((resident) => resident.desiredActive && (!online || online.has(resident.id)))
       .slice(0, options.limit);
+    for (const resident of residents)
+      if (online?.get(resident.id)?.record)
+        await startRecording(dirname(options.dbPath), resident.id, resident.proposedName);
     const startedAt = new Date().toISOString();
     // Event-loop lag: every resident shares this loop, and a long stall misses movement
     // acknowledgements, keep-alives, and the lease heartbeat for all of them.

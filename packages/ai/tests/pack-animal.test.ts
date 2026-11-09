@@ -27,7 +27,7 @@ for (const state of ['missing', 'lost', 'purchase-pending'] as const)
     memory.lastSeen = { map: 0, x: 100, y: 100, z: 0 };
     if (state === 'lost') memory.abandoned = 3;
     if (state === 'missing') memory.horse = 42;
-    const pack = createPackAnimal(f.ctx, 'Britain');
+    const pack = createPackAnimal(f.ctx, () => 'Britain');
     for (let i = 0; i < 5; i++) await pack.acquire();
     expect(f.purchases()).toBe(0);
     if (state === 'missing') expect(memory.horse).toBe(42);
@@ -46,7 +46,7 @@ test('a nearby owned pack animal is recognized before considering a purchase', a
     checks++;
     return [{ index: 0, cliloc: 3006145, flags: 0 }];
   };
-  const pack = createPackAnimal(f.ctx, 'Britain');
+  const pack = createPackAnimal(f.ctx, () => 'Britain');
   await Promise.all(Array.from({ length: 10 }, () => pack.acquire()));
   expect(f.checkpoint.packAnimal?.horse).toBe(42);
   expect(f.checkpoint.packAnimal?.state).toBe('owned');
@@ -57,7 +57,7 @@ test('a nearby owned pack animal is recognized before considering a purchase', a
 test('an unaccounted follower blocks a first purchase even when the old memory was lost', async () => {
   const f = fixture();
   required(f.world.status).followers = 1;
-  const pack = createPackAnimal(f.ctx, 'Britain');
+  const pack = createPackAnimal(f.ctx, () => 'Britain');
   await pack.acquire();
   expect(f.purchases()).toBe(0);
   expect(f.checkpoint.packAnimal?.state).toBe('missing');
@@ -70,7 +70,7 @@ test('a confirmed death clears the tracked animal without forgetting other unres
   memory.state = 'owned';
   memory.abandoned = 2;
   f.world.deaths.set(42, { corpse: 50 });
-  const pack = createPackAnimal(f.ctx, 'Britain');
+  const pack = createPackAnimal(f.ctx, () => 'Britain');
   await pack.keepUp();
   expect(memory.horse).toBeUndefined();
   expect(memory).toMatchObject({ state: 'seeking', abandoned: 2 });

@@ -4,7 +4,7 @@ import { corpse as corpseGraphic } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 
-import { type FighterContext, homeOf, newFighterStats } from '../src/fighter-context';
+import { type FighterContext, newFighterStats, servicesIn } from '../src/fighter-context';
 import { createFighterRecovery } from '../src/fighter-recovery';
 import { checkFighter } from '../src/fighter-safety';
 import { required } from './behavior-fixture';
@@ -13,7 +13,7 @@ import { socialFixture } from './social-fixture';
 export function fighterFixture() {
   const f = socialFixture('swordsman');
   f.template.behavior.activities = ['hunt'];
-  f.template.creation = { ...f.template.creation, city: 'Britain', skills: {} };
+  f.template.creation = { ...f.template.creation, cities: { Britain: 1 }, skills: {} };
   required(f.template.archetype).primarySkills = ['Swordsmanship'];
   required(f.world.entities.get(1)).name = 'Dunstan Miller';
   for (const skill of ['Swordsmanship', 'Tactics', 'Anatomy', 'Healing', 'MagicResist'])
@@ -28,7 +28,7 @@ export function fighterFixture() {
   const ctx: FighterContext = {
     ...f.ctx,
     serial: 1,
-    home: homeOf('Britain'),
+    services: servicesIn('Britain'),
     deadline: Date.now() + 300_000,
     trip: { loot: [], killsSinceBank: 0, pending: 'hunt' },
     backpack: () => 10,
@@ -66,7 +66,7 @@ export function fighterFixture() {
 
 export function corpseRecoveryFixture() {
   const f = fighterFixture();
-  f.ctx.home = { ...f.ctx.home, town: { ...required(f.world.position) } };
+  f.ctx.services = { ...f.ctx.services, bank: { ...required(f.world.position) } };
   const site = { ...required(f.world.position), x: 101 };
   f.ctx.trip.recovery = { stage: 'corpse', diedAt: new Date().toISOString(), ownerName: 'Dunstan Miller', attempts: 0 };
   f.ctx.trip.deathSite = site;

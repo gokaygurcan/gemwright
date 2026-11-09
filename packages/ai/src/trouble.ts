@@ -33,6 +33,13 @@ function tally() {
   return cells;
 }
 
+// A destination that keeps failing for any resident lately (walks there found no route, or residents
+// died there) is not chosen again until the reports expire.
+export function keepsFailing(at: { x: number; y: number }) {
+  const kinds = tally().get(`${at.x >> CELL},${at.y >> CELL}`)?.kinds;
+  return (kinds?.get('unreachable') ?? 0) >= PENALTY_AT || (kinds?.get('deadly') ?? 0) >= tuning.trouble.deadlyAt;
+}
+
 // The penalised cells, recomputed at most once a minute: every path search carries them.
 export function troubleCells(): number[] {
   if (Date.now() - cached.at < 60_000) return cached.cells;

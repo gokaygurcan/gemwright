@@ -60,8 +60,8 @@ export function createFighterRestock(
   };
   const restockNearby = async () => {
     if (forcedToWork(session)) return;
-    if (objectiveBlocked(checkpoint, `supplies:${ctx.home.city}`, suppliesCondition(session, checkpoint))) return;
-    const localShops = ctx.home.shops.filter((shop) => distance(position(), shop) <= 18);
+    if (objectiveBlocked(checkpoint, `supplies:${ctx.services.city}`, suppliesCondition(session, checkpoint))) return;
+    const localShops = ctx.services.shops.filter((shop) => distance(position(), shop) <= 18);
     if (!localShops.length || status().gold + knownBankGold(checkpoint) < 150) return;
     const table = supplies();
     // Nothing to buy with: no shopping walk at all.
@@ -73,8 +73,8 @@ export function createFighterRestock(
         .join(', ');
     phase('restocking', `Looking for ${requested()}`);
     const stops = [
-      ...(weaponSkill(ctx.template) === 'Archery' ? ctx.home.all('bowyer') : []),
-      ...(casts() ? ctx.home.all('mage') : []),
+      ...(weaponSkill(ctx.template) === 'Archery' ? ctx.services.all('bowyer') : []),
+      ...(casts() ? ctx.services.all('mage') : []),
       ...localShops
     ]
       .filter((shop) => distance(position(), shop) <= 18)
@@ -86,7 +86,7 @@ export function createFighterRestock(
       // A shop in another town (Britain's, for an island town lacking one) is worth the moongate
       // trip only with nothing at all to heal with, and at most every two hours: supplies are
       // optional, hunting is the job.
-      if (distance(shop, ctx.home.town) > 300) {
+      if (distance(shop, ctx.services.bank) > 300) {
         const broke = status().gold + knownBankGold(checkpoint) < 100;
         if (broke || ctx.count(bandage) || ctx.count(healPotion) || Date.now() < (checkpoint.farShopAfter ?? 0))
           continue;
@@ -149,7 +149,7 @@ export function createFighterRestock(
     if (short.length && ![...table].every(([graphic, [, enough]]) => count(graphic) >= (enough ?? 0))) {
       failObjective(
         checkpoint,
-        `supplies:${ctx.home.city}`,
+        `supplies:${ctx.services.city}`,
         suppliesCondition(session, checkpoint),
         'no vendor in this town supplied the restock'
       );
@@ -163,7 +163,7 @@ export function createFighterRestock(
       if (!(error instanceof ActionTimeout)) throw error;
       failObjective(
         checkpoint,
-        `supplies:${ctx.home.city}`,
+        `supplies:${ctx.services.city}`,
         suppliesCondition(session, checkpoint),
         'Optional supply visit used its time budget'
       );

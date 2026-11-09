@@ -73,7 +73,8 @@ test('training may spend its bounded budget but cannot succeed by buying things'
     s = situation();
   const goal = chooseGoal(c, s, 1000);
   expect(goal.kind).toBe('learn');
-  expect(goal.budget).toBe(300);
+  // Half the funds above the 150-gold reserve.
+  expect(goal.budget).toBe(425);
   s.evidence.funds -= 20;
   s.evidence.goods += 10;
   expect(chooseGoal(c, s, 2000)).toBe(goal);
@@ -83,8 +84,8 @@ test('training may spend its bounded budget but cannot succeed by buying things'
   expect(c.workGoal?.last?.result).toBe('completed');
   const c2 = checkpoint(),
     s2 = situation();
-  chooseGoal(c2, s2, 1000);
-  s2.evidence.funds -= 301;
+  const budget = chooseGoal(c2, s2, 1000).budget;
+  s2.evidence.funds -= budget + 1;
   s2.evidence.skills['7'] = 50.1;
   expect(chooseGoal(c2, s2, 2000).step).toBe('income');
   expect(c2.workGoal?.last?.reason).toContain('budget');
@@ -252,4 +253,15 @@ test('a wait does not fabricate recovery success or teach that recovery failed',
   const next = chooseGoal(cp, state, 501_000);
   expect(next).toMatchObject({ kind: 'earn', step: 'trade' });
   expect(cp.workGoal?.last?.result).not.toBe('completed');
+});
+
+test('a failed route does not invalidate an equipped residents earning profession', () => {
+  const c = checkpoint(),
+    s = situation();
+  s.learning = false;
+  s.earningNeeded = true;
+  chooseGoal(c, s, 1000);
+  blockGoal(c, 'Route made no progress', 2000, s, 'route');
+  expect(c.workGoal?.failed?.earn).toBeUndefined();
+  expect(chooseGoal(c, s, 2001).step).toBe('trade');
 });

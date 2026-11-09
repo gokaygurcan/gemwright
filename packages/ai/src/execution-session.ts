@@ -6,6 +6,7 @@ import { ActionBusy, ActionInterrupted, DangerInterrupt, InteractionInterrupt } 
 import type { ResidentIntent } from './intent';
 import { lifeEvent } from './life-events';
 import { perceptionFor } from './perception-session';
+import { recordAction } from './recording';
 import { intentIsCurrent } from './resident-goal';
 import { inTrace, updateTrace } from './telemetry';
 import { observeInterruption } from './telemetry-metrics';
@@ -28,6 +29,7 @@ const cleanupCommand = (command: Command) =>
 
 function trace(session: PlayerSession, event: ActionEvent) {
   observeInterruption(session, event);
+  recordAction(session, event);
   // Movement tiles and observation requests stay in bounded runtime history; travel and state
   // observations already have their own journal events.
   if (event.command && (event.command === 'walk' || observeCommands.has(event.command))) return;
@@ -133,6 +135,7 @@ export function actionScope<T>(
       trade: 120_000,
       combat: 90_000,
       escape: 45_000,
+      reflex: 60_000,
       observation: 15_000
     }[kind];
   return executionFor(session).arbiter.run(kind, intent, body, time);
@@ -151,6 +154,8 @@ export function reserveInteraction(session: PlayerSession, until: number) {
 export async function yieldForInteraction(session: PlayerSession, error: unknown): Promise<boolean> {
   if (!(error instanceof InteractionInterrupt) && !(error instanceof ActionBusy)) return false;
   const state = executionFor(session);
+  // Fighting back (reflex.ts) first: whatever it interrupted carries on once the fight is over.
+  while (session.phase === 'ready' && state.arbiter.activeKind('reflex')) await Bun.sleep(100);
   const until = Date.now() + (error instanceof ActionBusy ? 500 : 120_000);
   while (session.phase === 'ready' && Date.now() < until) {
     if (perceptionFor(session).underAttack() || perceptionFor(session).damagedRecently()) return true;

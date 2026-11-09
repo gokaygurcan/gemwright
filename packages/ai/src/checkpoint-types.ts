@@ -53,6 +53,9 @@ export interface Checkpoint {
   // Equipment it picked up but cannot use (wrong trade, needs, race or gender): sold at once, or
   // dropped for another resident when no shop takes it (inventory-use.ts, selling.ts).
   forSale?: number[];
+  // Newbied pieces (item-quality.ts): learned when a vendor whose trade buys the kind leaves one off
+  // its sell list. Never sold, never put down.
+  newbied?: number[];
   // The tamer's kept fighting pet (tamer-pet.ts).
   companion?: { serial: number; name: string; minTame: number };
   // Last NPC training attempt per skill name.
@@ -110,6 +113,7 @@ export interface Checkpoint {
   hunting?: {
     loot: number[];
     killsSinceBank: number;
+    pendingLoot?: import('./corpse-open').Death[];
     pending: 'hunt' | 'return';
     // Cemetery currently hunted (cemeteries.ts); absent means Britain.
     ground?: string;

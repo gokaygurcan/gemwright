@@ -2,21 +2,15 @@ import type { PlayerSession } from '@gemwright/network/session';
 
 import { absence } from './absence';
 import { moongates, nearestGate } from './gates';
-import { HAVEN_CITY, havenResident } from './haven';
+import { HAVEN_CITY } from './haven';
 import { allServiceLocations, forgeSites, type ServiceType, serviceLocations, townAt } from './locations';
 import { distance } from './navigation';
-import { outgrewYoung } from './progression';
 import { cityAllowed } from './world';
 
-// No resident has a home town. It works from whichever town supports its trade — a bank and the
-// trade's own vendor, a forge for a miner — staying while that holds and moving to the nearest
-// town that does when it stops (shops found empty count against a town). The young of New Haven
-// prefer their island while it serves them, but nothing keeps them there.
-export class TownChanged extends Error {
-  constructor(readonly town: string) {
-    super(`Moving my work to ${town}`);
-  }
-}
+// A resident works from the town it is in when that town supports its trade — a bank and the
+// trade's own vendor, a forge for a miner — else from the nearest one that does (shops found empty
+// count against a town), read afresh wherever it stands. Young residents favour Haven Island in
+// their choices of ground and outing (haven.ts), never as a town to work from.
 
 const NEEDS: Record<string, ServiceType[]> = {
   fisher: ['banker', 'fisherman'],
@@ -50,9 +44,7 @@ export function supports(session: PlayerSession, trade: string, town: string) {
 export function townFor(session: PlayerSession, trade: string) {
   const here = session.world.position ?? { x: 0, y: 0 };
   const current = townAt(here, '').toLowerCase();
-  const young = havenResident(session) && !outgrewYoung(session);
   const haven = HAVEN_CITY.toLowerCase();
-  if (young && cityAllowed(haven) && supports(session, trade, haven)) return haven;
   if (current && cityAllowed(current) && supports(session, trade, current)) return current;
   // Travel as residents travel: on foot, or to the nearest moongate and from the gate by the town.
   const cost = (to: { x: number; y: number }) =>
@@ -68,12 +60,4 @@ export function townFor(session: PlayerSession, trade: string) {
     [current, haven, ...towns()].find((town) => town && cityAllowed(town)) ??
     haven
   );
-}
-
-// Every turn (goal-turn.ts): a town that no longer supports the work ends the run, and the next run
-// starts from the nearest one that does.
-export function townTurn(session: PlayerSession, trade: string, town: string) {
-  if (supports(session, trade, town)) return;
-  const next = townFor(session, trade);
-  if (next !== town.toLowerCase()) throw new TownChanged(next);
 }

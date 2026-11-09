@@ -1,11 +1,9 @@
-import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
-import { arrow, boneArmor, crossbowBolt, gold, shields } from '@gemwright/common/game/items';
+import { arrow, crossbowBolt, gold } from '@gemwright/common/game/items';
 
 import { type Death, openCorpse } from './corpse-open';
-import { type FighterContext, huntable, valuable } from './fighter-context';
+import { type FighterContext, huntable } from './fighter-context';
 import { packFull } from './inventory';
-import { quality } from './item-quality';
 import { lootPriority, observedAmount, recordIncome } from './loot-economy';
 import { distance } from './navigation';
 
@@ -14,14 +12,9 @@ import { distance } from './navigation';
 // close. Gold is taken even when the pack is otherwise full (a few coins weigh almost nothing), and
 // a death whose corpse serial arrived as 0 is found by looking for a fresh corpse where it fell.
 export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<void>) {
-  const { session, contents, terrain, check, trip, persist, stats, nearby, position, log } = ctx;
+  const { session, contents, check, trip, persist, stats, nearby, position, log } = ctx;
   // Corpses already emptied this run, so the fallback search does not open the same one twice.
   const emptied = new Set<number>();
-  // Heavy pieces — armour and shields/weapons — are worth the stones only when the slot is bare or
-  // the piece is worth more than scrap: a fighter does not haul bone armour off every skeleton, fill
-  // its pack with it and walk to town for the privilege. Coins and light things always come.
-  const heavy = (graphic: number) => boneArmor.has(graphic) || shields.has(graphic);
-
   // Every corpse left behind says why in the log, so a kill that brings nothing can be traced.
   return async (death?: Death) => {
     const opened = await openCorpse(ctx, death, emptied);
@@ -33,35 +26,26 @@ export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<voi
             })`
           : `Loot: corpse ${death?.corpse ?? '?'} ${opened.why === 'denied' ? "belongs to another player's kill" : 'stayed out of reach'}; leaving it`
       );
-      return;
+      return opened.why !== 'too-far';
     }
     const { corpse } = opened;
-    emptied.add(corpse);
     const inside = contents(corpse);
     const insideGold = inside
       .filter((item) => item.graphic === gold)
       .reduce((sum, item) => sum + (item.amount ?? 1), 0);
     if (!inside.length) {
       log(`Loot: corpse ${corpse} opened but holds nothing`);
-      return;
+      emptied.add(corpse);
+      return true;
     }
     log(`Loot: corpse ${corpse} holds ${inside.length} item(s)${insideGold ? `, ${insideGold} of them gold` : ''}`);
     const lootedBefore = stats.looted;
     let goldGained = 0;
     let refused = 0;
     let noRoom = 0;
-    for (const item of inside.sort((a, b) => lootPriority(b) - lootPriority(a)).slice(0, 40)) {
-      if (!valuable(item.graphic) && !(terrain.tile(item.graphic, true).flags & (TileFlag.Weapon | TileFlag.Armor)))
-        continue;
-      if (heavy(item.graphic)) {
-        const worn = session.world.childrenOf(ctx.serial).some((piece) => piece.layer === item.layer);
-        if (worn && quality(item) === 'normal') continue;
-      }
+    let full = false;
+    for (const item of inside.sort((a, b) => lootPriority(b) - lootPriority(a))) {
       check();
-      const mergingGold = item.graphic === gold && observedAmount(session, ctx.backpack(), item) > 0;
-      // Coins are worth taking even on a full pack: every coin of the corpse, always (a pile of a
-      // hundred weighs under a stone, and the fighter used to take none of it at all).
-      if (item.graphic !== gold && packFull(session, ctx.backpack(), 0.85) && !mergingGold) break;
       const quantity = item.amount ?? 1;
       if (quantity <= 0) {
         noRoom++;
@@ -110,6 +94,9 @@ export function createCorpseLooter(ctx: FighterContext, dress: () => Promise<voi
     // Wear better looted armor on the spot.
     if (!nearby().some((m) => huntable(m, new Set()) && !!m.position && distance(position(), m.position) < 10))
       await dress();
+    full = (refused > 0 || noRoom > 0) && packFull(session, ctx.backpack(), 1);
+    if (!full) emptied.add(corpse);
+    return !full;
   };
 }
 

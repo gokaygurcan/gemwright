@@ -19,7 +19,6 @@ export interface DungeonContext {
   template: CharacterTemplate;
   checkpoint: Checkpoint;
   deadline: number;
-  home: { x: number; y: number };
   position: () => Position;
   check: () => void;
   phase: (phase: string, note: string) => void;

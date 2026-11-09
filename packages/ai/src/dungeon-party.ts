@@ -10,7 +10,7 @@ import { distance } from './navigation';
 import { readyForDungeons } from './progression';
 import { onItem, useOn } from './target-action';
 
-// Dungeon parties for residents between 80.0 and 100.0 primaries. A leader shouts LFG for a home
+// Dungeon parties for residents between 80.0 and 100.0 primaries. A leader shouts LFG for a nearby
 // dungeon in town; ready residents nearby answer, walk over, and accept a real party invitation.
 // The party's size follows its weakest member: about five at 80.0, two or three near 100.0. After
 // a few minutes the party goes with whoever came (descending less when short-handed), or is
@@ -90,7 +90,7 @@ async function lead(ctx: DungeonContext, random: () => number): Promise<boolean>
   const { session, position } = ctx;
   // A dead leader that handed its last party on may still sit in that ServUO party.
   leaveParty(ctx);
-  const dungeon = chooseDungeon(ctx.home, random);
+  const dungeon = chooseDungeon(ctx.position(), random);
   const m: Muster = {
     id: crypto.randomUUID(),
     leader: ctx.serial,

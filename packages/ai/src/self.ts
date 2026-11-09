@@ -18,7 +18,7 @@ import { knownBankGold } from './bank-gold';
 import type { CharacterTemplate } from './config';
 import { meleeWeapons, weaponSkill, weaponsFor } from './fighter-context';
 import { workGear } from './inventory';
-import { quality } from './item-quality';
+import { traits } from './item-quality';
 import { lasting } from './lasting';
 import { LIFE_GOAL } from './life-goal';
 import { equippedRanged } from './ranged-weapons';
@@ -46,13 +46,14 @@ const priceOf = (graphic: number) => prices.get(graphic) ?? prices.get(graphic -
 const ARMOR = /Plate|Chain|Ring|Leather|Studded|Bone|Helm|Gorget|Shield|Bascinet|Coif|Buckler|Gauntlet|Bracelet|Tunic/;
 const ARMOR_LAYERS = [Layer.Helm, Layer.Neck, Layer.InnerTorso, Layer.Arms, Layer.Gloves, Layer.Pants];
 
-// An item's worth as a replacement: the shop price, more for exceptional, coloured metal or magic.
+// An item's worth as a replacement: the shop price, more for exceptional or coloured metal. Magic
+// and artifacts count at what a shop pays for them, the only price on offer: valued at five and
+// twenty times that, they swelled the goods at risk and sent residents banking for gold no one pays.
 function worth(item: Pick<Entity, 'graphic' | 'amount' | 'hue' | 'properties'>) {
   if (item.graphic === gold) return item.amount ?? 1;
   const base = priceOf(item.graphic)?.buy ?? 5;
-  const q = quality(item as Entity);
-  const factor =
-    q === 'artifact' ? 20 : q === 'magic' || q === 'blessed' ? 5 : q === 'exceptional' ? 1.5 : item.hue ? 1.5 : 1;
+  const t = traits(item as Entity);
+  const factor = t?.lootType === 'blessed' ? 5 : t?.exceptional || item.hue ? 1.5 : 1;
   return Math.round(base * factor * (item.amount ?? 1));
 }
 const isArmor = (graphic: number) => ARMOR.test(priceOf(graphic)?.type ?? '');

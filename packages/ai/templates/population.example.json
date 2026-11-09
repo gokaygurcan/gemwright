@@ -9,7 +9,7 @@
       "label": "Minoc miner",
       "creation": {
         "namePrefix": "Miner",
-        "city": "Minoc",
+        "cities": { "Minoc": 1 },
         "skills": {
           "Mining": 50,
           "Blacksmith": 50
@@ -43,7 +43,7 @@
       "label": "Britain swordsman",
       "creation": {
         "namePrefix": "Adventurer",
-        "city": "Britain",
+        "cities": { "Britain": 1 },
         "skills": {
           "Swordsmanship": 50,
           "Tactics": 50
@@ -78,7 +78,7 @@
       "label": "Britain lumberjack",
       "creation": {
         "namePrefix": "Woodcutter",
-        "city": "Britain",
+        "cities": { "Britain": 1 },
         "skills": {
           "Lumberjacking": 50,
           "Carpentry": 50

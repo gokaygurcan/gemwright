@@ -154,15 +154,18 @@ for (const kind of ['earn', 'order'] as const)
     registerGoal(f.session, f.checkpoint);
     const budget = required(goal.intent?.budget);
     expect(budget.maxSpend).toBeGreaterThan(0);
+    // The last purchase fills the budget: one purchase alone may take only a quarter of the funds.
+    const cost = Math.min(budget.maxSpend, 150);
+    budget.spent = budget.maxSpend - cost;
     let release!: () => void;
     const waiting = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const purchase = chargedPurchase({ ...f.ctx, backpack: () => 10 }, budget.maxSpend, async () => {
+    const purchase = chargedPurchase({ ...f.ctx, backpack: () => 10 }, cost, async () => {
       await waiting;
-      required(f.world.entities.get(11)).amount = 1000 - budget.maxSpend;
+      required(f.world.entities.get(11)).amount = 1000 - cost;
     });
-    expect(budget.reserved).toBe(budget.maxSpend);
+    expect(budget.reserved).toBe(cost);
     let sent = false;
     await expect(
       chargedPurchase({ ...f.ctx, backpack: () => 10 }, 1, async () => {

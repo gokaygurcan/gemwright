@@ -1,20 +1,21 @@
 import { HUMAN_ELF_BODIES } from '@gemwright/common/game/bodies';
 import { gold } from '@gemwright/common/game/items';
-import { skillId } from '@gemwright/common/game/skills';
-import { Layer } from '@gemwright/network/layers';
 import { hostileNotoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
 
 import { DangerInterrupt, urgentAction } from './action-purpose';
+import { withinReach } from './areas';
 import { transfer } from './bank-box';
 import { Blocked } from './blocked';
 import { grounds } from './cemeteries';
+import { forecastFight } from './combat-forecast';
 import { type Death, openCorpse } from './corpse-open';
 import { escapeDanger } from './danger-response';
 import { valuable } from './fighter-context';
 import { monsters } from './monster-reference';
 import { distance } from './navigation';
+import { canBeat, harmless, selfState } from './self-state';
 
 // The one answer every resident gives to being attacked, whatever its trade: who is hitting me,
 // can I finish it, then fight or run — and take what it dropped. The fighter has its own deeper
@@ -32,38 +33,21 @@ export interface SkirmishContext {
   backpack: () => number;
 }
 
-const RETREAT_AT = 0.25;
 const scrapping = new WeakMap<PlayerSession, number>();
-
-const statsOf = (mobile: Entity) =>
-  monsters.find((m) => m.bodies.includes(mobile.graphic) && (m.name ?? '') === (mobile.name ?? '').toLowerCase()) ??
-  monsters.find((m) => m.bodies.includes(mobile.graphic));
 
 // The share of its maximum health a fight costs, with ServUO's hit chance ((skill + 20) over twice
 // the defender's + 20) and the weapon in hand or fists. Unknown creatures count as costly.
 function fightShare(session: PlayerSession, monster: (typeof monsters)[number] | undefined) {
-  if (!monster?.hits || !monster.damage) return 1;
-  const skill = (name: string) => session.world.skills.get(skillId(name))?.value ?? 0;
-  const held = session.world
-    .childrenOf(session.world.serial ?? -1)
-    .some((item) => item.layer === Layer.OneHanded || item.layer === Layer.TwoHanded);
-  const own = Math.max(...['Swordsmanship', 'Mace Fighting', 'Fencing', 'Wrestling'].map(skill));
-  const theirs = monster.wrestling ?? 50;
-  const chance = (a: number, d: number) => Math.min(1, Math.max(0.02, (a + 20) / (2 * (d + 20))));
-  const str = session.world.status?.strength ?? 50;
-  const perSwing = (held ? 8 : 2.5) + skill('Tactics') / 10 + str / 40;
-  const hits = ((monster.hits[0] ?? 0) + (monster.hits[1] ?? 0)) / 2;
-  const damage = ((monster.damage[0] ?? 0) + (monster.damage[1] ?? 0)) / 2;
-  const taken = (hits / perSwing / chance(own, theirs)) * chance(theirs, own) * damage;
-  return taken / Math.max(1, session.world.status?.maxHits ?? 1);
+  if (!monster) return Infinity;
+  return forecastFight(
+    session,
+    { serial: -1, kind: 'mobile', graphic: monster.bodies[0] ?? 0, name: monster.name ?? undefined },
+    { stats: monster }
+  ).predictedLoss;
 }
 
-const health = (ctx: SkirmishContext) => ctx.status().hits / Math.max(1, ctx.status().maxHits);
-
-// Already on it, a fight is worth finishing while health outlasts the cost; a new one needs room
-// to spare.
-export const canTake = (ctx: SkirmishContext, mobile: Entity, engaged: boolean) =>
-  fightShare(ctx.session, statsOf(mobile)) < health(ctx) - (engaged ? RETREAT_AT : 0.4);
+export const canTake = (ctx: SkirmishContext, mobile: Entity, _engaged: boolean) =>
+  canBeat(ctx.session, selfState(ctx.session, false), mobile);
 
 export function attackerOf(ctx: SkirmishContext) {
   const { session } = ctx;
@@ -102,7 +86,7 @@ export async function skirmish(ctx: SkirmishContext, opponent: Entity): Promise<
       }
       const target = session.world.entities.get(opponent.serial);
       if (!target?.position || distance(ctx.position(), target.position) > 14) return false;
-      if (health(ctx) < RETREAT_AT) return false;
+      if (!canTake(ctx, target, true)) return false;
       if (session.world.combatant !== opponent.serial) await session.attack(opponent.serial);
       if (distance(ctx.position(), target.position) > 1)
         await ctx.navigate(target.position, 1).catch((error) => {
@@ -144,6 +128,8 @@ const beatableNear = (ctx: SkirmishContext, radius: number) => {
         distance(here, m.position) <= radius &&
         hostileNotoriety.includes(m.notoriety ?? 0) &&
         !HUMAN_ELF_BODIES.has(m.graphic) &&
+        // A creature that never starts a fight (a cow, a boar) is no prey: nothing to win, only a kill.
+        !harmless(m) &&
         !ctx.session.world.deaths.has(m.serial) &&
         canTake(ctx, m, false)
     )
@@ -155,24 +141,25 @@ const beatableNear = (ctx: SkirmishContext, radius: number) => {
 // answerDanger. True when it got to fight.
 export async function scrapTurn(ctx: SkirmishContext): Promise<boolean> {
   const { session } = ctx;
-  if (health(ctx) < 0.8) return false;
   const here = ctx.position();
   const beatable = (creatures: Record<string, number>) => {
     const counts = Object.entries(creatures);
     const total = counts.reduce((sum, [, n]) => sum + n, 0);
-    const weak = counts
-      .filter(
-        ([type]) =>
-          fightShare(
-            session,
-            monsters.find((m) => m.type === type)
-          ) < 0.4
-      )
-      .reduce((sum, [, n]) => sum + n, 0);
+    const weak = counts.reduce(
+      (sum, [type, n]) =>
+        sum +
+        n /
+          (1 +
+            fightShare(
+              session,
+              monsters.find((monster) => monster.type === type)
+            )),
+      0
+    );
     return weak / Math.max(1, total);
   };
   const ground = grounds
-    .filter((g) => g.creatures && beatable(g.creatures) > 0 && distance(here, g.center) < 300)
+    .filter((g) => g.creatures && beatable(g.creatures) > 0 && withinReach(here, g.center))
     .map((g) => ({ g, cost: distance(here, g.center) * (2 - beatable(g.creatures ?? {})) }))
     .sort((a, b) => a.cost - b.cost)[0]?.g;
   if (!ground) {

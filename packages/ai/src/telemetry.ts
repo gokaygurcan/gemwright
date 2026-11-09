@@ -80,8 +80,12 @@ export function makeEvent(
     details: redact(details) as Record<string, unknown>
   };
 }
+// Extra readers of every event (a resident's full recording, recording.ts).
+const taps = new Set<(event: TelemetryEvent) => void>();
+export const tapEvents = (tap: (event: TelemetryEvent) => void) => taps.add(tap);
 export function emitEvent(event: TelemetryEvent, options: { journal?: boolean; stdout?: boolean } = {}) {
   runtimeMetrics.observe(event);
+  for (const tap of taps) tap(event);
   if (options.journal !== false) sink?.(event);
   if (options.stdout) {
     output?.(JSON.stringify(event), event.level);

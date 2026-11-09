@@ -30,7 +30,7 @@ const hasHealing = (ctx: FighterContext) => ctx.count(bandage) >= 5 || ctx.count
 // works with what it has instead of walking to the shops again and again. Hunting is only truly
 // blocked when it cannot heal and is badly hurt — then a hard need is right.
 const suppliesRemembered = (ctx: FighterContext) =>
-  objectiveBlocked(ctx.checkpoint, `supplies:${ctx.home.city}`, suppliesCondition(ctx.session, ctx.checkpoint));
+  objectiveBlocked(ctx.checkpoint, `supplies:${ctx.services.city}`, suppliesCondition(ctx.session, ctx.checkpoint));
 
 // A supply run before the fight that needs it: an archer nearly out of arrows or bolts, or a
 // caster out of a reagent its combat spells use, goes to town to restock (fighter-town.ts).

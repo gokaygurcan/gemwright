@@ -1,3 +1,4 @@
+import type { DecisionFlow } from './decision-flow';
 import { type PlanEstimate, planningCondition } from './intent';
 import { progressAssumption } from './plan-assumptions';
 import { calibrateEstimate, calibration } from './plan-calibration';
@@ -29,6 +30,10 @@ export function riskBudget(state: GoalSituation) {
     ((0.02 + tolerance * 0.04) / (1 + ratio)) * (context?.escapeKnown === false ? 0.8 : 1) * (1 - 0.5 * uncertainty)
   );
 }
+// The risk recovery, the securing gate and work admission all judge: the situation now, which a
+// remedy (healing, leaving, banking) can change. Past deaths weigh on a plan's expected loss
+// (plan-calibration.ts), never on whether work may start.
+export const workDeathRisk = (state: GoalSituation) => state.planning?.deathRisk;
 export const utility = (estimate: PlanEstimate) =>
   estimate.wealth +
   (estimate.coefficients?.alpha ?? 2) * estimate.capability -
@@ -79,10 +84,9 @@ export function proposeGoals(checkpoint: Checkpoint, state: GoalSituation, now =
     const estimate = calibrateEstimate(checkpoint, kind, condition, prior, now);
     estimate.coefficients = calibration(checkpoint, now);
 
+    const situational = workDeathRisk(state);
     const riskAllowed =
-      recovery ||
-      !state.planning ||
-      (state.planning.available && estimate.deathRisk !== null && estimate.deathRisk <= budget);
+      recovery || !state.planning || (state.planning.available && situational != null && situational <= budget);
 
     const assumption = progressAssumption(checkpoint, failedKey === 'income' ? 'income' : kind, condition, now);
     const allowed =
@@ -118,8 +122,8 @@ export function proposeGoals(checkpoint: Checkpoint, state: GoalSituation, now =
       0,
       !state.safe ||
         state.planning?.available === false ||
-        state.planning?.deathRisk === null ||
-        (state.planning?.deathRisk ?? 0) > budget
+        workDeathRisk(state) === null ||
+        (workDeathRisk(state) ?? 0) > budget
     ),
     proposal('equip', 'equip', 140, 0, 10, state.safe && !state.ready),
     proposal('order', state.order ?? 'order', 130, 5, 15, state.safe && !!state.order),
@@ -139,11 +143,48 @@ export function proposeGoals(checkpoint: Checkpoint, state: GoalSituation, now =
     proposal('earn', 'earn', state.earningNeeded ? 100 : 55, 5, 10, state.safe)
   ];
 }
-export function selectGoal(checkpoint: Checkpoint, state: GoalSituation, now = Date.now()): GoalProposal {
+export function selectGoal(
+  checkpoint: Checkpoint,
+  state: GoalSituation,
+  now = Date.now(),
+  flow?: DecisionFlow
+): GoalProposal {
   const proposals = proposeGoals(checkpoint, state, now);
   const selected = proposals.filter((candidate) => candidate.allowed).sort((a, b) => b.utility - a.utility)[0];
   const recovery = proposals[0];
   if (!recovery) throw new Error('Planner requires a recovery proposal');
+  flow?.note(
+    'Risk budget',
+    `${recovery.riskBudget.toFixed(4)} death risk allowed; current ${state.planning?.deathRisk ?? 'unknown'}`
+  );
+  if (selected)
+    flow?.fork(
+      'Highest utility among admissible plans',
+      proposals.map(({ key, estimate, utility: total, allowed, reason }) => {
+        const { alpha = 2, beta = 4 } = estimate.coefficients ?? {};
+        return {
+          id: key,
+          weight: total,
+          factors: {
+            wealth: estimate.wealth,
+            capability: alpha * estimate.capability,
+            loss: -beta * estimate.loss,
+            cost: -estimate.cost,
+            advice: total - utility(estimate)
+          },
+          note: allowed ? undefined : `excluded: ${reason}`
+        };
+      }),
+      selected.key,
+      'Utility is the sum of the factors; excluded plans cannot win'
+    );
+  else
+    flow?.check(
+      'Some plan is admissible',
+      false,
+      proposals.map((p) => `${p.key}: ${p.reason}`).join('; '),
+      proposals.some((p) => p.kind === 'earn') && state.safe ? 'earn' : 'wait'
+    );
   // Every plan cooling down is no reason to stand still: safe, it keeps at its own trade, or without
   // its tools earns any way it can (side trade, escort, scrapping), as a bounded probe under a plan
   // that permits the work — never work under a wait, which the arbiter rightly refuses.

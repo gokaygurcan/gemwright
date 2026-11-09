@@ -246,7 +246,7 @@ export function createThiefSkills(state: ThiefSkillState) {
   }
 
   // A successful theft lands in the backpack a moment later; graveyard refuse is dropped where the
-  // thief stands instead of being carried home.
+  // thief stands instead of being carried back.
   async function tidy(ctx: ProfessionContext, before: Set<number>) {
     await Bun.sleep(400);
     const fresh = ctx.session.world.childrenOf(ctx.backpack()).filter((item) => !before.has(item.serial));

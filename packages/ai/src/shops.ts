@@ -1,4 +1,14 @@
-import { banks, harvestOf, heals, listsOf, npcTypes, sells, vendorListNames } from '@gemwright/common/game/rules';
+import {
+  banks,
+  buys,
+  graphicsListed,
+  harvestOf,
+  heals,
+  listsOf,
+  npcTypes,
+  sells,
+  vendorListNames
+} from '@gemwright/common/game/rules';
 
 import type { ServiceType } from './locations';
 
@@ -49,3 +59,18 @@ for (const npc of npcTypes) {
 
 // The services an NPC type gives, by its type name as spawners name it (any case).
 export const servicesOf = (type: string): readonly ServiceType[] => byType.get(type.toLowerCase()) ?? [];
+
+// Which trades buy an item, by its graphic, from the ServUO vendor lists' buy side (GenericSellInfo):
+// every vendor of a trade buys the same things, so a trade that does not list it never will.
+const buyerTrades = new Map<number, Set<ServiceType>>();
+for (const npc of npcTypes) {
+  const own = listsOf(npc).flatMap((list) => tradeLists.get(list) ?? []);
+  if (!own.length) continue;
+  for (const { type } of buys(npc))
+    for (const graphic of graphicsListed(type)) {
+      const set = buyerTrades.get(graphic) ?? new Set<ServiceType>();
+      for (const trade of own) set.add(trade);
+      buyerTrades.set(graphic, set);
+    }
+}
+export const tradesBuying = (graphic: number): ServiceType[] => [...(buyerTrades.get(graphic) ?? [])];

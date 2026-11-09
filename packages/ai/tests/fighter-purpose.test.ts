@@ -22,13 +22,13 @@ import { useTestWorld } from './world-fixture';
 
 useTestWorld();
 
-test('a safe corpse retrieval confirms belongings and returns home before resuming work', async () => {
+test('a safe corpse retrieval confirms belongings and resumes hunting without another town trip', async () => {
   const f = corpseFixture();
   await f.recovery.recover();
   expect(f.counts()).toEqual({ clicks: 1, shopping: 1, rests: 1 });
   expect(f.ctx.trip.recovery).toMatchObject({ stage: 'ready', attempts: 1 });
   expect(f.ctx.trip.deathSite).toBeUndefined();
-  expect(f.ctx.trip.pending).toBe('return');
+  expect(f.ctx.trip.pending).toBe('hunt');
   expect(f.ctx.stats.recoveredItems).toBe(2);
   expect(f.ctx.stats.abandonedCorpses).toBe(0);
   expect(f.world.entities.get(32)?.parent).toBe(1);
@@ -93,7 +93,7 @@ test('healthy fighters without bandages or potions keep hunting viable low-level
 
 test('a failed nearby supply opportunity does not become a tour of other shops or an immediate retry', async () => {
   const f = fixture();
-  const shop = required(f.ctx.home.shops[0]);
+  const shop = required(f.ctx.services.shops[0]);
   f.world.position = { ...required(f.world.position), ...shop };
   let visits = 0;
   f.ctx.navigate = async () => {
@@ -122,7 +122,7 @@ test('startup only reconciles observations and every decision context carries th
   expect(decisionContext(f.checkpoint).lifeGoal).toBe(LIFE_GOAL);
 });
 
-test('hurt by a caster it cannot see swinging, a healthy fighter turns on the caster instead of going home', () => {
+test('a nearly defeated caster can be finished rather than categorically avoided', () => {
   const { world, ctx } = fixture();
   world.entities.set(60, { serial: 60, kind: 'item', graphic: 0x13ff, parent: 1, layer: Layer.OneHanded });
   // A gazer casting from twelve tiles: no swing packet names it, only the damage arrives.
@@ -131,8 +131,10 @@ test('hurt by a caster it cannot see swinging, a healthy fighter turns on the ca
     kind: 'mobile',
     graphic: 22,
     name: 'a gazer',
+    hits: 1,
+    maxHits: 100,
     notoriety: 3,
-    position: { x: 112, y: 100, z: 0, direction: 0 }
+    position: { x: 101, y: 100, z: 0, direction: 0 }
   });
   world.healthChanges.push({ at: Date.now(), hits: 90, maxHits: 100, damage: 10, healed: 0 });
   expect(() => hurtOnTheWay(ctx)).toThrow(Ambushed);

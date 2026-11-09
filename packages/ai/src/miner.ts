@@ -22,10 +22,11 @@ import { createMinerPastimes } from './miner-pastimes';
 import { chooseMiningActivity, minerPlan, rememberForges } from './miner-plan';
 import { createMinerServices, tools } from './miner-services';
 import { findMiningSite } from './miner-sites';
-import { minerDistrict, reachMinerHome } from './miner-travel';
+import { minerDistrict, reachMiningTown } from './miner-travel';
 import { travelByMoongate } from './moongate';
 import { createMountController, mountedNavigator } from './mounts';
 import { createNavigator } from './navigation';
+import { observedTerrain } from './observed-terrain';
 import { lighten } from './overload';
 import { createPackAnimal } from './pack-animal';
 import { observeResident } from './resident-observation';
@@ -37,7 +38,6 @@ import { isSetback } from './setback';
 import { asProfession } from './shared-turn';
 import { answerDanger } from './skirmish';
 import { type Point, Terrain } from './terrain';
-import { TownChanged } from './towns';
 import { WALKING_LIMIT } from './tuning';
 import { reachRegion } from './work-areas';
 
@@ -46,7 +46,7 @@ const distance = (a: Point, b: { x: number; y: number }) => Math.max(Math.abs(a.
 export async function runMiner(options: ResidentOptions) {
   const { session, template } = options;
   if (session.world.map !== 1) throw new Error('The miner supports Trammel');
-  const { area, city, home, miningArea, anchor, banks, shops } = minerDistrict(options);
+  const { area, city, townBank, miningArea, anchor, banks, shops } = minerDistrict(options);
   const serial = session.world.serial;
   if (serial === null) throw new Error('Miner character is unknown');
   const position = () => {
@@ -57,7 +57,7 @@ export async function runMiner(options: ResidentOptions) {
     if (!session.world.status) throw new Error('Miner status is unknown');
     return session.world.status;
   };
-  const terrain = Terrain.shared(options.assets, 1);
+  const terrain = observedTerrain(Terrain.shared(options.assets, session.world.map ?? 1), session);
   const deadline = Date.now() + options.seconds * 1000;
   const blocked = new Set<string>();
   const checkpoint = structuredClone(options.checkpoint);
@@ -215,16 +215,19 @@ export async function runMiner(options: ResidentOptions) {
       backpack: () => backpack
     };
     // A riding horse waits for savings: a newcomer's first gold goes on its work (mounts.ts).
-    mounts = createMountController(animals, city, 1000);
-    packs = createPackAnimal(animals, city);
-    // The way home can be long: hurt on it, it gets clear and goes on, instead of giving up the run.
-    await reachMinerHome({ session, position, navigate, phase, checkpoint, city, home, newTrip, log }, async () => {
-      await answerDanger(professional, undefined);
-      if (ghost()) await revive();
-    });
+    mounts = createMountController(animals, () => city, 1000);
+    packs = createPackAnimal(animals, () => city);
+    // The way to the mining town can be long: hurt on it, it gets clear and goes on, instead of giving up the run.
+    await reachMiningTown(
+      { session, position, navigate, phase, checkpoint, city, townBank, newTrip, log },
+      async () => {
+        await answerDanger(professional, undefined);
+        if (ghost()) await revive();
+      }
+    );
     // Miners keep a pack animal they already have but buy and search for none: half of them lost
     // theirs (631 gold each) and kept walking back to look for it.
-    if (distance(position(), home) < 180) await mounts.acquire();
+    if (distance(position(), townBank) < 180) await mounts.acquire();
     rememberObservedForges();
     if (plan().pending === 'smelt' && !smeltable(backpack).length) {
       if (carried(backpack).some((item) => item.graphic === ingot)) plan().smeltsSinceBank++;
@@ -276,11 +279,11 @@ export async function runMiner(options: ResidentOptions) {
             smeltable(backpack).length &&
             (status().weight >= miningLimit() || needsSpace() || !hasTool() || plan().pending === 'smelt')
           ) {
-            // Far from any forge (visiting another town): smelting waits for the way home.
+            // Far from any forge (visiting another town): smelting waits for the mining town.
             await smelt(backpack).catch(async (error) => {
               if (!(error instanceof Error) || !error.message.startsWith('No reachable forge')) throw error;
               phase('mine-travel', 'No forge near here; heading back to the mines');
-              await reachRegion({ session, position, navigate, phase }, home);
+              await reachRegion({ session, position, navigate, phase }, townBank);
             });
             smelted = true;
           }
@@ -404,7 +407,7 @@ export async function runMiner(options: ResidentOptions) {
           await activeMounts.dismountForGathering();
           phase('mining', `Using the observed tool on ${site.floor ? 'cave floor' : 'rock'} at ${site.x},${site.y}`);
           attempts += await digSite(
-            { session, terrain, check, status, position, phase, log, navigate, home, exhausted, progress },
+            { session, terrain, check, status, position, phase, log, navigate, townBank, exhausted, progress },
             {
               backpack,
               carried,
@@ -427,7 +430,7 @@ export async function runMiner(options: ResidentOptions) {
         if (await yieldForInteraction(session, error)) continue;
         if (error instanceof DangerInterrupt) {
           try {
-            await answerDanger(professional, home);
+            await answerDanger(professional, townBank);
           } catch (error) {
             if (ghost() && session.phase === 'ready') await revive();
             else throw error;
@@ -443,7 +446,13 @@ export async function runMiner(options: ResidentOptions) {
       }
     }
   } catch (error) {
-    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
+    if (error instanceof SessionBreak) throw error;
+    // Danger met while setting out (lightening the pack, fetching a mount) is escaped like danger at
+    // work; ending the run without moving restarted it on the same spot, again and again.
+    if (error instanceof DangerInterrupt && session.phase === 'ready' && !options.stopping?.())
+      await answerDanger(professional, townBank).catch((failure) =>
+        log(`Escape after an interrupted start failed: ${failure instanceof Error ? failure.message : failure}`)
+      );
     const reason = options.stopping?.()
       ? 'Miner stopped by shutdown signal'
       : error instanceof Error

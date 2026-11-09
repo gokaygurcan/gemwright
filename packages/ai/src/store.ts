@@ -12,6 +12,7 @@ import { playerName } from './names';
 import { shardProfile } from './shard-profile';
 import { SpendLedger } from './spend-ledger';
 import { timed } from './stall-probe';
+import { professionOf } from './world';
 
 // One skill as the server reported it: base and modified value, cap, and lock (0 up, 1 down, 2 locked).
 export interface SkillReading {
@@ -103,6 +104,16 @@ export const retiredResidents = (dir: string): Set<string> => {
   return new Set(
     (JSON.parse(readFileSync(file, 'utf8')) as { residents: { id: string }[] }).residents.map((r) => r.id)
   );
+};
+
+// online.json beside retired.json: when present, only the residents it lists log in; the others
+// stay active (not retired), just offline, until they are added. `record: true` records everything
+// that resident does and receives (recording.ts).
+export const onlineResidents = (dir: string): Map<string, { record: boolean }> | undefined => {
+  const file = join(dir, 'online.json');
+  if (!existsSync(file)) return undefined;
+  const list = (JSON.parse(readFileSync(file, 'utf8')) as { residents: { id: string; record?: boolean }[] }).residents;
+  return new Map(list.map((r) => [r.id, { record: r.record === true }]));
 };
 
 export class ResidentStore {
@@ -363,8 +374,42 @@ export class ResidentStore {
             .run(template.id, template.version, snapshot);
         }
 
+        // A resident of a former city-prefixed `<city>-<profession>` template moves to its
+        // profession's template, keeping its id, character, account and progress, and
+        // takes the next ordinal there (ordinals are per template).
+        const configured = new Set(config.templates.map((t) => t.id));
+        const versions = new Map(config.templates.map((t) => [t.id, t.version]));
+        const nextOrdinal = new Map<string, number>();
+        for (const resident of this.list()) {
+          if (configured.has(resident.templateId)) continue;
+          const profession = professionOf(resident.templateId)?.[0];
+          const version = profession && versions.get(profession);
+          if (!profession || !version) continue;
+          const ordinal =
+            nextOrdinal.get(profession) ??
+            (this.db
+              .query<{ last: number | null }, [string]>(
+                'SELECT MAX(ordinal) AS last FROM residents WHERE template_id = ?'
+              )
+              .get(profession)?.last ?? 0) + 1;
+          nextOrdinal.set(profession, ordinal + 1);
+          this.db
+            .query(
+              'UPDATE residents SET template_id = ?, ordinal = ?, creation_version = ?, policy_version = ?, revision = revision + 1 WHERE id = ?'
+            )
+            .run(profession, ordinal, version, version, resident.id);
+        }
+
         const desired = new Set<string>();
         const reservedNames = new Set(this.list().map((resident) => resident.proposedName));
+        // A population no larger than the residents already playing keeps exactly those: lowering
+        // the setting to today's count must not swap anyone for the allocation's own picks.
+        const total = Object.values(allocation).reduce((sum, n) => sum + n, 0);
+        const playing = this.list().filter(
+          (resident) => resident.desiredActive && !retired.has(resident.id) && configured.has(resident.templateId)
+        );
+        const pinned = playing.length > 0 && total <= playing.length;
+        if (pinned) for (const resident of playing.slice(0, total)) desired.add(resident.id);
         let created = 0;
         for (const template of config.templates) {
           const target = allocation[template.id] ?? 0;
@@ -379,6 +424,7 @@ export class ResidentStore {
               .query('UPDATE residents SET proposed_name = ?, revision = revision + 1 WHERE id = ?')
               .run(name, row.id);
           }
+          if (pinned) continue;
           for (const row of existing.filter((r) => !retired.has(r.id)).slice(0, target)) desired.add(row.id);
           let ordinal = existing.at(-1)?.ordinal ?? 0;
           for (let index = existing.length; index < target; index++) {
@@ -404,7 +450,6 @@ export class ResidentStore {
           }
         }
 
-        const versions = new Map(config.templates.map((t) => [t.id, t.version]));
         for (const resident of this.list()) {
           const active = desired.has(resident.id);
           const version = versions.get(resident.templateId) ?? resident.policyVersion;

@@ -7,11 +7,11 @@ import type { Entity } from '@gemwright/network/world';
 
 import { deposit } from './bank-box';
 import { offersBank, openBankBox } from './bank-gold';
-import { travelNear } from './cemeteries';
+import { groundOf, travelNear } from './cemeteries';
 import { replaceDeathRobe } from './death-robe';
 import { actionScope } from './execution-session';
 import { bandage, type FighterContext, healPotion } from './fighter-context';
-import { returnToRefuge } from './fighter-refuge';
+import { recoveryEquipmentReady, returnToRefuge } from './fighter-refuge';
 import { createFighterRestock, fighterSupplyName } from './fighter-supplies';
 import { packItems } from './inventory';
 import { learnQuality, shopSafe } from './item-quality';
@@ -21,6 +21,7 @@ import { recordIncome } from './loot-economy';
 import { approachVendor } from './mobile-approach';
 import { distance } from './navigation';
 import { errand } from './objective-memory';
+import { recoveryStep } from './recovery-walk';
 import { travelScrolls } from './scribe';
 import { shopsFor } from './selling';
 import { createServiceExperience } from './service-experience';
@@ -109,9 +110,9 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
     if (contents().some((item) => trip.loot.includes(item.serial) && spellScrollGraphics.has(item.graphic)))
       services.add('mage');
     const saleStops = [...services]
-      .map((service) => ctx.home.one(service))
+      .map((service) => ctx.services.one(service))
       .filter((shop): shop is NonNullable<typeof shop> => !!shop);
-    // Magic, blessed, artifact and exceptional loot is kept, never sold at base price (item-quality.ts).
+    // Blessed, cursed, insured and exceptional loot is kept; magic and artifacts sell (item-quality.ts).
     await learnQuality(
       session,
       contents().filter((item) => trip.loot.includes(item.serial))
@@ -173,18 +174,18 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
       // A fighter whose corpse was lost still wears the death robe: new clothes once it can pay.
       await replaceDeathRobe({
         ...ctx,
-        city: ctx.home.city,
+        city: ctx.services.city,
         carried: (pack: number) => session.world.childrenOf(pack)
       });
       phase('banking', 'Banking profits and unsold valuables; vendors can charge the bank directly');
-      // The home town's banks, then the nearest others; a banker remembered as unavailable is tried
+      // This town's banks, then the nearest others; a banker remembered as unavailable is tried
       // again on the second pass rather than leaving the gold unbanked.
       const others = allServiceLocations('banker')
-        .filter((b) => !ctx.home.banks.some((h) => h.x === b.x && h.y === b.y))
+        .filter((b) => !ctx.services.banks.some((h) => h.x === b.x && h.y === b.y))
         .sort((a, b) => distance(position(), a) - distance(position(), b))
         .slice(0, 2);
       for (const [pass, location] of [
-        ...ctx.home.banks.map((l) => [0, l] as const),
+        ...ctx.services.banks.map((l) => [0, l] as const),
         ...others.map((l) => [1, l] as const)
       ]) {
         await navigate(location, 4);
@@ -232,13 +233,21 @@ export function createFighterTown(ctx: FighterContext, heal: () => Promise<void>
       'recovery',
       'Recover to working health',
       async () => {
-        await returnToRefuge(ctx);
-        phase('recovering-health', 'Recovering in town before another fight');
+        await returnToRefuge(
+          ctx,
+          !trip.recovery || trip.recovery.stage === 'equipment' || trip.recovery.stage === 'ready'
+        );
+        phase('recovering-health', 'Recovering at the confirmed refuge before another fight');
         const until = Math.min(deadline, Date.now() + 90_000);
         while ((status().hits < status().maxHits * 0.9 || (session.world.poisonLevel ?? 0) > 0) && Date.now() < until) {
           check();
           await heal();
-          await Bun.sleep(2500);
+          const destination =
+            (trip.pending === 'return' && trip.recovery?.stage !== 'equipment') || !recoveryEquipmentReady(ctx)
+              ? ctx.services.bank
+              : groundOf(trip).center;
+          const moved = await recoveryStep(ctx, destination);
+          if (!moved) await Bun.sleep(2500);
           await session.refreshStatus();
         }
       },

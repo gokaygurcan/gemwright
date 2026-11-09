@@ -5,19 +5,22 @@ import { lasting } from './lasting';
 import type { Point, Terrain } from './terrain';
 
 function doorState(session: PlayerSession, terrain: Terrain, point: Point) {
-  return [...session.world.entities.values()]
-    .filter(
-      (e) =>
-        e.kind === 'item' &&
-        e.position &&
-        Math.abs(e.position.x - point.x) <= 1 &&
-        Math.abs(e.position.y - point.y) <= 1 &&
-        Math.abs(e.position.z - point.z) < 16 &&
-        isDoor(e.graphic, terrain)
-    )
-    .map((e) => `${e.serial}:${e.graphic}:${e.position?.x}:${e.position?.y}:${e.position?.z}`)
-    .sort()
-    .join(';');
+  return (
+    `${terrain.geometry?.revision ?? 'base'}:` +
+    [...session.world.entities.values()]
+      .filter(
+        (e) =>
+          e.kind === 'item' &&
+          e.position &&
+          Math.abs(e.position.x - point.x) <= 1 &&
+          Math.abs(e.position.y - point.y) <= 1 &&
+          Math.abs(e.position.z - point.z) < 16 &&
+          isDoor(e.graphic, terrain)
+      )
+      .map((e) => `${e.serial}:${e.graphic}:${e.position?.x}:${e.position?.y}:${e.position?.z}`)
+      .sort()
+      .join(';')
+  );
 }
 const prefix = (session: PlayerSession) => `${session.world.serial ?? -1}|${session.world.map ?? -1}|`;
 

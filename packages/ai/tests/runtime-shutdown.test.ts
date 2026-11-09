@@ -12,7 +12,7 @@ for (const hang of [false, true])
         import population from ${JSON.stringify(new URL('../templates/population.example.json', import.meta.url).pathname)};
         for (const template of population.templates) {
           template.version = 1;
-          if (template.id === 'britain-miner') template.creation.city = 'Britain';
+          if (template.id === 'britain-miner') template.creation.cities = { Britain: 1 };
         }
         const timeout = globalThis.setTimeout;
         globalThis.setTimeout = (fn, ms, ...args) => timeout(fn, ms === 30000 ? 30 : ms, ...args);
@@ -29,6 +29,7 @@ for (const hang of [false, true])
       `;
       const child = Bun.spawn([process.execPath, '-e', script], { stdout: 'pipe', stderr: 'pipe' });
       const [code, errors] = await Promise.all([child.exited, new Response(child.stderr).text()]);
+      if (code !== (hang ? 1 : 0)) console.log('CHILD', code, errors.slice(-1500));
       expect(code).toBe(hang ? 1 : 0);
       expect(errors.includes('exiting for supervisor recovery')).toBe(hang);
     } finally {

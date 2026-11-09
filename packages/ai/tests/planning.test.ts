@@ -187,7 +187,8 @@ test('combat inference is revised after skill growth without rewriting observed 
     );
   const before = encounterAdvice(c, place, 3, now + 2, capability(50), 'a zombie');
   const after = encounterAdvice(c, place, 3, now + 2, capability(90), 'a zombie');
-  expect(before.avoidUntil).toBeGreaterThan(now);
+  expect(before.avoidUntil).toBe(0);
+  expect(before.caution).toBeGreaterThan(0);
   expect(after.avoidUntil).toBe(0);
   expect(after.caution).toBeLessThan(before.caution);
   expect(c.experience?.events).toHaveLength(2);

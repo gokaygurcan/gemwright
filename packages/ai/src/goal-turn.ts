@@ -6,10 +6,11 @@ import { bankNearbyGold, bankSurplus, registerBanking } from './bank-gold';
 import { recoverBlockedWork } from './blocked-work';
 import { escapeDanger } from './danger-response';
 import { coreStale } from './day-plan';
+import { DecisionFlow } from './decision-flow';
 import { escortOpportunity } from './escort';
 import { bindIntent } from './execution-session';
 import { assertNotHalted } from './gm';
-import { riskBudget } from './goal-policy';
+import { riskBudget, workDeathRisk } from './goal-policy';
 import { packFull } from './inventory';
 import type { LifeContext } from './life';
 import { lifeEvent } from './life-events';
@@ -41,7 +42,6 @@ import { passSetback } from './setback';
 import { housekeeping, optionalTurn } from './shared-turn';
 import { sideTradeTurn } from './side-trade';
 import { scrapTurn } from './skirmish';
-import { townTurn } from './towns';
 import { reachRegion } from './work-areas';
 import { rememberBalance, workEvidence } from './work-evidence';
 
@@ -51,11 +51,10 @@ const statusRefreshes = new WeakMap<
   { count: number; at: number }
 >();
 
-// Securing-away-the-risk waits already spent on the same ground (see the recover step below).
-const riskWaits = new WeakMap<
-  import('@gemwright/network/session').PlayerSession,
-  { at: number; tries: number; x: number; y: number }
->();
+// Risk remedies tried lately (see the recover step below), wherever they led.
+const riskWaits = new WeakMap<import('@gemwright/network/session').PlayerSession, { at: number; tries: number }>();
+// Carried value worth a trip to the bank to secure.
+const SECURE_MIN = 50;
 
 export interface GoalActions {
   trade: string;
@@ -83,20 +82,21 @@ export function goalSituation(ctx: ProfessionContext): GoalSituation {
   );
   const playerOrder = ctx.checkpoint.personal?.orders.find((o) => ['accepted', 'ready'].includes(o.state));
   const personalGoal = updatePersonalGoals(ctx);
-  const savingsTarget =
-    personalGoal && ['mount', 'equipment', 'home'].includes(personalGoal.kind) ? personalGoal.target : 0;
+  const savingsTarget = personalGoal && ['mount', 'equipment'].includes(personalGoal.kind) ? personalGoal.target : 0;
   const recoveryPending = !!ctx.checkpoint.hunting?.recovery && ctx.checkpoint.hunting.recovery.stage !== 'ready';
+  const planning = planningContext(ctx, evidence);
   return {
     evidence,
-    planning: planningContext(ctx, evidence),
+    planning,
     recoveryPending,
+    // Being hit is no reason to stop on its own: a fight it is winning is a fighter's work. Unsafe is
+    // hurt, poisoned, or in a fight it would lose (planning-context.ts: a death risk of 1).
     safe:
       !recoveryPending &&
       !isGhost(ctx) &&
       ctx.status().hits >= ctx.status().maxHits * 0.85 &&
       !(ctx.session.world.poisonLevel ?? 0) &&
-      !recentlyHurt(ctx.session) &&
-      !perceptionFor(ctx.session).underAttack(),
+      planning.deathRisk !== 1,
     ready: ready.ready,
     learning: skills.some((id) => (ctx.session.world.skills.get(id)?.base ?? 0) < 100),
     order: order ? `order:${order.serial}` : undefined,
@@ -125,10 +125,19 @@ export function goalSituation(ctx: ProfessionContext): GoalSituation {
 
 // True means the selected plan step consumed this turn. False permits only the trade's own
 // bounded work step; optional runners cannot preempt it while an objective is active.
+// A wait is never standing still: alive and unattacked, it practises a supporting skill meanwhile,
+// outside the plan (its commands are not the plan's), and only paces when there is nothing to practise.
+async function useWait(ctx: ProfessionContext) {
+  if (!isGhost(ctx) && !perceptionFor(ctx.session).underAttack()) {
+    bindIntent(ctx.session);
+    if (await ctx.practise(1)) return;
+  }
+  await checkedDelay(10_000, ctx.check);
+}
+
 export async function residentTurn(ctx: ProfessionContext, actions: GoalActions): Promise<boolean> {
   const { session, checkpoint } = ctx;
   assertNotHalted(session);
-  townTurn(session, actions.trade, ctx.city);
   let savedGoal = JSON.stringify(checkpoint.workGoal);
   const persist = () => {
     const current = JSON.stringify(checkpoint.workGoal);
@@ -164,7 +173,16 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
   }
   const previous = checkpoint.workGoal?.last;
   const previousGoal = checkpoint.workGoal?.active;
-  const goal = chooseGoal(checkpoint, state);
+  const flow = new DecisionFlow();
+  const goal = chooseGoal(checkpoint, state, Date.now(), flow);
+  if (flow.steps.length)
+    ctx.decisions?.recordLocal(
+      'work-goal',
+      { evidence: state.evidence, planning: state.planning, safe: state.safe, ready: state.ready },
+      [...new Set(['recover', 'equip', 'order', 'commitment', 'learn', 'earn', 'wait', goal.key])],
+      goal.key,
+      flow
+    );
   const last = checkpoint.workGoal?.last;
   if (last !== previous) {
     ctx.log(`[goal] ${last?.result}: ${last?.key}: ${last?.reason}`);
@@ -222,7 +240,7 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
       );
       await session.refreshStatus();
       // A wait, not a spin: the goal's own deadline bounds the retry.
-      await checkedDelay(10_000, ctx.check);
+      await useWait(ctx);
       return true;
     }
     if (goal.step === 'recover') {
@@ -237,46 +255,62 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
         if (await healSelf(ctx)) return true;
       }
       const budget = riskBudget(state);
-      const risk = state.planning?.deathRisk ?? 1;
+      const risk = workDeathRisk(state) ?? 1;
       if (state.safe && state.planning?.available && risk > budget) {
-        const here = ctx.position();
+        // Each remedy is tried at most twice in ten minutes, wherever it led: walking from one bank
+        // to the next must not reset the count. After that it waits for the situation to change.
         const before = riskWaits.get(session);
-        const sameGround = before && Math.max(Math.abs(before.x - here.x), Math.abs(before.y - here.y)) <= 10;
-        if (before && Date.now() - before.at < 10 * 60_000 && sameGround && before.tries > 2) {
-          ctx.phase('recovery-wait', 'Assets could not be secured here; waiting for a changed risk assessment');
-          await checkedDelay(10_000, ctx.check);
+        const tries = before && Date.now() - before.at < 10 * 60_000 ? before.tries + 1 : 1;
+        riskWaits.set(session, { at: Date.now(), tries });
+        if (tries > 2) {
+          ctx.phase(
+            'recovery-wait',
+            `Risk ${risk.toFixed(4)} over ${budget.toFixed(4)} is not lowered by moving; waiting for it to change`
+          );
+          await useWait(ctx);
           return true;
         }
-        ctx.phase(
-          'securing-assets',
-          `Risk ${risk.toFixed(4)} exceeds the work budget ${budget.toFixed(4)}; securing carried goods before resuming`
-        );
-        if (actions.settle) await actions.settle();
-        else {
-          // Away from its town (a fishing shore, a taming ground), goods are secured at home: its
-          // bank first, then its shops, as the other trades' own settling does.
-          const home = pickLocation(ctx.city, 'banker', ctx.position());
-          if (home && distance(ctx.position(), home) > 40) {
-            ctx.phase('securing-assets', `Returning to ${ctx.city} to secure carried goods`);
-            await reachRegion(ctx, home);
-            await ctx.navigate(home, 4).catch(() => {});
+        // The remedy the risk calls for: carried goods are banked, threats in view are left behind.
+        // Nothing carried is never a reason for a bank trip.
+        if ((state.planning.securable ?? 0) >= SECURE_MIN) {
+          ctx.phase(
+            'securing-assets',
+            `Risk ${risk.toFixed(4)} exceeds the work budget ${budget.toFixed(4)}; securing carried goods before resuming`
+          );
+          if (actions.settle) await actions.settle();
+          else {
+            // Away from town (a fishing shore, a taming ground), goods are secured in the nearest
+            // one: its bank first, then its shops, as the other trades' own settling does.
+            const bank = pickLocation(ctx.city, 'banker', ctx.position());
+            if (bank && distance(ctx.position(), bank) > 40) {
+              ctx.phase('securing-assets', `Heading to ${ctx.city} to secure carried goods`);
+              await reachRegion(ctx, bank);
+              await ctx.navigate(bank, 4).catch(() => {});
+            }
+            await sellingTurn(ctx, true);
+            if (!(await bankNearbyGold(ctx))) await bankSurplus(ctx, ctx.city);
           }
-          await sellingTurn(ctx, true);
-          if (!(await bankNearbyGold(ctx))) await bankSurplus(ctx, ctx.city);
+        } else if (!state.planning.escapeKnown) {
+          // The refuge the risk model counts (planning-context.ts): the nearest bank, on foot, never a
+          // journey to another town.
+          const refuge = state.planning.evidence?.find((entry) => entry.id === 'reference:refuge')?.value as
+            | { x: number; y: number }
+            | null
+            | undefined;
+          ctx.phase(
+            'leaving-threats',
+            `Risk ${risk.toFixed(4)} from what is in view; nothing to secure, so leaving for a refuge`
+          );
+          if (refuge) await ctx.navigate(refuge, 4).catch(() => {});
         }
         const next = goalSituation(ctx);
         lifeEvent(session, 'risk_recovery', 'observed', { before: state.planning, after: next.planning });
-        if (next.planning?.available && (next.planning.deathRisk ?? 1) > riskBudget(next)) {
-          const here = ctx.position();
-          const before = riskWaits.get(session);
-          const sameGround = before && Math.max(Math.abs(before.x - here.x), Math.abs(before.y - here.y)) <= 10;
-          const tries = before && Date.now() - before.at < 10 * 60_000 && sameGround ? before.tries + 1 : 1;
-          riskWaits.set(session, { at: Date.now(), tries, x: here.x, y: here.y });
+        if (next.planning?.available && (workDeathRisk(next) ?? 1) > riskBudget(next)) {
           ctx.phase(
             'recovery-wait',
-            `Risk ${(next.planning.deathRisk ?? 1).toFixed(4)} still exceeds the work budget ${riskBudget(next).toFixed(4)} after securing; waiting before reassessment (${tries})`
+            `Risk ${(workDeathRisk(next) ?? 1).toFixed(4)} still exceeds the work budget ${riskBudget(next).toFixed(4)}; waiting before reassessment (${tries})`
           );
-          await checkedDelay(10_000, ctx.check);
+          await useWait(ctx);
         }
         return true;
       }
@@ -310,7 +344,7 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
       }
       if (state.safe && state.planning?.available) {
         ctx.phase('recovery-wait', 'Reassessing the recovery plan before resuming work');
-        await checkedDelay(10_000, ctx.check);
+        await useWait(ctx);
         return true;
       }
       const status = ctx.status();
@@ -320,7 +354,7 @@ export async function residentTurn(ctx: ProfessionContext, actions: GoalActions)
       if (idle) {
         // Nothing to heal: recovery is waiting on its own gates, so its turns are paced instead of
         // spinning until the goal deadline.
-        await checkedDelay(10_000, ctx.check);
+        await useWait(ctx);
         return true;
       }
       if (actions.recover) await actions.recover();

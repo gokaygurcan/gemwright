@@ -1,16 +1,11 @@
 import type { PlayerSession } from '@gemwright/network/session';
 
-import type { CharacterArchetype } from './archetypes';
-import type { CharacterTemplate } from './config';
 import { outgrewYoung } from './progression';
 import type { Town } from './spawns';
 
 // New Haven (Haven Island and its town from the shard's Regions.xml; its shops and monster grounds
-// from the shard's own spawners, haven-spawns.ts): the island town
-// where new players begin. Residents of the New Haven cohort start there, and while Young they
-// never leave Haven Island: every walk, moongate trip, visit, dungeon run and escort stays on it.
-// Out of Young status (at least three skills at 100.0 base, progression.ts) they go where they like; it stays
-// their home.
+// from the shard's own spawners, haven-spawns.ts): the island town where new players begin. Young
+// residents (fewer than three skills at 100.0 base, progression.ts) favour it; nobody is held there.
 interface Box {
   x0: number;
   y0: number;
@@ -46,12 +41,6 @@ const inside = (box: Box, p: { x: number; y: number }) =>
   p.x >= box.x0 && p.x < box.x1 && p.y >= box.y0 && p.y < box.y1;
 export const onHaven = (point: { x: number; y: number }) => inside(haven.island, point);
 
-const members = new WeakMap<PlayerSession, CharacterArchetype | undefined>();
-export const isHavenTemplate = (template: Pick<CharacterTemplate, 'creation'>) => template.creation.city === HAVEN_CITY;
-// A resident of the New Haven cohort (run-session.ts registers it at login).
-export function registerHaven(session: PlayerSession, template: CharacterTemplate) {
-  if (isHavenTemplate(template)) members.set(session, template.archetype);
-}
-export const havenResident = (session: PlayerSession) => members.has(session);
-// Still Young: it prefers the island (grounds, taming, outings), as new players do, but is free to leave.
-export const prefersHaven = (session: PlayerSession) => members.has(session) && !outgrewYoung(session);
+// Any Young resident favours the island's grounds, taming spots and outings, as new players do; a
+// favour in its choices, never a limit.
+export const prefersHaven = (session: PlayerSession) => !outgrewYoung(session);

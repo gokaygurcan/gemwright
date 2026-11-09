@@ -35,19 +35,16 @@ export function encounterTarget(options: {
   });
   // A nearby monster is not evidence that it joined this fight. Duels keep their target.
   if (!attackers.some((entity) => entity.serial !== current.serial)) return { target: current };
-  if (attackers.length > allies.size + 2)
-    return { target: current, overwhelmed: true, reason: 'More confirmed attackers than the nearby group can contain' };
-  if (
-    now < options.committedUntil ||
-    (current.hits !== undefined && current.maxHits && current.hits / current.maxHits < 0.15)
-  )
-    return { target: current };
   const score = (entity: Entity) => {
     const attack = swings.get(entity.serial);
     return (
       (attack?.target === self ? 12 : 5) -
       distance(origin, entity.position ?? origin) +
-      (entity.serial === current.serial ? 3 : 0)
+      (entity.serial === current.serial
+        ? 3 +
+          6 * (1 - (current.maxHits ? (current.hits ?? current.maxHits) / current.maxHits : 1)) +
+          Math.max(0, options.committedUntil - now) / 1000
+        : 0)
     );
   };
   const next = attackers.filter(options.eligible).sort((a, b) => score(b) - score(a))[0];

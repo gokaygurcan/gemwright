@@ -51,15 +51,23 @@ export const spendableGold = (session: MountContext['session'], backpack: number
 
 // Runs a confirmed vendor purchase and debits the known bank balance by whatever the
 // vendor charged beyond the observed carried-gold decrease.
-// Training purchases (tools, reagents, spellbooks) are optional: they keep a 500-gold reserve and
-// spend at most 300 gold per hour. A crafter buying materials to sell (`business`) is earning, not
-// just training: it keeps 150 back (enough to buy its tool again after a death) and may spend 1,000 an hour.
+// Each kind of spending keeps a reserve and may spend, per hour, the larger of a small floor and a
+// share of the funds: the floor lets a poor resident buy at all, the share lets a rich one buy what
+// it needs. No fixed amount ever caps a resident's spending whatever it owns.
+// Training purchases (tools, reagents, spellbooks) are optional: a 500-gold reserve, 10% an hour.
+// A crafter buying materials to sell (`business`) is earning, not just training: it keeps 150 back
+// (enough to buy its tool again after a death) and may spend 25% an hour.
 // With an unknown bank balance only carried gold counts.
-export const TRAINING = { reserve: 500, perHour: 300 };
-export const BUSINESS = { reserve: 150, perHour: 1000 };
+export interface SpendLimits {
+  reserve: number;
+  perHour: number;
+  share: number;
+}
+export const TRAINING: SpendLimits = { reserve: 500, perHour: 300, share: 0.1 };
+export const BUSINESS: SpendLimits = { reserve: 150, perHour: 1000, share: 0.25 };
 // The tool a resident's own work needs (an instrument, a pole, a blade, scissors) is bought with
 // whatever it has: without it there is no work and no income at all.
-export const TOOLS = { reserve: 0, perHour: 500 };
+export const TOOLS: SpendLimits = { reserve: 0, perHour: 500, share: 0.5 };
 const trainingSpend = new WeakMap<Checkpoint, { since: number; total: number }>();
 export function canSpendOnTraining(
   session: MountContext['session'],
@@ -71,7 +79,7 @@ export function canSpendOnTraining(
   const window = trainingSpend.get(checkpoint);
   const spent = window && Date.now() - window.since < 3_600_000 ? window.total : 0;
   const funds = fundsStale(checkpoint) ? carriedGold(session, backpack) : spendableGold(session, backpack, checkpoint);
-  return spent + cost <= limits.perHour && funds - cost >= limits.reserve;
+  return spent + cost <= Math.max(limits.perHour, funds * limits.share) && funds - cost >= limits.reserve;
 }
 export function recordTrainingSpend(checkpoint: Checkpoint, cost: number) {
   const window = trainingSpend.get(checkpoint);
@@ -97,7 +105,7 @@ export async function chargedPurchase(
       essential ? 'Not enough gold for the tool this work needs' : 'Purchase exceeds the current intent spending budget'
     );
   const before = carriedGold(ctx.session, ctx.backpack());
-  const settle = reservePlannedSpend(ctx.session, cost);
+  const settle = reservePlannedSpend(ctx.session, cost, essential);
   try {
     await flushSession(ctx.session);
     await purchase();
@@ -352,6 +360,11 @@ export async function refreshFunds(ctx: BankerContext & { checkpoint: Checkpoint
   if (!fundsStale(ctx.checkpoint)) return;
   const bank = bankSpot(city, ctx.position());
   if (!bank) return;
+  lifeEvent(ctx.session, 'bank_balance_request', 'started', {
+    reason: 'Stale balance before shopping',
+    destination: bank,
+    previousObservation: ctx.checkpoint.funds?.at ?? null
+  });
   await ctx.navigate(bank, 4).catch(() => {});
   for (const mobile of ctx.session.world.entities.values()) {
     if (mobile.kind !== 'mobile' || !mobile.position || distance(ctx.position(), mobile.position) > BANKER_SPEECH_RANGE)

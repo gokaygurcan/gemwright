@@ -6,10 +6,8 @@ import { ActionBusy } from './action-errors';
 import { withinReach } from './areas';
 import { Blocked } from './blocked';
 import type { CraftContext } from './craft-training';
-import { moongates, nearestGate } from './gates';
 import { allServiceLocations, type ServiceType, serviceLocations, townAt, vendorLocations } from './locations';
 import { approachVendor } from './mobile-approach';
-import { travelByMoongate } from './moongate';
 import { distance } from './navigation';
 import { completeObjective, failObjective, objectiveBlocked, suppliesCondition } from './objective-memory';
 import { reachableFrom } from './unreachable';
@@ -34,13 +32,16 @@ export async function atVendor(
   // for what it goes for, and only the nearest such town. Nobody crosses the land on a hunch.
   const funds = (ctx.status().gold ?? 0) + (ctx.checkpoint.funds?.bank ?? 0);
   const walkable = alternatives.filter((shop) => distance(position(), shop) <= 300);
-  const stops = [...own.filter((shop) => distance(position(), shop) <= 300 || funds >= 100), ...walkable.slice(0, 2)];
-  // When none of this town's shops serves the need, the nearest other towns' shops are still worth
-  // one trip: a fisher whose town's fishmonger cannot trade has nothing left to stay for. Selling
-  // always travels (it is how the resident earns); buying only when it can pay for more than the
-  // trip itself.
+  // Selling stays in this town: every vendor of a trade buys the same things (shops.ts), so a piece
+  // this town's shop did not take is put down (selling.ts), never carried to another town's.
+  const selling = cliloc === Actions.sell;
+  const stops = selling
+    ? [...own]
+    : [...own.filter((shop) => distance(position(), shop) <= 300 || funds >= 100), ...walkable.slice(0, 2)];
+  // Buying: when none of this town's shops serves the need, the nearest other towns' shops are worth
+  // one trip, only when it can pay for more than the trip itself.
   const elsewhere =
-    cliloc === Actions.sell || funds >= 100
+    !selling && funds >= 100
       ? alternatives.filter((shop) => !stops.some((stop) => stop.x === shop.x && stop.y === shop.y)).slice(0, 3)
       : [];
   // The shop landmark is the door; the vendor stands somewhere inside or beside it. The spawner data
@@ -116,9 +117,6 @@ export async function atVendor(
     if ((distance(position(), shop) < 300 && !reachableFrom(shop, position())) || !withinReach(position(), shop))
       continue;
     try {
-      const gate = nearestGate(shop);
-      if (distance(position(), shop) > 300 && distance(position(), moongates[gate]) > 2)
-        await travelByMoongate(ctx, gate);
       await navigate(shop, 4);
       let heard = false;
       // Why each menu failed: busy (our own resource) and no reply say nothing about the shop;
@@ -178,7 +176,7 @@ export async function atVendor(
     } catch (error) {
       ctx.check();
       // Too heavy to walk is about the pack, not the shop: the resident lightens it first.
-      if (!(error instanceof Blocked) || error.reason === 'overweight') throw error;
+      if (!(error instanceof Blocked) || ['overweight', 'insufficient-funds'].includes(error.reason)) throw error;
       failObjective(ctx.checkpoint, key, condition, error.message);
       ctx.log(`Trying another ${vendorType}: ${error.message}`);
     }

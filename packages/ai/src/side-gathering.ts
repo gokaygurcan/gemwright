@@ -117,7 +117,7 @@ export async function oreTurn(ctx: ProfessionContext): Promise<boolean> {
     ctx.phase('side-trade', `Digging ore near ${site.x},${site.y} on the side`);
     await ctx.navigate(site.floor ? site : { x: site.x, y: site.y }, approachRange).catch(() => {});
     await digSite(
-      { ...ctx, home: pickLocation(ctx.city, 'banker') ?? area, exhausted, progress: { packRejected: false } },
+      { ...ctx, townBank: pickLocation(ctx.city, 'banker') ?? area, exhausted, progress: { packRejected: false } },
       { backpack: ctx.backpack(), carried: ctx.carried, tool: pick.serial, site, full: heavy },
       0
     );

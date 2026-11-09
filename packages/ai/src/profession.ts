@@ -16,6 +16,7 @@ import { pickLocation, townAt } from './locations';
 import { logger } from './log';
 import { watchStep } from './loop-watch';
 import { createNavigator, distance } from './navigation';
+import { observedTerrain } from './observed-terrain';
 import { type DungeonRole, professionDungeonTurn } from './profession-dungeon';
 import { readyForDungeons } from './progression';
 import { noticePeers } from './relationships';
@@ -27,7 +28,7 @@ import { answerDanger } from './skirmish';
 import type { Checkpoint } from './store';
 import { learnWork } from './strategy-learning';
 import { Terrain } from './terrain';
-import { TownChanged, townFor } from './towns';
+import { townFor } from './towns';
 
 // Shared runtime for the newer professions (fisher, tailor, bard, tamer, thief): context, the main
 // loop, setbacks, resurrection and idle supporting-skill training. A profession supplies one bounded
@@ -51,6 +52,7 @@ export interface ProfessionContext {
   terrain: Terrain;
   template: CharacterTemplate;
   checkpoint: Checkpoint;
+  decisions?: DecisionCoordinator;
   city: string;
   deadline: number;
   position: () => Position;
@@ -79,10 +81,9 @@ export async function runProfession(
   const { session, template } = options;
   const serial = session.world.serial;
   if (serial === null || session.world.map !== 1) throw new Error(`The ${name} supports Trammel`);
-  const terrain = Terrain.shared(options.assets, 1);
+  const terrain = observedTerrain(Terrain.shared(options.assets, session.world.map ?? 1), session);
   const deadline = Date.now() + options.seconds * 1000;
   const checkpoint = structuredClone(options.checkpoint);
-  const city = townFor(session, name);
   const progress: Record<string, number> = {};
   const tag = options.label ? `${name}:${options.label}` : name;
   const log = (message: string) => logger('profession').info(`[${tag}] ${message}`);
@@ -96,7 +97,15 @@ export async function runProfession(
     checkpoint.goal = { kind: name, phase: value, note: note };
     learnWork(session, checkpoint, template);
     noticePeers(session, checkpoint, options.peers, template.behavior.sociability);
-    void converse({ session, checkpoint, template, city, peers: options.peers, decisions: options.decisions, persist });
+    void converse({
+      session,
+      checkpoint,
+      template,
+      city: townFor(session, name),
+      peers: options.peers,
+      decisions: options.decisions,
+      persist
+    });
     checkpoint.memories = [...checkpoint.memories.slice(-49), { at: new Date().toISOString(), text: note }];
     persist();
     log(`${value}: ${note}`);
@@ -135,7 +144,11 @@ export async function runProfession(
     terrain,
     template,
     checkpoint,
-    city,
+    decisions: options.decisions,
+    // The town it is in or nearest to, read afresh: no resident is bound to a town.
+    get city() {
+      return townFor(session, name);
+    },
     deadline,
     position,
     status,
@@ -219,7 +232,7 @@ export async function runProfession(
       }
     }
   } catch (error) {
-    if (error instanceof SessionBreak || error instanceof TownChanged) throw error;
+    if (error instanceof SessionBreak) throw error;
     stopped = options.stopping?.()
       ? `${name} stopped by shutdown signal`
       : error instanceof Error

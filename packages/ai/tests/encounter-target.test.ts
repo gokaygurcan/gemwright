@@ -44,13 +44,14 @@ test('only a fresh confirmed additional attacker can justify a change, with comm
   expect(encounterTarget({ ...options, eligible: () => false }).target.serial).toBe(2);
 });
 
-test('confirmed attackers exceeding nearby support call for disengagement', () => {
+test('attacker count alone does not force disengagement', () => {
   const options = base();
   const third = mobile(4, 3);
   options.entities.push(third);
   options.swings.set(3, { target: 1, at: 1000 });
   options.swings.set(4, { target: 1, at: 1000 });
-  expect(encounterTarget(options).overwhelmed).toBe(true);
+  expect(encounterTarget(options).overwhelmed).toBeUndefined();
+  expect(encounterTarget(options).target.serial).toBe(3);
 });
 
 test('swing packets preserve attacker and defender, never assigning the source of an unlabelled damage packet', () => {

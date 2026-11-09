@@ -6,6 +6,7 @@ import { TileFlag } from '@gemwright/common/assets/tiledata';
 import { nameHash } from '@gemwright/common/assets/uop';
 import { type LandKind, landKind, landKinds } from '@gemwright/common/game/land';
 
+import { type GeometrySnapshot, houseBarriers } from './geometry';
 import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';
 import { RouteSearch, routeSeed } from './path-search';
@@ -42,6 +43,7 @@ export interface TerrainBuffers {
   tiles: SharedArrayBuffer;
 }
 export class Terrain {
+  readonly geometry?: GeometrySnapshot;
   private readonly tileCache = new Map<number, Tile>();
   private kinds?: Uint8Array;
   private localSearch?: RouteSearch;
@@ -330,7 +332,13 @@ export class Terrain {
     targetZ?: number
   ): Point[] | null {
     this.localSearch ??= new RouteSearch();
-    return this.localSearch.run(this, { start, goal, range, blocked: [...blocked], targetZ }).path;
+    return this.localSearch.run(this, {
+      start,
+      goal,
+      range,
+      blocked: [...blocked, ...houseBarriers(this.geometry, start, goal)],
+      targetZ
+    }).path;
   }
 
   async pathAsync(
@@ -347,11 +355,16 @@ export class Terrain {
     const request = (wide: boolean) =>
       PathPool.get(this.directory, this.facet, this.sharedBuffers()).run(
         {
+          geometry: this.geometry,
           start,
           goal,
           range,
           // Teleporter tiles only when one is the goal: never stepped on by accident (links.ts).
-          blocked: [...blocked, ...[...teleporterTiles].filter((tile) => tile !== `${goal.x},${goal.y}`)],
+          blocked: [
+            ...blocked,
+            ...houseBarriers(this.geometry, start, goal),
+            ...[...teleporterTiles].filter((tile) => tile !== `${goal.x},${goal.y}`)
+          ],
           penalties: troubleCells(),
           penaltyCost: tuning.trouble.stepCost,
           deadly: deadlyCells(),

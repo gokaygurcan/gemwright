@@ -6,7 +6,7 @@ import type { WaitOptions } from '@gemwright/network/wait-options';
 import { ActionBusy, ActionInterrupted, ActionTimeout } from './action-errors';
 import { inTrace, traceContext } from './telemetry';
 
-export type ActionKind = 'work' | 'recovery' | 'interaction' | 'trade' | 'combat' | 'escape' | 'observation';
+export type ActionKind = 'work' | 'recovery' | 'interaction' | 'trade' | 'combat' | 'escape' | 'reflex' | 'observation';
 export const priority: Record<ActionKind, number> = {
   observation: 0,
   work: 10,
@@ -14,7 +14,9 @@ export const priority: Record<ActionKind, number> = {
   interaction: 30,
   trade: 50,
   combat: 70,
-  escape: 100
+  escape: 100,
+  // Fighting back against what it can beat (reflex.ts) comes before running from it.
+  reflex: 110
 };
 export type ActionStage =
   | 'proposed'
@@ -152,6 +154,23 @@ export class ActionArbiter {
       );
       if (!protectedChild) this.abort(scope, reason);
     }
+  }
+  // Resolves once every scope interrupted below `kind` has let go of its resources: an atomic command
+  // it had in flight (a step, an equip) still holds them while it finishes, and a command needing
+  // them meanwhile would fail as busy.
+  async preempted(kind: ActionKind) {
+    const holding = () =>
+      [...this.leases.values()].some(
+        (owner) => owner.controller.signal.aborted && priority[owner.kind] < priority[kind]
+      );
+    while (holding())
+      await new Promise<void>((resolve) => {
+        const done = () => {
+          this.wakeups.delete(done);
+          resolve();
+        };
+        this.wakeups.add(done);
+      });
   }
   private release(scope: ActionScope) {
     if ((!scope.ended && !scope.controller.signal.aborted) || scope.atomic) return;

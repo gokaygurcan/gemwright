@@ -5,7 +5,7 @@ import { notePhase } from './behavior-metrics';
 import { Blocked } from './blocked';
 import { debugEnabled } from './debug';
 import { lasting } from './lasting';
-import { lifeEvent } from './life-events';
+import { lifeActionType, lifeEvent } from './life-events';
 import { logger } from './log';
 import { extendGoalBlock, failResidentGoal, goalGuard, interruptGoal } from './resident-goal';
 import { positiveProgress, type WorkEvidence, workEvidence } from './work-evidence';
@@ -61,7 +61,7 @@ function trigger(session: PlayerSession, watch: Watch, reason: string) {
   watch.idleAt = now;
   forced.set(session, now + FORCE_MS);
   pending.set(session, reason);
-  interruptGoal(session, reason);
+  interruptGoal(session, reason, lifeActionType(session) === 'travel' ? 'route' : 'work');
   const name = names.get(session) ?? 'resident';
   // A second loop soon after the first means the plan layer did not find another course: the goal
   // that kept looping is held off for longer, and the trade goes on with its own work. A loop is
@@ -200,7 +200,7 @@ export function checkLoop(session: PlayerSession) {
   const now = Date.now();
   const blocked = takingUrgentAction(session) ? undefined : goalGuard(session, now);
   if (blocked) {
-    interruptGoal(session, blocked);
+    interruptGoal(session, blocked, lifeActionType(session) === 'travel' ? 'route' : 'work');
     const watch = watchOf(session);
     watch.idleAt = now;
     watch.checkedAt = now;

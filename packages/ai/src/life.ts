@@ -10,7 +10,7 @@ import type { DecisionCoordinator } from './decisions';
 import { hadFun, strongestDrive } from './drives';
 import { moongates, nearestGate } from './gates';
 import { guildTurn } from './guilds';
-import { housingTurn, leisureAtHome } from './house-life';
+import { housingTurn, leisureInHouse } from './house-life';
 import { chooseLifePhase, config, finishLifeDecision, observeLifeWork } from './life-choice';
 import { cityLandmarks, pickLocation, serviceLocations } from './locations';
 import { forcedToWork } from './loop-watch';
@@ -87,8 +87,8 @@ function pickUp(ctx: LifeContext) {
 }
 
 async function linger(ctx: LifeContext, city: string, until: number) {
-  // Leisure in the home town is sometimes spent in one's own house (house-life.ts).
-  if (city === ctx.city && (await leisureAtHome(ctx, until))) return true;
+  // Leisure in the town it is in is sometimes spent in its own house there (house-life.ts).
+  if (city === ctx.city && (await leisureInHouse(ctx, until))) return true;
   const spots = [...serviceLocations(city, 'banker'), ...cityLandmarks(city, /^(innkeeper|tavernkeeper|barkeeper)$/)];
   // Somewhere with company, not a crowd (spread.ts).
   const self = ctx.session.world.serial ?? undefined;
@@ -128,7 +128,7 @@ async function bankVisit(ctx: LifeContext) {
 }
 
 function destination(ctx: LifeContext): string | undefined {
-  const home = pickLocation(ctx.city, 'banker');
+  const here = ctx.position();
   const towns = Object.entries(world.cities)
     .filter(
       ([name, entry]) =>
@@ -145,10 +145,7 @@ function destination(ctx: LifeContext): string | undefined {
           name,
           weight:
             (busy * playerPull(bank)) /
-            Math.max(
-              200,
-              (home ? distance(home, bank) : 1000) + learnedPlaceCost(ctx.checkpoint, ctx.session.world.map ?? 1, bank)
-            )
+            Math.max(200, distance(here, bank) + learnedPlaceCost(ctx.checkpoint, ctx.session.world.map ?? 1, bank))
         }
       ];
     });
@@ -305,20 +302,8 @@ async function phaseTurn(ctx: LifeContext): Promise<boolean> {
         let visited = false;
         if (town) {
           ctx.phase('visit', `Travelling to ${town} for a while`);
-          try {
-            visited = await linger(ctx, town, life.until);
-          } finally {
-            // However the stay went, the visit ends at home.
-            const home = pickLocation(ctx.city, 'banker');
-            if (home && ctx.session.phase === 'ready') {
-              ctx.phase('visit', `Heading home to ${ctx.city}`);
-              await goTo(ctx, home).catch((error) => {
-                visited = false;
-                ctx.log(`The way home failed: ${error}`);
-              });
-              if (distance(ctx.position(), home) > 6) visited = false;
-            } else visited = false;
-          }
+          // The visit ends where it is: the next choice starts from that town.
+          visited = await linger(ctx, town, life.until);
         }
         done(
           visited ? 'completed' : 'failed',

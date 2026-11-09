@@ -20,6 +20,8 @@ export type ExperienceEvent =
       largestLossRatio: number;
       lowestHealthRatio: number;
       damageRatio: number;
+      opponentProgress?: number;
+      durationMs?: number;
     })
   | (BaseEvent & { kind: 'bandage'; outcome: 'success' | 'failure' | 'unknown'; skill: number | null })
   | (BaseEvent & { kind: 'recovery'; outcome: 'recovered' | 'abandoned' | 'failed-break' | 'reengaged' })
@@ -90,44 +92,27 @@ export function encounterAdvice(
       event.kind === 'combat' &&
       event.body === body &&
       (!creatureName || !event.creatureName || creatureName.toLowerCase() === event.creatureName.toLowerCase()) &&
-      nearby(event, place, 64) &&
+      event.map === place.map &&
       event.at <= now &&
       now - event.at < 24 * hour &&
       event.outcome !== 'interrupted'
   );
-  let caution = 0,
-    avoidUntil = 0,
-    adverse = 0,
+  let adverse = 0,
     victories = 0,
-    lastAdverse = 0;
+    weightedLoss = 0,
+    evidence = 0;
   for (const event of events) {
-    const age = now - event.at;
-    const relevance = comparableCapability(event.capability, current);
-    const weight = Math.max(0, 1 - age / (24 * hour)) * relevance;
-    const dangerous =
-      event.outcome === 'death' ||
-      event.largestLossRatio >= 0.35 ||
-      (event.outcome === 'retreat' && event.damageRatio > 0) ||
-      event.lowestHealthRatio < 0.35;
-    if (dangerous) {
-      if (relevance >= 0.5) {
-        adverse++;
-        lastAdverse = Math.max(lastAdverse, event.at);
-      }
-      caution += (event.outcome === 'death' ? 0.4 : 0.2) * weight;
-    }
+    const weight =
+      Math.exp(-(now - event.at) / (24 * hour)) *
+      Math.exp(-Math.hypot(event.x - place.x, event.y - place.y) / 64) *
+      comparableCapability(event.capability, current);
+    const loss =
+      (event.damageRatio + event.largestLossRatio + (event.outcome === 'death' ? 1 : 0)) /
+      (1 + Math.max(0, event.opponentProgress ?? 0));
+    weightedLoss += weight * loss;
+    evidence += weight;
     if (event.outcome === 'victory') victories++;
-    if (relevance < 0.5) continue;
-    if (event.outcome === 'death') avoidUntil = Math.max(avoidUntil, event.at + 10 * 60_000);
-    else if (event.outcome === 'retreat' && event.largestLossRatio >= 0.35)
-      avoidUntil = Math.max(avoidUntil, event.at + 5 * 60_000);
-    // An emergency-grade retreat (health driven below 45% or a single hit of 30%+) is a clear loss.
-    if (event.outcome === 'retreat' && (event.lowestHealthRatio < 0.45 || event.largestLossRatio >= 0.3))
-      avoidUntil = Math.max(avoidUntil, event.at + 15 * 60_000);
-  }
-  // Repeatedly losing to the same kind of opponent here means it is beyond the character for now.
-  if (adverse >= 2) {
-    avoidUntil = Math.max(avoidUntil, lastAdverse + 60 * 60_000);
+    else if (loss > 0) adverse++;
   }
   return {
     provenance: 'inferred-from-observed-encounters' as const,
@@ -135,8 +120,8 @@ export function encounterAdvice(
     samples: events.length,
     adverse,
     victories,
-    caution: Math.min(0.6, caution),
-    avoidUntil: avoidUntil > now ? avoidUntil : 0,
+    caution: weightedLoss / (1 + evidence),
+    avoidUntil: 0,
     largestObservedLossRatio: Math.max(0, ...events.map((event) => event.largestLossRatio))
   };
 }
@@ -156,6 +141,7 @@ export function bandageAdvice(checkpoint: Checkpoint, skill: number | null, now 
     samples: events.length,
     successes,
     failures,
+    successProbability: (successes + 1) / (events.length + 1),
     unreliable: events.length >= 3 && successes / events.length < 0.25
   };
 }

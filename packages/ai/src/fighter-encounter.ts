@@ -6,22 +6,13 @@ import type { Entity } from '@gemwright/network/world';
 
 import { urgentAction } from './action-purpose';
 import { Blocked } from './blocked';
-import { nearAnyGround } from './cemeteries';
 import { combatCapability } from './combat-capability';
 import { combatPosition } from './combat-position';
-import { type DecisionCoordinator, type DecisionPick, decisionState } from './decisions';
+import type { DecisionCoordinator } from './decisions';
 import { encounterTarget } from './encounter-target';
 import { rememberExperience } from './experience';
 import type { createFighterCombat } from './fighter-combat';
-import {
-  bandage,
-  Died,
-  type FighterContext,
-  healPotion,
-  observedThreat,
-  Retreat,
-  weaponSkill
-} from './fighter-context';
+import { Died, type FighterContext, observedThreat, Retreat, weaponSkill } from './fighter-context';
 import { poisonWeapon } from './fighter-poison';
 import { engageable } from './fighter-prey';
 import { visibleAllies } from './group-awareness';
@@ -35,32 +26,20 @@ async function fightEncounter(
   ctx: FighterContext,
   combat: ReturnType<typeof createFighterCombat>,
   opponent: Entity,
-  decisions?: DecisionCoordinator,
+  _decisions?: DecisionCoordinator,
   stopping?: () => boolean
 ) {
-  const {
-    session,
-    template,
-    checkpoint,
-    trip,
-    state,
-    stats,
-    status,
-    position,
-    check,
-    phase,
-    navigate,
-    log,
-    dead,
-    count
-  } = ctx;
+  const { session, template, checkpoint, trip, state, status, position, check, phase, navigate, log, dead, count } =
+    ctx;
   const { combatAssessment, bandageBreak, heal } = combat;
-  let tacticalDecision: DecisionPick | null = null;
   let startedAt = Date.now();
   let memoryId = randomUUID();
   let encounterPlace = { map: session.world.map ?? 1, ...position() };
   let capability = combatCapability(session);
   let initialHealth = status().hits / Math.max(1, status().maxHits);
+  let initialOpponentHealth =
+    opponent.maxHits && opponent.hits !== undefined ? opponent.hits / opponent.maxHits : undefined;
+  let observedOpponentHealth = initialOpponentHealth;
   const recordOutcome = (outcome: 'victory' | 'retreat' | 'death' | 'interrupted') => {
     const changes = session.world.healthChanges.filter((change) => change.at >= startedAt);
     rememberExperience(checkpoint, {
@@ -69,6 +48,11 @@ async function fightEncounter(
       at: Date.now(),
       ...encounterPlace,
       body: opponent.graphic,
+      durationMs: Date.now() - startedAt,
+      opponentProgress:
+        initialOpponentHealth !== undefined && observedOpponentHealth !== undefined
+          ? initialOpponentHealth - (outcome === 'victory' ? 0 : observedOpponentHealth)
+          : undefined,
       capability,
       creatureName: opponent.name,
       outcome,
@@ -159,19 +143,16 @@ async function fightEncounter(
     await engage();
     learnWork(session, checkpoint, template);
     shootingPause();
-    const fightUntil = Date.now() + 90000;
     let nextCombatLog = Date.now() + 5000;
     let nextTacticalDecision = Date.now() + 2500;
     let breaksThisFight = 0;
-    let lastTargetHits = session.world.entities.get(opponent.serial)?.hits;
-    let lastDamageAt = Date.now();
     let committedUntil = Date.now() + 5000;
-    let nextThreatReview = Date.now() + 2000;
+    let nextThreatReview = Date.now() + 200;
     while (!session.world.deaths.has(opponent.serial)) {
       check();
       if (planStopsFight(session, opponent.serial)) throw new Retreat('Our agreed plan calls for disengaging');
       if (Date.now() >= nextThreatReview) {
-        nextThreatReview = Date.now() + 2000;
+        nextThreatReview = Date.now() + 200;
         const review = encounterTarget({
           current: session.world.entities.get(opponent.serial) ?? opponent,
           self: ctx.serial,
@@ -185,14 +166,10 @@ async function fightEncounter(
         if (review.overwhelmed) throw new Retreat(review.reason);
         if (review.target.serial !== opponent.serial) {
           recordOutcome('interrupted');
-          decisions?.finish(
-            checkpoint,
-            tacticalDecision,
-            'interrupted',
-            'Encounter changed to a confirmed additional attacker'
-          );
-          tacticalDecision = null;
           opponent = review.target;
+          initialOpponentHealth =
+            opponent.maxHits && opponent.hits !== undefined ? opponent.hits / opponent.maxHits : undefined;
+          observedOpponentHealth = initialOpponentHealth;
           state.fightingSerial = opponent.serial;
           startedAt = Date.now();
           memoryId = randomUUID();
@@ -212,83 +189,16 @@ async function fightEncounter(
           await engage();
           shootingPause();
           committedUntil = Date.now() + 5000;
-          lastTargetHits = session.world.entities.get(opponent.serial)?.hits;
-          lastDamageAt = Date.now();
         }
       }
+      const observedOpponent = session.world.entities.get(opponent.serial);
+      if (observedOpponent?.maxHits && observedOpponent.hits !== undefined)
+        observedOpponentHealth = observedOpponent.hits / observedOpponent.maxHits;
       const assessment = combatAssessment();
-      if (
-        Date.now() >= nextTacticalDecision &&
-        (assessment.healthRatio < 0.82 || assessment.largestHit >= status().maxHits * 0.15)
-      ) {
-        let choice = assessment.baseline;
-        if (choice === 'bandage-break' && breaksThisFight >= 2) choice = 'flee-town';
-        if (decisions && !assessment.emergency && choice !== 'flee-town') {
-          const observedTarget = opponent.serial,
-            healthBand = Math.floor(assessment.healthRatio * 10);
-          const pick = await decisions.choose({
-            kind: 'combat-tactics',
-            checkpoint,
-            observationRevision: session.world.revision,
-            state: decisionState(session, template, checkpoint, {
-              profession: template.archetype?.id ?? 'swordsman',
-              opponent: observedTarget,
-              combat: assessment,
-              healthChanges: session.world.healthChanges.slice(-12),
-              bandages: count(bandage),
-              bandageActiveUntil: combat.bandageActiveUntil,
-              completedBandages: stats.completedBandages,
-              failedBandages: stats.failedBandages,
-              potions: count(healPotion),
-              breaksThisFight,
-              note: 'Incoming damage is gross observed health loss, not net loss after healing. Bandages can fail. A short withdrawal must keep moving away from threats until actual recovery is observed; re-engage only if safe. Very large bursts and imminent death are overridden locally.'
-            }),
-            candidates: [
-              {
-                id: 'press-attack',
-                description:
-                  'Keep attacking this opponent, using local self-healing when appropriate; only viable while recent damage remains survivable.',
-                valid: () => !combatAssessment().emergency && combatAssessment().baseline !== 'flee-town'
-              },
-              {
-                id: 'bandage-break',
-                description:
-                  'Run a few tiles away, self-bandage while maintaining distance, then re-engage the same opponent if recovery is confirmed. Otherwise retreat fully.',
-                valid: () =>
-                  breaksThisFight < 2 &&
-                  status().hits < status().maxHits * 0.9 &&
-                  (count(bandage) > 0 || combat.bandageActiveUntil > Date.now()) &&
-                  !combatAssessment().emergency &&
-                  combatAssessment().baseline !== 'flee-town'
-              },
-              {
-                id: 'flee-town',
-                description:
-                  'Disengage fully and return to Britain to recover and bank; choose this when the damage rate, healing failures or supplies make another exchange unsafe.',
-                valid: () => true
-              }
-            ],
-            baseline: choice,
-            stillCurrent: () =>
-              !stopping?.() &&
-              session.phase === 'ready' &&
-              !dead() &&
-              session.world.combatant === observedTarget &&
-              Math.floor(combatAssessment().healthRatio * 10) === healthBand &&
-              !combatAssessment().emergency &&
-              combatAssessment().baseline !== 'flee-town'
-          });
-          check();
-          if (!pick) {
-            const fresh = combatAssessment();
-            if (fresh.baseline === 'flee-town') throw new Retreat(fresh.reason);
-            nextTacticalDecision = Date.now() + 500;
-            continue;
-          }
-          tacticalDecision = pick;
-          choice = pick.id as typeof choice;
-        }
-        nextTacticalDecision = Date.now() + 6000;
+      if (Date.now() >= nextTacticalDecision && assessment.baseline !== 'press-attack') {
+        const choice = assessment.baseline;
+
+        nextTacticalDecision = Date.now() + 250;
         if (choice === 'flee-town') throw new Retreat(assessment.reason);
         if (choice === 'bandage-break') {
           breaksThisFight++;
@@ -312,13 +222,6 @@ async function fightEncounter(
             );
           }
           await engage();
-          decisions?.finish(
-            checkpoint,
-            tacticalDecision,
-            'completed',
-            `Short withdrawal recovered to ${status().hits}/${status().maxHits}; re-engaging the same opponent.`
-          );
-          tacticalDecision = null;
           rememberExperience(checkpoint, {
             kind: 'recovery',
             id: `${memoryId}:break:${breaksThisFight}`,
@@ -327,31 +230,14 @@ async function fightEncounter(
             outcome: 'reengaged'
           });
           ctx.persist();
-          nextTacticalDecision = Date.now() + 6000;
-          lastDamageAt = Date.now();
+          nextTacticalDecision = Date.now() + 250;
           continue;
         }
-        decisions?.finish(
-          checkpoint,
-          tacticalDecision,
-          'completed',
-          'Continuing the same fight under local damage monitoring and healing. This records a tactical action, not a victory.'
-        );
-        tacticalDecision = null;
       }
       await heal();
       if (session.world.deaths.has(opponent.serial)) break;
       const target = session.world.entities.get(opponent.serial);
-      if (!target?.position || !nearAnyGround(position()) || Date.now() > fightUntil)
-        throw new Retreat('Opponent left the hunting area or fight took too long');
-      const damage = session.world.damage.get(opponent.serial);
-      if (damage && damage.at > lastDamageAt) lastDamageAt = damage.at;
-      if (target.hits !== undefined && target.hits !== lastTargetHits) {
-        lastTargetHits = target.hits;
-        lastDamageAt = Date.now();
-      }
-      if (Date.now() - lastDamageAt > 20000)
-        throw new Retreat('No confirmed damage for 20 seconds; abandoning an ineffective fight');
+      if (!target?.position) throw new Retreat('Opponent is no longer observed');
       if (session.world.combatant !== opponent.serial) await engage();
       if (archer && ranged && count(ranged.ammo) === 0) throw new Retreat(`Out of ${ranged.name} ammunition`);
       if (mage) await castTurn(ctx, target, caster);
@@ -379,7 +265,7 @@ async function fightEncounter(
         }
         nextCombatLog = Date.now() + 5000;
       }
-      await Bun.sleep(600);
+      await Bun.sleep(200);
     }
     recordOutcome('victory');
     return opponent;
@@ -392,12 +278,6 @@ async function fightEncounter(
           : error instanceof Retreat
             ? 'retreat'
             : 'interrupted'
-    );
-    decisions?.finish(
-      checkpoint,
-      tacticalDecision,
-      stopping?.() ? 'interrupted' : 'failed',
-      error instanceof Error ? error.message : 'Encounter failed'
     );
     throw error;
   } finally {

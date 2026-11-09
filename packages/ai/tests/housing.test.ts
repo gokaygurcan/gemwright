@@ -31,7 +31,7 @@ test('lots sit 9 by 13 apart inside the district', () => {
   ]);
 });
 
-test('each resident claims its own lot, nearest home first, and refused lots stay free', () => {
+test('each resident claims its own lot, nearest first, and refused lots stay free', () => {
   useLots([
     { id: 'a', district: 'd', x: 10, y: 10, z: 0 },
     { id: 'b', district: 'd', x: 50, y: 10, z: 0 },

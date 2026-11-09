@@ -37,7 +37,7 @@ const gumpWith = (session: PlayerSession, match: (commands: string[][]) => boole
   [...session.world.gumps.values()].find((gump) => match(gumpCommands(gump.layout)));
 
 // True when it was moved to a town.
-export async function useStuckMenu(ctx: Ctx, home: string, why: string): Promise<boolean> {
+export async function useStuckMenu(ctx: Ctx, town: string, why: string): Promise<boolean> {
   const { session } = ctx;
   const me = session.world.serial;
   const from = session.world.position;
@@ -82,7 +82,7 @@ export async function useStuckMenu(ctx: Ctx, home: string, why: string): Promise
     ctx.log(`Asked for help (${why}); the stuck menu was not offered`);
     return false;
   }
-  const own = TOWNS.findIndex((town) => town.toLowerCase() === home.toLowerCase());
+  const own = TOWNS.findIndex((name) => name.toLowerCase() === town.toLowerCase());
   const index = own >= 0 ? own : Math.floor(Math.random() * TOWNS.length);
   if (!reply(towns.serial, towns.id, index + 1)) return false;
   lasting('stuck-menu', me).set(Date.now(), Date.now() + DAY);

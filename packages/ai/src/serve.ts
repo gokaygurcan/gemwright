@@ -22,7 +22,7 @@ import { readShardWorld } from './spawns';
 import { ResidentStore } from './store';
 import { Terrain } from './terrain';
 import { buildWorkAreas } from './work-area-build';
-import { applyWorld, type Cohorts, useCities, world } from './world';
+import { applyWorld, useCities, world } from './world';
 
 // The deployed AI service (gemwright shard deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
@@ -48,7 +48,6 @@ const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
     speech?: string;
     chaos?: number;
     wars?: boolean;
-    cohorts?: Cohorts;
     debug?: boolean;
     cities?: string[];
   };
@@ -77,9 +76,7 @@ const base = {
   templates: [],
   allocation: { mode: 'fixed', entries: [] }
 };
-const population: PopulationConfig = validateConfig(
-  applyWorld(base as unknown as PopulationConfig, count, shard.ai?.cohorts)
-);
+const population: PopulationConfig = validateConfig(applyWorld(base as unknown as PopulationConfig, count));
 await writeFile(join(data, 'population.json'), `${JSON.stringify(population, null, 2)}\n`);
 const connection = validateConnection({
   schemaVersion: 1,

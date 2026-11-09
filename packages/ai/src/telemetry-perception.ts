@@ -10,6 +10,8 @@ const project = (entity: Readonly<Entity>) => ({
   serial: entity.serial,
   kind: entity.kind,
   graphic: entity.graphic,
+  multi: entity.multi,
+  facet: entity.facet,
   name: entity.name,
   parent: entity.parent,
   layer: entity.layer,

@@ -1,12 +1,14 @@
 import type { Database } from 'bun:sqlite';
 
+import type { DecisionFlow } from './decision-flow';
 import type { ChoiceRequest, ProviderAttempt } from './decision-provider';
 import type { DecisionTrace } from './decisions';
 
 // Every question a resident's coordinator settled: the request as offered (its state, instructions
-// and options) and what came back, from Clef, Jev or the local rules. The analyzer lists them
-// (packages/analyze/src/questions.ts). Request and response are gzipped JSON, about a tenth of
-// their size, and a week is kept, so a pull of the database stays small.
+// and options), the path the decision took (decision-flow.ts) and what came back, from Clef, Jev or
+// the local rules. The analyzer lists them (packages/analyze/src/questions.ts). Request and
+// response are gzipped JSON, about a tenth of their size, and a week is kept, so a pull of the
+// database stays small.
 const KEEP_MS = 7 * 86_400_000;
 
 export class DecisionLog {
@@ -29,7 +31,13 @@ export class DecisionLog {
     CREATE INDEX IF NOT EXISTS decision_log_at ON decision_log (at)`);
   }
 
-  record(residentId: string, trace: DecisionTrace, request: ChoiceRequest, exchanges?: ProviderAttempt[]) {
+  record(
+    residentId: string,
+    trace: DecisionTrace,
+    request: ChoiceRequest,
+    exchanges?: ProviderAttempt[],
+    flow?: DecisionFlow
+  ) {
     // The provider that answered: the attempt that returned a validated choice, else local rules.
     const answered = trace.attempts?.find((attempt) => attempt.reason === 'validated-choice');
     const response = {
@@ -42,7 +50,8 @@ export class DecisionLog {
       attempts: exchanges ?? trace.attempts,
       latencyMs: trace.latencyMs,
       inputTokens: trace.inputTokens,
-      outputTokens: trace.outputTokens
+      outputTokens: trace.outputTokens,
+      flow: flow?.steps
     };
     this.db
       .query(`INSERT OR REPLACE INTO decision_log

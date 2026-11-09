@@ -5,6 +5,7 @@ import type { Entity } from '@gemwright/network/world';
 
 import { supportPreference } from './aid';
 import { combatCapability } from './combat-capability';
+import { forecastFight } from './combat-forecast';
 import { assessCombat } from './combat-risk';
 import { bandageAdvice, encounterAdvice, rememberExperience } from './experience';
 import { bandage, type FighterContext, healPotion, observedThreat, Retreat } from './fighter-context';
@@ -12,6 +13,7 @@ import { recognised } from './fighter-prey';
 import { allyUnderPressure, groupMember, refreshAllyHealth } from './group-awareness';
 import { distance } from './navigation';
 import { rememberPartner } from './resident-memory';
+import { selfState } from './self-state';
 
 export function createFighterCombat(ctx: FighterContext) {
   const {
@@ -99,6 +101,20 @@ export function createFighterCombat(ctx: FighterContext) {
         )
       : null;
     const healing = bandageAdvice(ctx.checkpoint, session.world.skills.get(skillId('Healing'))?.value ?? null);
+    const self = selfState(session, dead());
+    const forecast = target
+      ? forecastFight(session, target, {
+          status: status(),
+          casting: template.archetype?.primarySkills.includes('Magery'),
+          potionReady: count(healPotion) > 0 && Date.now() >= potionUntil,
+          opponents: [target, ...self.attackers.filter((mobile) => mobile.serial !== target.serial)].map((mobile) => ({
+            mobile,
+            weight: 1
+          })),
+          caution: experience?.caution,
+          riskTolerance: template.behavior.riskTolerance
+        })
+      : undefined;
     return assessCombat({
       now: Date.now(),
       hits: status().hits,
@@ -107,15 +123,13 @@ export function createFighterCombat(ctx: FighterContext) {
       bandages: count(bandage),
       bandageActiveUntil,
       potionReady: count(healPotion) > 0 && Date.now() >= potionUntil && !((session.world.poisonLevel ?? 0) > 0),
-      riskTolerance: Math.max(
-        0,
-        template.behavior.riskTolerance - (experience?.caution ?? 0) - (healing.unreliable ? 0.15 : 0)
-      ),
+      riskTolerance: template.behavior.riskTolerance,
+      secondsToDefeat: forecast?.secondsToDefeat,
+      incomingPerSecond: forecast?.incomingPerSecond,
+      healAmount: forecast ? forecast.healAmount * healing.successProbability : undefined,
+      potionAmount: forecast?.potionAmount,
       canCreateDistance:
-        !!target &&
-        recognised(target.graphic) &&
-        status().stamina >= status().maxStamina * 0.35 &&
-        status().weight < status().maxWeight * 0.95,
+        !!target && recognised(target.graphic) && status().stamina > 0 && status().weight < status().maxWeight,
       opponentHealthRatio: target?.hits !== undefined && target.maxHits ? target.hits / target.maxHits : undefined
     });
   };
@@ -129,8 +143,15 @@ export function createFighterCombat(ctx: FighterContext) {
       return true;
     }
     const potion = contents().find((item) => item.graphic === healPotion);
-    if (!potion || Date.now() < potionUntil || status().hits >= status().maxHits * 0.65 || session.world.target)
-      return false;
+    if (!potion || Date.now() < potionUntil || status().hits >= status().maxHits || session.world.target) return false;
+    const target = state.fightingSerial === null ? undefined : session.world.entities.get(state.fightingSerial);
+    if (target) {
+      if (!forecastFight(session, target, { status: status(), potionReady: true }).potionAmount) return false;
+    } else {
+      const missing = status().maxHits - status().hits;
+      const benefit = (missing * Math.min(missing, 20)) / Math.max(1, status().maxHits);
+      if (benefit <= 20 / (count(healPotion) + 1)) return false;
+    }
     session.use(potion.serial);
     potionUntil = Date.now() + 11000;
     return true;
@@ -138,12 +159,12 @@ export function createFighterCombat(ctx: FighterContext) {
   const heal = async () => {
     updateBandage();
     if (dead()) return;
-    if (status().hits >= status().maxHits * 0.75 && !session.world.target) await refreshAllyHealth(session);
-    const selfNeeds = status().hits < status().maxHits * 0.75 || (session.world.poisonLevel ?? 0) > 0;
-    const ally =
-      !selfNeeds && (session.world.skills.get(skillId('Healing'))?.value ?? 0) >= 40
-        ? allyUnderPressure(session, 2)
-        : undefined;
+    if (!session.world.target) await refreshAllyHealth(session);
+    const candidate = allyUnderPressure(session, 2);
+    const selfDeficit = 1 - status().hits / Math.max(1, status().maxHits) + (session.world.poisonLevel ?? 0);
+    const allyState = candidate && session.world.entities.get(candidate.serial);
+    const allyDeficit = allyState?.maxHits ? 1 - (allyState.hits ?? allyState.maxHits) / allyState.maxHits : 0;
+    const ally = allyDeficit > selfDeficit ? candidate : undefined;
     if (!ally && status().hits >= status().maxHits && !((session.world.poisonLevel ?? 0) > 0)) return;
     if (drinkPotion()) {
       const nextUseAt = Date.now() + 650;
@@ -175,7 +196,10 @@ export function createFighterCombat(ctx: FighterContext) {
           bandageUntil = Date.now() + 1000;
           return;
         }
-        throw new Retreat('Bandaging did not begin; returning to town rather than continuing without healing');
+        bandageUntil = Date.now() + 1000;
+        ctx.log('Bandaging did not begin; reassessing the fight with the observed supplies');
+        if (combatAssessment().baseline === 'flee-town') throw new Retreat(combatAssessment().reason);
+        return;
       }
       bandageFeedbackAfter = session.world.journal.at(-1);
       bandageStartedAt = Date.now();
@@ -239,15 +263,15 @@ export function createFighterCombat(ctx: FighterContext) {
           point,
           score:
             path.length +
-            distance(point, ctx.home.town) * 0.03 -
+            distance(point, ctx.services.bank) * 0.03 -
             distance(point, enemy) * 0.5 +
             supportPreference(session, point)
         });
       }
     points.sort((a, b) => a.score - b.score);
     if (points[0]) return points[0].point;
-    const homeward = await terrain.pathAsync(origin, ctx.home.town, 4, undefined, undefined, session.signal);
-    const next = homeward
+    const townward = await terrain.pathAsync(origin, ctx.services.bank, 4, undefined, undefined, session.signal);
+    const next = townward
       ?.slice(3, 12)
       .find(
         (point) =>
@@ -265,8 +289,7 @@ export function createFighterCombat(ctx: FighterContext) {
   };
   const bandageBreak = async (targetSerial: number) => {
     stats.tacticalBreaks++;
-    const initial = status().hits;
-    const until = Math.min(deadline, Date.now() + 24000);
+    const until = deadline;
     phase(
       'tactical-withdrawal',
       'Creating distance to self-bandage; retaining the same opponent for possible re-engagement'
@@ -279,12 +302,8 @@ export function createFighterCombat(ctx: FighterContext) {
       check();
       await heal();
       const assessment = combatAssessment();
-      if (
-        status().hits >= status().maxHits * 0.8 &&
-        status().hits > initial &&
-        !assessment.emergency &&
-        !(session.world.poisonLevel ?? 0)
-      ) {
+      if (assessment.baseline === 'flee-town') throw new Retreat(assessment.reason);
+      if (assessment.baseline === 'press-attack') {
         const target = session.world.entities.get(targetSerial);
         if (!target?.position || !recognised(target.graphic))
           throw new Retreat('Recovered health, but the original opponent is no longer observed');

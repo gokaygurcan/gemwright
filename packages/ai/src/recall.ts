@@ -17,9 +17,9 @@ import { onItem, useOn } from './target-action';
 // circle) and later recalls to it (Recall, fourth circle), each cast taking black pearl, blood moss
 // and mandrake root. Blank runes come from the mage; the two spells only from scrolls, which no
 // mage sells: looted, or bought from a resident scribe (scribe.ts). With a runebook, marked runes
-// go into it (sixteen places) and the recall is cast from its page (RunebookGump button 50 + entry). Only a resident with the
-// Magery for it does this, and only for its own marked places: the bank of its home town and of
-// the towns it visits. A long trip that ends near one of them (work-areas.ts reachRegion, a
+// go into it (sixteen places) and the recall is cast from its page (RunebookGump button 50 + entry).
+// Only a resident with the Magery for it does this, and only for its own marked places: the banks
+// of the towns it has been to. A long trip that ends near one of them (work-areas.ts reachRegion, a
 // stranded resident in moongate.ts) recalls instead of walking to a moongate.
 const RECALL = { ...spellNamed('Recall'), magery: 50 };
 const MARK = { ...spellNamed('Mark'), magery: 70 };

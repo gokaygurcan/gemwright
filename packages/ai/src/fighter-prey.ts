@@ -1,14 +1,11 @@
 import { PLAIN_HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { skillId } from '@gemwright/common/game/skills';
-import { Layer } from '@gemwright/network/layers';
 import type { Entity } from '@gemwright/network/world';
 
+import { forecastFight } from './combat-forecast';
 import { fightConfidence } from './fight-confidence';
-import { type FighterContext, familyOf, meleeWeapons, weaponSkill } from './fighter-context';
-import { alliesNear } from './hunting-party';
+import { type FighterContext, weaponSkill } from './fighter-context';
 import { type Monster, monsters } from './monster-reference';
-import { distance } from './navigation';
-import { equippedRanged } from './ranged-weapons';
 
 // Graveyard undead on the pinned ServUO shard (Scripts/Mobiles/Normal). Names come from the
 // ordinary single-click label; several share a body, so the body only narrows the candidates.
@@ -39,7 +36,7 @@ const tierOf = (m: Monster): Tier => {
     return 'unsupported';
   const hits = ((m.hits[0] ?? 0) + (m.hits[1] ?? 0)) / 2;
   const damage = ((m.damage[0] ?? 0) + (m.damage[1] ?? 0)) / 2;
-  if (hits > 330 || m.resist >= 150 || m.fame >= 15000) return 'unsupported';
+
   if (m.magery >= 80 && (hits >= 100 || damage >= 15)) return 'lich';
   if (m.magery > 0) return 'caster';
   if (hits >= 110 || damage >= 12) return 'knight';
@@ -65,51 +62,25 @@ export const recognised = (graphic: number) => prey.has(graphic);
 // Whether this character's skills, health and armour meet a creature kind's tier (catalog type),
 // leaving out the moment's health and supplies: used to choose where to hunt (cemeteries.ts).
 export function readyFor(ctx: FighterContext, type: string, group = 1): boolean {
-  const monster = monsters.find((m) => m.type === type);
-  if (!monster) return false;
-  const tier = tierOf(monster);
-  if (tier === 'unsupported') return false;
-  if (tier === 'common') return fightCost(ctx, type, group) <= 0.5;
-  const scale = (group >= 3 && ['brute', 'caster'].includes(tier)) || (group >= 4 && tier === 'knight') ? 0.6 : 1;
-  const [weapon, tactics, maxHits, armor] = requirements[tier].map((value) => value * scale);
-  const combat = ctx.template.archetype?.primarySkills.includes('Magery') ? 'Magery' : weaponSkill(ctx.template);
-  const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
-  const status = ctx.status();
+  const stats = monsters.find((monster) => monster.type === type);
+  if (!stats?.aggressive) return false;
   return (
-    fightCost(ctx, type, group) <= 0.5 &&
-    skill(combat) >= (weapon ?? 0) &&
-    skill('Tactics') >= (tactics ?? 0) &&
-    status.maxHits >= (maxHits ?? 0) &&
-    status.armor >= (armor ?? 0)
+    forecastFight(
+      ctx.session,
+      { serial: -1, kind: 'mobile', graphic: stats.bodies[0] ?? 0, name: stats.name ?? undefined },
+      { stats, status: ctx.status(), casting: ctx.template.archetype?.primarySkills.includes('Magery'), party: group }
+    ).action !== 'flee-town'
   );
 }
-// A fight against one creature of a kind, estimated with ServUO's hit chance ((attacker skill + 20)
-// over twice (defender skill + 20)), equal swing rates and the character's typical damage per hit
-// (8 plus a tenth of Tactics; spells for mages): the share of the character's maximum health it
-// loses before the creature dies, without healing. Over half is a fight not worth picking; a
-// group splits the damage.
-const ranged = (ctx: FighterContext) => !!equippedRanged(ctx.session);
 
 export function fightCost(ctx: FighterContext, type: string, group = 1): number {
-  const monster = monsters.find((m) => m.type === type);
-  if (!monster?.hits || !monster.damage) return Infinity;
-  const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
-  // What it really fights with (self.ts, read live): the weapon in hand and its skill, or fists.
-  const held = ctx.session.world
-    .childrenOf(ctx.serial)
-    .find((i) => (i.layer === Layer.OneHanded || i.layer === Layer.TwoHanded) && meleeWeapons.has(i.graphic));
-  const caster = ctx.template.archetype?.primarySkills.includes('Magery');
-  const own = caster ? combatSkill(ctx) : skill(familyOf(held?.graphic));
-  const theirs = monster.wrestling ?? 50;
-  const hits = ((monster.hits[0] ?? 0) + (monster.hits[1] ?? 0)) / 2;
-  const damage = ((monster.damage[0] ?? 0) + (monster.damage[1] ?? 0)) / 2;
-  const hitChance = (attacker: number, defender: number) =>
-    Math.min(1, Math.max(0.02, (attacker + 20) / (2 * (defender + 20))));
-  // A weapon lands about 8 a swing (more with Tactics); fists about 2 (ServUO's 1-4 unarmed).
-  const perSwing = held || caster || ranged(ctx) ? 8 + skill('Tactics') / 10 : 2 + skill('Tactics') / 40;
-  const swings = hits / perSwing / hitChance(own, theirs);
-  const taken = (swings * hitChance(theirs, own) * damage) / Math.max(1, group);
-  return taken / Math.max(1, ctx.status().maxHits);
+  const stats = monsters.find((monster) => monster.type === type);
+  if (!stats) return Infinity;
+  return forecastFight(
+    ctx.session,
+    { serial: -1, kind: 'mobile', graphic: stats.bodies[0] ?? 0, name: stats.name ?? undefined },
+    { stats, status: ctx.status(), casting: ctx.template.archetype?.primarySkills.includes('Magery'), party: group }
+  ).predictedLoss;
 }
 
 // The skill a character fights with: Magery for mages, else its weapon skill.
@@ -128,18 +99,6 @@ export function teaches(ctx: FighterContext, type: string): boolean {
 
 // The gold a kind's loot packs carry, for choosing grounds worth the walk.
 export const goldOf = (type: string) => monsters.find((m) => m.type === type)?.gold ?? 0;
-
-// Minimum character readiness per tier: weapon skill, tactics, maximum health, armor rating,
-// current health ratio, and the template's risk tolerance. Common undead are always allowed.
-const requirements: Record<Exclude<Tier, 'common' | 'unsupported'>, number[]> = {
-  //       swords tactics maxHits armor health risk
-  brute: [45, 40, 60, 0, 0.8, 0.2],
-  // At swords 60, tactics 55, healing 12-33 and no magic resist, spectres and wraiths deal 24-26
-  // point spell hits and force emergency escapes: casters need resist and reliable healing.
-  caster: [70, 65, 85, 15, 0.9, 0.3],
-  knight: [80, 80, 90, 20, 0.9, 0.5],
-  lich: [95, 95, 110, 40, 0.95, 0.7]
-};
 
 export const profileOf = (mobile: Entity) =>
   mobile.name
@@ -160,53 +119,6 @@ export const describe = (mobile: Entity) => {
 export function engageable(ctx: FighterContext, mobile: Entity): { ok: boolean; reason: string } {
   const profile = profileOf(mobile);
   if (!profile?.bodies.includes(mobile.graphic)) return { ok: false, reason: 'not a recognised opponent' };
-  const near = ctx
-    .nearby()
-    .filter((other) => other.serial !== mobile.serial && other.position && mobile.position)
-    .filter((other) => distance(other.position ?? ctx.position(), mobile.position ?? ctx.position()) <= 12);
-  const menace = near.find((other) => ['lich', 'unsupported', 'knight'].includes(profileOf(other)?.tier ?? ''));
-  if (menace && profile.tier !== profileOf(menace)?.tier)
-    return { ok: false, reason: `${menace.name} nearby (${profileOf(menace)?.note})` };
-  // Every fight, common ones too, is sized up first: the target and whatever would join in.
-  const sized = fightConfidence(ctx, mobile);
-  if (!sized.ok) return { ok: false, reason: `${mobile.name} too risky: ${sized.reason}` };
-  if (profile.tier === 'common') return { ok: true, reason: profile.note };
-  if (profile.tier === 'unsupported') return { ok: false, reason: `${mobile.name}: ${profile.note}` };
-  // A hunting party of three takes on casters and brutes, four also knights: thresholds drop to
-  // 60% and the solo-only rules (resist, healing skill, risk, no other undead nearby) are waived.
-  const group = alliesNear(ctx, mobile.position ?? ctx.position()).length + 1;
-  const together =
-    (group >= 3 && ['brute', 'caster'].includes(profile.tier)) || (group >= 4 && profile.tier === 'knight');
-  const scale = together ? 0.6 : 1;
-  const [weapon, tactics, maxHits, armor, health, risk] = requirements[profile.tier].map((value, index) =>
-    index < 4 ? value * scale : value
-  );
-  // Casters are judged by their Magery; everyone else by their weapon skill.
-  const combat = ctx.template.archetype?.primarySkills.includes('Magery') ? 'Magery' : weaponSkill(ctx.template);
-  const skill = (name: string) => ctx.session.world.skills.get(skillId(name))?.value ?? 0;
-  const status = ctx.status();
-  const shortfalls = [
-    skill(combat) < (weapon ?? 0) && `${combat.toLowerCase()} ${skill(combat)}/${weapon}`,
-    skill('Tactics') < (tactics ?? 0) && `tactics ${skill('Tactics')}/${tactics}`,
-    status.maxHits < (maxHits ?? 0) && `max health ${status.maxHits}/${maxHits}`,
-    status.armor < (armor ?? 0) && `armor ${status.armor}/${armor}`,
-    status.hits < status.maxHits * (health ?? 1) && `health ${status.hits}/${status.maxHits}`,
-    !together && ctx.template.behavior.riskTolerance < (risk ?? 1) && 'template risk tolerance',
-    // Spells ignore armor: casters and liches need resistance and reliable bandaging.
-    !together &&
-      ['caster', 'lich'].includes(profile.tier) &&
-      skill('MagicResist') < (profile.tier === 'lich' ? 80 : 40) &&
-      `magic resist ${skill('MagicResist')}/${profile.tier === 'lich' ? 80 : 40}`,
-    !together && ['caster', 'lich'].includes(profile.tier) && skill('Healing') < 50 && `healing ${skill('Healing')}/50`,
-    // Casters and stronger creatures are fought one at a time.
-    !together &&
-      near.some(
-        (other) =>
-          recognised(other.graphic) && distance(other.position ?? ctx.position(), mobile.position ?? ctx.position()) < 6
-      ) &&
-      'other creatures within 6 tiles'
-  ].filter(Boolean);
-  return shortfalls.length
-    ? { ok: false, reason: `${mobile.name} (${profile.tier}) needs ${shortfalls.join(', ')}` }
-    : { ok: true, reason: `${mobile.name}: ${profile.note}` };
+  if (profile.tier === 'unsupported') return { ok: false, reason: 'not an aggressive hunting opponent' };
+  return fightConfidence(ctx, mobile);
 }

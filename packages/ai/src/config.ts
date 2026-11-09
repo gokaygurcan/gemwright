@@ -7,7 +7,9 @@ export interface CharacterTemplate {
   archetype?: CharacterArchetype;
   creation: {
     namePrefix: string;
-    city: string;
+    // Where a new character may start, by weight (creation-request.ts picks one per resident); no
+    // resident is held to it afterwards.
+    cities: Record<string, number>;
     skills: Record<string, number>;
     equipment: string[];
     provisioning: 'normal-character-creation';
@@ -107,7 +109,7 @@ function amounts(value: unknown, path: string, integer = false): Record<string, 
 function template(value: unknown, index: number): CharacterTemplate {
   const path = `templates[${index}]`;
   const t = object(value, path, ['id', 'version', 'label', 'creation', 'behavior'], ['archetype']);
-  const c = object(t.creation, `${path}.creation`, ['namePrefix', 'city', 'skills', 'equipment', 'provisioning']);
+  const c = object(t.creation, `${path}.creation`, ['namePrefix', 'cities', 'skills', 'equipment', 'provisioning']);
   if (c.provisioning !== 'normal-character-creation')
     fail(`${path}.creation.provisioning`, 'only normal-character-creation is implemented as a policy');
   const b = object(t.behavior, `${path}.behavior`, [
@@ -122,6 +124,8 @@ function template(value: unknown, index: number): CharacterTemplate {
   ]);
   if (!['seek-help', 'recover-if-safe', 'replace-equipment'].includes(b.corpseRecovery as string))
     fail(`${path}.behavior.corpseRecovery`, 'unknown recovery policy');
+  if (!Object.values((c.cities ?? {}) as Record<string, unknown>).some((w) => typeof w === 'number' && w > 0))
+    fail(`${path}.creation.cities`, 'expected at least one starting city with a positive weight');
   return {
     id: id(t.id, `${path}.id`),
     version: number(t.version, `${path}.version`, 1, Number.MAX_SAFE_INTEGER, true),
@@ -129,7 +133,7 @@ function template(value: unknown, index: number): CharacterTemplate {
     ...(t.archetype === undefined ? {} : { archetype: resolveArchetype(t.archetype) }),
     creation: {
       namePrefix: string(c.namePrefix, `${path}.creation.namePrefix`),
-      city: string(c.city, `${path}.creation.city`),
+      cities: amounts(c.cities, `${path}.creation.cities`),
       skills: amounts(c.skills, `${path}.creation.skills`),
       equipment: strings(c.equipment, `${path}.creation.equipment`),
       provisioning: 'normal-character-creation'

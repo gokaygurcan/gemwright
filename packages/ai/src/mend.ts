@@ -11,8 +11,10 @@ import { packItems } from './inventory';
 import { lasting } from './lasting';
 import { pickLocation, townAt } from './locations';
 import { distance } from './navigation';
+import { recoveryStep } from './recovery-walk';
 import { spellNamed } from './spell-rules';
 import { onItem, useOn } from './target-action';
+import type { Terrain } from './terrain';
 
 // Mending, as players do it. A resident just back from the dead has a handful of hit points and
 // dies to the first blow, so it heals before going back to work: bandages with Healing, Heal or
@@ -24,6 +26,8 @@ type Ctx = {
   phase: (phase: string, note: string) => void;
   navigate: (point: { x: number; y: number }, range: number) => Promise<unknown>;
   backpack: () => number;
+  terrain?: Terrain;
+  recoveryDestination?: () => { x: number; y: number } | undefined;
 };
 const HEAL = { ...spellNamed('Heal'), min: 0 };
 const GREATER_HEAL = { ...spellNamed('Greater Heal'), min: 50 };
@@ -72,7 +76,7 @@ export const healSelf = (ctx: Ctx) => {
 // Badly hurt (as after a resurrection): heal to most of its health before anything else, fifteen minutes at
 // most. With nothing to heal with it rests (natural regeneration, about six hit points a minute), out of
 // reach of monsters; four minutes sent it back out at a third of its health, to die again on the way.
-export async function mendAfterDeath(ctx: Ctx, log: (message: string) => void, home = 'Britain') {
+export async function mendAfterDeath(ctx: Ctx, log: (message: string) => void, fallback = 'Britain') {
   const { session } = ctx;
   if (ratio(session) >= 0.5) return;
   ctx.phase(
@@ -85,12 +89,14 @@ export async function mendAfterDeath(ctx: Ctx, log: (message: string) => void, h
     // Never mends among monsters: first to the nearest town bank, where it is safe.
     const here = session.world.position;
     if (here && threatsNear(session, here, 14).length) {
-      const bank = pickLocation(townAt(here, home), 'banker', here);
+      const bank = pickLocation(townAt(here, fallback), 'banker', here);
       ctx.phase('mending', 'Monsters about; going somewhere safe to heal');
       if (bank) await urgentAction(session, 'escape', () => ctx.navigate(bank, 3)).catch(() => {});
     }
     const me = session.world.serial;
-    if (me === null || !(await healOnce(ctx, me))) await Bun.sleep(3000);
+    const healing = me !== null && (await healOnce(ctx, me));
+    const moved = await recoveryStep(ctx, ctx.recoveryDestination?.());
+    if (!healing && !moved) await Bun.sleep(3000);
     await session.refreshStatus().catch(() => {});
   }
   log(`Mended to ${session.world.status?.hits}/${session.world.status?.maxHits} before going back to work`);

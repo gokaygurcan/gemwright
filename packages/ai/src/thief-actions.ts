@@ -29,11 +29,11 @@ import { reachRegion } from './work-areas';
 // rules its actions run on live in thief-skills.ts (Snooping, Stealing, Hiding, Stealth) and the
 // marks it dares approach in thief-marks.ts.
 //
-// A thief lives in its home town and takes theft trips to the cemetery nearest it: it cases a lone
-// zombie or skeleton, hides, sneaks in walking, steals from its pack, breaks away from the aggro it
-// just earned and returns home to bank. Creature backpacks refuse players on the pinned shard and
-// town NPCs, players and vendors refuse both skills, so lone graveyard undead are the marks and
-// pack animals are the packs that remain snoopable. Every server interaction is observed and
+// A thief works from the town it is in or nearest to and takes theft trips to the cemetery nearest
+// it: it cases a lone zombie or skeleton, hides, sneaks in walking, steals from its pack, breaks away
+// from the aggro it just earned and returns to town to bank. Creature backpacks refuse players on
+// the pinned shard and town NPCs, players and vendors refuse both skills, so lone graveyard undead
+// are the marks and pack animals are the packs that remain snoopable. Every server interaction is observed and
 // bounded, and an unanswered action is never replayed.
 export interface ThiefActions {
   attempt(ctx: ProfessionContext): Promise<boolean>;
@@ -74,7 +74,7 @@ interface Trip {
 }
 
 interface ThiefState extends ThiefSkillState {
-  mode: 'home' | 'trip' | 'work' | 'back';
+  mode: 'town' | 'trip' | 'work' | 'back';
   trip: Trip | null;
   nextTripAt: number;
   nextBankAt: number;
@@ -88,7 +88,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
   const casedPacks = new Set<number>();
   const blockedGrounds = new Set<string>();
   const state: ThiefState = {
-    mode: 'home',
+    mode: 'town',
     trip: null,
     hidden: false,
     sneaking: false,
@@ -104,17 +104,17 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
 
   // Stolen loot: everything the thief carries that is not a reagent or its spellbook.
   const loot = (ctx: ProfessionContext) => ctx.carried().filter((item) => !reagents.has(item.graphic));
-  const homeAnchor = (ctx: ProfessionContext) => pickLocation(ctx.city, 'banker');
+  const nearestBank = (ctx: ProfessionContext) => pickLocation(ctx.city, 'banker');
 
   // Gold is lost on death and vendors charge the bank directly, so nothing worth keeping stays in
   // the pack across trips; graveyard refuse was already dropped where it was taken.
   async function bank(ctx: ProfessionContext): Promise<void> {
     const { session } = ctx;
-    const home = homeAnchor(ctx);
+    const townBank = nearestBank(ctx);
     try {
-      if (home) {
-        await reachRegion(ctx, home);
-        await ctx.navigate(home, 4);
+      if (townBank) {
+        await reachRegion(ctx, townBank);
+        await ctx.navigate(townBank, 4);
       }
       const box = await openBank(ctx, 12);
       if (box) {
@@ -173,11 +173,11 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
     }
   }
 
-  async function atHome(ctx: ProfessionContext): Promise<boolean> {
-    const home = homeAnchor(ctx);
-    if (home && distance(ctx.position(), home) > 40) {
-      ctx.phase('thief-travel', `Returning to ${home.city}`);
-      await ctx.navigate(home, 8);
+  async function inTown(ctx: ProfessionContext): Promise<boolean> {
+    const townBank = nearestBank(ctx);
+    if (townBank && distance(ctx.position(), townBank) > 40) {
+      ctx.phase('thief-travel', `Heading to ${townBank.city}`);
+      await ctx.navigate(townBank, 8);
       return true;
     }
     if (loot(ctx).length && Date.now() >= state.nextBankAt) {
@@ -205,7 +205,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
       await skills.snoop(ctx, pack.owner, pack.pack);
       return true;
     }
-    const ground = groundFor(home ?? ctx.position());
+    const ground = groundFor(townBank ?? ctx.position());
     if (blockedGrounds.has(ground.name)) {
       state.nextTripAt = Date.now() + GROUND_RETRY_MS;
       return false;
@@ -218,7 +218,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
   async function travel(ctx: ProfessionContext): Promise<boolean> {
     const trip = state.trip;
     if (!trip) {
-      state.mode = 'home';
+      state.mode = 'town';
       return false;
     }
     ctx.phase('thief-travel', `Walking to the ${trip.ground.name} cemetery for marks`);
@@ -240,18 +240,18 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
     return true;
   }
 
-  async function returnHome(ctx: ProfessionContext): Promise<boolean> {
-    const home = homeAnchor(ctx);
-    if (home) {
+  async function returnToTown(ctx: ProfessionContext): Promise<boolean> {
+    const townBank = nearestBank(ctx);
+    if (townBank) {
       try {
-        await reachRegion(ctx, home);
-        await ctx.navigate(home, 4);
+        await reachRegion(ctx, townBank);
+        await ctx.navigate(townBank, 4);
       } catch (error) {
         if (ctx.session.phase !== 'ready') throw error;
-        ctx.log(`The way home was blocked: ${error instanceof Error ? error.message : error}`);
+        ctx.log(`The way to town was blocked: ${error instanceof Error ? error.message : error}`);
       }
     }
-    state.mode = 'home';
+    state.mode = 'town';
     state.trip = null;
     state.nextTripAt = Date.now() + REST_MS;
     ctx.phase('thief-returned', 'Back in town with what the trip earned');
@@ -335,7 +335,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
     const { session } = ctx;
     const trip = state.trip;
     if (!trip) {
-      state.mode = 'home';
+      state.mode = 'town';
       return false;
     }
     const status = ctx.status();
@@ -355,7 +355,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
     if (!mark) {
       if (++trip.sweeps > SWEEPS) {
         state.mode = 'back';
-        ctx.log(`Nothing to steal in ${SWEEPS} sweeps; returning home`);
+        ctx.log(`Nothing to steal in ${SWEEPS} sweeps; returning to town`);
         return true;
       }
       await sweep(ctx, trip);
@@ -452,7 +452,7 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
       ctx.check();
       state.mode = 'work';
       state.trip ??= {
-        ground: groundFor(homeAnchor(ctx) ?? ctx.position()),
+        ground: groundFor(nearestBank(ctx) ?? ctx.position()),
         startedAt: Date.now(),
         thefts: 0,
         attempts: 0,
@@ -483,14 +483,14 @@ export function createThiefActions(options: { peers?: ReadonlyMap<number, string
     async attempt(ctx: ProfessionContext): Promise<boolean> {
       ctx.check();
       switch (state.mode) {
-        case 'home':
-          return await atHome(ctx);
+        case 'town':
+          return await inTown(ctx);
         case 'trip':
           return await travel(ctx);
         case 'work':
           return await work(ctx);
         case 'back':
-          return await returnHome(ctx);
+          return await returnToTown(ctx);
         default:
           return false;
       }

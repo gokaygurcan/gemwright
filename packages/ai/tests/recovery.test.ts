@@ -8,8 +8,12 @@ import { superviseBehavior } from '../src/behavior-supervisor';
 import { corpseRecoveryChoice, resurrectionButton } from '../src/fighter-recovery';
 import { lasting } from '../src/lasting';
 import { mendAfterDeath } from '../src/mend';
-import { deadlyWalk, untried } from '../src/resurrection';
+import { recoveryStep } from '../src/recovery-walk';
+import { deadlyWalk, resurrectGhost, untried } from '../src/resurrection';
 import { behaviorFixture, required } from './behavior-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 test('resurrection accepts the observed free healer Continue control and rejects a paid or missing control', () => {
   const layout =
@@ -343,4 +347,101 @@ test('an ankh found missing is skipped for a while, like a healer found away', (
   const healer = { kind: 'healer' as const, x: 2577, y: 599 };
   missed.note('ankh', ankh);
   expect(untried([ankh, healer], missed)).toEqual([healer]);
+});
+
+test('post-resurrection regeneration makes progress toward the next destination', async () => {
+  const f = behaviorFixture('swordsman');
+  const status = required(f.world.status);
+  status.hits = 10;
+  let now = Date.now();
+  setSystemTime(now);
+  const sleep = spyOn(Bun, 'sleep').mockImplementation(async () => {});
+  const walks: { x: number; y: number }[] = [];
+  const navigate = f.ctx.navigate;
+  f.ctx.navigate = async (point, range) => {
+    walks.push({ ...point });
+    return navigate(point, range);
+  };
+  f.terrain.pathAsync = async (from) => [{ x: from.x + 1, y: from.y, z: from.z }];
+  f.session.refreshStatus = async () => {
+    now += 60_000;
+    setSystemTime(now);
+    status.hits = Math.min(100, status.hits + 6);
+  };
+  try {
+    const ctx = { ...f.ctx, backpack: () => 10, recoveryDestination: () => ({ x: 150, y: 100 }) };
+    await mendAfterDeath(ctx, () => {});
+    expect(walks.length).toBeGreaterThan(0);
+    expect(f.ctx.position().x).toBeGreaterThan(100);
+  } finally {
+    sleep.mockRestore();
+    setSystemTime();
+  }
+});
+
+test('resurrection never interacts with an unverified invulnerable townsman', async () => {
+  const f = behaviorFixture('swordsman');
+  required(f.world.entities.get(1)).graphic = 0x192;
+  f.world.position = { x: 1470, y: 1610, z: 0, direction: 0 };
+  const used: number[] = [];
+  f.session.use = (serial) => {
+    used.push(serial);
+  };
+  f.session.setWarMode = () => {};
+  f.session.inspectProperties = async () => {};
+  f.session.waitFor = async () => {
+    throw new Error('No resurrection offer');
+  };
+  f.ctx.navigate = async (point) => {
+    f.world.position = { ...f.ctx.position(), ...point };
+    f.world.entities.set(99, {
+      serial: 99,
+      kind: 'mobile',
+      graphic: 400,
+      notoriety: 7,
+      position: { ...f.world.position },
+      properties: [{ cliloc: 1050045, arguments: 'Lord Blackthorn' }]
+    });
+  };
+  const sleep = spyOn(Bun, 'sleep').mockImplementation(async () => {});
+  try {
+    await expect(resurrectGhost({ ...f.ctx, serial: 1 }, false)).rejects.toThrow('No healer');
+    expect(used).not.toContain(99);
+  } finally {
+    sleep.mockRestore();
+  }
+});
+
+for (const hazard of ['monster', 'poison', 'no-path', 'wrong-floor'] as const)
+  test(`recovery travel stops for ${hazard} observed during route planning`, async () => {
+    const f = behaviorFixture('swordsman');
+    const walks: unknown[] = [];
+    f.ctx.navigate = async (point) => {
+      walks.push(point);
+    };
+    f.terrain.pathAsync = async (from) => {
+      if (hazard === 'no-path') return null;
+      if (hazard === 'poison') f.world.poisonLevel = 1;
+      if (hazard === 'wrong-floor') required(f.world.position).z += 20;
+      if (hazard === 'monster')
+        f.world.entities.set(2, {
+          serial: 2,
+          kind: 'mobile',
+          graphic: 0x1a,
+          notoriety: 6,
+          name: 'a gargoyle',
+          position: { ...from, x: from.x + 10, direction: 0 }
+        });
+      return [{ ...from, x: from.x + 1 }];
+    };
+    expect(await recoveryStep(f.ctx, { x: 150, y: 100 })).toBe(false);
+    expect(walks).toEqual([]);
+  });
+
+// Finn Gray, Nov 9: killed in an orc camp, he ran back for his corpse, found the orcs, fled, healed
+// and went back again. A death site that keeps killing residents is left; the gear is replaced.
+test('a corpse where residents keep dying is not walked back to', () => {
+  const healthy = { policy: 'recover-if-safe' as const, ageMs: 60_000, attempts: 0, healthRatio: 1, threats: 0 };
+  expect(corpseRecoveryChoice({ ...healthy, deadlySite: false })).toBe('recover');
+  expect(corpseRecoveryChoice({ ...healthy, deadlySite: true })).toBe('replace');
 });

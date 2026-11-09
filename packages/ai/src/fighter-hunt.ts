@@ -41,21 +41,13 @@ const claimedByOther = (ctx: FighterContext, mobile: Entity) =>
         distance(other.position, mobile.position) <= 2
     );
 
-const crowded = (ctx: FighterContext, mobile: Entity) =>
-  ctx
-    .nearby()
-    .filter(
-      (other) =>
-        prey.has(other.graphic) && other.position && distance(mobile.position ?? ctx.position(), other.position) < 4
-    ).length > 2;
-
 const quietAt = new WeakMap<object, number>();
 
 export async function chooseOpponent(
   ctx: FighterContext,
   options: { unreachable: Set<number>; decisions?: DecisionCoordinator; stopping?: () => boolean }
 ): Promise<HuntChoice> {
-  const { session, checkpoint, template, trip, position, status, count, check } = ctx;
+  const { session, checkpoint, template, trip, position, count, check } = ctx;
   // A guild at war fights the enemy's members met on the hunting grounds first (guild-wars.ts).
   const enemy = warOpponent(ctx);
   if (enemy && !options.unreachable.has(enemy.serial)) return { kind: 'fight', opponent: enemy, pick: null };
@@ -72,22 +64,9 @@ export async function chooseOpponent(
     .filter((item) => huntable(item, options.unreachable))
     .sort((a, b) => distance(position(), a.position ?? position()) - distance(position(), b.position ?? position()));
   const eligible: Entity[] = [];
-  const avoided: number[] = [];
   const turnedDown: string[] = [];
   for (const item of candidates) {
     check();
-    const learned = encounterAdvice(
-      checkpoint,
-      place(item),
-      item.graphic,
-      Date.now(),
-      combatCapability(session),
-      item.name
-    );
-    if (learned.avoidUntil > Date.now()) {
-      avoided.push(learned.avoidUntil);
-      continue;
-    }
     try {
       await session.inspect(item.serial);
     } catch (error) {
@@ -100,13 +79,7 @@ export async function chooseOpponent(
     const current = session.world.entities.get(item.serial);
     if (!current?.position) continue;
     const engage = engageable(ctx, current);
-    const why = !engage.ok
-      ? engage.reason
-      : crowded(ctx, current)
-        ? 'crowded'
-        : claimedByOther(ctx, current)
-          ? 'claimed by another'
-          : undefined;
+    const why = !engage.ok ? engage.reason : claimedByOther(ctx, current) ? 'claimed by another' : undefined;
     if (why) {
       turnedDown.push(`${current.name ?? current.graphic}: ${why}`);
       continue;
@@ -124,10 +97,9 @@ export async function chooseOpponent(
   if (!eligible.length && Date.now() - (quietAt.get(session) ?? 0) > 60_000) {
     quietAt.set(session, Date.now());
     ctx.log(
-      `No opponent: ${candidates.length} huntable in view, ${avoided.length} avoided after losses${turnedDown.length ? `; turned down ${turnedDown.slice(0, 4).join(', ')}` : ''}`
+      `No opponent: ${candidates.length} huntable in view, no timed creature exclusions${turnedDown.length ? `; turned down ${turnedDown.slice(0, 4).join(', ')}` : ''}`
     );
   }
-  if (!eligible.length && avoided.length) return { kind: 'avoid', until: Math.min(...avoided) };
   const baseline = eligible[0];
   // Ask the provider only when there is a real trade-off: an optional-tier target, or several
   // targets to compare. "Fight the one nearby zombie or patrol" stays a local rule.
@@ -146,19 +118,9 @@ export async function chooseOpponent(
       return (
         !!current?.position &&
         prey.has(current.graphic) &&
-        encounterAdvice(
-          checkpoint,
-          place(current),
-          current.graphic,
-          Date.now(),
-          combatCapability(session),
-          current.name
-        ).avoidUntil <= Date.now() &&
         engageable(ctx, current).ok &&
         hostileNotoriety.includes(current.notoriety ?? 0) &&
         distance(position(), current.position) <= 16 &&
-        status().hits >= status().maxHits * 0.7 &&
-        !crowded(ctx, current) &&
         !claimedByOther(ctx, current)
       );
     }

@@ -1,23 +1,12 @@
 import { Layer } from '@gemwright/network/layers';
 
 import { recentlyHurt, urgentAction } from './action-purpose';
-import { fundsStale, spendableGold } from './bank-gold';
-import { returnHome } from './cemeteries';
-import { beingAttacked } from './danger-response';
+import { returnToNearestTown } from './cemeteries';
+import { beingAttacked, escapeDanger } from './danger-response';
 import { dungeonWalker, inAnyDungeon } from './dungeon-tools';
-import {
-  type FighterContext,
-  meleeWeapons,
-  observedThreat,
-  Retreat,
-  weaponSkill,
-  weaponsFor,
-  wieldableBy
-} from './fighter-context';
-import { isGargoyle } from './flight';
-import { packItems } from './inventory';
+import { strikesFromAfar } from './fight-confidence';
+import { type FighterContext, meleeWeapons, observedThreat, Retreat, weaponSkill, weaponsFor } from './fighter-context';
 import { distance } from './navigation';
-import { objectiveBlocked, suppliesCondition } from './objective-memory';
 
 export const recoveryThreats = (ctx: FighterContext) =>
   ctx
@@ -27,7 +16,7 @@ export const recoveryThreats = (ctx: FighterContext) =>
         mobile.position &&
         !ctx.session.world.deaths.has(mobile.serial) &&
         observedThreat(mobile, ctx.session.world.combatant) &&
-        distance(ctx.position(), mobile.position) < 8
+        distance(ctx.position(), mobile.position) < (strikesFromAfar(mobile) ? 14 : 8)
     );
 
 export const recoveryHealthReady = (ctx: FighterContext) => {
@@ -51,41 +40,34 @@ export function recoveryEquipmentReady(ctx: FighterContext) {
     .some((item) => (item.layer === Layer.OneHanded || item.layer === Layer.TwoHanded) && weapons.has(item.graphic));
 }
 
-// Whether a weapon can still be had: one carried to wield, or a weapon vendor not given up on yet
-// with gold to spend. Without either, the fighter hunts bare-handed (fighter-equipment.ts) instead
-// of waiting in town for a weapon it cannot get.
-export function weaponObtainable(ctx: FighterContext) {
-  const weapons = weaponSkill(ctx.template) === 'Archery' ? weaponsFor(ctx.template) : meleeWeapons;
-  const gargoyle = isGargoyle(ctx.session);
-  if (
-    packItems(ctx.session, ctx.backpack()).some(
-      (item) => weapons.has(item.graphic) && wieldableBy(gargoyle, item.graphic)
-    )
-  )
-    return true;
-  if (!fundsStale(ctx.checkpoint) && spendableGold(ctx.session, ctx.backpack(), ctx.checkpoint) < 20) return false;
-  const vendors =
-    weaponSkill(ctx.template) === 'Archery'
-      ? ctx.home.all('bowyer')
-      : [...ctx.home.all('blacksmith'), ...ctx.home.all('weaponsmith')];
-  const condition = suppliesCondition(ctx.session, ctx.checkpoint);
-  return vendors.some((stop) => !objectiveBlocked(ctx.checkpoint, `weapon:${stop.x},${stop.y}`, condition));
-}
-
-export async function returnToRefuge(ctx: FighterContext) {
+export async function returnToRefuge(ctx: FighterContext, nearby = false) {
+  const needsTown = !nearby && !!ctx.trip.recovery && ctx.trip.recovery.stage !== 'ready';
+  if (!needsTown) {
+    const safe = () =>
+      !ctx.dead() && !recoveryThreats(ctx).length && !beingAttacked(ctx.session) && !recentlyHurt(ctx.session);
+    if (!safe()) {
+      ctx.phase('seeking-refuge', 'Leaving observed threats to recover nearby');
+      await escapeDanger({ ...ctx, navigate: ctx.escapeNavigate }, undefined);
+    }
+    if (!safe()) throw new Retreat('No safe nearby recovery position was confirmed');
+    if (!ctx.trip.recovery || ctx.trip.recovery.stage === 'ready') ctx.trip.pending = 'hunt';
+    ctx.persist();
+    ctx.phase('recovery-refuge', 'No observed threats or recent damage; recovering here');
+    return;
+  }
   ctx.trip.pending = 'return';
   ctx.persist();
   const safe = () =>
     !ctx.dead() &&
-    distance(ctx.position(), ctx.home.town) <= 4 &&
+    distance(ctx.position(), ctx.services.bank) <= 4 &&
     !recoveryThreats(ctx).length &&
     !beingAttacked(ctx.session);
   if (!safe()) {
     await urgentAction(ctx.session, 'escape', async () => {
       const below = inAnyDungeon(ctx.position());
       if (below) await dungeonWalker(ctx, () => false).climbOut(below);
-      await returnHome(ctx);
-      await ctx.escapeNavigate(ctx.home.town, 4);
+      await returnToNearestTown(ctx);
+      await ctx.escapeNavigate(ctx.services.bank, 4);
     });
   }
   if (!safe()) throw new Retreat('Arrival at a safe recovery refuge was not confirmed');

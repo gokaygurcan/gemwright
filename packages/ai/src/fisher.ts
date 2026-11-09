@@ -94,7 +94,7 @@ async function cook(ctx: ProfessionContext) {
   ctx.progress.cooked = (ctx.progress.cooked ?? 0) + cooked;
 }
 
-// A fisher keeps a pole, fishes the shore near its home town until the spot stops biting or the
+// A fisher keeps a pole, fishes the shore near the town it is in until the spot stops biting or the
 // pack is full, then sells the catch to a fisherman. Others fish the same way as a side trade.
 export const runFisher = (options: ProfessionOptions) => runProfession('fisher', options, fishingTurn(new Set()));
 
@@ -104,13 +104,13 @@ export const fishingTurn =
     const { session, phase, log } = ctx;
     // A town with no fishmonger sells nothing: the fisher takes its boat to the nearest town that
     // has one (by gate when far, reachRegion), rather than fishing where the catch cannot be sold.
-    const home =
+    const market =
       pickLocation(ctx.city, 'fisherman') ??
       allServiceLocations('fisherman')
         .filter((shop) => withinReach(ctx.position(), shop))
         .sort((a, b) => distance(ctx.position(), a) - distance(ctx.position(), b))[0] ??
       pickLocation(ctx.city, 'banker');
-    if (home) await reachRegion(ctx, home);
+    if (market) await reachRegion(ctx, market);
     let pole =
       ctx.carried().find((i) => poles.has(i.graphic)) ??
       session.world.childrenOf(ctx.serial).find((i) => poles.has(i.graphic));
@@ -124,8 +124,15 @@ export const fishingTurn =
     // mounted (two hands), which used to surface as an equipment setback.
     // A magic fish among the catch is a blessing and weight: eaten before fishing on.
     if (eatMagicFish(session)) log('Ate a strange fish whole for its blessing');
-    const spot = findSpot(ctx, home ? { ...home, z: ctx.position().z } : ctx.position(), avoid);
-    if (!spot) throw new Blocked('unreachable', 'No reachable shore near home');
+    const near = market ? { ...market, z: ctx.position().z } : ctx.position();
+    // Avoided spots are a preference: with every shore near the market avoided, they are all tried again,
+    // then the shore wherever it stands.
+    let spot = findSpot(ctx, near, avoid);
+    if (!spot) {
+      avoid.clear();
+      spot = findSpot(ctx, near, avoid) ?? findSpot(ctx, ctx.position(), avoid);
+    }
+    if (!spot) throw new Blocked('unreachable', 'No reachable shore near the market');
     // A pack already full of other things: sold first, or the cast would never come (inventory.ts).
     const holdsFish = () => ctx.carried().some((i) => fish.has(i.graphic));
     if (packFull(session, ctx.backpack(), 0.85) && !holdsFish()) {
@@ -146,7 +153,10 @@ export const fishingTurn =
     // (inventory.ts) or the spot stops biting; now and then a fisher stops earlier (chaos.ts).
     const fishCount = () => ctx.carried().filter((i) => fish.has(i.graphic) && i.graphic !== rawSteak).length;
     let done = false;
-    for (let cast = 0; cast < 300 && !done; cast++) {
+    // Casting stops well inside the ten-minute work turn (execution-session.ts), so the catch is
+    // sold in the same turn instead of the turn timing out with a full pack.
+    const castUntil = Date.now() + 6 * 60_000;
+    for (let cast = 0; cast < 300 && !done && Date.now() < castUntil; cast++) {
       ctx.check();
       if (ctx.status().weight > ctx.status().maxWeight * 0.6 && fishCount()) await carve(ctx);
       if (packFull(session, ctx.backpack(), 0.85)) break;
@@ -178,5 +188,5 @@ export const fishingTurn =
     if ((cooking?.base ?? 0) < (cooking?.cap ?? 100) && Math.random() < 0.3) await cook(ctx);
     await carve(ctx);
     await sellFishingCatch(ctx);
-    if (home && distance(ctx.position(), home) > 300) await reachRegion(ctx, home);
+    if (market && distance(ctx.position(), market) > 300) await reachRegion(ctx, market);
   };

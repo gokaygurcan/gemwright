@@ -27,15 +27,12 @@ import { Blocked } from './blocked';
 import { type CraftContext, craftRecipes } from './craft-training';
 import { fishingFootwear } from './fishing-catch';
 import { packFull, workGear } from './inventory';
-import { learnQuality, quality, shopSafe } from './item-quality';
-import { pickLocation, type ServiceType, serviceLocations, townAt } from './locations';
-import { distance as nearDistance } from './navigation';
+import { knownNewbied, learnQuality, provenRegular, shopTakes, traits } from './item-quality';
+import { type ServiceType, townAt } from './locations';
 import { lighten, putDown, recoverPile } from './overload';
-import { buyersOf } from './price-book';
+import { tradesBuying } from './shops';
 import { sellTo } from './vendor-trade';
-import { reachRegion } from './work-areas';
 import { reservedFor } from './work-orders';
-import { cityAllowed, world } from './world';
 
 // Selling is a task of its own, chosen between others like mining or practice: a resident whose
 // pack holds goods it has no use for (what it made, caught or picked up) takes them to the shops
@@ -74,30 +71,28 @@ const kept = (item: Entity) =>
   isDeathRobe(item);
 
 export function shopsFor(ctx: Pick<Ctx, 'terrain'>, item: Entity): ServiceType[] {
-  if (fishingFootwear.has(item.graphic)) return ['cobbler'];
-  const crafted = buyers.get(item.graphic);
-  if (crafted?.length) return crafted;
-  if (fish.has(item.graphic)) return ['fisherman'];
-  // Worn goods it is not wearing: first the shops residents have seen paying for the piece
-  // (price-book.ts), else by its kind: weapons to the weaponsmith and blacksmith, metal armour to
-  // the blacksmith, the rest (cloth, leather) to the tailor.
-  const tile = ctx.terrain.tile(item.graphic, true);
-  if (!(tile.flags & TileFlag.Wearable)) return [];
-  const known = buyersOf(item.graphic);
-  if (known.length) return known;
-  if ((tile.layer === 1 || tile.layer === 2) && !/shield|buckler/i.test(tile.name))
-    return ['weaponsmith', 'blacksmith'];
-  if (/plate|chain|ring|bone|helm|bascinet|gorget|shield|buckler/i.test(tile.name)) return ['blacksmith'];
-  return ['tailor'];
+  // Goods a resident sells: what it caught or made, and wearables it is not wearing. Who buys them
+  // is the shard's vendor lists, never a guess: a trade that does not list a piece never buys it
+  // anywhere, so no shop is walked to for it.
+  const goods =
+    fishingFootwear.has(item.graphic) ||
+    buyers.has(item.graphic) ||
+    fish.has(item.graphic) ||
+    (ctx.terrain.tile(item.graphic, true).flags & TileFlag.Wearable) !== 0;
+  return goods ? tradesBuying(item.graphic) : [];
 }
 
 // The one answer to "will a shop buy this?": looting, town-trip planning and selling all ask it.
+// A piece known to be blessed, insured or cursed never goes to a shop.
 export const isSaleable = (ctx: Pick<Ctx, 'session' | 'terrain'>, item: Entity) =>
-  !kept(item) && !reservedFor(ctx.session, item) && shopsFor(ctx, item).length > 0;
+  !kept(item) &&
+  !reservedFor(ctx.session, item) &&
+  (!traits(ctx.session.world.entities.get(item.serial) ?? item) ||
+    shopTakes(ctx.session.world.entities.get(item.serial) ?? item)) &&
+  shopsFor(ctx, item).length > 0;
 
 const BULK_ORDER_DEED = bulkOrderDeed;
 const lastTrip = new WeakMap<object, number>();
-const unsoldTrips = new WeakMap<object, Map<number, number>>();
 const MIN_PIECES = 6;
 const REST_MS = 20 * 60_000;
 
@@ -107,8 +102,9 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   // What it put down to be able to walk comes back with it, to be sold too (overload.ts).
   if (await recoverPile(session, ctx.backpack(), ctx.navigate, ctx.log)) return true;
   // Listed pieces sold, dropped or banked leave the list, so it never fills with serials long gone.
+  // Newbied pieces (item-quality.ts) leave the list for good.
   const stillCarried = (ctx.checkpoint.forSale ?? []).filter(
-    (serial) => session.world.entities.get(serial)?.parent === ctx.backpack()
+    (serial) => session.world.entities.get(serial)?.parent === ctx.backpack() && !knownNewbied(session, serial)
   );
   if (stillCarried.length !== (ctx.checkpoint.forSale ?? []).length) {
     ctx.checkpoint.forSale = stillCarried;
@@ -128,11 +124,14 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   const listed = new Set(ctx.checkpoint.forSale ?? []);
   const goods = carried.filter((item) => {
     if (!isSaleable(ctx, item)) return false;
+    // Properties read just above: one still unknown is not taken to a shop on a guess.
+    if (!traits(session.world.entities.get(item.serial) ?? item)) return false;
+    if (knownNewbied(session, item.serial)) return false;
     if (listed.has(item.serial)) return true;
     if (ordering && buyers.has(item.graphic)) return false;
     // One exceptional piece of each kind is kept (it goes to the bank).
     const fresh = session.world.entities.get(item.serial) ?? item;
-    if (quality(fresh) === 'exceptional' && !exceptionalKept.has(item.graphic)) {
+    if (traits(fresh)?.exceptional && !exceptionalKept.has(item.graphic)) {
       exceptionalKept.add(item.graphic);
       return false;
     }
@@ -145,33 +144,9 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
   lastTrip.set(session, Date.now());
   const shops = [...new Set(goods.flatMap((item) => shopsFor(ctx, item)))];
   ctx.phase('selling-goods', `Taking ${goods.length} pieces to sell (${shops.join(', ')})`);
-  // It sells in the town it is in, not the one it calls home (a Trinsic fighter hunting near
-  // Jhelom sells in Jhelom) — unless that town has no shop for what is carried: shoes and sandals
-  // with no cobbler about is a load that walks to the nearest town whose shops cover it (Britain,
-  // usually, with every trade under one roof). Once per rest period, like any other selling trip.
-  const town = townAt(ctx.position(), ctx.city);
-  let market = town;
-  const missing = shops.filter((service) => serviceLocations(town, service).length === 0);
-  if (missing.length && goods.length >= MIN_PIECES) {
-    const here = ctx.position();
-    const target = (Object.keys(world.cities) as string[])
-      .filter((name) => name !== town && world.cities[name]?.enabled && cityAllowed(name))
-      .flatMap((name) => {
-        const bank = pickLocation(name, 'banker');
-        if (!bank || !missing.every((service) => serviceLocations(name, service).length > 0)) return [];
-        return [{ name, bank, away: nearDistance(here, bank) }];
-      })
-      .sort((a, b) => a.away - b.away)[0];
-    if (target) {
-      ctx.phase(
-        'selling-travel',
-        `No ${missing.join(', ')} shop in ${town}; taking ${goods.length} pieces to ${target.name}`
-      );
-      await reachRegion(ctx, target.bank);
-      market = target.name;
-    }
-  }
-  const local = { ...ctx, city: market };
+  // It sells in the town it is in, to the shops of the trades that buy each piece (shops.ts):
+  // never another town, and a piece no shop here took is put down (below), not carried on.
+  const local = { ...ctx, city: townAt(ctx.position(), ctx.city) };
   await lighten(session, ctx.backpack(), kept, ctx.log);
   const forSale = new Set(goods.map((item) => item.serial));
   let earned = 0;
@@ -186,28 +161,15 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
       return sell().catch(() => 0);
     });
   }
-  // Wear it if better, else sell it, else leave it: a piece no shop took on a second trip (starter
-  // gear, pieces no shop of this shard stocks), and a marked one no shop will take at all (magic,
-  // blessed, exceptional), is left where another resident may find them rather than carried on trip
-  // after trip; sold or gone pieces leave the list.
-  const unsold = unsoldTrips.get(session) ?? new Map<number, number>();
-  unsoldTrips.set(session, unsold);
+  // Wear, sell, drop: a piece this town's buyers listed and still did not take is put down here,
+  // where another resident may find it; every vendor of a trade buys the same things, so no other
+  // town would take it. Only a listed piece is proven not newbied: one left off the list is newbied
+  // (kept for good, vendor-trade.ts), and one no vendor answered for stays in the pack.
   let left = 0;
-  for (const serial of new Set([...listed, ...forSale])) {
+  for (const serial of forSale) {
     const item = session.world.entities.get(serial);
-    if (!item || item.parent !== ctx.backpack()) {
-      unsold.delete(serial);
-      continue;
-    }
-    const trips = (unsold.get(serial) ?? 0) + 1;
-    unsold.set(serial, trips);
-    // Unmarked magic or exceptional loot is kept (banked), never left.
-    if (!listed.has(serial) && !shopSafe(item)) continue;
-    if (shopSafe(item) && trips < 2) continue;
-    if (await putDown(session, serial).catch(() => false)) {
-      unsold.delete(serial);
-      left++;
-    }
+    if (!item || item.parent !== ctx.backpack() || !provenRegular(session, serial)) continue;
+    if (await putDown(session, serial).catch(() => false)) left++;
   }
   const remaining = (ctx.checkpoint.forSale ?? []).filter(
     (serial) => session.world.entities.get(serial)?.parent === ctx.backpack()
@@ -227,6 +189,8 @@ export async function sellingTurn(ctx: Ctx, force = false): Promise<boolean> {
       if (dumped >= 5) break;
       if (item.graphic === gold || magicFish.has(item.graphic)) continue;
       if (kept(item) || reservedFor(session, item) || shopsFor(ctx, item).length) continue;
+      // Only a piece proven not newbied (a vendor once listed it) is ever left behind.
+      if (!provenRegular(session, item.serial)) continue;
       if (session.world.childrenOf(item.serial).length) continue; // a bag with things inside
       if (await putDown(session, item.serial).catch(() => false)) dumped++;
     }

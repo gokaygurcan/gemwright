@@ -1,5 +1,7 @@
 import type { HealthChange } from '@gemwright/network/world-types';
 
+import { compareCombatOptions } from './combat-options';
+
 export type { HealthChange } from '@gemwright/network/world-types';
 
 export interface CombatAssessment {
@@ -30,6 +32,10 @@ export function assessCombat(options: {
   riskTolerance: number;
   opponentHealthRatio?: number;
   canCreateDistance?: boolean;
+  secondsToDefeat?: number;
+  incomingPerSecond?: number;
+  healAmount?: number;
+  potionAmount?: number;
 }): CombatAssessment {
   const { now, hits, maxHits } = options;
   const recent = options.changes.filter((change) => now - change.at >= 0 && now - change.at <= 8000);
@@ -45,44 +51,23 @@ export function assessCombat(options: {
   const secondsToExhaustion = damagePerSecond > 0 ? hits / damagePerSecond : null;
   const healthRatio = maxHits > 0 ? hits / maxHits : 0;
   const bandageSecondsRemaining = Math.max(0, (options.bandageActiveUntil - now) / 1000);
-  const lethalRepeat = largestHit >= maxHits * 0.35 && largestHit * 1.15 >= hits;
-  const lethalBurst = damageLast3s >= maxHits * 0.5 && damageLast3s >= hits;
-  const emergency =
-    healthRatio <= 0.2 || lethalRepeat || lethalBurst || (secondsToExhaustion !== null && secondsToExhaustion < 3);
-  const canBandage = options.bandages > 0 || bandageSecondsRemaining > 0;
-  const cannotOutlastHeal =
-    secondsToExhaustion !== null && secondsToExhaustion < Math.max(4, Math.min(8, bandageSecondsRemaining || 8));
-  const finishLikely =
-    options.opponentHealthRatio !== undefined &&
-    options.opponentHealthRatio < 0.15 &&
-    healthRatio > 0.55 &&
-    !cannotOutlastHeal;
-  const healingHorizon = Math.max(4, Math.min(8, bandageSecondsRemaining || 8));
-  const projectedHealthRatioAtHeal = Math.max(0, hits - damagePerSecond * healingHorizon) / Math.max(1, maxHits);
-  const deteriorating = damagePerSecond > 0 && projectedHealthRatioAtHeal < 0.5 - options.riskTolerance * 0.1;
-  const needsBreak = (healthRatio < 0.78 - options.riskTolerance * 0.12 || deteriorating) && !finishLikely;
-  let baseline: CombatAssessment['baseline'] = 'press-attack';
-  let reason = 'Observed damage is manageable; keep fighting with local healing.';
-  if (emergency) {
-    baseline = 'flee-town';
-    reason = lethalRepeat
-      ? 'One more hit comparable to the recent burst could kill this character.'
-      : lethalBurst
-        ? 'Recent burst damage could exhaust remaining health before recovery.'
-        : 'Remaining health or observed damage rate requires immediate escape.';
-  } else if (needsBreak) {
-    if (!canBandage && options.potionReady && !cannotOutlastHeal) {
-      baseline = 'press-attack';
-      reason =
-        'An immediate healing potion is available while the observed incoming damage remains survivable; verify its actual effect.';
-    } else if (!canBandage || (cannotOutlastHeal && !options.canCreateDistance)) {
-      baseline = 'flee-town';
-      reason = 'The observed damage rate or missing bandages leaves no credible healing window.';
-    } else {
-      baseline = 'bandage-break';
-      reason = 'Create distance, self-bandage while avoiding further hits, then reassess before re-engaging.';
-    }
-  }
+  const pressure = options.incomingPerSecond ?? damagePerSecond;
+  const comparison = compareCombatOptions({
+    hits,
+    maxHits,
+    incomingPerSecond: pressure,
+    secondsToDefeat: options.secondsToDefeat ?? 2 + 8 * (options.opponentHealthRatio ?? 1),
+    healAmount: options.bandages > 0 || bandageSecondsRemaining > 0 ? (options.healAmount ?? 30) : 0,
+    healSeconds: bandageSecondsRemaining || 8,
+    potionAmount: options.potionReady ? (options.potionAmount ?? Math.min(maxHits - hits, 20)) : 0,
+    escapeExposure: options.canCreateDistance ? 0.25 : 1,
+    riskTolerance: options.riskTolerance
+  });
+  const projectedHealthRatioAtHeal = Math.max(0, hits - comparison.withdrawalLoss) / Math.max(1, maxHits);
+  const baseline = comparison.action;
+  const emergency = baseline === 'flee-town';
+  const reason = `Expected cost: finish ${comparison.attack.toFixed(2)}, recover ${comparison.recover.toFixed(2)}, escape ${comparison.escape.toFixed(2)}; finishing in ${comparison.secondsToDefeat.toFixed(2)}s at ${pressure.toFixed(2)} incoming HP/s`;
+
   return {
     healthRatio,
     largestHit,

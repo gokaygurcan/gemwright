@@ -5,14 +5,20 @@ import { Layer } from '@gemwright/network/layers';
 import {
   bankNearbyGold,
   bankSurplus,
+  canSpendOnTraining,
   chargedPurchase,
   knownBankGold,
   queryBankBalance,
-  spendableGold
+  spendableGold,
+  TOOLS,
+  TRAINING
 } from '../src/bank-gold';
 import { lasting } from '../src/lasting';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
+import { useTestWorld } from './world-fixture';
+
+useTestWorld();
 
 let serial = 80000;
 function bankingFixture(amount = 35) {
@@ -166,4 +172,118 @@ test("a banker's public balance reply to another resident is not taken as this r
     };
   });
   expect(await Promise.all([queryBankBalance(a.ctx, 20), queryBankBalance(b.ctx, 20)])).toEqual([500, 9000]);
+});
+
+test('a required work tool is purchased within tool limits even when the discretionary plan budget is zero', async () => {
+  const f = bankingFixture(33);
+  const player = required(f.world.entities.get(1));
+  f.world.entities.delete(1);
+  f.world.serial = f.ctx.serial;
+  f.world.entities.set(f.ctx.serial, { ...player, serial: f.ctx.serial });
+  required(f.world.entities.get(10)).parent = f.ctx.serial;
+  f.checkpoint.funds = { bank: 0, at: Date.now() };
+  const { chooseGoal, registerGoal, goalGuard, plannedSpendAllowed } = await import('../src/resident-goal');
+  const { workEvidence } = await import('../src/work-evidence');
+  const goal = chooseGoal(f.checkpoint, {
+    evidence: workEvidence(f.session, f.checkpoint),
+    safe: true,
+    ready: false,
+    learning: false,
+    earningNeeded: true
+  });
+  registerGoal(f.session, f.checkpoint);
+  required(goal.intent).budget.maxSpend = 0;
+  f.world.entities.set(50, { serial: 50, kind: 'item', graphic: 0xdc0, amount: 1 });
+  f.session.context = async () => [{ index: 0, cliloc: 3006103, flags: 0 }];
+  f.session.selectContext = () => {
+    f.world.buyOffers.set(20, [{ serial: 50, price: 15, description: 'fishing pole' }]);
+    f.world.received.set(0x74, (f.world.received.get(0x74) ?? 0) + 1);
+  };
+  f.world.position = { x: 1472, y: 1666, z: 0, direction: 0 };
+  required(f.world.entities.get(20)).position = { x: 1472, y: 1666, z: 0, direction: 0 };
+  f.ctx.navigate = async () => {};
+  let purchases = 0;
+  f.session.purchaseItem = async () => {
+    purchases++;
+    required(f.world.entities.get(11)).amount = 18;
+  };
+  const { buyTool } = await import('../src/vendor-trade');
+  expect(
+    await buyTool(
+      { ...f.ctx, city: 'Britain', carried: () => [], status: () => required(f.world.status) },
+      'fisherman',
+      [0xdc0]
+    )
+  ).toBe(true);
+  expect(purchases).toBe(1);
+  expect(goalGuard(f.session)).toBeUndefined();
+  expect(plannedSpendAllowed(f.session, 1)).toBe(false);
+});
+
+test('an intent budget refusal ends shopping instead of trying another vendor', async () => {
+  const f = bankingFixture(33);
+  f.world.serial = f.ctx.serial;
+  f.world.position = { x: 1472, y: 1666, z: 0, direction: 0 };
+  required(f.world.entities.get(20)).position = { ...f.world.position };
+  f.ctx.navigate = async () => {};
+  f.session.context = async () => [{ index: 0, cliloc: 3006103, flags: 0 }];
+  const { atVendor } = await import('../src/vendor-visit');
+  const { Blocked } = await import('../src/blocked');
+  let attempts = 0;
+  await expect(
+    atVendor(
+      { ...f.ctx, city: 'Britain', carried: () => [], status: () => required(f.world.status) },
+      'fisherman',
+      3006103,
+      async () => {
+        attempts++;
+        throw new Blocked('insufficient-funds', 'Purchase exceeds the current intent spending budget');
+      }
+    )
+  ).rejects.toThrow('intent spending budget');
+  expect(attempts).toBe(1);
+});
+
+// Spending limits scale with what the resident owns: no fixed cap may block a rich resident's
+// gear, and a poor one still cannot sink most of its gold into one purchase.
+async function spendingUnder(funds: number, safe: boolean) {
+  const f = bankingFixture(0);
+  const player = required(f.world.entities.get(1));
+  f.world.entities.delete(1);
+  f.world.serial = f.ctx.serial;
+  f.world.entities.set(f.ctx.serial, { ...player, serial: f.ctx.serial });
+  required(f.world.entities.get(10)).parent = f.ctx.serial;
+  f.checkpoint.funds = { bank: funds, at: Date.now() };
+  const { chooseGoal, registerGoal, plannedSpendAllowed } = await import('../src/resident-goal');
+  const { workEvidence } = await import('../src/work-evidence');
+  const goal = chooseGoal(f.checkpoint, {
+    evidence: workEvidence(f.session, f.checkpoint),
+    safe,
+    ready: true,
+    learning: false,
+    earningNeeded: false
+  });
+  registerGoal(f.session, f.checkpoint);
+  return { goal, allowed: (cost: number) => plannedSpendAllowed(f.session, cost) };
+}
+
+for (const safe of [false, true])
+  test(`a rich resident can buy armor under a ${safe ? 'work' : 'recovery'} goal`, async () => {
+    const { allowed } = await spendingUnder(13_000, safe);
+    expect(allowed(2_000)).toBe(true);
+  });
+
+test('a poor resident cannot sink most of its gold into one purchase', async () => {
+  const { allowed } = await spendingUnder(600, true);
+  expect(allowed(500)).toBe(false);
+  expect(allowed(50)).toBe(true);
+});
+
+test('hourly limits on tools and training grow with the funds', () => {
+  const f = bankingFixture(0);
+  f.checkpoint.funds = { bank: 20_000, at: Date.now() };
+  expect(canSpendOnTraining(f.session, 10, f.checkpoint, 600, TOOLS)).toBe(true);
+  expect(canSpendOnTraining(f.session, 10, f.checkpoint, 1_500, TRAINING)).toBe(true);
+  f.checkpoint.funds = { bank: 600, at: Date.now() };
+  expect(canSpendOnTraining(f.session, 10, f.checkpoint, 400, TRAINING)).toBe(false);
 });

@@ -54,13 +54,3 @@ export function bestPrice(side: Side, graphic: number, near: (s: Sighting) => bo
 }
 
 export const pricedGoods = (side: Side) => [...book[side].keys()];
-
-// The kinds of shop seen paying for `graphic` lately, best price first.
-export const buyersOf = (graphic: number): ServiceType[] => [
-  ...new Set(
-    [...(book.pays.get(graphic)?.values() ?? [])]
-      .filter((seen) => Date.now() - seen.at <= WEEK)
-      .sort((a, b) => b.price - a.price)
-      .flatMap((seen) => kinds.get(seen.vendor) ?? [])
-  )
-];

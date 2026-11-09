@@ -10,6 +10,7 @@ import type { CharacterTemplate } from './config';
 import { DecisionChain } from './decision-chain';
 import { decisionContext, decisionContextRevision } from './decision-context';
 import { recordDecisions } from './decision-events';
+import { askReasons, DecisionFlow } from './decision-flow';
 import { JEV_DAILY_TOKEN_ALLOWANCE, JEV_RESIDENT_TOKEN_ALLOWANCE, JevProvider } from './decision-jev';
 import { type DecisionCandidate, localDecision } from './decision-local';
 import {
@@ -236,7 +237,12 @@ export class DecisionCoordinator {
     provider?: DecisionProvider,
     private readonly ledger?: SpendLedger,
     // Every settled question with its request, for the analyzer's list (decision-log.ts).
-    private readonly log?: (trace: DecisionTrace, request: ChoiceRequest, attempts?: ProviderAttempt[]) => void
+    private readonly log?: (
+      trace: DecisionTrace,
+      request: ChoiceRequest,
+      attempts: ProviderAttempt[] | undefined,
+      flow: DecisionFlow
+    ) => void
   ) {
     this.save = (checkpoint) => {
       recordDecisions(checkpoint);
@@ -299,6 +305,34 @@ export class DecisionCoordinator {
     }
     this.save(checkpoint);
   }
+  // A choice the local rules settle alone, never offered to a model: logged for its flow only.
+  recordLocal(kind: string, state: unknown, candidates: string[], selected: string, flow: DecisionFlow) {
+    const trace: DecisionTrace = {
+      id: randomUUID(),
+      at: new Date().toISOString(),
+      kind,
+      configHash: this.configHash,
+      observationRevision: 0,
+      state,
+      requestHash: '',
+      candidates,
+      baseline: selected,
+      source: 'local',
+      reason: 'local-only',
+      requestedModel: 'local',
+      selected,
+      reservedInputTokens: 0,
+      latencyMs: 0,
+      execution: { status: 'not-run' }
+    };
+    const criteria = Object.fromEntries(candidates.map((id) => [id, id]));
+    const request: ChoiceRequest = {
+      model: 'local',
+      state,
+      questions: { action: { type: 'choice', instructions: '', criteria } }
+    };
+    this.log?.(trace, request, undefined, flow);
+  }
   async choose(options: {
     kind: string;
     checkpoint: Checkpoint;
@@ -307,12 +341,27 @@ export class DecisionCoordinator {
     candidates: DecisionCandidate[];
     baseline: string;
     stillCurrent: () => boolean;
+    // The local rule's path to its baseline; the coordinator adds its own steps.
+    flow?: DecisionFlow;
   }): Promise<DecisionPick | null> {
     const { checkpoint } = options;
     if (!checkpoint.decisions) this.reconcile(checkpoint);
     const memory = checkpoint.decisions;
     if (!memory) throw new Error('Decision memory unavailable');
     const { candidates, baseline } = localDecision(options.candidates, options.baseline);
+    const flow = options.flow ?? new DecisionFlow();
+    flow.fork(
+      "Options, with the local rules' pick",
+      options.candidates.map((candidate) => ({
+        id: candidate.id,
+        about: candidate.description,
+        ...(candidates.includes(candidate) ? {} : { note: 'not legal now' })
+      })),
+      baseline.id,
+      baseline.id === options.baseline
+        ? undefined
+        : `The local rules preferred ${options.baseline}, which is not legal; ${baseline.id} stands in`
+    );
     const primary = this.config.providers[0];
     const model = primary && primary.provider !== 'local' ? primary.model : 'local';
     const request: ChoiceRequest = {
@@ -368,15 +417,16 @@ export class DecisionCoordinator {
         trace.reason = 'observations-changed';
         trace.selected = null;
         trace.execution = { status: 'not-run' };
+        flow.check('Situation unchanged since asking', false, `${id} is no longer current or legal`, 'nothing');
         this.save(checkpoint);
-        this.log?.(trace, request, exchanges);
+        this.log?.(trace, request, exchanges, flow);
         return null;
       }
       trace.source = source;
       trace.reason = reason;
       trace.selected = id;
       this.save(checkpoint);
-      this.log?.(trace, request, exchanges);
+      this.log?.(trace, request, exchanges, flow);
       logger('decisions').info(`[decision] ${options.kind}: ${id} (${source}; ${reason})`);
       return { id, traceId: trace.id };
     };
@@ -417,6 +467,16 @@ export class DecisionCoordinator {
                               : Date.now() < this.nextRequestAt
                                 ? 'cooldown'
                                 : null;
+    const question = `${request.questions.action.instructions}\n\nOptions:\n${candidates
+      .map((candidate) => `- ${candidate.id}: ${candidate.description}`)
+      .join('\n')}`;
+    flow.check(
+      'Ask a model',
+      !reason,
+      reason ? (askReasons[reason] ?? reason) : `Asked ${model}`,
+      reason ? baseline.id : undefined,
+      question
+    );
     if (reason)
       return select(baseline.id, this.provider === null || candidates.length === 1 ? 'local' : 'fallback', reason);
     this.requests++;
@@ -466,6 +526,16 @@ export class DecisionCoordinator {
       trace.outputTokens = result.outputTokens;
       memory.budget.chargedInputTokens += result.inputTokens - reservation;
       if (!this.chained) await this.ledger?.add(day, result.inputTokens - reservation);
+      flow.fork(
+        `${result.model} answered`,
+        candidates.map((candidate) => ({
+          id: candidate.id,
+          about: candidate.description,
+          weight: result.probabilities[candidate.id]
+        })),
+        result.choice,
+        `${Math.round(result.confidence * 100)}% confident; ${result.inputTokens} input tokens, ${trace.latencyMs} ms`
+      );
       return select(result.choice, 'model', 'validated-choice');
     } catch (error) {
       trace.latencyMs = Date.now() - started;
@@ -476,6 +546,7 @@ export class DecisionCoordinator {
       trace.attempts = failure.attempts?.map(bare) ?? trace.attempts;
       if (['http-401', 'http-403'].includes(failure.code)) this.disabled = true;
       this.nextRequestAt = Math.max(this.nextRequestAt, Date.now() + failure.retryAfterMs);
+      flow.check('Model answered', false, failure.code, baseline.id);
       return select(baseline.id, 'fallback', failure.code);
     } finally {
       clearTimeout(timeout);

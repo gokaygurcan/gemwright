@@ -3,6 +3,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { Blocked } from '../src/blocked';
 import { groundFits, grounds } from '../src/cemeteries';
 import type { FighterContext } from '../src/fighter-context';
+import { moongates, nearestGate } from '../src/gates';
 import { travelByMoongate } from '../src/moongate';
 import { tamingSpot } from '../src/tamer-grounds';
 import { useCities } from '../src/world';
@@ -45,4 +46,26 @@ test('a tamer looks for animals only around the cities the shard allows', () => 
     const spot = tamingSpot(me, { x: 1700, y: 2300 }, 30);
     expect(spot && Math.abs(spot.x - 1900) < 100 && Math.abs(spot.y - 2700) < 100).toBeFalsy();
   }
+});
+
+test("a closed city's own gate still takes a resident standing there away", () => {
+  useCities(['Britain', 'Minoc', 'New Haven']);
+  expect(nearestGate(moongates.magincia)).toBe('magincia');
+});
+
+test('a resident on a gate raised above its catalogued height still sets out through it', async () => {
+  const f = behaviorFixture();
+  f.world.position = { x: moongates.magincia.x, y: moongates.magincia.y, z: 31, direction: 0 };
+  const walks: { x: number; y: number; z?: number }[] = [];
+  // As the navigator: in range only at the goal's height, and no way down to the stock z 0.
+  const navigate = async (goal: { x: number; y: number; z?: number }) => {
+    walks.push(goal);
+    if (goal.z !== undefined && Math.abs(goal.z - 31) > 8) throw new Blocked('unreachable', 'No walkable route');
+  };
+  const trip = travelByMoongate(
+    { session: f.session, position: () => f.ctx.position(), navigate: navigate as never, phase: () => {} },
+    'newhaven'
+  );
+  await expect(trip).rejects.not.toThrow(/No public moongate can be reached on foot/);
+  expect(walks[0]).toEqual({ x: moongates.magincia.x, y: moongates.magincia.y });
 });

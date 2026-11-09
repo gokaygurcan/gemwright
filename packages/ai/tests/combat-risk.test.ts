@@ -34,10 +34,24 @@ test('a first hit removing sixty percent forces escape before another exchange',
 });
 test('slow damage permits fighting or a short bandage withdrawal instead of always returning to town', () => {
   expect(assess(90, [change(3, 7000, 96), change(3, 4000, 93), change(3, 1000, 90)]).baseline).toBe('press-attack');
-  const changes = [change(5, 7000, 65), change(5, 3000, 60)];
-  expect(assess(60, changes).baseline).toBe('bandage-break');
-  expect(assess(60, changes, 0).baseline).toBe('flee-town');
-  expect(assess(85, [change(15, 100, 85)]).baseline).toBe('bandage-break');
+  const options = {
+    now,
+    hits: 20,
+    maxHits: 100,
+    changes: [change(4, 4000, 20)],
+    bandages: 1,
+    bandageActiveUntil: 0,
+    potionReady: false,
+    riskTolerance: 0.5,
+    canCreateDistance: true,
+    opponentHealthRatio: 0.8,
+    secondsToDefeat: 10,
+    incomingPerSecond: 1,
+    healAmount: 40
+  };
+  expect(assessCombat(options).baseline).toBe('bandage-break');
+  expect(assessCombat({ ...options, bandages: 0 }).baseline).toBe('flee-town');
+  expect(assessCombat({ ...options, secondsToDefeat: 1 }).baseline).toBe('press-attack');
 });
 test('healing does not cancel the incoming damage used to estimate danger', () => {
   const risk = assess(40, [change(60, 2000, 40), change(0, 1500, 80, 40), change(40, 100, 40)]);

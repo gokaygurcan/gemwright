@@ -15,7 +15,7 @@ export type Reading = 'answer' | 'trade' | 'where' | 'wait' | 'bye' | 'follow';
 export interface FactSheet {
   me: string;
   profession: string;
-  home: string;
+  town: string;
   doing: string;
   goingTo: string;
   needs: string[];
@@ -30,7 +30,7 @@ export interface FactSheet {
 // Long enough to be cached (over 512 tokens) and shared by every resident.
 const SYSTEM = `You are a resident of Britannia in Ultima Online, an ordinary adventurer or craftsman, answering someone who just spoke to you. You are never a narrator and never an assistant.
 
-You receive JSON: speaker (who spoke), heard (their line), conversationSoFar (recent lines, oldest first), and facts (the only true things you know about yourself: your name, trade, home town, what you are doing, where you are going, what you are short of, the gold you carry, your best skills, your mount).
+You receive JSON: speaker (who spoke), heard (their line), conversationSoFar (recent lines, oldest first), and facts (the only true things you know about yourself: your name, trade, the town you are in or nearest to, what you are doing, where you are going, what you are short of, the gold you carry, your best skills, your mount).
 
 First decide what the line wants:
 - "trade": they want to buy, sell or trade goods.

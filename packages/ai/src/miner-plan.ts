@@ -82,7 +82,7 @@ export function chooseMiningActivity(
     checkpoint,
     state: decisionState(session, template, checkpoint, {
       profession: 'miner',
-      home: at.city,
+      town: at.city,
       smeltsSinceBank: at.plan.smeltsSinceBank,
       tripSmeltGoal: at.plan.smeltsBeforeBank,
       weightCeiling: at.ceiling,
