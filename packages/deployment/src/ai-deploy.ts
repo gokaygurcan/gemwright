@@ -13,8 +13,9 @@ import { required } from './required';
 import { checkAi, ensureService } from './service';
 import { packageWorldFiles } from './world-files';
 
-// The map files AI residents walk by: Trammel's map, statics and their index, and tiledata.
-export const mapPattern = /^(?:map1LegacyMUL\.uop|map1\.mul|statics1\.mul|staidx1\.mul|tiledata\.mul)$/i;
+// Base terrain and the component definitions needed to expand observed houses.
+export const mapPattern =
+  /^(?:map1LegacyMUL\.uop|map1\.mul|statics1\.mul|staidx1\.mul|tiledata\.mul|MultiCollection\.uop|multi\.(?:idx|mul))$/i;
 
 // Deploys the AI residents as their own Railway service beside the shard (`<shard>-ai`), with a
 // volume for the resident database and map files. It reaches ServUO over the private network,
