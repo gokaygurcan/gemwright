@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { serviceLocations, useShardVendors } from '../src/locations';
 import { parseSpawners } from '../src/spawns';
+import { serviceLocations, useShardVendors } from '../src/v1/locations';
 import { useTestWorld } from './world-fixture';
 
 const point = (name: string, x: number, y: number, range: number, objects: string) =>

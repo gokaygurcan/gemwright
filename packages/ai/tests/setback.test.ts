@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test';
 
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { Blocked } from '../src/blocked';
-import { passSetback } from '../src/setback';
+import { Blocked } from '../src/v1/blocked';
+import { passSetback } from '../src/v1/setback';
 import { behaviorFixture } from './behavior-fixture';
 
 function context(f: ReturnType<typeof behaviorFixture>, check: () => void, session = f.session) {

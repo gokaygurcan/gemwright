@@ -3,26 +3,30 @@ import { join } from 'node:path';
 
 import { clientVersion, decisionProviders } from '@gemwright/common/config/shard';
 import type { DecisionSettings } from '@gemwright/common/config/types';
+import { moongateList } from '@gemwright/common/game/rules';
 import { validateConnection } from '@gemwright/network/connection';
 
-import { useShardAreas } from './area-build';
-import { setPopulationChaos } from './chaos';
-import { type PopulationConfig, validateConfig } from './config';
 import { setDebug } from './debug';
-import { validateDecisionConfig } from './decision-provider';
-import { setWars } from './guild-wars';
 import { logger, logToStdout } from './log';
 import { startExport, stopExport } from './otlp-export';
-import { enablePhrasing } from './phrasing';
-import { useShardRoutes } from './route-build';
 import { runPopulation } from './run-population';
-import { checkProvisioning, loadShardProfile } from './shard-profile';
-import { useShardWorld } from './shard-world';
 import { readShardWorld } from './spawns';
-import { ResidentStore } from './store';
 import { Terrain } from './terrain';
-import { buildWorkAreas } from './work-area-build';
-import { applyWorld, useCities, world } from './world';
+import { useShardAreas } from './v1/area-build';
+import { setPopulationChaos } from './v1/chaos';
+import { type PopulationConfig, validateConfig } from './v1/config';
+import { validateDecisionConfig } from './v1/decision-provider';
+import { setWars } from './v1/guild-wars';
+import { enablePhrasing } from './v1/phrasing';
+import { useShardRoutes } from './v1/route-build';
+import { checkProvisioning, loadShardProfile } from './v1/shard-profile';
+import { useShardWorld } from './v1/shard-world';
+import { ResidentStore } from './v1/store';
+import { buildWorkAreas } from './v1/work-area-build';
+import { applyWorld, useCities, world } from './v1/world';
+import { useLand } from './v2/reach';
+import { WalkGraph } from './walk-graph';
+import { useWalkGraph } from './walk-graph-store';
 
 // The deployed AI service (gemwright shard deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
@@ -132,6 +136,15 @@ if (count > 0) {
   // volume, built again only for a new world or map.
   await useShardAreas(data, terrain, join(data, 'assets'), shardWorld.teleporters);
   useShardRoutes(data, terrain, join(data, 'assets'));
+  // How the land joins up on foot, by teleporter and by moongate (walk-graph.ts), for the v2 mind.
+  const teleporters = shardWorld.teleporters;
+  useLand(
+    new WalkGraph(
+      await useWalkGraph(data, terrain, join(data, 'assets'), teleporters, moongateList),
+      terrain,
+      new Set(teleporters.map((l) => l.from.x * 4096 + l.from.y))
+    )
+  );
 }
 while (!stopping) {
   const started = Date.now();

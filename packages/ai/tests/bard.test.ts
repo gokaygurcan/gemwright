@@ -2,8 +2,8 @@ import { expect, spyOn, test } from 'bun:test';
 
 import type { Entity } from '@gemwright/network/world';
 
-import { play, playable } from '../src/bard';
-import type { ProfessionContext } from '../src/profession';
+import { play, playable } from '../src/v1/bard';
+import type { ProfessionContext } from '../src/v1/profession';
 import { behaviorFixture } from './behavior-fixture';
 
 // A lone undead already in discord answers every song with "Your target is already in discord"

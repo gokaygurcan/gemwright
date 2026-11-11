@@ -1,4 +1,4 @@
-import { appendFile, mkdir } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { PlayerSession } from '@gemwright/network/session';
@@ -13,13 +13,13 @@ import type { TelemetryEvent } from './telemetry-schema';
 // recordings/<name>-<id> in the data folder. Login packets carry the account password and are
 // recorded without their bytes.
 
-type Writer = { dir: string; lines: string[]; writing: Promise<void> };
+type Writer = { dir: string; lines: string[]; writing: Promise<void>; hour?: string };
 const writers = new Map<string, Writer>();
 const residentOf = new WeakMap<PlayerSession, string>();
 const SECRET = new Set([0x80, 0x91]);
 
 // Client packet names (the actions a player's client sends); server packets are named by opcode only.
-const OUT: Record<number, string> = {
+export const OUT: Record<number, string> = {
   0: 'create-character',
   2: 'walk',
   5: 'attack',
@@ -56,8 +56,28 @@ const OUT: Record<number, string> = {
   239: 'login-seed'
 };
 
-function decodeOut(packet: Buffer): Record<string, unknown> | undefined {
+export function decodeOut(packet: Buffer): Record<string, unknown> | undefined {
   const op = packet[0];
+  if (op === 0x08 && packet.length >= 14)
+    return {
+      serial: packet.readUInt32BE(1),
+      x: packet.readUInt16BE(5),
+      y: packet.readUInt16BE(7),
+      z: packet.readInt8(9),
+      container: packet.readUInt32BE(packet.length - 4)
+    };
+  if (op === 0x12 && packet.length > 4)
+    return { type: packet[3], command: packet.subarray(4).toString('latin1').replace(/\0+$/, '') };
+  if (op === 0x13 && packet.length >= 10)
+    return { serial: packet.readUInt32BE(1), layer: packet[5], mobile: packet.readUInt32BE(6) };
+  if ((op === 0x3b || op === 0x9f) && packet.length >= 9) {
+    // A purchase lists layer, serial and amount per item after a flag; a sale serial and amount after a count.
+    const [start, size, at] = op === 0x3b ? [8, 7, 1] : [9, 6, 0];
+    const items: { serial: number; amount: number }[] = [];
+    for (let i = start; i + size <= packet.length; i += size)
+      items.push({ serial: packet.readUInt32BE(i + at), amount: packet.readUInt16BE(i + at + 4) });
+    return { vendor: packet.readUInt32BE(3), items };
+  }
   if (op === 0x02) return { direction: packet[1], sequence: packet[2] };
   if ((op === 0x05 || op === 0x06 || op === 0x09) && packet.length >= 5) return { serial: packet.readUInt32BE(1) };
   if (op === 0x07 && packet.length >= 7) return { serial: packet.readUInt32BE(1), amount: packet.readUInt16BE(5) };
@@ -116,9 +136,20 @@ function write(residentId: string, entry: Record<string, unknown>) {
 async function flush(writer: Writer) {
   if (!writer.lines.length) return;
   const lines = writer.lines.splice(0);
-  const file = join(writer.dir, `${new Date().toISOString().slice(0, 13)}.jsonl`);
-  writer.writing = writer.writing.then(() => appendFile(file, `${lines.join('\n')}\n`));
+  const hour = new Date().toISOString().slice(0, 13);
+  const file = join(writer.dir, `${hour}.jsonl`);
+  const starting = writer.hour !== hour;
+  writer.hour = hour;
+  writer.writing = writer.writing
+    .then(() => appendFile(file, `${lines.join('\n')}\n`))
+    .then(() => (starting ? pruneRecordings(writer.dir) : undefined));
   await writer.writing;
+}
+
+// A file an hour, the last day of them kept: each hour is a few hundred megabytes.
+export async function pruneRecordings(dir: string) {
+  const files = (await readdir(dir)).filter((name) => name.endsWith('.jsonl')).sort();
+  await Promise.all(files.slice(0, -24).map((name) => rm(join(dir, name))));
 }
 
 export async function startRecording(dataDirectory: string, residentId: string, name: string) {

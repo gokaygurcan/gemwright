@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
-import { observeLifeActions } from '../src/life-actions';
-import { type LifeEvent, lifeEvent, recordLifeAction, registerLifeEvents } from '../src/life-events';
-import { openLifeJournal } from '../src/life-journal';
+import { observeLifeActions } from '../src/v1/life-actions';
+import { type LifeEvent, lifeEvent, recordLifeAction, registerLifeEvents } from '../src/v1/life-events';
+import { openLifeJournal } from '../src/v1/life-journal';
 import { behaviorFixture, required } from './behavior-fixture';
 
 function fixture() {

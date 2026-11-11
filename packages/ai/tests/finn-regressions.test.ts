@@ -2,10 +2,10 @@ import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/game/skills';
 
-import { groundFits, grounds, retreatedFrom } from '../src/cemeteries';
-import { recoveryThreats, returnToRefuge } from '../src/fighter-refuge';
 import { monsters } from '../src/monster-reference';
-import { canBeat, fightShare, selfState } from '../src/self-state';
+import { groundFits, grounds, retreatedFrom } from '../src/v1/cemeteries';
+import { recoveryThreats, returnToRefuge } from '../src/v1/fighter-refuge';
+import { canBeat, fightShare, selfState } from '../src/v1/self-state';
 import { required } from './behavior-fixture';
 import { fighterFixture } from './fighter-fixture';
 

@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import { havenFromSpawners } from '../src/haven-spawns';
-import { allServiceLocations, useShardVendors, useTowns, vendorLocations } from '../src/locations';
 import { parseSpawners } from '../src/spawns';
+import { havenFromSpawners } from '../src/v1/haven-spawns';
+import { allServiceLocations, useShardVendors, useTowns, vendorLocations } from '../src/v1/locations';
 
 const spawner = (name: string, x: number, y: number, objects: string) =>
   `<Points><Name>${name}</Name><Map>Trammel</Map><CentreX>${x}</CentreX><CentreY>${y}</CentreY><CentreZ>0</CentreZ>` +

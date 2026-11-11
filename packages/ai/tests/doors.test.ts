@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { createDoorOpener, isDoor } from '../src/doors';
-import { createNavigator } from '../src/navigation';
+import { createDoorOpener, isDoor } from '../src/v1/doors';
+import { createNavigator } from '../src/v1/navigation';
 import { behaviorFixture, required } from './behavior-fixture';
 import { useTestWorld } from './world-fixture';
 

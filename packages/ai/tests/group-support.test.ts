@@ -2,11 +2,11 @@ import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/game/skills';
 
-import { createFighterCombat } from '../src/fighter-combat';
-import type { FighterContext } from '../src/fighter-context';
-import { allyUnderPressure, visibleAllies } from '../src/group-awareness';
-import { castTurn, reagentGraphics } from '../src/mage-combat';
-import { requestSpell } from '../src/spell-action';
+import { createFighterCombat } from '../src/v1/fighter-combat';
+import type { FighterContext } from '../src/v1/fighter-context';
+import { allyUnderPressure, visibleAllies } from '../src/v1/group-awareness';
+import { castTurn, reagentGraphics } from '../src/v1/mage-combat';
+import { requestSpell } from '../src/v1/spell-action';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 
@@ -176,7 +176,7 @@ test('a healthy trained healer bandages a nearby injured companion without aband
 });
 
 test('ranged positioning favors the protected side of an observed front-line companion', async () => {
-  const { groupPositionCost } = await import('../src/group-awareness');
+  const { groupPositionCost } = await import('../src/v1/group-awareness');
   const { world, session } = groupFixture();
   const enemy = required(world.entities.get(3));
   world.swings.set(3, { target: 2, at: Date.now() });

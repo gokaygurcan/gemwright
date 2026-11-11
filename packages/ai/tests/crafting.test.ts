@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { bestRecipe, buttonFor, RAW_INGOT_VALUE } from '../src/miner-crafting';
+import { bestRecipe, buttonFor, RAW_INGOT_VALUE } from '../src/v1/miner-crafting';
 
 test('best value at blacksmithy 50 beats raw ingots', () => {
   const best = bestRecipe(50);
@@ -24,7 +24,7 @@ test('craft gump buttons are found beside their localized labels', () => {
 });
 
 test('profit crafting can still attempt a viable recipe at skill 100', async () => {
-  const { trainCraft, chooseRecipe } = await import('../src/craft-training');
+  const { trainCraft, chooseRecipe } = await import('../src/v1/craft-training');
   const { skillId } = await import('@gemwright/common/game/skills');
   const { behaviorFixture, required } = await import('./behavior-fixture');
   const { ctx, session, world, checkpoint } = behaviorFixture();

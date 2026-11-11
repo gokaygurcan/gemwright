@@ -4,8 +4,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { allocatePopulation, validateConfig } from '../src/config';
-import { ResidentStore } from '../src/store';
+import { allocatePopulation, validateConfig } from '../src/v1/config';
+import { ResidentStore } from '../src/v1/store';
 import example from '../templates/population.example.json';
 
 function required<T>(value: T | undefined): T {

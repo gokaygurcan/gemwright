@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { createKillCollection } from '../src/fighter-victory';
+import { createKillCollection } from '../src/v1/fighter-victory';
 import { fighterFixture } from './fighter-fixture';
 
 test('a recorded kill survives an interrupted loot attempt and is collected by the next turn', async () => {

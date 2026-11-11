@@ -4,9 +4,9 @@ import { corpse as corpseGraphic } from '@gemwright/common/game/items';
 import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 
-import { type FighterContext, newFighterStats, servicesIn } from '../src/fighter-context';
-import { createFighterRecovery } from '../src/fighter-recovery';
-import { checkFighter } from '../src/fighter-safety';
+import { type FighterContext, newFighterStats, servicesIn } from '../src/v1/fighter-context';
+import { createFighterRecovery } from '../src/v1/fighter-recovery';
+import { checkFighter } from '../src/v1/fighter-safety';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

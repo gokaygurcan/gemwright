@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 
-import { intentOf } from '../src/conversation';
-import { activityLine, planLine } from '../src/conversation-facts';
-import { replyOptions, threadFor } from '../src/dialogue';
-import { type Identity, identityFrom } from '../src/identity';
-import { needsLine } from '../src/needs';
-import { replyRejection } from '../src/respond';
-import type { Checkpoint } from '../src/store';
+import { intentOf } from '../src/v1/conversation';
+import { activityLine, planLine } from '../src/v1/conversation-facts';
+import { replyOptions, threadFor } from '../src/v1/dialogue';
+import { type Identity, identityFrom } from '../src/v1/identity';
+import { needsLine } from '../src/v1/needs';
+import { replyRejection } from '../src/v1/respond';
+import type { Checkpoint } from '../src/v1/store';
 
 // The shard's context menu for the speaker is the fingerprint (identity.ts): business entries mean
 // an NPC to trade with, party entries mean a person. Notoriety and names decide nothing.
@@ -24,7 +24,7 @@ test('the context menu entries tell an NPC from a player', () => {
 });
 
 test('patience runs out on small-talk repeats, and a name still gets a word', async () => {
-  const { patienceFor } = await import('../src/engagement');
+  const { patienceFor } = await import('../src/v1/engagement');
   const session = {} as never; // only a WeakMap key
   const chat = (named = false) => ({ named, intent: 'greet' });
   const t0 = Date.now();
@@ -44,7 +44,7 @@ test('patience runs out on small-talk repeats, and a name still gets a word', as
 });
 
 test('a stream of small talk from one talker also ends the conversation', async () => {
-  const { patienceFor } = await import('../src/engagement');
+  const { patienceFor } = await import('../src/v1/engagement');
   const session = {} as never;
   const t0 = Date.now();
   for (let n = 0; n < 5; n++)
@@ -59,7 +59,7 @@ test('a stream of small talk from one talker also ends the conversation', async 
 // A player may need the same answer twice (a dropped reply, a real need): requests are answered
 // until the same one is put five times, and only then does the resident say so and pause.
 test('requests do not bore a resident the way small talk does', async () => {
-  const { patienceFor } = await import('../src/engagement');
+  const { patienceFor } = await import('../src/v1/engagement');
   const session = {} as never;
   const ask = { named: false, intent: 'where' };
   const t0 = Date.now();
@@ -107,7 +107,7 @@ test('activity lines come from the persisted goal, not invention', () => {
 });
 
 test('a rephrasing keeps every number and name, adds none, and makes no new promise', async () => {
-  const { acceptable } = await import('../src/phrasing');
+  const { acceptable } = await import('../src/v1/phrasing');
   const directions = 'The bank? Thou shouldst find it about 30 paces north, near First Bank Of Britain.';
   expect(acceptable(directions, 'Seek the bank some 30 paces north, by First Bank Of Britain.')).toBe(true);
   expect(acceptable(directions, 'The bank lies about 40 paces north, near First Bank Of Britain.')).toBe(false);

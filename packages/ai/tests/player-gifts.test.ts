@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test';
 
 import { CommandRejected } from '@gemwright/network/errors';
 
-import { betterEquipment, useAcquiredItems } from '../src/inventory-use';
-import { scavenge } from '../src/scavenge';
-import { guardTradeTick } from '../src/trade-guard';
+import { betterEquipment, useAcquiredItems } from '../src/v1/inventory-use';
+import { scavenge } from '../src/v1/scavenge';
+import { guardTradeTick } from '../src/v1/trade-guard';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

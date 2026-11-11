@@ -2,14 +2,14 @@ import { expect, setSystemTime, spyOn, test } from 'bun:test';
 
 import { speech } from '@gemwright/network/packets';
 
-import { absence } from '../src/absence';
-import { SESSION_BREAK } from '../src/action-errors';
-import { superviseBehavior } from '../src/behavior-supervisor';
-import { corpseRecoveryChoice, resurrectionButton } from '../src/fighter-recovery';
 import { lasting } from '../src/lasting';
-import { mendAfterDeath } from '../src/mend';
-import { recoveryStep } from '../src/recovery-walk';
-import { deadlyWalk, resurrectGhost, untried } from '../src/resurrection';
+import { absence } from '../src/v1/absence';
+import { SESSION_BREAK } from '../src/v1/action-errors';
+import { superviseBehavior } from '../src/v1/behavior-supervisor';
+import { corpseRecoveryChoice, resurrectionButton } from '../src/v1/fighter-recovery';
+import { mendAfterDeath } from '../src/v1/mend';
+import { recoveryStep } from '../src/v1/recovery-walk';
+import { deadlyWalk, resurrectGhost, untried } from '../src/v1/resurrection';
 import { behaviorFixture, required } from './behavior-fixture';
 import { useTestWorld } from './world-fixture';
 
@@ -150,7 +150,7 @@ test('resurrection waypoint packets preserve the boundary of the following livin
 });
 
 test('merchant interaction tiles reject a wall, diagonal corner and different floor', async () => {
-  const { connectedInteractionTile } = await import('../src/mobile-approach');
+  const { connectedInteractionTile } = await import('../src/v1/mobile-approach');
   let wall = false;
   const terrain = {
     stand: (x: number, y: number, z: number) => ({ x, y, z }),
@@ -188,7 +188,7 @@ test('bridge stairs use their base for stepping and full height for the next ste
 });
 
 test('bank balance understands physical-gold and account platinum/gold replies without using secured gold', async () => {
-  const { reportedBankGold } = await import('../src/fighter-equipment');
+  const { reportedBankGold } = await import('../src/v1/fighter-equipment');
   expect(reportedBankGold(1042759, '1,095')).toBe(1095);
   expect(reportedBankGold(1155855, '0\t1,095')).toBe(1095);
   expect(reportedBankGold(1155855, '1\t20')).toBe(1_000_000_020);

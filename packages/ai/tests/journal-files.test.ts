@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 
-import { replayFiles } from '../src/event-replay';
-import { JournalFiles } from '../src/journal-files';
 import { makeEvent } from '../src/telemetry';
+import { replayFiles } from '../src/v1/event-replay';
+import { JournalFiles } from '../src/v1/journal-files';
 
 const options = { traceBudgetBytes: 3000, segmentBytes: 1000, reserveBytes: 0 };
 test('diagnostic rotation is bounded while life outcomes, warnings, and legacy history survive restarts', async () => {

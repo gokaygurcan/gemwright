@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test';
 import type { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
-import { petSource, waitForPets } from '../src/pets';
+import { petSource, waitForPets } from '../src/v1/pets';
 
 function road() {
   const world = new WorldView();

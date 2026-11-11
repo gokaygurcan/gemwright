@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { localDecision } from '../src/decision-local';
+import { localDecision } from '../src/v1/decision-local';
 
 test('local decisions keep the preferred legal action and replace it when it becomes invalid', () => {
   let ready = true;

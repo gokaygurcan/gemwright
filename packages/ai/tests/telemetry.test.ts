@@ -4,16 +4,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-import { EventReplay, replayFiles } from '../src/event-replay';
-import { actionScope, installExecution } from '../src/execution-session';
-import { registerLifeEvents } from '../src/life-events';
-import { openLifeJournal } from '../src/life-journal';
-import { openPersistence } from '../src/persistence';
 import { configureTelemetry, emitEvent, inSession, inTrace, makeEvent, operational } from '../src/telemetry';
-import { startRuntimeHealth } from '../src/telemetry-health';
 import { RuntimeMetrics } from '../src/telemetry-metrics';
-import { observePerception } from '../src/telemetry-perception';
 import type { TelemetryEvent } from '../src/telemetry-schema';
+import { EventReplay, replayFiles } from '../src/v1/event-replay';
+import { actionScope, installExecution } from '../src/v1/execution-session';
+import { registerLifeEvents } from '../src/v1/life-events';
+import { openLifeJournal } from '../src/v1/life-journal';
+import { openPersistence } from '../src/v1/persistence';
+import { startRuntimeHealth } from '../src/v1/telemetry-health';
+import { observePerception } from '../src/v1/telemetry-perception';
 import { behaviorFixture } from './behavior-fixture';
 
 const fixture = () => {
@@ -251,7 +251,7 @@ test('service console and component logs use JSON while standalone CLI output st
 
 test('resident health telemetry exposes observed status and the reason work is blocked', async () => {
   const f = fixture();
-  const { registerGoal, chooseGoal } = await import('../src/resident-goal');
+  const { registerGoal, chooseGoal } = await import('../src/v1/resident-goal');
   Reflect.set(f.session, 'timing', { snapshot: () => ({}) });
   registerGoal(f.session, f.checkpoint);
   chooseGoal(f.checkpoint, {

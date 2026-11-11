@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import { type Areas, useAreas } from '../src/areas';
-import { routeOut } from '../src/dungeon-exit';
 import { parseTeleporters } from '../src/links';
+import { type Areas, useAreas } from '../src/v1/areas';
+import { routeOut } from '../src/v1/dungeon-exit';
 import { useTestWorld } from './world-fixture';
 
 test('from a lower level the way out goes up level by level, never deeper, then to the open world', () => {

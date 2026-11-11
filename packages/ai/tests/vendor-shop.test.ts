@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { ActionBusy } from '../src/action-errors';
-import { buyOffers, sellChosen, sellOffers } from '../src/vendor-shop';
+import { ActionBusy } from '../src/v1/action-errors';
+import { buyOffers, sellChosen, sellOffers } from '../src/v1/vendor-shop';
 import { behaviorFixture, required } from './behavior-fixture';
 
 test('a sale is what the gold confirms, and a busy resource is not a vendor that buys nothing', async () => {

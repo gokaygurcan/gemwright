@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 
-import { Blocked } from '../src/blocked';
-import { validateDecisionConfig } from '../src/decision-provider';
-import { DecisionCoordinator } from '../src/decisions';
-import { lifeTurn } from '../src/life';
-import { chooseLifePhase, needPhase, observeLifeWork } from '../src/life-choice';
-import { rememberBalance, tally, workEvidence } from '../src/work-evidence';
-import type { LifePhase } from '../src/world';
+import { Blocked } from '../src/v1/blocked';
+import { validateDecisionConfig } from '../src/v1/decision-provider';
+import { DecisionCoordinator } from '../src/v1/decisions';
+import { lifeTurn } from '../src/v1/life';
+import { chooseLifePhase, needPhase, observeLifeWork } from '../src/v1/life-choice';
+import { rememberBalance, tally, workEvidence } from '../src/v1/work-evidence';
+import type { LifePhase } from '../src/v1/world';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

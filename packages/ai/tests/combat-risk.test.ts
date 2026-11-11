@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { WorldView } from '@gemwright/network/world';
 
-import { assessCombat, type HealthChange } from '../src/combat-risk';
+import { assessCombat, type HealthChange } from '../src/v1/combat-risk';
 
 const now = 100000;
 const change = (damage: number, age: number, hits: number, healed = 0): HealthChange => ({

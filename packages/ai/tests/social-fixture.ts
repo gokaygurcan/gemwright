@@ -1,4 +1,4 @@
-import { registerResident, registerTerrain } from '../src/resident-context';
+import { registerResident, registerTerrain } from '../src/v1/resident-context';
 import { behaviorFixture } from './behavior-fixture';
 
 export function socialFixture(profession = 'tailor') {

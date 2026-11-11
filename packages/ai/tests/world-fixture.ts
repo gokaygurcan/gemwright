@@ -1,9 +1,9 @@
-import { type Areas, useAreas } from '../src/areas';
 import type { Placement } from '../src/decoration';
 import type { Link } from '../src/links';
-import { useShardWorld } from '../src/shard-world';
 import { parseSpawners, type Spawner, type Town } from '../src/spawns';
-import { useWorkAreas } from '../src/work-areas';
+import { type Areas, useAreas } from '../src/v1/areas';
+import { useShardWorld } from '../src/v1/shard-world';
+import { useWorkAreas } from '../src/v1/work-areas';
 import areas from './fixtures/areas.json';
 import places from './fixtures/world-places.json';
 

@@ -5,9 +5,9 @@ import type { PlayerSession } from '@gemwright/network/session';
 import { playerStatus } from '@gemwright/network/status';
 import { WorldView } from '@gemwright/network/world';
 
-import { recoverMissingMount } from '../src/mount-care';
-import { canAffordMount, type MountContext, type MountMemory } from '../src/mount-types';
-import { createMountController } from '../src/mounts';
+import { recoverMissingMount } from '../src/v1/mount-care';
+import { canAffordMount, type MountContext, type MountMemory } from '../src/v1/mount-types';
+import { createMountController } from '../src/v1/mounts';
 
 function fixture(owner = true) {
   const world = new WorldView();

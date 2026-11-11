@@ -2,13 +2,13 @@ import { expect, setSystemTime, spyOn, test } from 'bun:test';
 
 import { gargishWeapons } from '@gemwright/common/game/items';
 
-import { ActionInterrupted } from '../src/action-errors';
-import { urgentAction } from '../src/action-purpose';
-import { wieldableBy } from '../src/fighter-context';
-import { createFighterRecovery } from '../src/fighter-recovery';
-import { createFighterTown } from '../src/fighter-town';
-import { distance } from '../src/navigation';
-import { failObjective, suppliesCondition } from '../src/objective-memory';
+import { ActionInterrupted } from '../src/v1/action-errors';
+import { urgentAction } from '../src/v1/action-purpose';
+import { wieldableBy } from '../src/v1/fighter-context';
+import { createFighterRecovery } from '../src/v1/fighter-recovery';
+import { createFighterTown } from '../src/v1/fighter-town';
+import { distance } from '../src/v1/navigation';
+import { failObjective, suppliesCondition } from '../src/v1/objective-memory';
 import { required } from './behavior-fixture';
 import { corpseRecoveryFixture } from './fighter-fixture';
 import { useTestWorld } from './world-fixture';
@@ -284,8 +284,8 @@ test('reconnect after resurrection keeps the decision to abandon a lethal corpse
 });
 
 test('a decision provider cannot reopen corpse recovery after the local attempt limit', async () => {
-  const { DecisionCoordinator } = await import('../src/decisions');
-  const { validateDecisionConfig } = await import('../src/decision-provider');
+  const { DecisionCoordinator } = await import('../src/v1/decisions');
+  const { validateDecisionConfig } = await import('../src/v1/decision-provider');
   const f = scenario();
   required(f.ctx.trip.recovery).attempts = 2;
   const decisions = new DecisionCoordinator(validateDecisionConfig({ provider: 'local' }), () => {});

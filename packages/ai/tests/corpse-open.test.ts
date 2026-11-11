@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { openCorpse } from '../src/corpse-open';
+import { openCorpse } from '../src/v1/corpse-open';
 import { behaviorFixture, required } from './behavior-fixture';
 
 test("a death named serial 0 is found where it fell, and another player's kill comes back as the shard's reason", async () => {

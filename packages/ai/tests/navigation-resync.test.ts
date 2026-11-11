@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import { rememberAttack } from '../src/danger';
 import { lasting } from '../src/lasting';
-import { createNavigator } from '../src/navigation';
+import { rememberAttack } from '../src/v1/danger';
+import { createNavigator } from '../src/v1/navigation';
 import { behaviorFixture, required } from './behavior-fixture';
 
 // Finn Gray, Nov 6: our height said z10 under the New Haven bank floor (z21). No route starts from

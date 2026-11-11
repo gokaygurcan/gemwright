@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { Layer } from '@gemwright/network/layers';
 
+import { lasting } from '../src/lasting';
 import {
   bankNearbyGold,
   bankSurplus,
@@ -12,8 +13,7 @@ import {
   spendableGold,
   TOOLS,
   TRAINING
-} from '../src/bank-gold';
-import { lasting } from '../src/lasting';
+} from '../src/v1/bank-gold';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 import { useTestWorld } from './world-fixture';
@@ -102,7 +102,7 @@ test('a regular bank trip also deposits all gold without a shopping purse', asyn
 
 test('AI purchase accounting translates network refusal into a recoverable funds blocker', async () => {
   const { CommandRejected } = await import('@gemwright/network');
-  const { Blocked } = await import('../src/blocked');
+  const { Blocked } = await import('../src/v1/blocked');
   const f = bankingFixture();
   const bankBefore = f.checkpoint.funds?.bank;
   let error: unknown;
@@ -122,7 +122,7 @@ test('a tool purchase with the bank balance unknown asks the banker first instea
   const f = bankingFixture(0);
   delete f.checkpoint.funds;
   f.ctx.navigate = async () => {};
-  const { buyTool } = await import('../src/vendor-trade');
+  const { buyTool } = await import('../src/v1/vendor-trade');
   await buyTool(
     { ...f.ctx, city: 'Britain', carried: () => [], status: () => required(f.world.status) },
     'fisherman',
@@ -139,7 +139,7 @@ test('a bank deposit reports what the shard refused, with its reason, and still 
     if (item === 40) throw new Error('Server rejected item lift');
     f.world.entities.set(item, { ...required(f.world.entities.get(item)), parent: box });
   };
-  const { deposit } = await import('../src/bank-box');
+  const { deposit } = await import('../src/v1/bank-box');
   const result = await deposit(f.ctx, { banker: 20, box: 30 }, [
     required(f.world.entities.get(40)),
     required(f.world.entities.get(41))
@@ -182,8 +182,8 @@ test('a required work tool is purchased within tool limits even when the discret
   f.world.entities.set(f.ctx.serial, { ...player, serial: f.ctx.serial });
   required(f.world.entities.get(10)).parent = f.ctx.serial;
   f.checkpoint.funds = { bank: 0, at: Date.now() };
-  const { chooseGoal, registerGoal, goalGuard, plannedSpendAllowed } = await import('../src/resident-goal');
-  const { workEvidence } = await import('../src/work-evidence');
+  const { chooseGoal, registerGoal, goalGuard, plannedSpendAllowed } = await import('../src/v1/resident-goal');
+  const { workEvidence } = await import('../src/v1/work-evidence');
   const goal = chooseGoal(f.checkpoint, {
     evidence: workEvidence(f.session, f.checkpoint),
     safe: true,
@@ -207,7 +207,7 @@ test('a required work tool is purchased within tool limits even when the discret
     purchases++;
     required(f.world.entities.get(11)).amount = 18;
   };
-  const { buyTool } = await import('../src/vendor-trade');
+  const { buyTool } = await import('../src/v1/vendor-trade');
   expect(
     await buyTool(
       { ...f.ctx, city: 'Britain', carried: () => [], status: () => required(f.world.status) },
@@ -227,8 +227,8 @@ test('an intent budget refusal ends shopping instead of trying another vendor', 
   required(f.world.entities.get(20)).position = { ...f.world.position };
   f.ctx.navigate = async () => {};
   f.session.context = async () => [{ index: 0, cliloc: 3006103, flags: 0 }];
-  const { atVendor } = await import('../src/vendor-visit');
-  const { Blocked } = await import('../src/blocked');
+  const { atVendor } = await import('../src/v1/vendor-visit');
+  const { Blocked } = await import('../src/v1/blocked');
   let attempts = 0;
   await expect(
     atVendor(
@@ -254,8 +254,8 @@ async function spendingUnder(funds: number, safe: boolean) {
   f.world.entities.set(f.ctx.serial, { ...player, serial: f.ctx.serial });
   required(f.world.entities.get(10)).parent = f.ctx.serial;
   f.checkpoint.funds = { bank: funds, at: Date.now() };
-  const { chooseGoal, registerGoal, plannedSpendAllowed } = await import('../src/resident-goal');
-  const { workEvidence } = await import('../src/work-evidence');
+  const { chooseGoal, registerGoal, plannedSpendAllowed } = await import('../src/v1/resident-goal');
+  const { workEvidence } = await import('../src/v1/work-evidence');
   const goal = chooseGoal(f.checkpoint, {
     evidence: workEvidence(f.session, f.checkpoint),
     safe,

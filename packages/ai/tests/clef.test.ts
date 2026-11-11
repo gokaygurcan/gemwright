@@ -4,18 +4,18 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { DecisionChain } from '../src/decision-chain';
-import { CLEF_DAILY_UNITS, CLEF_MODELS, ClefProvider } from '../src/decision-clef';
-import { JEV_DAILY_TOKEN_ALLOWANCE, JevProvider } from '../src/decision-jev';
+import { DecisionChain } from '../src/v1/decision-chain';
+import { CLEF_DAILY_UNITS, CLEF_MODELS, ClefProvider } from '../src/v1/decision-clef';
+import { JEV_DAILY_TOKEN_ALLOWANCE, JevProvider } from '../src/v1/decision-jev';
 import {
   type ChoiceRequest,
   type DecisionProvider,
   ProviderFailure,
   validateDecisionConfig
-} from '../src/decision-provider';
-import { DecisionCoordinator } from '../src/decisions';
-import { SpendLedger } from '../src/spend-ledger';
-import type { Checkpoint } from '../src/store';
+} from '../src/v1/decision-provider';
+import { DecisionCoordinator } from '../src/v1/decisions';
+import { SpendLedger } from '../src/v1/spend-ledger';
+import type { Checkpoint } from '../src/v1/store';
 
 const accountId = 'a'.repeat(32);
 const request: ChoiceRequest = {

@@ -24,6 +24,8 @@ export interface Spawner {
   kinds: string[];
   // Each type's MX: at most this many of it at once.
   mx: Record<string, number>;
+  // Minutes between its spawns (XmlSpawner MinDelay and MaxDelay).
+  delay: [number, number];
 }
 
 export function parseSpawners(xml: string): Spawner[] {
@@ -47,7 +49,8 @@ export function parseSpawners(xml: string): Spawner[] {
       range: Number(field('Range')) || 0,
       max: Number(field('MaxCount')) || entries.length,
       kinds: entries.map((entry) => entry.type),
-      mx
+      mx,
+      delay: [Number(field('MinDelay')) || 5, Number(field('MaxDelay')) || Number(field('MinDelay')) || 10]
     };
   });
 }

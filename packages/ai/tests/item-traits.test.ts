@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test';
 
 import type { Entity } from '@gemwright/network/world';
 
-import { shopSafe, shopTakes, traits } from '../src/item-quality';
-import { newbiedHeard } from '../src/vendor-trade';
+import { shopSafe, shopTakes, traits } from '../src/v1/item-quality';
+import { newbiedHeard } from '../src/v1/vendor-trade';
 
 const item = (...clilocs: number[]) =>
   ({
@@ -51,7 +51,7 @@ test("a vendor's answer proves which pieces are newbied; a silent one proves not
 // A magic piece is worth what a shop pays for it: counted at five times that, carried loot looked
 // like a fortune at risk and sent residents to the bank.
 test('carried magic and artifact loot counts at its shop price', async () => {
-  const { selfNow } = await import('../src/self');
+  const { selfNow } = await import('../src/v1/self');
   const { behaviorFixture } = await import('./behavior-fixture');
   const value = (...clilocs: number[]) => {
     const f = behaviorFixture();

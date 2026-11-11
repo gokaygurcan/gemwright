@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import type { FighterContext } from '../src/fighter-context';
-import { createCorpseLooter } from '../src/fighter-loot';
-import { durability, guildRepairTurn } from '../src/guild-repairs';
-import { usefulGift } from '../src/inventory-use';
-import { serviceLocations } from '../src/locations';
+import type { FighterContext } from '../src/v1/fighter-context';
+import { createCorpseLooter } from '../src/v1/fighter-loot';
+import { durability, guildRepairTurn } from '../src/v1/guild-repairs';
+import { usefulGift } from '../src/v1/inventory-use';
+import { serviceLocations } from '../src/v1/locations';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 import { useTestWorld } from './world-fixture';
@@ -105,7 +105,7 @@ test('loot collects gold before heavy equipment and only accounts for actual rec
 });
 
 test('a skilled guild smith creates a real contract from a blank scroll and hands it over securely', async () => {
-  const { joinGuild } = await import('../src/guild-store');
+  const { joinGuild } = await import('../src/v1/guild-store');
   const { skillId } = await import('@gemwright/common/game/skills');
   const f = repairFixture();
   f.world.entities.delete(20);

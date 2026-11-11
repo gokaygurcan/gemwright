@@ -4,12 +4,12 @@ import { TileFlag } from '@gemwright/common/assets/tiledata';
 
 // selling.ts sits in an import cycle through craft-training and skill-training; loading
 // skill-training first initializes it in the order the service does.
-import '../src/skill-training';
-import { registerCheckpoint } from '../src/gm';
-import { noteListed } from '../src/item-quality';
-import { townAt } from '../src/locations';
-import { putDown } from '../src/overload';
-import { sellingTurn, shopsFor } from '../src/selling';
+import '../src/v1/skill-training';
+import { registerCheckpoint } from '../src/v1/gm';
+import { noteListed } from '../src/v1/item-quality';
+import { townAt } from '../src/v1/locations';
+import { putDown } from '../src/v1/overload';
+import { sellingTurn, shopsFor } from '../src/v1/selling';
 import { behaviorFixture } from './behavior-fixture';
 
 const tiles = new Map([

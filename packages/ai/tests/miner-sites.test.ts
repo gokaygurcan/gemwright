@@ -4,8 +4,8 @@ import { harvestTiles } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
-import { findMiningSite } from '../src/miner-sites';
 import type { Terrain } from '../src/terrain';
+import { findMiningSite } from '../src/v1/miner-sites';
 
 // Twenty miners share a mountain: after one empty vein the blocks around it are empty too, and a
 // miner that keeps trying the next-door block walks in circles (the loop watcher, 200 a day each).

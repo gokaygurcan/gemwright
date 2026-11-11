@@ -2,16 +2,16 @@ import { expect, test } from 'bun:test';
 
 import { CommandRejected } from '@gemwright/network/errors';
 
-import { chargedPurchase } from '../src/bank-gold';
-import { proposeGoals } from '../src/goal-policy';
-import { type PlanEstimate, planningCondition } from '../src/intent';
-import { progressAssumption } from '../src/plan-assumptions';
-import { reserveSpend, spendWithinPlan } from '../src/plan-budget';
-import { calibrateEstimate, calibration } from '../src/plan-calibration';
-import { rememberPlan } from '../src/plan-memory';
-import { blockGoal, chooseGoal, type GoalSituation, registerGoal } from '../src/resident-goal';
-import type { Checkpoint } from '../src/store';
-import { workEvidence } from '../src/work-evidence';
+import { chargedPurchase } from '../src/v1/bank-gold';
+import { proposeGoals } from '../src/v1/goal-policy';
+import { type PlanEstimate, planningCondition } from '../src/v1/intent';
+import { progressAssumption } from '../src/v1/plan-assumptions';
+import { reserveSpend, spendWithinPlan } from '../src/v1/plan-budget';
+import { calibrateEstimate, calibration } from '../src/v1/plan-calibration';
+import { rememberPlan } from '../src/v1/plan-memory';
+import { blockGoal, chooseGoal, type GoalSituation, registerGoal } from '../src/v1/resident-goal';
+import type { Checkpoint } from '../src/v1/store';
+import { workEvidence } from '../src/v1/work-evidence';
 import { behaviorFixture, required } from './behavior-fixture';
 
 const now = 1_000_000_000;
@@ -202,7 +202,7 @@ test('known refusals release reservations and unknown purchase results retain th
 
 test('purchase dispatch waits for the persisted budget reservation', async () => {
   const f = behaviorFixture();
-  const { registerDurability } = await import('../src/session-durability');
+  const { registerDurability } = await import('../src/v1/session-durability');
   let release!: () => void;
   const flushed = new Promise<void>((resolve) => {
     release = resolve;

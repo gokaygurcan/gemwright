@@ -3,8 +3,8 @@ import { expect, test } from 'bun:test';
 import { skillId } from '@gemwright/common/game/skills';
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { startReflex } from '../src/reflex';
-import { canBeat, encounterTarget, harmless, selfState } from '../src/self-state';
+import { startReflex } from '../src/v1/reflex';
+import { canBeat, encounterTarget, harmless, selfState } from '../src/v1/self-state';
 import { behaviorFixture } from './behavior-fixture';
 import { fighterFixture } from './fighter-fixture';
 

@@ -6,10 +6,10 @@ import { join } from 'node:path';
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 
 import { geometryView, houseBarriers } from '../src/geometry';
-import { type Component, decodeMultiUop, expandDesign } from '../src/multi-assets';
-import { observedTerrain } from '../src/observed-terrain';
 import { PathPool } from '../src/path-pool';
 import { Terrain, type TerrainBuffers } from '../src/terrain';
+import { type Component, decodeMultiUop, expandDesign } from '../src/v1/multi-assets';
+import { observedTerrain } from '../src/v1/observed-terrain';
 import { behaviorFixture } from './behavior-fixture';
 
 const directories: string[] = [];
@@ -233,7 +233,7 @@ test('overlapping floors, low ceilings and walls are separated by height', () =>
 test('a house moved after planning is re-read before the navigator attempts its first stair step', async () => {
   const f = fixture(stairs);
   f.world.put({ serial: 50, kind: 'item', multi: true, graphic: 1, position: { x: 10, y: 10, z: 0, direction: 0 } });
-  const { createNavigator } = await import('../src/navigation');
+  const { createNavigator } = await import('../src/v1/navigation');
   const attempted: { x: number; y: number; z: number }[] = [];
   let replaced = false;
   const search = f.view.pathAsync.bind(f.view);
@@ -277,7 +277,7 @@ test('a house moved after planning is re-read before the navigator attempts its 
 test('navigation follows the house stairs to outdoor ground instead of retrying a distant gate', async () => {
   const f = fixture(stairs);
   f.world.put({ serial: 50, kind: 'item', multi: true, graphic: 1, position: { x: 10, y: 10, z: 0, direction: 0 } });
-  const { createNavigator } = await import('../src/navigation');
+  const { createNavigator } = await import('../src/v1/navigation');
   const accepted: number[] = [];
   f.session.walk = async (direction, z) => {
     const from = f.world.position;
@@ -335,4 +335,19 @@ test('changing house overlays reuses the immutable map buffers instead of copyin
   expect(a.sharedBuffers()).toBe(base.sharedBuffers());
   expect(b.sharedBuffers()).toBe(a.sharedBuffers());
   expect(base.geometry).toBeUndefined();
+});
+
+test('v2 hands use the same observed house stairs as v1', async () => {
+  const f = fixture(stairs);
+  f.world.put({ serial: 50, kind: 'item', multi: true, graphic: 1, position: { x: 10, y: 10, z: 0, direction: 0 } });
+  const { Hands } = await import('../src/v2/hands');
+  f.session.walk = async (direction, z) => {
+    const from = f.world.position;
+    if (!from) throw new Error('Missing position');
+    if (direction !== 2 || z !== from.z - 2) return false;
+    f.world.position = { ...from, x: from.x + 1, z };
+    return true;
+  };
+  expect(await new Hands(f.session, f.base).do({ verb: 'walk', x: 22, y: 10, range: 0 }, () => true)).toBe(true);
+  expect(f.world.position).toMatchObject({ x: 22, y: 10, z: 0 });
 });

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { MovementTrail } from '../../network/src/movement-trail';
-import { retraceStep } from '../src/retrace-step';
+import { retraceStep } from '../src/v1/retrace-step';
 import { behaviorFixture, required } from './behavior-fixture';
 
 test('retrace verifies the authoritative height before and after reversing an accepted step', async () => {

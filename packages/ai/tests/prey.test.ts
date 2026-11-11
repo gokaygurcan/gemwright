@@ -3,9 +3,9 @@ import { expect, test } from 'bun:test';
 import { skillId } from '@gemwright/common/game/skills';
 import type { Entity } from '@gemwright/network/world';
 
-import type { FighterContext } from '../src/fighter-context';
-import { chooseOpponent } from '../src/fighter-hunt';
-import { engageable } from '../src/fighter-prey';
+import type { FighterContext } from '../src/v1/fighter-context';
+import { chooseOpponent } from '../src/v1/fighter-hunt';
+import { engageable } from '../src/v1/fighter-prey';
 
 const mobile = (serial: number, graphic: number, name: string, x = 10): Entity => ({
   serial,

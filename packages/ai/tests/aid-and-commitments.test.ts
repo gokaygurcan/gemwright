@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { hearAid, observeAid, shelterNearHelper } from '../src/aid';
-import { commitmentConversation, commitmentTurn } from '../src/commitments';
-import { registerCombat } from '../src/resident-context';
-import { personalMemory, rememberPartner, sharedMemoryLine } from '../src/resident-memory';
+import { hearAid, observeAid, shelterNearHelper } from '../src/v1/aid';
+import { commitmentConversation, commitmentTurn } from '../src/v1/commitments';
+import { registerCombat } from '../src/v1/resident-context';
+import { personalMemory, rememberPartner, sharedMemoryLine } from '../src/v1/resident-memory';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

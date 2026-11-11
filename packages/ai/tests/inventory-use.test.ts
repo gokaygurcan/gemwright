@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { eatMagicFish } from '../src/inventory-use';
+import { eatMagicFish } from '../src/v1/inventory-use';
 import { behaviorFixture } from './behavior-fixture';
 
 // ServUO's magic fish (MagicFish.cs, 0x0DD6 in four hues) are eaten whole for their blessing; no

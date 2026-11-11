@@ -1,11 +1,11 @@
 import { Database } from 'bun:sqlite';
 import { expect, test } from 'bun:test';
 
-import { JEV_RESIDENT_TOKEN_ALLOWANCE } from '../src/decision-jev';
-import { DecisionLog } from '../src/decision-log';
-import { type ChoiceRequest, pacedAllowance, parseChoice, validateDecisionConfig } from '../src/decision-provider';
-import { DecisionCoordinator, OPTIONAL_KINDS, OPTIONAL_SHARE, reservedTokens } from '../src/decisions';
-import type { Checkpoint } from '../src/store';
+import { JEV_RESIDENT_TOKEN_ALLOWANCE } from '../src/v1/decision-jev';
+import { DecisionLog } from '../src/v1/decision-log';
+import { type ChoiceRequest, pacedAllowance, parseChoice, validateDecisionConfig } from '../src/v1/decision-provider';
+import { DecisionCoordinator, OPTIONAL_KINDS, OPTIONAL_SHARE, reservedTokens } from '../src/v1/decisions';
+import type { Checkpoint } from '../src/v1/store';
 import { required } from './behavior-fixture';
 
 const checkpoint = (): Checkpoint => ({ goal: null, memories: [], relationships: {} });
@@ -103,7 +103,7 @@ test('a request reserves budget before transport, and a successful call keeps it
 });
 
 test('the provider is benched for a kind only when its divergent choices underperform', async () => {
-  const { underperforms } = await import('../src/decisions');
+  const { underperforms } = await import('../src/v1/decisions');
   // Agreeing choices: 80 completed, 5 failed (94%). The divergent counts are added on top.
   const tally = (divergent: number, completed: number, failed: number) => ({
     decisions: 85 + divergent,
@@ -118,8 +118,8 @@ test('the provider is benched for a kind only when its divergent choices underpe
 });
 
 test('every decision receives planner context and a changed intention invalidates an in-flight answer', async () => {
-  const { chooseGoal, blockGoal } = await import('../src/resident-goal');
-  const { personalMemory } = await import('../src/resident-memory');
+  const { chooseGoal, blockGoal } = await import('../src/v1/resident-goal');
+  const { personalMemory } = await import('../src/v1/resident-memory');
   const cp = checkpoint();
   personalMemory(cp).goals.push({
     id: 'saving',

@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/game/skills';
 
-import { assessCombat } from '../src/combat-risk';
-import { engageable } from '../src/fighter-prey';
-import { canBeat, selfState } from '../src/self-state';
+import { assessCombat } from '../src/v1/combat-risk';
+import { engageable } from '../src/v1/fighter-prey';
+import { canBeat, selfState } from '../src/v1/self-state';
 import { required } from './behavior-fixture';
 import { fighterFixture } from './fighter-fixture';
 
@@ -83,7 +83,7 @@ test('the same nearly finished opponent is abandoned when incoming pressure make
 });
 
 test('additional attackers increase cumulative pressure without an attacker-count prohibition', async () => {
-  const { retaliationAssessment } = await import('../src/self-state');
+  const { retaliationAssessment } = await import('../src/v1/self-state');
   const f = fighterFixture();
   f.world.entities.set(40, { serial: 40, kind: 'item', graphic: 0x13b9, parent: 1, layer: 1 });
   const target = { serial: 50, kind: 'mobile' as const, graphic: 3, name: 'a zombie', hits: 1, maxHits: 100 };
@@ -99,7 +99,7 @@ test('additional attackers increase cumulative pressure without an attacker-coun
 });
 
 test('small resistance changes modify estimated spell pressure smoothly', async () => {
-  const { forecastFight } = await import('../src/combat-forecast');
+  const { forecastFight } = await import('../src/v1/combat-forecast');
   const f = fighterFixture();
   const target = { serial: 50, kind: 'mobile' as const, graphic: 4, name: 'a gargoyle', hits: 1, maxHits: 100 };
   const pressures = [39.9, 40, 40.1, 49.9, 50, 50.1, 79.9, 80, 80.1].map((value) => {
@@ -111,7 +111,7 @@ test('small resistance changes modify estimated spell pressure smoothly', async 
 
 test('ineffective attacks lower the forecast, while confirmed opponent damage restores its measured progress', async () => {
   const { spyOn } = await import('bun:test');
-  const { forecastFight } = await import('../src/combat-forecast');
+  const { forecastFight } = await import('../src/v1/combat-forecast');
   let now = 100000;
   const clock = spyOn(Date, 'now').mockImplementation(() => now);
   try {

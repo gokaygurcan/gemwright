@@ -1,12 +1,19 @@
 import { expect, test } from 'bun:test';
 
-import { tally } from '../src/activity';
-import { orderConversation } from '../src/order-conversation';
-import { goalPhaseBias, updatePersonalGoals } from '../src/personal-goals';
-import { personalMemory, sharedMemoryLine } from '../src/resident-memory';
-import { sessionHabits } from '../src/session-habits';
-import { learnedPlaceCost, learnWork } from '../src/strategy-learning';
-import { acceptWorkOrder, finishWorkOrder, orderDemand, orderQuote, orderTurn, reservedFor } from '../src/work-orders';
+import { tally } from '../src/v1/activity';
+import { orderConversation } from '../src/v1/order-conversation';
+import { goalPhaseBias, updatePersonalGoals } from '../src/v1/personal-goals';
+import { personalMemory, sharedMemoryLine } from '../src/v1/resident-memory';
+import { sessionHabits } from '../src/v1/session-habits';
+import { learnedPlaceCost, learnWork } from '../src/v1/strategy-learning';
+import {
+  acceptWorkOrder,
+  finishWorkOrder,
+  orderDemand,
+  orderQuote,
+  orderTurn,
+  reservedFor
+} from '../src/v1/work-orders';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 
@@ -159,9 +166,9 @@ for (const confirmed of [true, false])
   });
 
 test('a natural session break reaches a real stopping place and saves the next login before ending', async () => {
-  const { enableSessionHabits } = await import('../src/resident-context');
-  const { serviceLocations } = await import('../src/locations');
-  const { SessionBreak, sessionBreakTurn } = await import('../src/session-habits');
+  const { enableSessionHabits } = await import('../src/v1/resident-context');
+  const { serviceLocations } = await import('../src/v1/locations');
+  const { SessionBreak, sessionBreakTurn } = await import('../src/v1/session-habits');
   const f = supplier();
   const bank = required(serviceLocations('Britain', 'banker')[0]);
   f.world.position = { ...required(f.world.position), ...bank };
@@ -178,8 +185,8 @@ test('a natural session break reaches a real stopping place and saves the next l
 });
 
 test('a due session break is deferred for a customer order or death', async () => {
-  const { enableSessionHabits } = await import('../src/resident-context');
-  const { sessionBreakTurn } = await import('../src/session-habits');
+  const { enableSessionHabits } = await import('../src/v1/resident-context');
+  const { sessionBreakTurn } = await import('../src/v1/session-habits');
   const f = supplier();
   enableSessionHabits(f.session);
   const habits = sessionHabits(f.checkpoint, 1);

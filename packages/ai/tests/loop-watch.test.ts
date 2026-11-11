@@ -2,13 +2,20 @@ import { expect, spyOn, test } from 'bun:test';
 
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { urgentAction } from '../src/action-purpose';
-import { Blocked, blockedReason } from '../src/blocked';
-import { coreStale, sideWorkAllowed } from '../src/day-plan';
 import { setDebug } from '../src/debug';
-import { checkLoop, forcedToWork, lastCoreProgressAt, noteNavigationStep, Stuck, watchStep } from '../src/loop-watch';
-import { chooseGoal, registerGoal } from '../src/resident-goal';
-import { tally, workEvidence } from '../src/work-evidence';
+import { urgentAction } from '../src/v1/action-purpose';
+import { Blocked, blockedReason } from '../src/v1/blocked';
+import { coreStale, sideWorkAllowed } from '../src/v1/day-plan';
+import {
+  checkLoop,
+  forcedToWork,
+  lastCoreProgressAt,
+  noteNavigationStep,
+  Stuck,
+  watchStep
+} from '../src/v1/loop-watch';
+import { chooseGoal, registerGoal } from '../src/v1/resident-goal';
+import { tally, workEvidence } from '../src/v1/work-evidence';
 import { behaviorFixture, required } from './behavior-fixture';
 
 function withClock(run: (advance: (ms: number) => void) => Promise<void> | void) {

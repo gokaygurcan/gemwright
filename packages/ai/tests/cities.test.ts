@@ -1,12 +1,12 @@
 import { afterEach, expect, test } from 'bun:test';
 
-import { Blocked } from '../src/blocked';
-import { groundFits, grounds } from '../src/cemeteries';
-import type { FighterContext } from '../src/fighter-context';
-import { moongates, nearestGate } from '../src/gates';
-import { travelByMoongate } from '../src/moongate';
-import { tamingSpot } from '../src/tamer-grounds';
-import { useCities } from '../src/world';
+import { Blocked } from '../src/v1/blocked';
+import { groundFits, grounds } from '../src/v1/cemeteries';
+import type { FighterContext } from '../src/v1/fighter-context';
+import { moongates, nearestGate } from '../src/v1/gates';
+import { travelByMoongate } from '../src/v1/moongate';
+import { tamingSpot } from '../src/v1/tamer-grounds';
+import { useCities } from '../src/v1/world';
 import { behaviorFixture } from './behavior-fixture';
 import { useTestWorld } from './world-fixture';
 

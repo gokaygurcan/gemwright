@@ -3,20 +3,20 @@ import { expect, test } from 'bun:test';
 import { PlayerSession } from '@gemwright/network/session';
 
 import { mockShard } from '../../network/tests/mock-shard';
-import { DangerInterrupt, InteractionInterrupt } from '../src/action-errors';
-import { takingUrgentAction } from '../src/action-purpose';
-import { interruptForDanger } from '../src/danger-response';
+import { runtimeMetrics } from '../src/telemetry-metrics';
+import { DangerInterrupt, InteractionInterrupt } from '../src/v1/action-errors';
+import { takingUrgentAction } from '../src/v1/action-purpose';
+import { interruptForDanger } from '../src/v1/danger-response';
 import {
   actionScope,
   executionFor,
   independentAction,
   installExecution,
   reserveInteraction
-} from '../src/execution-session';
-import { registerLifeEvents } from '../src/life-events';
-import { startPerception } from '../src/perception-session';
-import { runtimeMetrics } from '../src/telemetry-metrics';
-import { observePerception } from '../src/telemetry-perception';
+} from '../src/v1/execution-session';
+import { registerLifeEvents } from '../src/v1/life-events';
+import { startPerception } from '../src/v1/perception-session';
+import { observePerception } from '../src/v1/telemetry-perception';
 
 async function fixture(options: Parameters<typeof mockShard>[0] = {}) {
   const shard = await mockShard(options);
@@ -226,13 +226,13 @@ test('continuing attack observations do not cancel a target owned by the safety 
 
 test('an explicit plan is correlated with execution and interrupted without claiming completion', async () => {
   const { session, shard, close } = await fixture();
-  const { chooseGoal } = await import('../src/resident-goal');
-  const { bindIntent } = await import('../src/execution-session');
-  const { registerLifeEvents } = await import('../src/life-events');
-  const events: import('../src/life-events').LifeEvent[] = [];
+  const { chooseGoal } = await import('../src/v1/resident-goal');
+  const { bindIntent } = await import('../src/v1/execution-session');
+  const { registerLifeEvents } = await import('../src/v1/life-events');
+  const events: import('../src/v1/life-events').LifeEvent[] = [];
   registerLifeEvents(session, 'test-resident', 'Test resident', (event) => events.push(event));
-  const checkpoint: import('../src/store').Checkpoint = { goal: null, memories: [], relationships: {} };
-  const situation: import('../src/resident-goal').GoalSituation = {
+  const checkpoint: import('../src/v1/store').Checkpoint = { goal: null, memories: [], relationships: {} };
+  const situation: import('../src/v1/resident-goal').GoalSituation = {
     safe: true,
     ready: true,
     learning: false,
@@ -270,9 +270,9 @@ test('an explicit plan is correlated with execution and interrupted without clai
 
 test('death updates calibrated plan memory from the server event without waiting for another work turn', async () => {
   const { session, shard, close } = await fixture();
-  const { chooseGoal, registerGoal } = await import('../src/resident-goal');
-  const checkpoint: import('../src/store').Checkpoint = { goal: null, memories: [], relationships: {} };
-  const state: import('../src/resident-goal').GoalSituation = {
+  const { chooseGoal, registerGoal } = await import('../src/v1/resident-goal');
+  const checkpoint: import('../src/v1/store').Checkpoint = { goal: null, memories: [], relationships: {} };
+  const state: import('../src/v1/resident-goal').GoalSituation = {
     safe: true,
     ready: true,
     learning: false,
@@ -312,11 +312,11 @@ test('death updates calibrated plan memory from the server event without waiting
 
 test('changed, blocked and expired intents stop work commands while explicit recovery can still act', async () => {
   const { session, close } = await fixture();
-  const { chooseGoal, registerGoal, blockGoal } = await import('../src/resident-goal');
-  const { bindIntent } = await import('../src/execution-session');
-  const { ActionInterrupted } = await import('../src/action-errors');
-  const checkpoint: import('../src/store').Checkpoint = { goal: null, memories: [], relationships: {} };
-  const state: import('../src/resident-goal').GoalSituation = {
+  const { chooseGoal, registerGoal, blockGoal } = await import('../src/v1/resident-goal');
+  const { bindIntent } = await import('../src/v1/execution-session');
+  const { ActionInterrupted } = await import('../src/v1/action-errors');
+  const checkpoint: import('../src/v1/store').Checkpoint = { goal: null, memories: [], relationships: {} };
+  const state: import('../src/v1/resident-goal').GoalSituation = {
     safe: true,
     ready: true,
     learning: false,

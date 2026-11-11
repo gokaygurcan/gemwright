@@ -3,8 +3,8 @@ import { expect, test } from 'bun:test';
 import type { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
-import { outgrewYoung } from '../src/progression';
-import { desiredLock } from '../src/stat-locks';
+import { outgrewYoung } from '../src/v1/progression';
+import { desiredLock } from '../src/v1/stat-locks';
 
 test('stats rise below the archetype target, hold at it and fall above it', () => {
   expect(desiredLock(60, 100)).toBe(0);

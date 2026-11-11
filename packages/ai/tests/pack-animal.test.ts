@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import type { MountContext } from '../src/mount-types';
-import { createPackAnimal } from '../src/pack-animal';
+import type { MountContext } from '../src/v1/mount-types';
+import { createPackAnimal } from '../src/v1/pack-animal';
 import { behaviorFixture, required } from './behavior-fixture';
 
 function fixture() {

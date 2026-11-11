@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { combatPosition, positionScore } from '../src/combat-position';
-import { ammoFor, weaponsFor } from '../src/fighter-context';
-import { residentNeeds } from '../src/needs';
-import { equippedRanged, rangedWeapon, shootingWindow } from '../src/ranged-weapons';
+import { combatPosition, positionScore } from '../src/v1/combat-position';
+import { ammoFor, weaponsFor } from '../src/v1/fighter-context';
+import { residentNeeds } from '../src/v1/needs';
+import { equippedRanged, rangedWeapon, shootingWindow } from '../src/v1/ranged-weapons';
 import { behaviorFixture, required } from './behavior-fixture';
 
 for (const [ids, ammo, range] of [

@@ -15,7 +15,23 @@ for (const hang of [false, true])
           if (template.id === 'britain-miner') template.creation.cities = { Britain: 1 };
         }
         const timeout = globalThis.setTimeout;
-        globalThis.setTimeout = (fn, ms, ...args) => timeout(fn, ms === 30000 ? 30 : ms, ...args);
+        const clear = globalThis.clearTimeout;
+        let watchdog;
+        let expire;
+        let cancelled = false;
+        globalThis.setTimeout = (fn, ms, ...args) => {
+          const timer = timeout(fn, ms, ...args);
+          if (ms === 30000) {
+            watchdog = timer;
+            expire = () => fn(...args);
+            console.log('watchdog armed: ' + ms);
+          }
+          return timer;
+        };
+        globalThis.clearTimeout = (timer) => {
+          if (timer === watchdog) cancelled = true;
+          clear(timer);
+        };
         await withRuntime({
           dbPath: ${JSON.stringify(join(directory, 'residents.sqlite'))},
           population,
@@ -24,12 +40,18 @@ for (const hang of [false, true])
           const stopped = new Promise(resolve => shared.signal.addEventListener('abort', resolve, { once: true }));
           process.kill(process.pid, 'SIGTERM');
           await stopped;
-          ${hang ? 'await new Promise(() => {});' : ''}
+          if (!expire) throw new Error('Shutdown watchdog was not armed');
+          ${hang ? 'queueMicrotask(expire); await new Promise(() => {});' : ''}
         });
+        if (!cancelled) throw new Error('Shutdown watchdog was not cancelled');
       `;
       const child = Bun.spawn([process.execPath, '-e', script], { stdout: 'pipe', stderr: 'pipe' });
-      const [code, errors] = await Promise.all([child.exited, new Response(child.stderr).text()]);
-      if (code !== (hang ? 1 : 0)) console.log('CHILD', code, errors.slice(-1500));
+      const [code, output, errors] = await Promise.all([
+        child.exited,
+        new Response(child.stdout).text(),
+        new Response(child.stderr).text()
+      ]);
+      expect(output.trim()).toBe('watchdog armed: 30000');
       expect(code).toBe(hang ? 1 : 0);
       expect(errors.includes('exiting for supervisor recovery')).toBe(hang);
     } finally {

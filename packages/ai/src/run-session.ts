@@ -5,46 +5,49 @@ import type { ConnectionConfig } from '@gemwright/network/connection';
 import { Layer } from '@gemwright/network/layers';
 import { PlayerSession } from '@gemwright/network/session';
 
-import { SESSION_BREAK } from './action-errors';
-import { runBard } from './bard';
-import { superviseBehavior } from './behavior-supervisor';
-import { registerChaos } from './chaos';
-import type { PopulationConfig } from './config';
-import { connectionAdmission } from './connection-admission';
-import { runAlchemist, runBowyer } from './crafter';
-import { creationRequest } from './creation-request';
-import { residentCredentials } from './credentials';
-import { type DecisionConfig, inModelShare } from './decision-provider';
-import { DecisionCoordinator } from './decisions';
-import { runFighter } from './fighter';
-import { runFisher } from './fisher';
-import { registerCheckpoint } from './gm';
-import { watchForGuards } from './guards';
-import { LIFE_GOAL } from './life-goal';
 import { logger } from './log';
-import { runLumberjack } from './lumberjack';
-import { runMiner } from './miner';
-import type { RuntimeOwnership } from './ownership';
 import { recordDecision, recordSession } from './recording';
-import { enableSessionHabits } from './resident-context';
-import { withRuntime } from './runtime';
-import { registerDurability } from './session-durability';
-import { SessionBreak } from './session-habits';
-import { recordSkills } from './skill-snapshots';
-import { maintainLocks } from './stat-locks';
-import type { Resident, ResidentStore } from './store';
 import { emitEvent, inSession, makeEvent } from './telemetry';
+import { SESSION_BREAK } from './v1/action-errors';
+import { runBard } from './v1/bard';
+import { superviseBehavior } from './v1/behavior-supervisor';
+import { registerChaos } from './v1/chaos';
+import type { PopulationConfig } from './v1/config';
+import { connectionAdmission } from './v1/connection-admission';
+import { runAlchemist, runBowyer } from './v1/crafter';
+import { creationRequest } from './v1/creation-request';
+import { residentCredentials } from './v1/credentials';
+import { type DecisionConfig, inModelShare } from './v1/decision-provider';
+import { DecisionCoordinator } from './v1/decisions';
+import { runFighter } from './v1/fighter';
+import { runFisher } from './v1/fisher';
+import { registerCheckpoint } from './v1/gm';
+import { watchForGuards } from './v1/guards';
+import { LIFE_GOAL } from './v1/life-goal';
+import { runLumberjack } from './v1/lumberjack';
+import { runMiner } from './v1/miner';
+import type { RuntimeOwnership } from './v1/ownership';
+import { enableSessionHabits } from './v1/resident-context';
+import { withRuntime } from './v1/runtime';
+import { registerDurability } from './v1/session-durability';
+import { SessionBreak } from './v1/session-habits';
+import { recordSkills } from './v1/skill-snapshots';
+import { maintainLocks } from './v1/stat-locks';
+import type { Resident, ResidentStore } from './v1/store';
 
-export { withRuntime } from './runtime';
+export { withRuntime } from './v1/runtime';
 
+import { skillId, skillNames } from '@gemwright/common/game/skills';
 import { Opcode } from '@gemwright/network/opcodes';
 
-import { runTailor } from './tailor';
-import { runTamer } from './tamer';
-import { personalTemplate } from './temperament';
-import { runThief } from './thief';
-import { guardTrades } from './trade-guard';
-import { miningTools } from './vendor-catalog';
+import { runTailor } from './v1/tailor';
+import { runTamer } from './v1/tamer';
+import { personalTemplate } from './v1/temperament';
+import { runThief } from './v1/thief';
+import { guardTrades } from './v1/trade-guard';
+import { miningTools } from './v1/vendor-catalog';
+import { historyAt } from './v2/history';
+import { act, shadow } from './v2/shadow';
 
 async function exercise(session: PlayerSession) {
   const before = { ...session.world.position };
@@ -128,6 +131,10 @@ export interface ResidentOptions {
   };
   decisionConfig?: DecisionConfig;
   naturalSessions?: boolean;
+  // The v2 mind watches beside v1 (online.json `mind: "shadow"`): it perceives and records, never acts.
+  shadow?: boolean;
+  // The v2 mind lives it instead of v1 (online.json `mind: "v2"`).
+  v2?: boolean;
 }
 
 // Shared by every resident a runtime drives: one store, one shard lease, one stop signal.
@@ -136,8 +143,9 @@ export interface RuntimeShared {
   signal: AbortSignal;
   ownership: RuntimeOwnership;
   stopping: () => boolean;
-  // The resident's current session, so a shutdown or lost lease can close it.
-  track: (residentId: string, session: PlayerSession | null) => void;
+  // The resident's current session, so a shutdown or lost lease can close it. v1's command arbiter
+  // (its danger interrupts) is left out of a session the v2 mind lives.
+  track: (residentId: string, session: PlayerSession | null, v2?: boolean) => void;
 }
 
 export async function runResident(shared: RuntimeShared, options: ResidentOptions, residentId: string) {
@@ -205,13 +213,17 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         recordSession(session, residentId);
         registerDurability(session, flush);
         runtime.session = session;
-        shared.track(residentId, session);
+        shared.track(residentId, session, options.v2);
         return inSession(session, async () => {
           await session.connect(credentials, creationRequest(store, resident, options.create));
-          guardTrades(session);
-          if (options.naturalSessions) enableSessionHabits(session);
-          const policy = store.template(resident.templateId, resident.policyVersion);
-          if (policy) registerChaos(session, policy);
+          // v1's own habits and reflexes (trade guard, session habits with their danger interrupts,
+          // chaos, shouting for guards) are left out of a resident the v2 mind lives.
+          if (!options.v2) {
+            guardTrades(session);
+            if (options.naturalSessions) enableSessionHabits(session);
+            const policy = store.template(resident.templateId, resident.policyVersion);
+            if (policy) registerChaos(session, policy);
+          }
           const serial = session.world.serial;
           if (serial === null) throw new Error('Server did not identify the character');
           if (resident.binding && resident.binding.characterSerial !== String(serial))
@@ -225,9 +237,10 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
           // Bolder residents are the ones who shout for the guards (guards.ts).
           const boldness =
             0.3 + 0.6 * (store.template(resident.templateId, resident.policyVersion)?.behavior.riskTolerance ?? 0.5);
-          watchForGuards(session, boldness, (line) =>
-            logger('run-session').info(`[guards:${resident.proposedName}] ${line}`)
-          );
+          if (!options.v2)
+            watchForGuards(session, boldness, (line) =>
+              logger('run-session').info(`[guards:${resident.proposedName}] ${line}`)
+            );
           return session;
         });
       }, shared.signal);
@@ -259,7 +272,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
     if (options.minerAssets || options.fighterAssets || options.lumberjackAssets || options.profession) {
       const totals: Record<string, number> = {};
       const behave = async (session: PlayerSession, seconds: number) => {
-        if (options.naturalSessions) enableSessionHabits(session);
+        if (options.naturalSessions && !options.v2) enableSessionHabits(session);
         registerCheckpoint(session, resident.checkpoint);
         const peers = new Map(
           store
@@ -359,8 +372,22 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
         run: async (session, seconds) =>
           inSession(session, async () => {
             // Every character steers its stat and skill locks toward its build for the whole run.
+            if (options.v2) {
+              const until = Date.now() + seconds * 1000;
+              await act(
+                session,
+                resident.id,
+                historyAt(join(dataDirectory, 'history.sqlite')),
+                () => stopping() || Date.now() > until,
+                (template.archetype?.primarySkills ?? []).map((skill) => skillNames[skillId(skill)] ?? skill)
+              );
+              return 'stopped';
+            }
             const releaseLocks = template.archetype
               ? maintainLocks(session, template.archetype, Object.keys(template.behavior.trainingGoals))
+              : () => {};
+            const stopShadow = options.shadow
+              ? shadow(session, resident.id, historyAt(join(dataDirectory, 'history.sqlite')))
               : () => {};
             try {
               return await behave(session, seconds);
@@ -368,6 +395,7 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
               if (error instanceof SessionBreak) return SESSION_BREAK;
               throw error;
             } finally {
+              stopShadow();
               releaseLocks();
             }
           })

@@ -10,6 +10,7 @@ import { type GeometrySnapshot, houseBarriers } from './geometry';
 import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';
 import { RouteSearch, routeSeed } from './path-search';
+import { WorkIndex } from './terrain-work';
 import { deadlyCells, troubleCells } from './trouble';
 import { tuning } from './tuning';
 
@@ -25,6 +26,7 @@ export interface Point {
   y: number;
   z: number;
 }
+export type WorkTile = Point & { land?: number; id?: number };
 const directions = [
   [0, -1],
   [1, -1],
@@ -43,6 +45,7 @@ export interface TerrainBuffers {
   tiles: SharedArrayBuffer;
 }
 export class Terrain {
+  private workIndex?: WorkIndex;
   readonly geometry?: GeometrySnapshot;
   private readonly tileCache = new Map<number, Tile>();
   private kinds?: Uint8Array;
@@ -179,6 +182,21 @@ export class Terrain {
   }
   kind(x: number, y: number): LandKind {
     return this.landKind(this.cell(x, y).land.id);
+  }
+
+  findTiles(tiles: { land: number[]; statics: number[] }): Iterable<WorkTile> {
+    this.workIndex ??= new WorkIndex(this.map, this.index, this.statics);
+    return this.workIndex.find(tiles);
+  }
+
+  bestTiles(
+    tiles: { land: number[]; statics: number[] },
+    origin: Point,
+    score: (point: WorkTile) => number,
+    upper: (kind: Pick<WorkTile, 'id' | 'land'>, distance: number) => number
+  ): WorkTile[] {
+    this.workIndex ??= new WorkIndex(this.map, this.index, this.statics);
+    return this.workIndex.best(tiles, origin, score, upper);
   }
 
   findStatics(ids: ReadonlySet<number>, origin: Point, radius: number): (Point & { id: number })[] {

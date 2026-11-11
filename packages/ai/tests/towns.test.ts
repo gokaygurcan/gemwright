@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { absence } from '../src/absence';
-import { HAVEN_CITY } from '../src/haven';
-import { allServiceLocations } from '../src/locations';
-import { townFor } from '../src/towns';
+import { absence } from '../src/v1/absence';
+import { HAVEN_CITY } from '../src/v1/haven';
+import { allServiceLocations } from '../src/v1/locations';
+import { townFor } from '../src/v1/towns';
 import { behaviorFixture } from './behavior-fixture';
 import { useTestWorld } from './world-fixture';
 

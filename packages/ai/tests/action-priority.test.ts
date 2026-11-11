@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import { canPause, recentlyHurt, urgentAction } from '../src/action-purpose';
-import { consider, engagedWith, holdWhileEngaged } from '../src/engagement';
-import { createNavigator } from '../src/navigation';
+import { canPause, recentlyHurt, urgentAction } from '../src/v1/action-purpose';
+import { consider, engagedWith, holdWhileEngaged } from '../src/v1/engagement';
+import { createNavigator } from '../src/v1/navigation';
 import { behaviorFixture, required } from './behavior-fixture';
 
 test('escape breaks an existing conversation and cannot be held by another question', async () => {

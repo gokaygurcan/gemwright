@@ -3,16 +3,16 @@ import { parseArgs } from 'node:util';
 
 import { validateConnection } from '@gemwright/network/connection';
 
-import { archetypes } from './archetypes';
-import { allocatePopulation, validateConfig } from './config';
-import { validateDecisionConfig } from './decision-provider';
-import { decisionReport, mergeDecisionMemory } from './decisions';
-import { dungeonReport } from './dungeon-report';
-import { enablePhrasing } from './phrasing';
 import { runPopulation } from './run-population';
 import { runSession } from './run-session';
-import { checkProvisioning, loadShardProfile } from './shard-profile';
-import { ResidentStore } from './store';
+import { archetypes } from './v1/archetypes';
+import { allocatePopulation, validateConfig } from './v1/config';
+import { validateDecisionConfig } from './v1/decision-provider';
+import { decisionReport, mergeDecisionMemory } from './v1/decisions';
+import { dungeonReport } from './v1/dungeon-report';
+import { enablePhrasing } from './v1/phrasing';
+import { checkProvisioning, loadShardProfile } from './v1/shard-profile';
+import { ResidentStore } from './v1/store';
 
 const help = `Gemwright AI runtime and headless player sessions
 

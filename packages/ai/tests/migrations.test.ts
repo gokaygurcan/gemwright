@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { CHECKPOINT_VERSION, migrateCheckpoint } from '../src/checkpoint-migrations';
+import { CHECKPOINT_VERSION, migrateCheckpoint } from '../src/v1/checkpoint-migrations';
 
 test('version 1 checkpoints are normalized and stamped', () => {
   const migrated = migrateCheckpoint({

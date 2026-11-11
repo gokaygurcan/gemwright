@@ -2,12 +2,12 @@ import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/game/skills';
 
-import { chargedPurchase } from '../src/bank-gold';
-import { type GoalActions, residentTurn } from '../src/goal-turn';
-import { lifeTurn } from '../src/life';
-import type { ProfessionContext } from '../src/profession';
-import { blockGoal, goalAllows, goalControlled, goalPermission } from '../src/resident-goal';
-import { tally } from '../src/work-evidence';
+import { chargedPurchase } from '../src/v1/bank-gold';
+import { type GoalActions, residentTurn } from '../src/v1/goal-turn';
+import { lifeTurn } from '../src/v1/life';
+import type { ProfessionContext } from '../src/v1/profession';
+import { blockGoal, goalAllows, goalControlled, goalPermission } from '../src/v1/resident-goal';
+import { tally } from '../src/v1/work-evidence';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 import { useTestWorld } from './world-fixture';

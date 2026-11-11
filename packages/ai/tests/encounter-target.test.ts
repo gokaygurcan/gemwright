@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test';
 import type { Entity } from '@gemwright/network/world';
 import { WorldView } from '@gemwright/network/world';
 
-import { encounterTarget } from '../src/encounter-target';
+import { encounterTarget } from '../src/v1/encounter-target';
 
 const mobile = (serial: number, x: number): Entity => ({
   serial,

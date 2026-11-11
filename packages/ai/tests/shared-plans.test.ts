@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { canPause, urgentAction } from '../src/action-purpose';
-import { commitmentConversation, commitmentTurn } from '../src/commitments';
-import { companionInitiative } from '../src/companion-initiative';
-import { registerCombat } from '../src/resident-context';
-import { personalMemory, rememberPartner } from '../src/resident-memory';
-import { hearPlanControl, planStopsFight, sharedPlanTurn } from '../src/shared-plans';
+import { canPause, urgentAction } from '../src/v1/action-purpose';
+import { commitmentConversation, commitmentTurn } from '../src/v1/commitments';
+import { companionInitiative } from '../src/v1/companion-initiative';
+import { registerCombat } from '../src/v1/resident-context';
+import { personalMemory, rememberPartner } from '../src/v1/resident-memory';
+import { hearPlanControl, planStopsFight, sharedPlanTurn } from '../src/v1/shared-plans';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

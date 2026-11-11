@@ -2,11 +2,11 @@ import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/game/skills';
 
-import { bulkOrderTurn } from '../src/bulk-orders';
-import { residentTurn } from '../src/goal-turn';
-import { minerBulkOrder } from '../src/miner-bulk-orders';
-import { blacksmithing } from '../src/miner-crafting';
-import type { ProfessionContext } from '../src/profession';
+import { bulkOrderTurn } from '../src/v1/bulk-orders';
+import { residentTurn } from '../src/v1/goal-turn';
+import { minerBulkOrder } from '../src/v1/miner-bulk-orders';
+import { blacksmithing } from '../src/v1/miner-crafting';
+import type { ProfessionContext } from '../src/v1/profession';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

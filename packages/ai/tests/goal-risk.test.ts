@@ -2,12 +2,12 @@ import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/game/skills';
 
-import { proposeGoals, riskBudget, workDeathRisk } from '../src/goal-policy';
-import { type GoalActions, goalSituation, residentTurn } from '../src/goal-turn';
-import { rememberPlan } from '../src/plan-memory';
-import type { ProfessionContext } from '../src/profession';
-import { chooseGoal, type GoalSituation } from '../src/resident-goal';
-import type { Checkpoint } from '../src/store';
+import { proposeGoals, riskBudget, workDeathRisk } from '../src/v1/goal-policy';
+import { type GoalActions, goalSituation, residentTurn } from '../src/v1/goal-turn';
+import { rememberPlan } from '../src/v1/plan-memory';
+import type { ProfessionContext } from '../src/v1/profession';
+import { chooseGoal, type GoalSituation } from '../src/v1/resident-goal';
+import type { Checkpoint } from '../src/v1/store';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 import { useTestWorld } from './world-fixture';

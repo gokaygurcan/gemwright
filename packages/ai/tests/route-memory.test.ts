@@ -1,6 +1,6 @@
 import { expect, spyOn, test } from 'bun:test';
 
-import { rejectedSteps, rememberRejectedStep } from '../src/route-memory';
+import { rejectedSteps, rememberRejectedStep } from '../src/v1/route-memory';
 import { behaviorFixture, required } from './behavior-fixture';
 
 const at = { x: 101, y: 100, z: 0 };

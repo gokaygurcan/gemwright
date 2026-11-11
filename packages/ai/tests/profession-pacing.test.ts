@@ -1,7 +1,7 @@
 import { expect, spyOn, test } from 'bun:test';
 
-import { runProfession } from '../src/profession';
 import { Terrain } from '../src/terrain';
+import { runProfession } from '../src/v1/profession';
 import { socialFixture } from './social-fixture';
 
 test('a shared plan that consumes a turn without progress cannot spin the profession loop', async () => {

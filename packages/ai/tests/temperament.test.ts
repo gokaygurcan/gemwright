@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { validateConfig } from '../src/config';
-import { personalTemplate, temperamentOf } from '../src/temperament';
+import { validateConfig } from '../src/v1/config';
+import { personalTemplate, temperamentOf } from '../src/v1/temperament';
 import example from '../templates/population.example.json';
 
 test('temperament is stable per resident and differs between residents', () => {

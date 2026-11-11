@@ -1,6 +1,7 @@
 import { Worker } from 'node:worker_threads';
 
 import type { RouteRequest, RouteResult } from './path-search';
+import { workerEntry } from './paths';
 import type { Corridor } from './route-waypoints';
 import { timed } from './stall-probe';
 import type { TerrainBuffers } from './terrain';
@@ -61,12 +62,9 @@ export class PathPool {
   };
   constructor(directory: string, facet: number, size = 2, buffers?: TerrainBuffers) {
     for (let index = 0; index < size; index++) {
-      const worker = new Worker(
-        new URL(`./path-worker${import.meta.url.endsWith('.ts') ? '.ts' : '.js'}`, import.meta.url),
-        {
-          workerData: { directory, facet, buffers, corridors: PathPool.corridors }
-        }
-      );
+      const worker = new Worker(workerEntry('path-worker'), {
+        workerData: { directory, facet, buffers, corridors: PathPool.corridors }
+      });
       const slot: Slot = { worker };
       this.slots.push(slot);
       worker.on('message', (message: { id: number; result?: RouteResult; error?: string }) =>

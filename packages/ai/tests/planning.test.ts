@@ -2,13 +2,13 @@ import { expect, test } from 'bun:test';
 
 import { skillId } from '@gemwright/common/game/skills';
 
-import { type CombatCapability, comparableCapability } from '../src/combat-capability';
-import { encounterAdvice, rememberExperience } from '../src/experience';
-import { proposeGoals, riskBudget, selectGoal } from '../src/goal-policy';
-import { planningCondition } from '../src/intent';
-import { planAdvice } from '../src/plan-memory';
-import { blockGoal, chooseGoal, type GoalSituation, goalAllows, goalPermission } from '../src/resident-goal';
-import type { Checkpoint } from '../src/store';
+import { type CombatCapability, comparableCapability } from '../src/v1/combat-capability';
+import { encounterAdvice, rememberExperience } from '../src/v1/experience';
+import { proposeGoals, riskBudget, selectGoal } from '../src/v1/goal-policy';
+import { planningCondition } from '../src/v1/intent';
+import { planAdvice } from '../src/v1/plan-memory';
+import { blockGoal, chooseGoal, type GoalSituation, goalAllows, goalPermission } from '../src/v1/resident-goal';
+import type { Checkpoint } from '../src/v1/store';
 import { behaviorFixture, required } from './behavior-fixture';
 
 const now = 1_000_000_000;

@@ -3,15 +3,15 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { validateConfig } from '../src/config';
+import { validateConfig } from '../src/v1/config';
 import {
   bandageAdvice,
   encounterAdvice,
   reconcileExperience,
   rememberExperience,
   serviceAdvice
-} from '../src/experience';
-import { type Checkpoint, ResidentStore } from '../src/store';
+} from '../src/v1/experience';
+import { type Checkpoint, ResidentStore } from '../src/v1/store';
 import example from '../templates/population.example.json';
 
 const now = 1_000_000_000;

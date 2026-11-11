@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 
+import { packageRoot } from './paths';
+
 // How far a resident walks to a place before taking the gate instead. One value, one place.
 export const WALKING_LIMIT = 300;
 
@@ -16,4 +18,4 @@ interface Tuning {
     repeatFactor: number;
   };
 }
-export const tuning = JSON.parse(readFileSync(new URL('../tuning.json', import.meta.url), 'utf8')) as Tuning;
+export const tuning = JSON.parse(readFileSync(new URL('tuning.json', packageRoot), 'utf8')) as Tuning;

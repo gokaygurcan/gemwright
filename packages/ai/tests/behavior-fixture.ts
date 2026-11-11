@@ -1,10 +1,10 @@
 import { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
-import type { CharacterTemplate } from '../src/config';
-import type { LifeContext } from '../src/life';
-import type { Checkpoint } from '../src/store';
 import type { Terrain } from '../src/terrain';
+import type { CharacterTemplate } from '../src/v1/config';
+import type { LifeContext } from '../src/v1/life';
+import type { Checkpoint } from '../src/v1/store';
 
 export function behaviorFixture(profession = 'tailor') {
   const world = new WorldView();

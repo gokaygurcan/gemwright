@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { atSmithingStation, rejectSmithingStation } from '../src/smithing-stations';
+import { atSmithingStation, rejectSmithingStation } from '../src/v1/smithing-stations';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 

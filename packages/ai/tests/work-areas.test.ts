@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test';
 
 // The cemetery list resolves each ground's gate at load; loading it first keeps the
 // moongate/cemetery import cycle in its production order (see cemeteries.ts).
-import '../src/cemeteries';
-import { forgeSites, serviceLocations } from '../src/locations';
-import { workArea } from '../src/work-areas';
+import '../src/v1/cemeteries';
+import { forgeSites, serviceLocations } from '../src/v1/locations';
+import { workArea } from '../src/v1/work-areas';
 import { useTestWorld } from './world-fixture';
 
 useTestWorld();

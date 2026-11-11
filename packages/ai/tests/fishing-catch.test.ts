@@ -3,9 +3,9 @@ import { expect, test } from 'bun:test';
 import { fish } from '@gemwright/common/game/items';
 import { Layer } from '@gemwright/network/layers';
 
-import { fishingFootwear, sellFishingCatch } from '../src/fishing-catch';
-import { serviceLocations } from '../src/locations';
-import type { ProfessionContext } from '../src/profession';
+import { fishingFootwear, sellFishingCatch } from '../src/v1/fishing-catch';
+import { serviceLocations } from '../src/v1/locations';
+import type { ProfessionContext } from '../src/v1/profession';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 import { useTestWorld } from './world-fixture';

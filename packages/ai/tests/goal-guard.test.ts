@@ -1,9 +1,9 @@
 import { expect, spyOn, test } from 'bun:test';
 
-import { urgentAction } from '../src/action-purpose';
-import { checkLoop, Stuck, watchStep } from '../src/loop-watch';
-import { chooseGoal, leaseGoal, registerGoal } from '../src/resident-goal';
-import { workEvidence } from '../src/work-evidence';
+import { urgentAction } from '../src/v1/action-purpose';
+import { checkLoop, Stuck, watchStep } from '../src/v1/loop-watch';
+import { chooseGoal, leaseGoal, registerGoal } from '../src/v1/resident-goal';
+import { workEvidence } from '../src/v1/work-evidence';
 import { behaviorFixture, required } from './behavior-fixture';
 
 test('movement, losses and inventory churn cannot defer the idle guard', () => {
@@ -57,7 +57,7 @@ test('an expired plan interrupts once, clears its lease, and allows setback reco
 });
 
 test('idle travel failure is scoped to its route even when the activity phase is not named travel', async () => {
-  const { recordLifeAction } = await import('../src/life-events');
+  const { recordLifeAction } = await import('../src/v1/life-events');
   let now = 4_000_000;
   const clock = spyOn(Date, 'now').mockImplementation(() => now);
   try {

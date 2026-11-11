@@ -51,7 +51,7 @@ for (const unknownBank of [false, true])
       const result = Bun.spawnSync(
         [
           process.execPath,
-          new URL('../src/progress-report.ts', import.meta.url).pathname,
+          new URL('../src/v1/progress-report.ts', import.meta.url).pathname,
           '--db',
           after,
           '--before',

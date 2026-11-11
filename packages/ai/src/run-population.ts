@@ -1,14 +1,14 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { loopLag } from './activity';
-import { decisionReport } from './decisions';
 import { logger } from './log';
 import { startRecording } from './recording';
 import { type ResidentOptions, runResident, withRuntime } from './run-session';
-import { onlineResidents } from './store';
 import { inTrace } from './telemetry';
-import { temperamentOf } from './temperament';
+import { loopLag } from './v1/activity';
+import { decisionReport } from './v1/decisions';
+import { onlineResidents } from './v1/store';
+import { temperamentOf } from './v1/temperament';
 
 // Runs every desired-active resident in this one process under the single shard lease. Logins are
 // staggered as real players arrive at different times; each resident has its own session,
@@ -90,6 +90,8 @@ export async function runPopulation(
               exercise: false,
               reconnect: false,
               naturalSessions,
+              shadow: online?.get(resident.id)?.shadow === true,
+              v2: online?.get(resident.id)?.v2 === true,
               ...(profession
                 ? { profession: { behavior: profession, assets: options.assets } }
                 : { [`${role}Assets`]: options.assets })

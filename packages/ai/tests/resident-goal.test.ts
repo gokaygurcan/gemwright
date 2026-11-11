@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import { blockGoal, chooseGoal, type GoalSituation, type ResidentGoal } from '../src/resident-goal';
-import type { Checkpoint } from '../src/store';
-import { positiveProgress, tally, type WorkEvidence, workEvidence } from '../src/work-evidence';
+import { blockGoal, chooseGoal, type GoalSituation, type ResidentGoal } from '../src/v1/resident-goal';
+import type { Checkpoint } from '../src/v1/store';
+import { positiveProgress, tally, type WorkEvidence, workEvidence } from '../src/v1/work-evidence';
 import { behaviorFixture, required } from './behavior-fixture';
 
 const evidence = (): WorkEvidence => ({

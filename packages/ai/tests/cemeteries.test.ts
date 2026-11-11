@@ -1,13 +1,13 @@
 import { expect, setSystemTime, test } from 'bun:test';
 
-import { nextGround, travelToGround } from '../src/cemeteries';
-import type { FighterContext } from '../src/fighter-context';
+import { nextGround, travelToGround } from '../src/v1/cemeteries';
+import type { FighterContext } from '../src/v1/fighter-context';
 import { useTestWorld } from './world-fixture';
 
 useTestWorld();
 
 test('a fighter moves on to grounds its skills meet: graveyards early, ogres and trolls later', async () => {
-  const { grounds } = await import('../src/cemeteries');
+  const { grounds } = await import('../src/v1/cemeteries');
   const { skillId } = await import('@gemwright/common/game/skills');
   const fighter = (swords: number) =>
     ({
@@ -112,7 +112,7 @@ test('a fighter not ready for the ettins there does not hunt among the mongbats 
 });
 
 test("the shard's own spawners decide what lives in a cemetery", async () => {
-  const { cemeteries, grounds, useShardSpawns } = await import('../src/cemeteries');
+  const { cemeteries, grounds, useShardSpawns } = await import('../src/v1/cemeteries');
   const { parseSpawners } = await import('../src/spawns');
   const spawners = parseSpawners(
     '<Points><Name>Graveyards#0</Name><Map>Trammel</Map><CentreX>1369</CentreX><CentreY>1475</CentreY>' +
@@ -146,8 +146,8 @@ test('a fighter set on a ground it is not ready for, from before, goes elsewhere
 });
 
 test('a ground a fighter found nothing to hunt on is not its next pick for a while', async () => {
-  const { absence } = await import('../src/absence');
-  const { grounds } = await import('../src/cemeteries');
+  const { absence } = await import('../src/v1/absence');
+  const { grounds } = await import('../src/v1/cemeteries');
   const fighter = macer(45, 1430, 1555);
   const first = nextGround(fighter);
   const left = grounds.find((g) => g.name === first);
@@ -166,7 +166,7 @@ test('ordinary hunting travel delegates a distant mainland destination to naviga
     }
   });
   await travelToGround(ctx);
-  const { groundOf } = await import('../src/cemeteries');
+  const { groundOf } = await import('../src/v1/cemeteries');
   expect(calls).toEqual(['travelling-to-graveyard', { point: groundOf(ctx.trip).center, range: 3 }]);
 });
 

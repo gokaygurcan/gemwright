@@ -2,16 +2,16 @@ import { expect, test } from 'bun:test';
 
 import type { Position } from '@gemwright/network/world';
 
-import { areaOfPlace } from '../src/areas';
-import { Blocked } from '../src/blocked';
-import { threatsNear } from '../src/danger';
-import { interruptForDanger } from '../src/danger-response';
-import { type Dungeon, dungeonAt, dungeons, exitStair, floorAt } from '../src/dungeons';
-import { type Gate, moongates } from '../src/gates';
-import { destinationGate, travelJourney } from '../src/journey';
 import { lasting } from '../src/lasting';
 import { allLinks } from '../src/links';
-import { travelByMoongate } from '../src/moongate';
+import { areaOfPlace } from '../src/v1/areas';
+import { Blocked } from '../src/v1/blocked';
+import { threatsNear } from '../src/v1/danger';
+import { interruptForDanger } from '../src/v1/danger-response';
+import { type Dungeon, dungeonAt, dungeons, exitStair, floorAt } from '../src/v1/dungeons';
+import { type Gate, moongates } from '../src/v1/gates';
+import { destinationGate, travelJourney } from '../src/v1/journey';
+import { travelByMoongate } from '../src/v1/moongate';
 import { required } from './behavior-fixture';
 import { socialFixture } from './social-fixture';
 import { useTestWorld } from './world-fixture';

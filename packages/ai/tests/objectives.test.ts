@@ -1,11 +1,17 @@
 import { expect, test } from 'bun:test';
 
-import { ActionBusy } from '../src/action-errors';
-import { allServiceLocations, serviceLocations } from '../src/locations';
-import { meetNeeds, needPriority } from '../src/need-planning';
-import { residentNeeds } from '../src/needs';
-import { completeObjective, errand, failObjective, objectiveBlocked, suppliesCondition } from '../src/objective-memory';
-import { atVendor } from '../src/vendor-visit';
+import { ActionBusy } from '../src/v1/action-errors';
+import { allServiceLocations, serviceLocations } from '../src/v1/locations';
+import { meetNeeds, needPriority } from '../src/v1/need-planning';
+import { residentNeeds } from '../src/v1/needs';
+import {
+  completeObjective,
+  errand,
+  failObjective,
+  objectiveBlocked,
+  suppliesCondition
+} from '../src/v1/objective-memory';
+import { atVendor } from '../src/v1/vendor-visit';
 import { behaviorFixture, required } from './behavior-fixture';
 import { useTestWorld } from './world-fixture';
 

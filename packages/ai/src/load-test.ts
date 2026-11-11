@@ -7,18 +7,18 @@ import { validateConnection } from '@gemwright/network/connection';
 import type { PlayerSession } from '@gemwright/network/session';
 import { Latency } from '@gemwright/network/session-observation';
 
-import { useShardAreas } from './area-build';
-import { validateConfig } from './config';
 import { PathPool } from './path-pool';
-import { useShardRoutes } from './route-build';
 import { runResident, withRuntime } from './run-session';
-import { useShardWorld } from './shard-world';
 import { readShardWorld } from './spawns';
 import { drainSlices } from './stall-probe';
-import { ResidentStore } from './store';
 import { Terrain } from './terrain';
-import { buildWorkAreas } from './work-area-build';
-import { applyWorld, behaviorOf, professionOf, weightedPick } from './world';
+import { useShardAreas } from './v1/area-build';
+import { validateConfig } from './v1/config';
+import { useShardRoutes } from './v1/route-build';
+import { useShardWorld } from './v1/shard-world';
+import { ResidentStore } from './v1/store';
+import { buildWorkAreas } from './v1/work-area-build';
+import { applyWorld, behaviorOf, professionOf, weightedPick } from './v1/world';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -111,7 +111,7 @@ try {
     save('before.json', shared.store.list());
     const tracked = {
       ...shared,
-      track: (id: string, session: PlayerSession | null) => {
+      track: (id: string, session: PlayerSession | null, v2?: boolean) => {
         if (session) sessions.set(id, session);
         else {
           const last = sessions.get(id);
@@ -128,7 +128,7 @@ try {
           }
           sessions.delete(id);
         }
-        shared.track(id, session);
+        shared.track(id, session, v2);
       }
     };
     started = Date.now();

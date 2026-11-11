@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { trainSupportingSkill } from '../src/skill-training';
+import { trainSupportingSkill } from '../src/v1/skill-training';
 import { behaviorFixture } from './behavior-fixture';
 
 test('Arms Lore without an applicable target does not announce practice or send a skill request', async () => {

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { houseFits, lotGrid, type MapCells } from '../src/house-fit';
-import { claimLot, houseOf, refuseLot, updateHouse, useLots } from '../src/house-lots';
+import { houseFits, lotGrid, type MapCells } from '../src/v1/house-fit';
+import { claimLot, houseOf, refuseLot, updateHouse, useLots } from '../src/v1/house-lots';
 
 // Flat grass at z 0 with one tree and one road tile.
 const flat: MapCells = {

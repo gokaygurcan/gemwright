@@ -4,10 +4,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { validateConfig } from '../src/config';
-import { openPersistence } from '../src/persistence';
-import { PersistenceQueue } from '../src/persistence-queue';
-import { ResidentStore } from '../src/store';
+import { validateConfig } from '../src/v1/config';
+import { openPersistence } from '../src/v1/persistence';
+import { PersistenceQueue } from '../src/v1/persistence-queue';
+import { ResidentStore } from '../src/v1/store';
 import example from '../templates/population.example.json';
 import { required } from './behavior-fixture';
 

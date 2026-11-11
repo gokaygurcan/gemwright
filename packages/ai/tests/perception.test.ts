@@ -5,10 +5,10 @@ import { variable } from '@gemwright/network/packets';
 import { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
-import { recentlyHurt } from '../src/action-purpose';
-import { beingAttacked, interruptForDanger } from '../src/danger-response';
-import { Perception } from '../src/perception';
-import { perceptionFor, startPerception } from '../src/perception-session';
+import { recentlyHurt } from '../src/v1/action-purpose';
+import { beingAttacked, interruptForDanger } from '../src/v1/danger-response';
+import { Perception } from '../src/v1/perception';
+import { perceptionFor, startPerception } from '../src/v1/perception-session';
 
 function status(world: WorldView, health = 100) {
   const packet = Buffer.alloc(73);

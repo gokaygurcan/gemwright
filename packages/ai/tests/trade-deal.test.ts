@@ -3,8 +3,8 @@ import { expect, test } from 'bun:test';
 import { gold } from '@gemwright/common/game/items';
 import type { TradeWindow } from '@gemwright/network/trade';
 
-import { buyByTrade, buyPetByTrade, lastFailure, sellByTrade, sellPetByTrade } from '../src/trade-deal';
-import { workCounts } from '../src/work-evidence';
+import { buyByTrade, buyPetByTrade, lastFailure, sellByTrade, sellPetByTrade } from '../src/v1/trade-deal';
+import { workCounts } from '../src/v1/work-evidence';
 import { behaviorFixture, required } from './behavior-fixture';
 
 const boards = 0x1bd7;

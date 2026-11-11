@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { scrapTurn } from '../src/skirmish';
+import { scrapTurn } from '../src/v1/skirmish';
 import { behaviorFixture } from './behavior-fixture';
 import { useTestWorld } from './world-fixture';
 

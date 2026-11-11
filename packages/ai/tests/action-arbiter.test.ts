@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test';
 
 import type { Command } from '@gemwright/network/commands';
 
-import { ActionArbiter } from '../src/action-arbiter';
-import { ActionBusy, ActionInterrupted, ActionTimeout } from '../src/action-errors';
+import { ActionArbiter } from '../src/v1/action-arbiter';
+import { ActionBusy, ActionInterrupted, ActionTimeout } from '../src/v1/action-errors';
 
 const command = (overrides: Partial<Command> = {}): Command => ({
   name: 'moveItem',

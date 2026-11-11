@@ -1,8 +1,8 @@
 import { expect, spyOn, test } from 'bun:test';
 
-import * as bankGold from '../src/bank-gold';
-import { createFighterEquipment } from '../src/fighter-equipment';
-import { gearCheckDue } from '../src/fighter-gear';
+import * as bankGold from '../src/v1/bank-gold';
+import { createFighterEquipment } from '../src/v1/fighter-equipment';
+import { gearCheckDue } from '../src/v1/fighter-gear';
 import { fighterFixture } from './fighter-fixture';
 
 // Dunstan Miller, Nov 6: 125 gold in the bank, a balance older than a quarter hour that counted as

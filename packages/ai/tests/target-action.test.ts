@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { onItem, useOn } from '../src/target-action';
+import { onItem, useOn } from '../src/v1/target-action';
 import { behaviorFixture } from './behavior-fixture';
 
 test('using a tool on something says why it did not happen: our own cursor, the shard refusing, or no cursor', async () => {

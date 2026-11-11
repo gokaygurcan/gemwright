@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import type { FighterContext } from '../src/fighter-context';
-import { petFightReadiness } from '../src/pet-risk';
-import { observedSpellEffect, requestSpell, type SpellObservation } from '../src/spell-action';
+import type { FighterContext } from '../src/v1/fighter-context';
+import { petFightReadiness } from '../src/v1/pet-risk';
+import { observedSpellEffect, requestSpell, type SpellObservation } from '../src/v1/spell-action';
 import { behaviorFixture, required } from './behavior-fixture';
 
 const before: SpellObservation = {
@@ -101,8 +101,8 @@ test('companions require known health and a credible match; a bear is not sent a
 });
 
 test('a failed pet attack still recalls the companion and releases the urgent action', async () => {
-  const { fightWithPet } = await import('../src/tamer-pet');
-  const { canPause } = await import('../src/action-purpose');
+  const { fightWithPet } = await import('../src/v1/tamer-pet');
+  const { canPause } = await import('../src/v1/action-purpose');
   const { session, world, ctx: life } = behaviorFixture('tamer');
   const pet = {
     serial: 2,
@@ -149,7 +149,7 @@ test('a failed pet attack still recalls the companion and releases the urgent ac
     progress: {},
     count: () => 20,
     carried: () => world.childrenOf(10)
-  } as unknown as import('../src/profession').ProfessionContext;
+  } as unknown as import('../src/v1/profession').ProfessionContext;
   await expect(fightWithPet(ctx, () => false)).rejects.toThrow('Command interrupted');
   expect(spoken).toContain('all follow me');
   expect(world.target).toBeNull();

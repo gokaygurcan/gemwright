@@ -1,7 +1,7 @@
 import { expect, setSystemTime, test } from 'bun:test';
 
-import { absence } from '../src/absence';
 import { tuning } from '../src/tuning';
+import { absence } from '../src/v1/absence';
 
 test('something found missing where the world says it may be is left alone a while, longer if missed again soon', () => {
   const now = Date.now();

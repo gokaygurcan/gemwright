@@ -1,6 +1,5 @@
 import { expect, setSystemTime, test } from 'bun:test';
 
-import { ConnectionAdmission } from '../src/connection-admission';
 import { directRoute } from '../src/direct-route';
 import { RouteCorridors } from '../src/path-corridors';
 import { PathPool } from '../src/path-pool';
@@ -8,6 +7,7 @@ import { RouteSearch, routeSeed } from '../src/path-search';
 import { RouteWaypoints } from '../src/route-waypoints';
 import type { Terrain, TerrainBuffers } from '../src/terrain';
 import { deadlyCells, noteTrouble } from '../src/trouble';
+import { ConnectionAdmission } from '../src/v1/connection-admission';
 
 const fake = (walls = new Set<string>()) =>
   ({
@@ -114,7 +114,7 @@ test('city corridors can be joined from a different start without crossing an ob
 });
 
 test('vendor interactions use the offered eight-tile range and require navigation outside it', async () => {
-  const { approachVendor } = await import('../src/mobile-approach');
+  const { approachVendor } = await import('../src/v1/mobile-approach');
   const { WorldView } = await import('@gemwright/network/world');
   const world = new WorldView();
   world.serial = 1;
