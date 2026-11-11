@@ -1,10 +1,11 @@
 import { afterEach, expect, test } from 'bun:test';
+import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { command } from '../src/process';
-import { pull } from '../src/pull';
+import { pull, toFile } from '../src/pull';
 import { pullFrom, resolveTarget, vpsRunner } from '../src/target';
 
 const folders: string[] = [];
@@ -71,4 +72,11 @@ test('Compose commands for a VPS can run one after another in one shell', async 
   const script = `PATH=${join(home, 'bin')}:$PATH; cd ${home} && ${compose?.(['ps'])} && ${compose?.(['logs'])}`;
   const output = await command(['sh', '-c', script], home);
   expect(output.split('\n')).toEqual(['shard compose -f compose.json ps', 'shard compose -f compose.json logs']);
+});
+
+// A copy cut short leaves nothing behind: a half-written database must never look like a pulled one.
+test('an interrupted copy leaves no file', async () => {
+  const file = join(await shard(), 'residents.sqlite');
+  await expect(toFile(['sh', '-c', 'head -c 100000 /dev/zero; exit 1'], file)).rejects.toThrow();
+  expect(existsSync(file)).toBe(false);
 });

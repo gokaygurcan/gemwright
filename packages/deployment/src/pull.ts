@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { command } from './process';
@@ -83,10 +83,22 @@ export async function pull(
             join(out, 'ai/residents.sqlite')
           )
         );
+        // The v2 minds' histories, when any resident has one: opened read-only, so a pull never
+        // creates one, and copied with a plain journal, so the copy opens read-only on its own.
+        const history = `/tmp/pull-${stamp}-history.sqlite`;
+        const copy = `const D = require('bun:sqlite').Database; new D('/app/data/history.sqlite', { readonly: true }).exec("VACUUM INTO '${history}'"); new D('${history}').exec('PRAGMA journal_mode = DELETE')`;
+        await record('ai', 'ai/history.sqlite', () =>
+          toFile(
+            vps.shell(
+              `${compose(['exec', '-T', 'ai', 'bun', '-e', copy])} && ${compose(['exec', '-T', 'ai', 'cat', history])}; ${compose(['exec', '-T', 'ai', 'rm', '-f', history])}`
+            ),
+            join(out, 'ai/history.sqlite')
+          )
+        );
         await record('ai', 'ai/report.md', async () =>
           writeFile(
             join(out, 'ai/report.md'),
-            `${await command(vps.shell(compose(['exec', '-T', 'ai', 'bun', 'dist/report.js', '--db', '/app/data/residents.sqlite'])), directory)}\n`
+            `${await command(vps.shell(compose(['exec', '-T', 'ai', 'bun', 'dist/v1/report.js', '--db', '/app/data/residents.sqlite'])), directory)}\n`
           )
         );
         await record('ai', 'ai/retired.json', async () =>
@@ -174,7 +186,7 @@ export async function pull(
             ...scope,
             '--service',
             aiService,
-            'cd /app && if [ -f dist/report.js ]; then bun dist/report.js --db /app/data/residents.sqlite; else bun packages/ai/src/report.ts --db /app/data/residents.sqlite; fi'
+            'cd /app && if [ -f dist/v1/report.js ]; then bun dist/v1/report.js --db /app/data/residents.sqlite; else bun packages/ai/src/v1/report.ts --db /app/data/residents.sqlite; fi'
           ],
           directory
         );
@@ -214,19 +226,43 @@ export async function pull(
 }
 
 // Streams a command's output into a file (a remote tar archive over SSH).
-function toFile(args: string[], path: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const [program, ...rest] = args;
-    if (!program) return reject(new Error('Nothing to run'));
-    const child = spawn(program, rest, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stderr = '';
-    child.stdout.pipe(createWriteStream(path));
-    child.stderr.setEncoding('utf8').on('data', (chunk) => {
-      stderr += chunk;
+// What a command writes, kept only whole: it streams into a part file that takes the file's name once
+// the command has succeeded and every byte is written, so an interrupted pull leaves no half copy.
+export async function toFile(args: string[], path: string): Promise<void> {
+  const part = `${path}.part`;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const [program, ...rest] = args;
+      if (!program) return reject(new Error('Nothing to run'));
+      const child = spawn(program, rest, { stdio: ['ignore', 'pipe', 'pipe'] });
+      const file = createWriteStream(part);
+      let stderr = '';
+      let ended: number | null | undefined;
+      let written = false;
+      const settle = () => {
+        if (ended === undefined || !written) return;
+        if (ended === 0) resolve();
+        else reject(new Error(stderr.trim() || `exit ${ended}`));
+      };
+      child.stdout.pipe(file);
+      child.stderr.setEncoding('utf8').on('data', (chunk) => {
+        stderr += chunk;
+      });
+      file.once('error', reject);
+      file.once('finish', () => {
+        written = true;
+        settle();
+      });
+      child.once('error', reject);
+      child.once('close', (code) => {
+        ended = code;
+        settle();
+      });
     });
-    child.once('error', reject);
-    child.once('close', (code) => (code === 0 ? resolve() : reject(new Error(stderr.trim() || `exit ${code}`))));
-  });
+    await rename(part, path);
+  } finally {
+    await rm(part, { force: true });
+  }
 }
 
 async function size(path: string): Promise<number | undefined> {
