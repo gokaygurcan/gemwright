@@ -6,6 +6,8 @@ export interface CreatureFacts {
   hits: number[] | null;
   damage: number[] | null;
   magery: number;
+  evalInt: number;
+  int: number[] | null;
   resist: number;
   poison: number;
   fame: number;
@@ -47,8 +49,11 @@ export function creatureFacts(body: string, base?: CreatureFacts): CreatureFacts
     const value = pattern.exec(body)?.[1];
     return value === undefined ? inherited : Number(value);
   };
-  const skillOf = (name: string, inherited = 0) =>
-    own(new RegExp(`SkillName\\.${name},\\s*[\\d.]+,\\s*([\\d.]+)`), inherited);
+  // A skill set to a range counts at its highest, one set to a single value at that value.
+  const skillOf = (name: string, inherited = 0) => {
+    const set = new RegExp(`SkillName\\.${name},\\s*([\\d.]+)(?:,\\s*([\\d.]+))?\\s*\\)`).exec(body);
+    return set ? Number(set[2] ?? set[1]) : inherited;
+  };
   const loot = [...body.matchAll(/AddLoot\(\s*LootPack\.(\w+)(?:\s*,\s*(\d+))?/g)];
   return {
     name:
@@ -59,6 +64,8 @@ export function creatureFacts(body: string, base?: CreatureFacts): CreatureFacts
     hits: range(body, 'SetHits') ?? strength ?? base?.hits ?? null,
     damage: range(body, 'SetDamage') ?? base?.damage ?? null,
     magery: skillOf('Magery', base?.magery),
+    evalInt: skillOf('EvalInt', base?.evalInt),
+    int: range(body, 'SetInt') ?? base?.int ?? null,
     resist: skillOf('MagicResist', base?.resist),
     poison: skillOf('Poisoning', base?.poison),
     fame: own(/\bFame\s*=\s*(\d+)/, base?.fame),

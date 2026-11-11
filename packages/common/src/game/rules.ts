@@ -107,6 +107,16 @@ export const graphicOf = (name: string) => {
 // Every graphic of a class and all its kinds.
 export const graphicsOfKinds = (root: string): ReadonlySet<number> =>
   new Set([root, ...kindsOf(root)].flatMap((name) => graphicsOf(name)));
+let byGraphic: Map<number, string[]> | undefined;
+// The classes that declare a graphic, not the kinds that only inherit it.
+export const classesShowing = (graphic: number): readonly string[] => {
+  if (!byGraphic) {
+    byGraphic = new Map();
+    for (const [name, facts] of Object.entries(classes))
+      for (const g of facts.g ?? []) byGraphic.set(g, [...(byGraphic.get(g) ?? []), name]);
+  }
+  return byGraphic.get(graphic) ?? [];
+};
 export const hueOf = (name: string) => inherited(name, (f) => f.hue);
 export const skillOf = (name: string) => inherited(name, (f) => f.s);
 export const gargoyleOnly = (name: string) => ancestors(name).some((at) => classes[at]?.r);
