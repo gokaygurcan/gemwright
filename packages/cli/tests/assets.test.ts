@@ -11,9 +11,9 @@ test('contained AI context includes bundled workers and owned assets without wor
     await stageImage('ai', context);
     for (const file of [
       'dist/serve.js',
-      'dist/persistence-worker.js',
+      'dist/v1/persistence-worker.js',
       'dist/path-worker.js',
-      'dist/life-journal-worker.js',
+      'dist/v1/life-journal-worker.js',
       'world/world.json',
       'Dockerfile'
     ])

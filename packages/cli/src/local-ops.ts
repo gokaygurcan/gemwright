@@ -95,7 +95,7 @@ export async function localPull(parts: PullParts, directory = process.cwd(), pro
     await record('ai', 'ai/report.md', async () =>
       writeFile(
         join(out, 'ai/report.md'),
-        `${await compose(root, ['exec', '-T', 'ai', 'bun', 'dist/report.js', '--db', '/app/data/residents.sqlite'])}\n`
+        `${await compose(root, ['exec', '-T', 'ai', 'bun', 'dist/v1/report.js', '--db', '/app/data/residents.sqlite'])}\n`
       )
     );
     await record('ai', 'ai/retired.json', async () =>

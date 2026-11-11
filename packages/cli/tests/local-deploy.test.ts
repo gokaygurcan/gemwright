@@ -67,3 +67,20 @@ test('AI world files are staged in the deployment folder, checked and replaced w
   await expect(installWorldFiles(root, staged)).rejects.toThrow('Regions.xml');
   expect(await readdir(join(root, 'world'))).toContain('Regions.xml');
 });
+
+// Containers carry the shard's own name and their part, once: gemwright-ai, not gemwright-gemwright-ai-1.
+test('containers are named after the shard and their part', () => {
+  const config = { ...createConfig({ client: { version: '7.0.117.0' }, name: 'Named' }), id: 'gemwright' };
+  const compose = composeProject(
+    config,
+    { emulator: 'servuo', parts: ['server', 'client', 'ai'], aiPatched: true, serverPort: 2600, clientPort: 8080 },
+    { domain: 'play.example.org' }
+  );
+  const services = compose.services as Record<string, { container_name?: string }>;
+  expect(Object.values(services).map((s) => s.container_name)).toEqual([
+    'gemwright-server',
+    'gemwright-client',
+    'gemwright-ai',
+    'gemwright-caddy'
+  ]);
+});
