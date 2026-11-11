@@ -16,6 +16,21 @@ async function temporaryFolder() {
   return directory;
 }
 
+async function ready(output: ReadableStream<Uint8Array>) {
+  const reader = output.getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  try {
+    while (!text.includes('ready\n')) {
+      const next = await reader.read();
+      if (next.done) throw new Error(`Test server exited before readiness: ${text}`);
+      text += decoder.decode(next.value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 test('patch refuses a different source revision without changing files', async () => {
   const directory = await temporaryFolder();
   const child = Bun.spawn(['git', 'init', '--quiet', directory], { stdout: 'pipe', stderr: 'pipe' });
@@ -36,7 +51,7 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 printf '%s' "$marker" > marker-path
-: > ready
+printf 'ready\\n'
 while [ ! -f "$marker" ]; do sleep 0.05; done
 sleep 0.1
 : > saved
@@ -52,10 +67,7 @@ exit 42
     stderr: 'pipe'
   });
   try {
-    for (let attempts = 0; !(await Bun.file(join(directory, 'ready')).exists()); attempts++) {
-      if (attempts > 100) throw new Error('Test server failed to start');
-      await Bun.sleep(10);
-    }
+    await ready(child.stdout);
     child.kill('SIGTERM');
     expect(await child.exited).toBe(42);
     expect(await Bun.file(join(directory, 'saved')).exists()).toBe(true);
@@ -103,7 +115,7 @@ while [ "$#" -gt 0 ]; do
   if [ "$1" = "--shutdown-file" ]; then shift; marker=$1; fi
   shift
 done
-: > ready
+printf 'ready\\n'
 while [ ! -f "$marker" ]; do sleep 0.05; done
 rm "$marker"
 kill -KILL $$
@@ -118,10 +130,7 @@ kill -KILL $$
     stderr: 'pipe'
   });
   try {
-    for (let attempts = 0; !(await Bun.file(join(directory, 'ready')).exists()); attempts++) {
-      if (attempts > 100) throw new Error('Test server failed to start');
-      await Bun.sleep(10);
-    }
+    await ready(child.stdout);
     child.kill('SIGTERM');
     expect(await child.exited).toBe(0);
   } finally {
