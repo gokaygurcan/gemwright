@@ -426,6 +426,12 @@ export class PlayerSession {
     await this.waitFor(() => !!this.world.entities.get(serial)?.name, 'observed character name', 2500);
   }
 
+  // Asks a mobile's name without waiting: the shard answers (0x98) only within its update range.
+  requestName(serial: number): void {
+    this.requireReady();
+    this.send(packets.nameRequest(serial));
+  }
+
   async inspectProperties(serial: number, refresh = false): Promise<void> {
     this.requireReady();
     const entity = this.world.entities.get(serial);

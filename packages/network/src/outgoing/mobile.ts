@@ -20,6 +20,25 @@ export function queryStatus(serial: number): Buffer {
 }
 
 /*
+Mobile Name Request
+Client asks for a mobile's name, as the All Names macro does for everything on screen.
+
+Size: 7 bytes
+
+Packet Build
+BYTE[1] Packet identifier
+BYTE[2] Length
+BYTE[4] Serial
+*/
+export function nameRequest(serial: number): Buffer {
+  const buffer = Buffer.alloc(7);
+  buffer[0] = 0x98;
+  buffer.writeUInt16BE(7, 1);
+  buffer.writeUInt32BE(serial, 3);
+  return buffer;
+}
+
+/*
 Attack Request
 Client attacks a mobile.
 
