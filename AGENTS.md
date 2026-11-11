@@ -16,6 +16,7 @@
 13. When a task requires extensive changes, break it into multiple scoped commits.
 14. End every message with the last sentence about the work itself. Never append a closing section of extra observations, asides, caveats, or offers — whatever it is called: "Two things", "One more thing", "Also", "Notes", "Worth knowing", "Worth flagging", "FYI", "Heads up", a trailing bullet list, a parenthetical after the summary.
 15. Never record external state as a fact — in notes, memory, or a commit message.
+16. Your job is to finish the given task in full, according to the given permissions and/or restrictions, in a bounded context. Never expand the scope without explicit approval, and never call a task done without live proof.
 
 ## previous decisions
 
