@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { type Block, type Cell, type Doc, link, noDatabase, num } from './doc';
 
-// Every question the residents asked (packages/ai/src/decision-log.ts): when, who, its kind, the
+// Every question the residents asked (packages/ai/src/v1/decision-log.ts): when, who, its kind, the
 // options offered and the answer, from Clef, Jev or the local rules. One question's page has its
 // whole context: the state, the instructions and the full response.
 const PAGE = 500;

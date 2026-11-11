@@ -22,7 +22,7 @@ export interface Analysis {
 export function analyze(saves: string): Analysis {
   const world = loadWorld(saves);
   const accounts = loadAccounts(saves);
-  // AI residents log in with generated accounts (packages/ai/src/credentials.ts).
+  // AI residents log in with generated accounts (packages/ai/src/v1/credentials.ts).
   const residents = new Set(accounts.filter((a) => a.username.startsWith('gw')).flatMap((a) => a.characters));
   const placements = placeItems(world);
   const held = new Map<number, Placement[]>();

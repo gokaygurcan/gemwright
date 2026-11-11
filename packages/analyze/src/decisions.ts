@@ -2,7 +2,7 @@ import { type Cell, type Doc, type FlowStep, link, noDatabase } from './doc';
 import { open, type Row, SELECT, time, unzip } from './questions';
 
 // Each decision a resident made, drawn as a flowchart: what it started from, every check and fork
-// on the way with the weights of all options, and where it ended (packages/ai/src/decision-flow.ts).
+// on the way with the weights of all options, and where it ended (packages/ai/src/v1/decision-flow.ts).
 const PAGE = 500;
 const unlogged: Doc = {
   title: 'Decisions',

@@ -44,7 +44,7 @@ export type Block =
   | { kind: 'shares'; label: string; parts: { label: string; value: number }[] }
   // A small world map with dots, linking to the full map.
   | { kind: 'minimap'; map: number; width: number; height: number; drawn: boolean; dots: Dot[] }
-  // One decision's path from its start to where it ended (packages/ai/src/decision-flow.ts).
+  // One decision's path from its start to where it ended (packages/ai/src/v1/decision-flow.ts).
   | { kind: 'flow'; start: FlowEnd; steps: FlowStep[]; end: FlowEnd };
 
 export interface FlowEnd {

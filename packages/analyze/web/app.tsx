@@ -23,6 +23,7 @@ const SECTIONS = [
   ['/economy', 'Economy'],
   ['/decisions', 'Decisions'],
   ['/spent', 'Spent'],
+  ['/minds', 'Minds'],
   ['/questions', 'Questions']
 ] as const;
 

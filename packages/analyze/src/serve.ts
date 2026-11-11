@@ -13,6 +13,7 @@ import { economyDoc } from './economy';
 import { historyDoc, readHistory, recordHistory } from './history';
 import { loopsDoc } from './loops';
 import { mapData } from './map';
+import { mindsDoc } from './minds';
 import { overviewDoc } from './overview';
 import { itemDoc, mobileDoc, searchDoc } from './pages';
 import { playersDoc } from './players';
@@ -183,6 +184,7 @@ const server = Bun.serve({
     '/api/page/history': () => page((o) => historyDoc(o.history)),
     '/api/page/economy': () => page((o) => economyDoc(o.saves)),
     '/api/page/spent': () => page((o) => spentDoc(o.saves)),
+    '/api/page/minds': () => page((o) => mindsDoc(o.saves)),
     '/api/page/decisions': (request) => {
       const query = new URL(request.url).searchParams;
       return page((o) =>

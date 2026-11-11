@@ -1,6 +1,6 @@
 import { type Doc, link, noDatabase, num } from './doc';
 
-// The loop guard's record (packages/ai/src/loop-watch.ts, the `loops` table the AI keeps for a
+// The loop guard's record (packages/ai/src/v1/loop-watch.ts, the `loops` table the AI keeps for a
 // day): every time a resident went in circles or stood five minutes without gaining anything or
 // taking a step of its job, and was sent back to its job.
 type Tables = Record<string, [string, number][]>;
