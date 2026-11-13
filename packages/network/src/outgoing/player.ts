@@ -49,6 +49,7 @@ BYTE[1] Type
 BYTE[n] Command (ASCII, null-terminated)
 */
 export function useSkill(id: number, spell = false): Buffer {
-  if (!Number.isInteger(id) || id < (spell ? 1 : 0) || id > (spell ? 64 : 57)) throw new Error('Invalid skill id');
+  const valid = spell ? (id >= 1 && id <= 64) || (id >= 101 && id <= 117) : id >= 0 && id <= 57;
+  if (!Number.isInteger(id) || !valid) throw new Error('Invalid skill id');
   return variable(0x12, Buffer.from(spell ? `\x56${id}\0` : `\x24${id} 0\0`, 'latin1'));
 }

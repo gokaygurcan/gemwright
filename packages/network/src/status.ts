@@ -16,6 +16,11 @@ export interface PlayerStatus {
   maxWeight: number;
   followers?: number;
   maxFollowers?: number;
+  statCap?: number;
+  // Fire, cold, poison and energy; physical is `armor`.
+  resists?: { fire: number; cold: number; poison: number; energy: number };
+  luck?: number;
+  damage?: { min: number; max: number };
 }
 
 export function playerStatus(packet: Buffer): PlayerStatus {
@@ -34,7 +39,21 @@ export function playerStatus(packet: Buffer): PlayerStatus {
     armor: packet.readUInt16BE(62),
     weight: packet.readUInt16BE(64),
     maxWeight: packet.readUInt16BE(66),
-    ...(packet.length >= 73 ? { followers: packet.readUInt8(71), maxFollowers: packet.readUInt8(72) } : {})
+    ...(packet.length >= 73
+      ? { statCap: packet.readUInt16BE(69), followers: packet.readUInt8(71), maxFollowers: packet.readUInt8(72) }
+      : {}),
+    ...(packet.length >= 87
+      ? {
+          resists: {
+            fire: packet.readInt16BE(73),
+            cold: packet.readInt16BE(75),
+            poison: packet.readInt16BE(77),
+            energy: packet.readInt16BE(79)
+          },
+          luck: packet.readInt16BE(81),
+          damage: { min: packet.readUInt16BE(83), max: packet.readUInt16BE(85) }
+        }
+      : {})
   };
 }
 

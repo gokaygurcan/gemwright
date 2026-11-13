@@ -52,6 +52,7 @@ export async function mockShard(
   const gameSockets = new Set<Socket>();
   const commands: number[] = [];
   let created = 0;
+  let creationSkills: { id: number; value: number }[] = [];
   let moves = 0;
   let rejected = 0;
   const server = createServer((socket) => {
@@ -86,7 +87,9 @@ export async function mockShard(
                         ? 19
                         : opcode === 0x73
                           ? 2
-                          : 0;
+                          : opcode === 0x34
+                            ? 10
+                            : 0;
             if (opcode === 0xad || opcode === 0xbd || opcode === 0xbf) {
               if (pending.length < 3) break;
               length = pending.readUInt16BE(1);
@@ -129,7 +132,13 @@ export async function mockShard(
             setTimeout(() => socket.write(output.subarray(3)), 5);
             stage = 'game';
           } else if (packet[0] === 0x5d || packet[0] === 0x00) {
-            if (packet[0] === 0x00) created++;
+            if (packet[0] === 0x00) {
+              created++;
+              // The three creation skill pairs; the unused ones are zero.
+              creationSkills = [0, 1, 2]
+                .map((index) => ({ id: packet.readUInt8(74 + index * 2), value: packet.readUInt8(75 + index * 2) }))
+                .filter((skill) => skill.value > 0);
+            }
             const confirm = Buffer.alloc(37);
             confirm[0] = 0x1b;
             confirm.writeUInt32BE(123, 1);
@@ -200,6 +209,19 @@ export async function mockShard(
             feedback.writeUInt32BE(123, 0);
             feedback.writeUInt32BE(500487, 11);
             send(variable(0xc1, feedback));
+          } else if (packet[0] === 0x34 && packet[5] === 5) {
+            // A skills query: the character has what its creation gave it, each capped at 100.0.
+            const body = Buffer.alloc(1 + creationSkills.length * 9 + 2);
+            body[0] = 2;
+            creationSkills.forEach((skill, index) => {
+              const at = 1 + index * 9;
+              body.writeUInt16BE(skill.id + 1, at);
+              body.writeUInt16BE(skill.value * 10, at + 2);
+              body.writeUInt16BE(skill.value * 10, at + 4);
+              body[at + 6] = 0;
+              body.writeUInt16BE(1000, at + 7);
+            });
+            send(variable(0x3a, body));
           } else if (packet[0] === 0xad) {
             const body = Buffer.alloc(45 + packet.length - 12);
             body.writeUInt32BE(123, 0);

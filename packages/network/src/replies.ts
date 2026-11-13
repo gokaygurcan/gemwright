@@ -79,11 +79,13 @@ export interface StablingReplies {
   claimed: number;
   noneStabled: number;
   tooManyFollowers: number;
+  stabled: number;
 }
 export const Stabling: StablingReplies = {
   claimed: 1042559,
   noneStabled: 502671,
-  tooManyFollowers: 1049612
+  tooManyFollowers: 1049612,
+  stabled: 1049677
 };
 
 // ServUO BulkOrderSystem gumps and replies.

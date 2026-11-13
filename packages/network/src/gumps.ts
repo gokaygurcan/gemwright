@@ -24,6 +24,15 @@ export function gumpCommands(layout: string): string[][] {
   return [...layout.matchAll(/\{([^{}]*)\}/g)].map((match) => (match[1] ?? '').trim().split(/\s+/));
 }
 
+// The reply buttons a gump offers (type 1; type 0 turns a page), by their ids (ServUO
+// GumpButton.Compile): what answering this gump can ask for.
+export function gumpButtons(layout: string): number[] {
+  return gumpCommands(layout)
+    .filter((command) => command[0] === 'button' && command[5] === '1')
+    .map((command) => Number(command[7]))
+    .filter((button) => Number.isInteger(button));
+}
+
 // Whether a gump reply uses the controls that gump actually offered: a reply button is { button x y
 // normal pressed type param id } with type 1 (type 0 turns a page; ServUO GumpButton.Compile), a
 // switch belongs to a radio and a text to a textentry. Button 0 always closes, as the close box does.
