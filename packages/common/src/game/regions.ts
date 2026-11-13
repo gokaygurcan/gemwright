@@ -12,6 +12,10 @@ export interface Region {
   type: string;
   parent?: string;
   rects: Rect[];
+  // Where its dungeon is entered from on the surface.
+  entrance?: { x: number; y: number };
+  // A guarded region's own unguarded part.
+  unguarded?: true;
 }
 
 const attribute = (attrs: string, name: string) => new RegExp(`\\b${name}="([^"]*)"`).exec(attrs)?.[1];
@@ -21,7 +25,7 @@ export function parseRegions(xml: string): Region[] {
   const open: (Region | undefined)[] = [];
   let facet = '';
   for (const [tag, closing, element = '', attrs = '', selfClosing] of xml.matchAll(
-    /<(\/?)(Facet|region|rect)\b([^>]*?)(\/?)>/g
+    /<(\/?)(Facet|region|rect|entrance|guards)\b([^>]*?)(\/?)>/g
   )) {
     if (element === 'Facet') facet = closing ? '' : (attribute(attrs, 'name') ?? '');
     else if (element === 'region' && closing) open.pop();
@@ -38,6 +42,10 @@ export function parseRegions(xml: string): Region[] {
         : undefined;
       if (region) regions.push(region);
       if (!selfClosing && !tag.endsWith('/>')) open.push(region);
+    } else if (element === 'entrance' && open.at(-1)) {
+      (open.at(-1) as Region).entrance = { x: Number(attribute(attrs, 'x')), y: Number(attribute(attrs, 'y')) };
+    } else if (element === 'guards' && attribute(attrs, 'disabled') === 'true' && open.at(-1)) {
+      (open.at(-1) as Region).unguarded = true;
     } else if (element === 'rect' && !closing) {
       const n = (key: string) => Number(attribute(attrs, key));
       open.at(-1)?.rects.push({ x: n('x'), y: n('y'), width: n('width'), height: n('height') });

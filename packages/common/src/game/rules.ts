@@ -138,6 +138,9 @@ export const craftTools = (system: string): ReadonlySet<number> =>
       .filter((name) => inherited(name, (f) => f.c) === system)
       .flatMap(graphicsOf)
   );
+// The craft system a tool's own double-click opens (ServUO DefBlacksmithy and the like), if it is
+// one: what its menu works on. The kind of thing a player learns from the tool's name.
+export const craftSystemOf = (name: string) => inherited(name, (facts) => facts.c);
 // way (an OnDoubleClick of its own that names no system: ServUO's Hoe is a BaseAxe that plants).
 export function harvestOf(name: string) {
   for (const at of ancestors(name)) {
