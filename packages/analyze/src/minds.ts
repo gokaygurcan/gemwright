@@ -116,6 +116,7 @@ function mind(db: Database, resident: string, name: string | undefined, events: 
   ).map((l) => [l.name, num(l.watched / (l.endings + 1) / 60, 1), num(l.endings)] as Cell[]);
   return [
     { kind: 'heading', text: name ?? resident },
+    ...perception(db, resident),
     {
       kind: 'fields',
       rows: [
@@ -170,4 +171,108 @@ function mind(db: Database, resident: string, name: string | undefined, events: 
       empty: 'No lifetimes learned yet.'
     }
   ];
+}
+
+// What it knows at once (packages/ai/src/v2): where it is, what it is and what it has, as last
+// written down.
+function perception(db: Database, resident: string): Block[] {
+  const latest = <T>(kind: string) => {
+    const row = db
+      .query<{ data: string }, [string, string]>(
+        'SELECT data FROM events WHERE resident = ? AND kind = ? ORDER BY id DESC LIMIT 1'
+      )
+      .get(resident, kind);
+    return row ? (JSON.parse(row.data) as T) : undefined;
+  };
+  const place = latest<{
+    regions: string[];
+    kind: string;
+    guarded: boolean;
+    island?: string;
+    dungeon?: string;
+    level?: number;
+    part?: string;
+    road?: { from: string; to: string; toward?: string };
+  }>('place');
+  const is = latest<{
+    skills: Record<string, { value: number; base: number; cap: number; lock: number }>;
+    stats?: { strength: number; dexterity: number; intelligence: number };
+    statLocks?: number[];
+    statCap?: number;
+    weapons: { skill: string; value: number }[];
+    crafts: { skill: string; value: number }[];
+    parry: { shield: number; oneHanded: number; twoHanded: number };
+    tames: string[];
+    carries?: number;
+    growth: { total: number; cap: number; rising: { skill: string; gained: number }[] };
+  }>('abilities');
+  const has =
+    latest<Record<string, Record<string, { amount: number; worth: number; weight: number }> | number>>('holding');
+  const lock = (n: number | undefined) => ['up', 'down', 'locked'][n ?? 0] ?? 'up';
+  const blocks: Block[] = [];
+  if (place)
+    blocks.push({
+      kind: 'fields',
+      rows: [
+        ['Where it is', [place.part, place.regions.join(' in ')].filter(Boolean).join(' of ') || 'the wilds'],
+        ['Kind of place', `${place.kind}${place.guarded ? ', guarded' : ''}`],
+        [
+          'Land',
+          place.dungeon ? `${place.dungeon}${place.level ? ` level ${place.level}` : ''}` : (place.island ?? '')
+        ],
+        [
+          'Road',
+          place.road
+            ? `${place.road.from} to ${place.road.to}${place.road.toward ? `, toward ${place.road.toward}` : ''}`
+            : ''
+        ]
+      ]
+    });
+  if (is) {
+    const stats = is.stats;
+    blocks.push({
+      kind: 'fields',
+      rows: [
+        [
+          'Stats',
+          stats
+            ? `str ${stats.strength} (${lock(is.statLocks?.[0])}), dex ${stats.dexterity} (${lock(is.statLocks?.[1])}), int ${stats.intelligence} (${lock(is.statLocks?.[2])}) of ${is.statCap ?? '?'}`
+            : ''
+        ],
+        ['Skills', `${num(is.growth.total, 1)} of ${num(is.growth.cap)}`],
+        ['Rising this hour', is.growth.rising.map((r) => `${r.skill} +${r.gained}`).join(', ')],
+        ['Fights with', is.weapons.map((w) => `${w.skill} ${w.value}`).join(', ')],
+        ['Crafts', is.crafts.map((c) => `${c.skill} ${c.value}`).join(', ')],
+        [
+          'Parry',
+          `shield ${num(is.parry.shield * 100, 1)}%, one-handed ${num(is.parry.oneHanded * 100, 1)}%, two-handed ${num(is.parry.twoHanded * 100, 1)}%`
+        ],
+        ['Can tame', is.tames.slice(0, 8).join(', ')],
+        ['Can still carry', is.carries === undefined ? '' : `${num(is.carries)} stones`]
+      ]
+    });
+    blocks.push({
+      kind: 'table',
+      head: ['Skill', 'Value', 'Base', 'Cap', 'Lock'],
+      rows: Object.entries(is.skills)
+        .filter(([, s]) => s.base > 0 || s.lock !== 0)
+        .sort((a, b) => b[1].value - a[1].value)
+        .map(([skill, s]) => [skill, num(s.value, 1), num(s.base, 1), num(s.cap, 1), lock(s.lock)] as Cell[]),
+      numeric: [1, 2, 3],
+      empty: 'No skills read yet.'
+    });
+  }
+  if (has)
+    blocks.push({
+      kind: 'table',
+      head: ['Where', 'Kind', 'Amount', 'Worth', 'Weight'],
+      rows: (['worn', 'pack', 'bank'] as const).flatMap((where) =>
+        Object.entries((has[where] as Record<string, { amount: number; worth: number; weight: number }>) ?? {}).map(
+          ([kind, t]) => [where, kind, num(t.amount), num(t.worth), num(t.weight, 1)] as Cell[]
+        )
+      ),
+      numeric: [2, 3, 4],
+      empty: 'Nothing held yet.'
+    });
+  return blocks;
 }
