@@ -28,7 +28,8 @@ function savesFolder(path: string): string {
 // The world files the AI residents learn the land from, staged in a folder of their own: the
 // spawners and Trammel's fixed items (from a save, else the shard folder's own Spawns/,
 // RevampedSpawns/ and Data/Decoration, else those of the ServUO revision the shard runs, by a sparse
-// checkout of just those paths), Data/Regions.xml and the teleporters (Data/teleporters.csv).
+// checkout of just those paths), Data/Regions.xml, the teleporters (Data/teleporters.csv) and the
+// players' skill caps (Config/PlayerCaps.cfg, when the shard or its revision has one).
 export async function shardWorldFiles(directory: string, shard: ShardConfig, from: WorldSource = {}): Promise<string> {
   const staged = await mkdtemp(join(tmpdir(), 'gemwright-ai-world-'));
   let source: string | undefined;
@@ -45,8 +46,9 @@ export async function shardWorldFiles(directory: string, shard: ShardConfig, fro
       ? []
       : ['Britannia', 'Trammel', 'Magincia/Trammel'].map((folder) => `Data/Decoration/${folder}`);
     const data = ['Data/Regions.xml', 'Data/teleporters.csv', ...decoration];
+    const caps = 'Config/PlayerCaps.cfg';
     const own = (path: string) => existsSync(join(directory, path));
-    const needs = [...spawns, ...data].filter((path) => !own(path));
+    const needs = [...spawns, ...data, ...(own(caps) ? [] : [caps])].filter((path) => !own(path));
     if (needs.length) {
       if (!shard.source) throw new Error('The shard records no ServUO source to read its world files from.');
       source = await mkdtemp(join(tmpdir(), 'gemwright-ai-source-'));
@@ -69,6 +71,7 @@ export async function shardWorldFiles(directory: string, shard: ShardConfig, fro
       if (existsSync(located(folder))) await cp(located(folder), join(staged, 'Spawns', folder), { recursive: true });
     await cp(located('Data/Regions.xml'), join(staged, 'Regions.xml'));
     await cp(located('Data/teleporters.csv'), join(staged, 'teleporters.csv'));
+    if (existsSync(located(caps))) await cp(located(caps), join(staged, 'PlayerCaps.cfg'));
     for (const folder of decoration)
       await cp(located(folder), join(staged, folder.replace('Data/', '')), { recursive: true });
     return staged;
