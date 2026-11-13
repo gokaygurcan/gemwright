@@ -107,3 +107,30 @@ test('a lift refused only for the action delay is lifted again once the server a
     session.close();
   }
 });
+test('a ground drop goes to a tile no mobile stands on, as ServUO PlayerMobile.OnDroppedItemToWorld requires', async () => {
+  const { session, send } = fixture();
+  const { world } = session;
+  world.entities.set(7, { serial: 7, kind: 'mobile', graphic: 0x190, position: { x: 101, y: 100, z: 0 } } as never);
+  const dropped: { x: number; y: number }[] = [];
+  try {
+    await dropAtFeet(
+      session,
+      (packet) => {
+        if (packet[0] !== 0x08) return send(packet);
+        const at = { x: packet.readUInt16BE(5), y: packet.readUInt16BE(7) };
+        dropped.push(at);
+        const occupied = [world.position, ...[...world.entities.values()].map((e) => e.position)].some(
+          (p) => p?.x === at.x && p.y === at.y
+        );
+        if (occupied) return send(packet);
+        world.entities.set(42, { serial: 42, kind: 'item', graphic: 0xf43, position: { ...at, z: 0 } } as never);
+      },
+      42
+    );
+    expect(world.entities.get(42)?.parent).toBeUndefined();
+    expect(dropped.at(-1)).not.toEqual({ x: 100, y: 100 });
+    expect(dropped).not.toContainEqual({ x: 101, y: 100 });
+  } finally {
+    session.close();
+  }
+});

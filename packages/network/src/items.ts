@@ -35,17 +35,18 @@ async function lift(
   }
 }
 
-// At its feet, or on a tile next to it (a tile holds only so much: Item.FindDropPoint).
-export async function dropAtFeet(
+// Lifts an item and drops it on one ground tile; false when the shard bounced it back. ServUO
+// (Item.DropToWorld) takes x and y from the drop, finds the height itself (FindDropPoint) and
+// refuses a tile more than 2 away, out of sight, without a surface, or with a mobile standing on it.
+export async function dropOnTile(
   session: PlayerSession,
   send: (packet: Buffer) => void,
   serial: number,
-  offset = { x: 0, y: 0 }
+  at: { x: number; y: number; z: number }
 ) {
   const { world } = session;
   const item = world.entities.get(serial);
-  const at = world.position && { ...world.position, x: world.position.x + offset.x, y: world.position.y + offset.y };
-  if (item?.kind !== 'item' || !at) throw new Error('Drop requires an observed item and position');
+  if (item?.kind !== 'item') throw new Error('Drop requires an observed item');
   if (await lift(session, send, serial, item.amount ?? 1, () => !world.entities.has(serial), 'item lift'))
     throw new Error('Item lift rejected');
   const rejected = world.received.get(0x27) ?? 0;
@@ -64,11 +65,46 @@ export async function dropAtFeet(
   } catch (error) {
     if (!(error instanceof WaitTimeout)) throw error;
   }
-  const landed = world.entities.get(serial);
-  if (refused() || landed?.parent !== undefined)
-    throw new CommandRejected('item-drop-rejected', 'Ground drop refused; item returned to its owner');
   // A drop the shard accepted is no longer observed at the feet: the item left the container it was
   // lifted from, and refusals and returns arrive as packets of their own, so absence is acceptance.
+  return !refused() && world.entities.get(serial)?.parent === undefined;
+}
+
+// Onto the ground beside it, as a player drags an item off the paperdoll onto a free tile: never
+// its own tile (ServUO PlayerMobile.OnDroppedItemToWorld refuses a tile any mobile stands on, the
+// dropper too), each neighbouring tile no mobile is seen on tried in turn until one takes it.
+export async function dropAtFeet(
+  session: PlayerSession,
+  send: (packet: Buffer) => void,
+  serial: number,
+  offset?: { x: number; y: number }
+) {
+  const { world } = session;
+  const here = world.position;
+  if (world.entities.get(serial)?.kind !== 'item' || !here)
+    throw new Error('Drop requires an observed item and position');
+  const occupied = (x: number, y: number) =>
+    (x === here.x && y === here.y) ||
+    [...world.entities.values()].some((e) => e.kind === 'mobile' && e.position?.x === x && e.position.y === y);
+  const tiles = offset
+    ? [offset]
+    : [
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [0, -1],
+        [1, 1],
+        [-1, 1],
+        [-1, -1],
+        [1, -1]
+      ].map(([x = 0, y = 0]) => ({ x, y }));
+  for (const tile of tiles) {
+    const x = here.x + tile.x;
+    const y = here.y + tile.y;
+    if (!offset && occupied(x, y)) continue;
+    if (await dropOnTile(session, send, serial, { x, y, z: here.z })) return;
+  }
+  throw new CommandRejected('item-drop-rejected', 'Ground drop refused; item returned to its owner');
 }
 
 // Hands part of a stack to a mobile (paying a trainer), as a player drags gold onto an NPC.
