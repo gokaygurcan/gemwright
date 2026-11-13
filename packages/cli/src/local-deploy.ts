@@ -27,7 +27,7 @@ export interface LocalState {
 }
 
 export const localRoot = (directory: string) => join(resolve(directory), '.gemwright/local');
-export const localProject = (config: ShardConfig) => `gemwright-${config.id}-local`;
+export const localProject = (config: ShardConfig) => config.id;
 
 export async function readLocalState(directory: string): Promise<LocalState | undefined> {
   return readFile(join(localRoot(directory), 'state.json'), 'utf8').then(JSON.parse, (error) => {
