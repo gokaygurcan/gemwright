@@ -1,5 +1,7 @@
 import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
-import { doorGraphics } from '@gemwright/common/game/rules';
+import { isDeathRobe } from '@gemwright/common/game/items';
+import { classesShowing, doorGraphics, skillOf } from '@gemwright/common/game/rules';
+import { skillId } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import { Opcode } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
@@ -9,11 +11,16 @@ import { routeSeed } from '../path-search';
 import { directionTo, type Terrain } from '../terrain';
 import { reportedBankGold } from '../v1/bank-gold';
 import { observedTerrain } from '../v1/observed-terrain';
+import { bankCount, descendants, seeBank } from './bank-space';
+import { CareHands } from './care-hands';
 import type { Encounter } from './encounter';
+import { facts } from './knowledge';
 import { takeMoongate } from './moongate';
-import { type Locomotion, motion } from './motion';
+import { bodyOnScreen, type Locomotion, motion } from './motion';
 import type { Step } from './options';
+import { screenOf } from './perceive';
 import type { Reach } from './reach';
+import { TrainingHands } from './training-hands';
 
 const away = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -28,6 +35,30 @@ const doors: ReadonlySet<number> = new Set(doorGraphics.flat());
 // Its hands: each step as the client does it, and only what the client could do then (the
 // arbiter is the client's own physics). A step that the world refuses ends what it was doing:
 // false, and the mind learns from what came of it. `going` says whether to keep at it.
+// ServUO AnimalTaming's last word: accepted as master (or already its own), and every way it ends
+// otherwise (the roll failed, refused at the cursor, or broken off).
+const tamed: ReadonlySet<number> = new Set([502799, 502797]);
+const untamed: ReadonlySet<number> = new Set([
+  502798, // You fail to tame the creature.
+  502806, // You have no chance of taming this creature.
+  502805, // You seem to anger the beast!
+  1049655, // That creature cannot be tamed.
+  502804, // That animal looks tame already.
+  1049653, // That creature can only be tamed by males.
+  1049652, // That creature can only be tamed by females.
+  502801, // You can't tame that!
+  1049611, // You have too many followers to tame that creature.
+  1005615, // This animal has had too many owners and is too upset for you to tame.
+  1054025, // You must subdue this creature before you can tame it!
+  1042590, // You cannot tame this creature.
+  502802, // Someone else is already taming this.
+  502469, // That being cannot be tamed.
+  502795, // You are too far away to continue taming.
+  502796, // You are dead, and cannot continue taming.
+  1049654, // You do not have a clear path to the animal you are taming...
+  502794 // The animal is too angry to continue taming.
+]);
+
 export class Hands {
   constructor(
     private readonly session: PlayerSession,
@@ -45,7 +76,7 @@ export class Hands {
   }
 
   private get world() {
-    return this.session.world;
+    return screenOf(this.session);
   }
 
   async do(step: Step, going: () => boolean | Promise<boolean>): Promise<boolean> {
@@ -53,9 +84,49 @@ export class Hands {
       if (this.world.target && this.session.phase === 'ready') this.session.target(null);
       return false;
     }
+    const care = new CareHands(this.session, (kind, data) => this.notice?.(kind, data), this.call);
     switch (step.verb) {
+      case 'learn-spell':
+        try {
+          return await new TrainingHands(this.session, (kind, data) => this.notice?.(kind, data)).learn(step, going);
+        } finally {
+          if (this.world.target && this.session.phase === 'ready') this.session.target(null);
+        }
+      case 'craft':
+        return new TrainingHands(this.session, (kind, data) => this.notice?.(kind, data)).craft(step, going);
+      case 'pickup':
+        return care.pickup(step.serial, step.amount, going);
+      case 'recover-corpse': {
+        const recovered = await care.recover(step.serial, going);
+        if (!recovered && (await going())) this.notice?.('care', { action: 'corpse-failed' });
+        return recovered;
+      }
+      case 'help':
+        return care.help(going);
+      case 'claim':
+        return care.claim(going);
+      case 'practice':
+        try {
+          return await care.practice(step, going);
+        } finally {
+          if (this.world.target && this.session.phase === 'ready') this.session.target(null);
+        }
+      case 'guards':
+        return care.guards(step.serial);
+      case 'clear-bank': {
+        const moved = await this.withdraw([step.serial], going);
+        if (moved)
+          this.notice?.('care', {
+            action: 'clear-bank',
+            key: `cleared ${step.serial}`,
+            until: Date.now() + 24 * 3_600_000
+          });
+        return moved;
+      }
       case 'treat':
         return this.encounter?.treat(step.treatment, going) ?? false;
+      case 'tame':
+        return this.tame(step.serial, going);
       case 'escape':
         return (
           this.encounter?.escape((point, range) => this.walk({ ...point, range, running: true }, going), going) ?? false
@@ -66,7 +137,21 @@ export class Hands {
       case 'walk':
         return this.walk(step, going);
       case 'use':
-        return this.use(step.serial);
+        return this.use(step.serial, undefined, undefined, step.gump);
+      case 'inspect':
+        if (!(await this.until(() => this.world.entities.has(step.serial), 3000))) return false;
+        await this.session.inspectProperties(step.serial);
+        return facts(this.world.entities.get(step.serial)?.properties ?? []).weight !== undefined;
+      case 'stow': {
+        if (!this.world.entities.has(step.serial)) return this.gone(step.serial, 'pack');
+        if (isDeathRobe(this.world.entities.get(step.serial) ?? { graphic: 0 })) return false;
+        const pack = [...this.world.entities.values()].find(
+          (e) => e.parent === this.world.serial && e.layer === Layer.Backpack
+        );
+        if (!pack) return false;
+        await this.session.moveItem(step.serial, pack.serial);
+        return this.until(() => this.world.entities.get(step.serial)?.parent === pack.serial, 2000);
+      }
       case 'equip':
         return this.equip(step.serial, step.layer);
       case 'dismount':
@@ -92,29 +177,71 @@ export class Hands {
       }
       case 'say':
         this.session.say(step.text);
+        if (step.text.toLowerCase() === 'bank') {
+          if (
+            !(await this.until(
+              () =>
+                [...this.world.entities.values()].some((e) => e.parent === this.world.serial && e.layer === Layer.Bank),
+              3000
+            ))
+          )
+            return false;
+          return seeBank(this.session, going);
+        }
         return true;
       case 'deposit':
-        return this.deposit(step.items, going);
+        return this.deposit(step.items, going, step.amounts);
       case 'withdraw':
-        return this.withdraw(step.items);
+        return this.withdraw(step.items, going, step.amounts);
       case 'buy':
-        return this.buy(step);
+        return this.buy(step, going);
       case 'sell-to':
         return this.sellTo(step, going);
       case 'sell':
-        return this.sell(step.vendor, step.items);
+        return this.sell(step.vendor, step.items, going);
+      case 'gump-response': {
+        this.session.replyGump(step.serial, step.gump, step.button, []);
+        return true;
+      }
       case 'rest':
-        await Bun.sleep(step.seconds * 1000);
+        for (const end = Date.now() + step.seconds * 1000; Date.now() < end; ) {
+          if (!(await going())) return false;
+          await Bun.sleep(Math.min(250, end - Date.now()));
+        }
+        if (this.session.refreshStatus) await this.session.refreshStatus();
         return true;
     }
   }
 
   // What it knows of the way to far places (reach.ts), once the land is known.
   reach?: Reach;
+  canReach?: (goal: { x: number; y: number; z?: number }) => boolean;
+  notice?: (kind: string, data: object) => void;
+  blocked?: (from: { x: number; y: number; z: number; map: number }, goal: { x: number; y: number; z: number }) => void;
+  // Told when a thing of its own it reached for is not there: in its pack (or worn), or in its bank
+  // box with the box open.
+  missing?: (serial: number, where: 'pack' | 'bank') => void;
 
   // To within range: somewhere far along the way it knows (each leg walked, teleporters stepped on),
   // and with no way known there, not at all; somewhere near straight on.
   private async walk(
+    goal: { x: number; y: number; range: number; running?: boolean; flying?: boolean },
+    going: () => boolean | Promise<boolean>
+  ) {
+    if (this.canReach && !this.canReach(goal)) return false;
+    const from = this.world.position && { ...this.world.position, map: this.world.map ?? 1 };
+    let interrupted = false;
+    const keep = async () => {
+      const yes = await going();
+      if (!yes) interrupted = true;
+      return yes;
+    };
+    const reached = await this.follow(goal, keep);
+    if (!reached && !interrupted && from && (await keep())) this.blocked?.(from, { x: goal.x, y: goal.y, z: from.z });
+    return reached;
+  }
+
+  private async follow(
     goal: { x: number; y: number; range: number; running?: boolean; flying?: boolean },
     going: () => boolean | Promise<boolean>
   ) {
@@ -126,13 +253,18 @@ export class Hands {
     for (const [i, leg] of route.legs.entries()) {
       if (leg.kind === 'gate') {
         if (!(await takeMoongate(this.session, leg, (goal, going) => this.stepTo(goal, going), going))) return false;
+        // Put somewhere else by the gate: where exactly, as the shard has it.
+        await this.session.resyncPosition();
         last = this.world.position ?? leg;
         continue;
       }
       if (leg.kind === 'teleport') {
-        if (!(await this.stepTo({ x: leg.x, y: leg.y, range: 0 }, going))) return false;
-        // The shard moves it the moment it stands there.
-        await this.until(() => away(this.world.position ?? leg, leg) > 1, 3000);
+        // The shard moves it the moment it stands there: the step onto it is done once it is gone
+        // from beside it, not when it stands on the tile it was taken from.
+        const sent = () => away(this.world.position ?? leg, leg) > 1;
+        await this.stepTo({ x: leg.x, y: leg.y, range: 0 }, async () => !sent() && (await going()));
+        if (!sent() && !(await this.until(sent, 3000))) return false;
+        await this.session.resyncPosition();
         last = this.world.position ?? leg;
         continue;
       }
@@ -162,7 +294,11 @@ export class Hands {
   ) {
     const flying =
       goal.flying ??
-      motion(this.world, Math.max(0, away(this.world.position ?? goal, goal) - goal.range), this.locomotion).flying;
+      motion(
+        bodyOnScreen(this.world),
+        Math.max(0, away(this.world.position ?? goal, goal) - goal.range),
+        this.locomotion
+      ).flying;
     if (flying !== undefined && !!((this.world.entities.get(this.world.serial ?? -1)?.flags ?? 0) & 4) !== flying) {
       this.session.toggleFlying();
       if (
@@ -193,12 +329,14 @@ export class Hands {
         if (!at) return false;
         if (at.x === next.x && at.y === next.y) continue;
         const direction = directionTo(at, next);
-        const mode = motion(this.world, Math.max(0, away(at, goal) - goal.range), this.locomotion);
+        const mode = motion(bodyOnScreen(this.world), Math.max(0, away(at, goal) - goal.range), this.locomotion);
         const running = goal.running ?? mode.running;
         // A step in a new direction first turns to face it.
         if (at.direction !== direction && !(await this.session.walk(direction, undefined, running))) {
           refusals.add(`${next.x},${next.y}`);
           stopped = true;
+          // Refused: where it stands is the shard's word now, not the client's guess (0x22).
+          await this.session.resyncPosition();
           break;
         }
         const began = Date.now();
@@ -209,6 +347,7 @@ export class Hands {
         ) {
           refusals.add(`${next.x},${next.y}`);
           stopped = true;
+          await this.session.resyncPosition();
           break;
         }
         const moved = this.world.position;
@@ -230,15 +369,22 @@ export class Hands {
 
   // Into its hand: whatever it holds there (and a shield, for a two-handed tool) goes to its pack first.
   private async equip(serial: number, layer: number) {
+    if (!this.world.entities.has(serial)) return this.gone(serial, 'pack');
+    if (isDeathRobe(this.world.entities.get(serial) ?? { graphic: 0 })) return false;
     const world = this.world;
     const pack = [...world.entities.values()].find((e) => e.parent === world.serial && e.layer === Layer.Backpack);
     if (!pack || !layer) return false;
     const freeing = layer === Layer.TwoHanded ? [Layer.OneHanded, Layer.TwoHanded] : [layer];
+    // A one-handed weapon needs the other hand free of a two-handed one (a shield may stay).
+    const twoHandedWeapon = (held: { graphic: number; layer?: number }) =>
+      layer === Layer.OneHanded &&
+      held.layer === Layer.TwoHanded &&
+      classesShowing(held.graphic).some((type) => skillOf(type) !== undefined);
     for (const held of [...world.entities.values()])
       if (
         held.parent === world.serial &&
         held.layer !== undefined &&
-        freeing.includes(held.layer) &&
+        (freeing.includes(held.layer) || twoHandedWeapon(held)) &&
         held.serial !== serial
       )
         await this.session.moveItem(held.serial, pack.serial);
@@ -248,7 +394,7 @@ export class Hands {
 
   // Putting something down on the tile it stands on, at the height the shard has for it.
   private async drop(serial: number) {
-    if (!this.world.entities.has(serial)) return false;
+    if (!this.world.entities.has(serial)) return this.gone(serial, 'pack');
     await this.session.resyncPosition();
     await this.session.dropAtFeet(serial);
     return !this.world.entities.get(serial)?.parent;
@@ -299,21 +445,27 @@ export class Hands {
     return this.session.walk(direction, undefined, running);
   }
 
-  // Using an item; a tool brings up a cursor for what to use it on. The shard's pace is kept: told
-  // to wait, it waits as long as it took and tries once more.
-  private async use(serial: number, ready = () => !!this.world.target, going = () => true) {
-    if (!this.world.entities.has(serial)) return false;
+  // Using an item; a tool brings up a cursor for what to use it on, or a menu of what it offers
+  // (`menu`: the gump this use opens, already open from the last time it did). The shard's pace is
+  // kept: told to wait, it waits as long as it took and tries once more.
+  private async use(serial: number, ready = () => !!this.world.target, going = () => true, menu?: number) {
+    if (!this.world.entities.has(serial)) return this.gone(serial, 'pack');
+    const open = menu === undefined ? undefined : () => !!this.world.gumps?.get(`${serial}:${menu}`);
     for (let tries = 0; tries < 2 && going(); tries++) {
       const asked = Date.now();
       const heard = this.world.journal.length;
+      const opened = new Set(this.world.gumps?.values() ?? []);
+      const replied = () =>
+        [...(this.world.gumps?.values() ?? [])].some((g) => !opened.has(g) && (menu === undefined || g.id === menu)) ||
+        !!open?.();
       this.session.use(serial);
-      const answered = await this.until(
-        () => !going() || ready() || this.world.journal.slice(heard).some((e) => e.cliloc === busy),
+      const settled = await this.until(
+        () => !going() || ready() || replied() || this.world.journal.slice(heard).some((e) => e.cliloc === busy),
         3000
       );
       if (!going()) return false;
-      if (ready()) return true;
-      if (!answered || !this.world.journal.slice(heard).some((e) => e.cliloc === busy)) return answered;
+      if (ready() || replied()) return true;
+      if (!settled || !this.world.journal.slice(heard).some((e) => e.cliloc === busy)) return settled;
       await Bun.sleep(Date.now() - asked + 500);
     }
     return false;
@@ -349,9 +501,16 @@ export class Hands {
     await this.walk({ ...step, range: 0 }, () => !seller() && going());
     const vendor = seller();
     if (!vendor) return false;
+    const pack = [...this.world.entities.values()].find(
+      (e) => e.parent === this.world.serial && e.layer === Layer.Backpack
+    );
+    const carried = new Set(pack ? descendants(this.world.entities.values(), pack.serial).map((e) => e.serial) : []);
     const items = [...this.world.entities.values()].filter(
       (e) =>
+        carried.has(e.serial) &&
         e.parent !== this.world.serial &&
+        !step.except?.includes(e.serial) &&
+        !isDeathRobe(e) &&
         this.call(e.serial)?.startsWith('my ') &&
         step.names.some((name) =>
           name.split('/').some((type) => this.call(e.serial)?.slice(3).split('/').includes(type))
@@ -438,7 +597,7 @@ export class Hands {
     if (!(await this.use(serial, () => [...world.entities.values()].some((e) => e.parent === serial), going)))
       return false;
     const inside = [...world.entities.values()]
-      .filter((e) => e.parent === serial && this.worth(e.serial) > 0)
+      .filter((e) => e.parent === serial && !isDeathRobe(e) && this.worth(e.serial) > 0)
       .sort(
         (a, b) => (this.call(b.serial)?.startsWith('Gold') ? 1 : 0) - (this.call(a.serial)?.startsWith('Gold') ? 1 : 0)
       );
@@ -452,15 +611,22 @@ export class Hands {
   // From whoever near it sells it, as a player asks: the people nearest first, each one's context
   // menu looked at for a buy entry, its selling list read for the item, and one bought (the shard
   // takes the gold from its pack or its bank).
-  private async buy(step: Extract<Step, { verb: 'buy' }>) {
+  private async buy(step: Extract<Step, { verb: 'buy' }>, going: () => boolean | Promise<boolean>) {
     const world = this.world;
     const here = world.position;
     const pack = [...world.entities.values()].find((e) => e.parent === world.serial && e.layer === Layer.Backpack);
     if (!here || !pack) return false;
     const people = [...world.entities.values()]
-      .filter((e) => e.kind === 'mobile' && e.serial !== world.serial && e.position)
+      .filter((e) => e.kind === 'mobile' && e.serial !== world.serial && e.position && away(here, e.position) <= 18)
       .sort((a, b) => away(here, a.position ?? here) - away(here, b.position ?? here));
     for (const vendor of people) {
+      if (!(await going())) return false;
+      if (
+        vendor.position &&
+        away(world.position ?? here, vendor.position) > 2 &&
+        !(await this.walk({ ...vendor.position, range: 2 }, going))
+      )
+        continue;
       const entry = (await this.session.context(vendor.serial)).find((e) => e.cliloc === Actions.buy && !(e.flags & 1));
       if (!entry) continue;
       // The list arrives keyed by the vendor's stock containers, not by the vendor.
@@ -472,51 +638,135 @@ export class Hands {
         .flat()
         .filter((o) => world.entities.get(o.serial)?.graphic === step.graphic)
         .sort((a, b) => a.price - b.price)[0];
-      if (!offer) continue;
-      await this.session.purchaseItem(vendor.serial, offer.serial, pack.serial, 1, offer.price);
+      if (!offer || (step.training && offer.price > step.price)) continue;
+      const amount = Math.min(step.amount ?? 1, world.entities.get(offer.serial)?.amount ?? 1);
+      if (amount < 1 || !(await going())) return false;
+      await this.session.purchaseItem(vendor.serial, offer.serial, pack.serial, amount, offer.price * amount);
+      if (step.training) this.notice?.('care', { action: 'training-spent', amount: offer.price * amount });
       return true;
     }
     return false;
   }
 
   // Out of its bank box into its pack once the banker opens it.
-  private async withdraw(items: number[]) {
+  private async withdraw(items: number[], going: () => boolean | Promise<boolean>, amounts?: Record<number, number>) {
     const world = this.world;
     const box = () => [...world.entities.values()].find((e) => e.parent === world.serial && e.layer === Layer.Bank);
     const pack = [...world.entities.values()].find((e) => e.parent === world.serial && e.layer === Layer.Backpack);
     if (!pack || !(await this.until(() => !!box(), 3000))) return false;
-    for (const serial of items) if (world.entities.has(serial)) await this.session.moveItem(serial, pack.serial);
+    for (const serial of items) {
+      if (!(await going())) return false;
+      // The box's contents follow its opening; what is not among them is gone (things.ts `listed`).
+      await this.until(() => world.entities.has(serial), 1000);
+      let item = world.entities.get(serial);
+      if (!item) return this.gone(serial, 'bank');
+      if (world.status && !item.properties) {
+        await this.session.inspectProperties(serial);
+        item = world.entities.get(serial);
+      }
+      if (!item) return false;
+      const total = item.amount ?? 1;
+      let amount = Math.min(total, amounts?.[serial] ?? total);
+      if (world.status) {
+        const weight = facts(item.properties ?? []).weight;
+        if (weight === undefined) return false;
+        const unit = weight / total;
+        if (unit > 0)
+          amount = Math.min(
+            amount,
+            Math.max(0, Math.floor((world.status.maxWeight - world.status.weight + 1e-9) / unit))
+          );
+      }
+      if (amount <= 0 || (amounts?.[serial] !== undefined && amount < (amounts[serial] as number))) return false;
+      const bank = box();
+      if (!bank) return false;
+      await this.session.moveItem(serial, pack.serial, amount < total ? amount : undefined);
+      if (!(await this.until(() => world.entities.get(serial)?.parent === pack.serial, 2000))) return false;
+      if (this.session.refreshStatus) await this.session.refreshStatus();
+      if (this.session.inspectProperties) await this.session.inspectProperties(bank.serial, true);
+      if (world.status && world.status.weight > world.status.maxWeight) {
+        await this.session.moveItem(serial, bank.serial);
+        return false;
+      }
+    }
     return true;
   }
 
   // Into its bank box once the banker opens it.
-  private async deposit(items: number[], going: () => boolean | Promise<boolean>) {
+  private async deposit(items: number[], going: () => boolean | Promise<boolean>, amounts?: Record<number, number>) {
     const world = this.world;
     const box = () => [...world.entities.values()].find((e) => e.parent === world.serial && e.layer === Layer.Bank);
     if (!(await this.until(() => !!box(), 3000))) return false;
     for (const serial of items) {
       const bank = box();
-      if (!(await going()) || !bank || !world.entities.has(serial)) break;
-      await this.session.moveItem(serial, bank.serial);
+      if (!(await going()) || !bank) return false;
+      if (!world.entities.has(serial)) return this.gone(serial, 'pack');
+      const item = world.entities.get(serial);
+      if (!item || isDeathRobe(item)) return false;
+      if (this.session.inspectProperties) await this.session.inspectProperties(bank.serial, true);
+      const capacity = bankCount(world.entities.values(), world.entities.get(bank.serial) ?? bank);
+      const added = 1 + descendants(world.entities.values(), serial).length;
+      if (capacity.count + added > capacity.max) return false;
+      await this.session.moveItem(serial, bank.serial, amounts?.[serial]);
+      if (
+        !(await this.until(
+          () => !world.entities.has(serial) || world.entities.get(serial)?.parent === bank.serial,
+          2000
+        ))
+      )
+        return false;
+      if (this.session.inspectProperties) await this.session.inspectProperties(bank.serial, true);
     }
     return true;
   }
 
   // A vendor's buying list from its context menu, and every offered stack of what it meant to sell.
-  private async sell(vendor: number, items: number[]) {
-    const entry = (await this.session.context(vendor)).find((e) => e.cliloc === Actions.sell && !(e.flags & 1));
-    if (!entry) return false;
-    this.world.sellOffers.delete(vendor);
-    this.session.selectContext(vendor, entry.index);
-    if (!(await this.until(() => this.world.sellOffers.has(vendor), 2500))) return false;
-    const wanted = new Set(items);
-    const offers = (this.world.sellOffers.get(vendor) ?? []).filter((o) => wanted.has(o.serial) && o.price > 0);
-    if (!offers.length) return false;
-    await this.session.sell(
-      vendor,
-      offers.map((o) => ({ serial: o.serial, amount: o.amount }))
-    );
+  private async sell(vendor: number, items: number[], going: () => boolean | Promise<boolean> = () => true) {
+    if (!items.length) return false;
+    const remaining = new Set(items);
+    while (remaining.size) {
+      if (!(await going())) return false;
+      const entry = (await this.session.context(vendor)).find((e) => e.cliloc === Actions.sell && !(e.flags & 1));
+      if (!entry) return false;
+      this.world.sellOffers.delete(vendor);
+      this.session.selectContext(vendor, entry.index);
+      if (!(await this.until(() => this.world.sellOffers.has(vendor), 2500))) return false;
+      const offers = (this.world.sellOffers.get(vendor) ?? [])
+        .filter(
+          (o) =>
+            remaining.has(o.serial) && o.price > 0 && !isDeathRobe(this.world.entities.get(o.serial) ?? { graphic: 0 })
+        )
+        .slice(0, 99);
+      if (!offers.length) return false;
+      await this.session.sell(
+        vendor,
+        offers.map((o) => ({ serial: o.serial, amount: o.amount }))
+      );
+      for (const offer of offers) remaining.delete(offer.serial);
+    }
     return true;
+  }
+
+  // Animal Taming on a creature: the skill's cursor answered with it, then the shard's word at the
+  // end of the 9 to 12 seconds a try takes (ServUO AnimalTaming): accepted as master, or not.
+  private async tame(serial: number, going: () => boolean | Promise<boolean>) {
+    if (!this.world.entities.has(serial)) return false;
+    const heard = this.world.journal.length;
+    this.session.useSkill(skillId('AnimalTaming'));
+    if (!(await this.until(() => !!this.world.target, 3000))) return false;
+    this.session.target({ serial, x: 0, y: 0, z: 0, graphic: 0 });
+    for (const end = Date.now() + 20_000; Date.now() < end; await Bun.sleep(250)) {
+      const said = this.world.journal.slice(heard).map((e) => e.cliloc);
+      if (said.some((cliloc) => cliloc !== undefined && tamed.has(cliloc))) return true;
+      if (said.some((cliloc) => cliloc !== undefined && untamed.has(cliloc))) return false;
+      if (!(await going())) return false;
+    }
+    return false;
+  }
+
+  private gone(serial: number, where: 'pack' | 'bank') {
+    this.missing?.(serial, where);
+    return false;
   }
 
   private async until(done: () => boolean, ms: number) {

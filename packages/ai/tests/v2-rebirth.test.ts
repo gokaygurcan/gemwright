@@ -2,50 +2,53 @@ import { expect, test } from 'bun:test';
 
 import type { PlayerSession } from '@gemwright/network/session';
 
-import type { Terrain } from '../src/terrain';
-import { Hands } from '../src/v2/hands';
+import type { Hands } from '../src/v2/hands';
 import { rebirth } from '../src/v2/rebirth';
 
-// A ghost with a healer placed three tiles east: it walks over, the healer offers, it accepts. A
-// healer that offered nothing is left for another while it is tried in vain.
-test('a ghost goes to the nearest healer and accepts the resurrection offered', async () => {
-  const replies: string[] = [];
+const away = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+
+// A ghost standing right beside a healer: a healer only offers to a ghost that steps into its reach
+// from farther off (ServUO BaseHealer.OnMovement, two tiles), so it steps out and back in, and takes
+// the resurrection it is offered.
+test('a ghost steps into a healer reach from outside it and takes the resurrection', async () => {
+  const healer = { serial: 50, kind: 'mobile', graphic: 400, position: { x: 11, y: 10, z: 0 } };
+  const gumps = new Map<string, { serial: number; id: number; layout: string }>();
   const world = {
     serial: 1,
-    position: { x: 10, y: 10, z: 0, direction: 2 },
-    entities: new Map(),
-    gumps: new Map<string, { serial: number; id: number; layout: string }>()
+    map: 1,
+    position: { x: 10, y: 10, z: 0, direction: 0 },
+    entities: new Map([[50, healer]]),
+    gumps
   };
+  const walks: string[] = [];
+  const replies: number[] = [];
+  const hands = {
+    do: async (step: { verb: string; x: number; y: number; range: number }) => {
+      const before = world.position;
+      const to = { x: step.x + (step.range ? Math.sign(before.x - step.x) * step.range : 0), y: step.y, z: 0 };
+      walks.push(`${to.x},${to.y}`);
+      world.position = { ...to, direction: 0 };
+      if (away(before, healer.position) > 2 && away(to, healer.position) <= 2)
+        gumps.set('9:1', { serial: 9, id: 1, layout: '{ xmfhtmlgump 1011022 }' });
+      return true;
+    }
+  } as unknown as Hands;
   const session = {
     world,
-    walk: async () => {
-      world.position = { ...world.position, x: world.position.x + 1 };
-      if (world.position.x >= 12)
-        world.gumps.set('5:7', { serial: 5, id: 7, layout: '{ xmfhtmlgump 0 0 0 0 1011022 0 0 }' });
-      return true;
-    },
-    replyGump: (serial: number, id: number, button: number) => {
-      replies.push(`${serial}:${id}:${button}`);
-      world.gumps.delete(`${serial}:${id}`);
+    replyGump: (serial: number) => {
+      replies.push(serial);
+      gumps.clear();
     }
   } as unknown as PlayerSession;
-  const tried = new Map<string, number>();
-  const shrines = [
-    { kind: 'healer' as const, x: 15, y: 10 },
-    { kind: 'ankh' as const, x: 40, y: 10 }
-  ];
-  const terrain = {
-    pathAsync: async (start: { x: number }, goal: { x: number }, range: number) =>
-      Array.from({ length: goal.x - start.x - range }, (_, i) => ({ x: start.x + i + 1, y: 10, z: 0 }))
-  } as unknown as Terrain;
   await rebirth(
     session,
-    new Hands(session, terrain),
-    shrines,
-    () => undefined,
-    tried,
+    hands,
+    [{ kind: 'healer', x: 11, y: 10 }],
+    (serial) => (serial === 50 ? 'Healer' : undefined),
+    new Map(),
     () => false
   );
-  expect(replies).toEqual(['5:7:1']);
-  expect(tried.size).toBe(0);
-}, 15000);
+  expect(walks).toEqual(['7,10', '10,10']);
+  expect(replies).toEqual([9]);
+});

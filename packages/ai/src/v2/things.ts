@@ -1,8 +1,28 @@
+import { isDeathRobe } from '@gemwright/common/game/items';
+
 import { add, type Outcome } from './beliefs';
 import type { HistoryEvent } from './history';
 import { type Facts, facts } from './knowledge';
 
 type Data = Record<string, unknown>;
+export interface Sight {
+  serial: number;
+  kind: 'mobile' | 'item';
+  name?: string;
+  // A character's own name, as distinct from what kind of thing it is.
+  label?: string;
+  graphic?: number;
+  hue?: number;
+  parent?: number;
+  layer?: number;
+  amount?: number;
+  position?: { x: number; y: number; z: number };
+  // Whether its hover has been read.
+  described: boolean;
+  fixed: boolean;
+  movable: boolean;
+  notoriety?: number;
+}
 type Property = { cliloc: number; arguments: string };
 
 // What it knows of the things about it: what each looks like, which are creatures, which are its
@@ -18,7 +38,11 @@ export class Things {
     Object.assign(this, state);
   }
 
+  readonly graphics = new Map<number, number>();
   readonly names = new Map<number, string>();
+  // What a mobile calls itself (its character name), as distinct from what kind of thing it is: a
+  // person is a Person, and Marcy is Marcy.
+  readonly labels = new Map<number, string>();
   readonly mobiles = new Set<number>();
   readonly owned = new Map<number, { name: string; amount: number }>();
   readonly held = new Set<number>();
@@ -26,7 +50,17 @@ export class Things {
   // What each thing's hover said: its weight, and what makes a piece good.
   readonly described = new Map<number, Facts>();
   private readonly parents = new Map<number, number>();
+  private readonly notorieties = new Map<number, number>();
+  private readonly movable = new Set<number>();
   private readonly fixed = new Set<number>();
+  // Where each worn thing is worn (its layer), where each thing lies on the ground, and how many of
+  // a thing not its own there are.
+  private readonly layers = new Map<number, number>();
+  private readonly spots = new Map<number, { x: number; y: number; z: number }>();
+  // What is on its screen now: in view, worn, in its pack, or in an open container.
+  private readonly present = new Set<number>();
+  private readonly counts = new Map<number, number>();
+  private readonly hues = new Map<number, number>();
   private bank = -1;
   private readonly corpses = new Map<number, string>();
   diedAt: HistoryEvent['where'];
@@ -42,8 +76,27 @@ export class Things {
     const banked = new Set(
       this.self === self ? [...this.parents.keys(), ...this.owned.keys()].filter((serial) => this.inBank(serial)) : []
     );
-    for (const seen of [this.names, this.mobiles, this.healths, this.owned, this.held, this.parents, this.fixed])
+    for (const seen of [
+      this.names,
+      this.graphics,
+      this.labels,
+      this.mobiles,
+      this.healths,
+      this.owned,
+      this.held,
+      this.parents,
+      this.fixed,
+      this.movable,
+      this.notorieties,
+      this.layers,
+      this.spots,
+      this.counts,
+      this.hues,
+      this.present
+    ])
       for (const serial of seen.keys()) if (!banked.has(serial)) seen.delete(serial);
+    // A new session's screen starts empty: what the bank holds is remembered, not shown.
+    this.present.clear();
     this.rest = undefined;
     this.self = self;
   }
@@ -51,18 +104,32 @@ export class Things {
   observe(event: HistoryEvent, outcome: Outcome | undefined, attempt: { object?: number; key: string } | undefined) {
     const data = event.data as Data;
     switch (event.kind) {
+      case 'care':
+        if (data.action === 'claim' && data.answer === 'claimed' && typeof data.serial === 'number')
+          this.mount = data.serial;
+        break;
       case 'seen':
       case 'revealed':
       case 'gained':
       case 'changed': {
         const serial = data.serial as number;
+        this.present.add(serial);
+        if (typeof data.notoriety === 'number') this.notorieties.set(serial, data.notoriety);
+        if (typeof data.graphic === 'number') this.graphics.set(serial, data.graphic);
         if (Array.isArray(data.is) || event.kind !== 'changed') this.names.set(serial, this.nameOf(data));
-        if (data.kind === 'mobile') this.mobiles.add(serial);
+        // A character's name arrives in its own later event, not with the mobile's first sight.
+        if (data.kind === 'mobile' || this.mobiles.has(serial)) {
+          this.mobiles.add(serial);
+          if (typeof data.name === 'string' && data.name) this.labels.set(serial, data.name);
+        }
         if (Array.isArray(data.properties)) this.described.set(serial, facts(data.properties as Property[]));
         if (event.kind === 'seen' && data.kind === 'mobile' && typeof data.x === 'number')
           this.appeared = { serial, x: data.x, y: data.y as number, at: event.at };
         if (typeof data.hits === 'number' && typeof data.maxHits === 'number' && data.maxHits > 0)
           this.healths.set(serial, data.hits / data.maxHits);
+        // Any corpse seen is a corpse, whoever's; one it saw die is known by that death.
+        if (event.kind === 'seen' && (data.is as string[] | undefined)?.includes('Corpse') && !this.corpses.has(serial))
+          this.corpses.set(serial, 'Corpse');
         // The corpse that appears where it died is its own.
         const died = this.diedAt;
         if (event.kind === 'seen' && died && (data.is as string[] | undefined)?.includes('Corpse')) {
@@ -74,11 +141,28 @@ export class Things {
         // The server marks which items a player may move (ServUO Item.GetPacketFlags, 0x20); a
         // mobile's flags mean other things.
         if (typeof data.flags === 'number' && !this.mobiles.has(serial)) {
-          if (data.flags & 0x20) this.fixed.delete(serial);
-          else this.fixed.add(serial);
+          if (data.flags & 0x20) {
+            this.fixed.delete(serial);
+            this.movable.add(serial);
+          } else {
+            this.fixed.add(serial);
+            this.movable.delete(serial);
+          }
         }
-        if (typeof data.parent === 'number') this.parents.set(serial, data.parent);
-        else if (typeof data.x === 'number') this.parents.delete(serial);
+        if (typeof data.parent === 'number') {
+          this.parents.set(serial, data.parent);
+          this.spots.delete(serial);
+        } else if (typeof data.x === 'number') this.parents.delete(serial);
+        const was = this.spots.get(serial);
+        if (typeof data.parent !== 'number' && (was || typeof data.x === 'number'))
+          this.spots.set(serial, {
+            x: (data.x as number | undefined) ?? was?.x ?? 0,
+            y: (data.y as number | undefined) ?? was?.y ?? 0,
+            z: (data.z as number | undefined) ?? was?.z ?? 0
+          });
+        if (typeof data.layer === 'number') this.layers.set(serial, data.layer);
+        if (typeof data.amount === 'number') this.counts.set(serial, data.amount);
+        if (typeof data.hue === 'number') this.hues.set(serial, data.hue);
         const name = this.names.get(serial) ?? `g${data.graphic}`;
         const mine = this.owned.get(serial);
         // Seen closer (its hover), one of its own things may turn out to be something else.
@@ -87,7 +171,10 @@ export class Things {
         if (data.layer === 29 && data.parent === this.self) this.bank = serial;
         // Something it held in hand lands: back among its things it is placed, elsewhere it is lost.
         // What its bank box holds was always its own: opening the box only shows it.
-        const split = event.kind === 'gained' && this.rest?.name === name && this.rest.amount === amount;
+        const split =
+          (event.kind === 'gained' || event.kind === 'revealed') &&
+          this.rest?.name === name &&
+          this.rest.amount === amount;
         if (split) this.rest = undefined;
         const placed = this.held.delete(serial) || split;
         if (event.kind === 'gained' || event.kind === 'revealed') {
@@ -98,7 +185,7 @@ export class Things {
           const ridden = data.layer === 25 && data.parent === this.self;
           if (outcome && event.kind === 'gained' && !placed && !shown && !ridden && !this.inBank(serial))
             add(outcome.gained, name, amount ?? 1);
-        } else if (placed && mine) {
+        } else if (placed && mine && !this.belongs(serial)) {
           this.owned.delete(serial);
           if (outcome) add(outcome.lost, mine.name, mine.amount);
         } else if (mine && amount !== undefined && amount !== mine.amount) {
@@ -117,10 +204,16 @@ export class Things {
         break;
       }
       case 'lost': {
+        this.present.delete(data.serial as number);
         // Picked up, it is in hand: still its own until it lands somewhere.
         if (this.held.has(data.serial as number)) break;
         // Off its mount: what it rode is now the creature standing where it is, still its own.
-        if (data.layer === 25 && data.parent === this.self) {
+        if (
+          (data.layer ?? this.layers.get(data.serial as number)) === 25 &&
+          (data.parent ?? this.parents.get(data.serial as number)) === this.self
+        ) {
+          this.layers.delete(data.serial as number);
+          this.parents.delete(data.serial as number);
           this.owned.delete(data.serial as number);
           const left = this.appeared;
           if (left && event.where && left.x === event.where.x && left.y === event.where.y && event.at - left.at < 1000)
@@ -128,27 +221,147 @@ export class Things {
           break;
         }
         const mine = this.owned.get(data.serial as number);
+        this.parents.delete(data.serial as number);
+        this.layers.delete(data.serial as number);
         this.owned.delete(data.serial as number);
         if (mine && outcome) add(outcome.lost, mine.name, mine.amount);
         break;
       }
       case 'gone':
+        this.present.delete(data.serial as number);
         if (!this.owned.has(data.serial as number)) {
           this.names.delete(data.serial as number);
+          this.graphics.delete(data.serial as number);
           this.described.delete(data.serial as number);
         }
+        this.labels.delete(data.serial as number);
         this.parents.delete(data.serial as number);
+        this.layers.delete(data.serial as number);
+        this.spots.delete(data.serial as number);
+        this.counts.delete(data.serial as number);
+        this.hues.delete(data.serial as number);
         this.corpses.delete(data.serial as number);
         this.fixed.delete(data.serial as number);
+        this.movable.delete(data.serial as number);
+        this.notorieties.delete(data.serial as number);
         this.mobiles.delete(data.serial as number);
         this.healths.delete(data.serial as number);
         break;
+      // Reached for and not there: whatever it believed of it was wrong. One in its bank box counts
+      // only when it looked in the open box; out of the box's view, its bank's things are not missed.
+      case 'missing': {
+        const serial = data.serial as number;
+        if (!this.owned.has(serial) || (data.where === 'pack' && this.inBank(serial))) break;
+        this.owned.delete(serial);
+        this.parents.delete(serial);
+        this.layers.delete(serial);
+        this.held.delete(serial);
+        break;
+      }
+      case 'listed': {
+        const contents = new Set(data.contents as number[]);
+        for (const [serial, parent] of this.parents)
+          if (parent === data.serial && !contents.has(serial)) {
+            this.parents.delete(serial);
+            this.owned.delete(serial);
+          }
+        break;
+      }
       case 'death': {
         const dead = this.names.get(data.serial as number);
         if (dead) this.corpses.set(data.corpse as number, `Corpse of ${dead}`);
         break;
       }
     }
+  }
+
+  // One thing on its screen now, as it shows: what it is, where it is or what holds it.
+  sight(serial: number): Sight | undefined {
+    if (!this.present.has(serial)) return undefined;
+    return {
+      serial,
+      kind: this.mobiles.has(serial) ? 'mobile' : 'item',
+      name: this.names.get(serial),
+      label: this.labels.get(serial),
+      graphic: this.graphics.get(serial),
+      hue: this.hues.get(serial),
+      parent: this.parents.get(serial),
+      layer: this.layers.get(serial),
+      amount: this.owned.get(serial)?.amount ?? this.counts.get(serial),
+      position: this.spots.get(serial),
+      described: this.described.has(serial),
+      notoriety: this.notorieties.get(serial),
+      movable: this.movable.has(serial),
+      fixed: this.fixed.has(serial)
+    };
+  }
+
+  // Everything on its screen now.
+  *sights() {
+    for (const serial of this.present) {
+      const sight = this.sight(serial);
+      if (sight && serial !== this.self) yield sight;
+    }
+  }
+
+  // Whether a thing of its own is on its person now: worn or in its pack, not in its bank box.
+  carrying(serial: number) {
+    return this.owned.has(serial) && this.belongs(serial) && !this.inBank(serial);
+  }
+
+  // Its backpack and its bank box, as worn.
+  worn(layer: number) {
+    for (const [serial, at] of this.layers) if (at === layer && this.parents.get(serial) === this.self) return serial;
+    return undefined;
+  }
+
+  // Whether one of its things is the white robe the shard dresses a raised ghost in.
+  deathRobe(serial: number) {
+    return isDeathRobe({ graphic: this.graphics.get(serial) ?? 0, hue: this.hues.get(serial) });
+  }
+
+  // Whether it sits on a mount (the mount layer worn).
+  riding() {
+    for (const [serial, layer] of this.layers) if (layer === 25 && this.parents.get(serial) === this.self) return true;
+    return false;
+  }
+
+  // Everything it has and could have, by where it is: worn (by layer), in its pack, in its bank box,
+  // on the ground within `range` of `here` (only what may be moved) and in the corpses about.
+  has(here: { x: number; y: number } | undefined, range: number) {
+    type Held = { serial: number; name: string; amount: number };
+    const worn: (Held & { layer: number })[] = [];
+    const pack: Held[] = [];
+    const bank: Held[] = [];
+    for (const [serial, item] of this.owned) {
+      const layer = this.layers.get(serial);
+      if (this.inBank(serial)) {
+        if (serial !== this.bank) bank.push({ serial, ...item });
+      } else if (this.parents.get(serial) === this.self && layer !== undefined) {
+        // Its backpack is where its things are, not a thing it wears.
+        if (layer !== 21 && layer !== 29) worn.push({ serial, ...item, layer });
+      } else if (this.belongs(serial)) pack.push({ serial, ...item });
+    }
+    const ground: (Held & { x: number; y: number; z: number })[] = [];
+    if (here)
+      for (const [serial, spot] of this.spots)
+        if (
+          !this.owned.has(serial) &&
+          !this.mobiles.has(serial) &&
+          !this.fixed.has(serial) &&
+          !this.corpses.has(serial) &&
+          Math.max(Math.abs(spot.x - here.x), Math.abs(spot.y - here.y)) <= range
+        )
+          ground.push({ serial, name: this.called(serial), amount: this.counts.get(serial) ?? 1, ...spot });
+    const corpses = [...this.corpses].map(([serial, name]) => ({
+      serial,
+      name,
+      ...this.spots.get(serial),
+      items: [...this.parents]
+        .filter(([, parent]) => parent === serial)
+        .map(([item]) => ({ serial: item, name: this.called(item), amount: this.counts.get(item) ?? 1 }))
+    }));
+    return { worn, pack, bank, ground, corpses };
   }
 
   // What one of a kind of thing weighs, from the piles of it it has hovered.
@@ -173,6 +386,8 @@ export class Things {
   }
 
   private nameOf(data: Data) {
+    if (typeof data.graphic === 'number' && isDeathRobe({ graphic: data.graphic, hue: data.hue as number | undefined }))
+      return 'DeathRobe';
     const is = data.is as string[] | undefined;
     return is?.length ? is.join('/') : `g${data.graphic}`;
   }
@@ -184,6 +399,14 @@ export class Things {
     if (serial === this.mount) return `my ${this.names.get(serial) ?? 'Mount'}`;
     const mine = this.owned.get(serial);
     return mine ? `my ${mine.name}` : this.placed(serial);
+  }
+
+  private belongs(serial: number) {
+    for (let at: number | undefined = serial, hops = 0; at !== undefined && hops < 16; hops++) {
+      if (at === this.self) return true;
+      at = this.parents.get(at);
+    }
+    return false;
   }
 
   inBank(serial: number) {

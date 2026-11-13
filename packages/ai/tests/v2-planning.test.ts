@@ -8,6 +8,7 @@ import { WorkIndex } from '../src/terrain-work';
 import { Mind } from '../src/v2/mind';
 import { choices } from '../src/v2/planning';
 import { traitsOf } from '../src/v2/traits';
+import { seeing } from './fixtures/v2/mind-sync';
 
 const rock = harvestTiles.rock.land[0] as number;
 
@@ -61,7 +62,7 @@ test('a full pack can choose processing that enables further harvesting', () => 
     bestTiles: () => [{ x: 12, y: 10, z: 0, land: rock }],
     findTiles: () => []
   } as unknown as Terrain;
-  const plans = choices(mind, session, terrain, new Set(), {
+  const plans = choices(seeing(mind, session), terrain, new Set(), {
     bankers: [],
     vendors: [],
     forges: [{ x: 11, y: 10, z: 0, id: 4017 }]
@@ -120,7 +121,7 @@ test('entering sight retains the combat intention and values the observed target
   const world = { serial: 1, position: { ...where, direction: 2 }, entities: new Map<number, object>() };
   const session = { world } as unknown as PlayerSession;
   const places = { bankers: [], vendors: [] };
-  const trip = choices(mind, session, undefined, new Set(), places).find((p) => p.key.startsWith('go '));
+  const trip = choices(seeing(mind, session), undefined, new Set(), places).find((p) => p.key.startsWith('go '));
   expect(trip).toBeDefined();
   world.position.x = 95;
   mind.observe({ resident: 'r', at: 1000, where: { ...where, x: 95 }, kind: 'acted', data: { verb: 'walk' } });
@@ -131,7 +132,7 @@ test('entering sight retains the combat intention and values the observed target
     kind: 'seen',
     data: { serial: 20, kind: 'mobile', is: ['Zombie'], hits: 20, maxHits: 100 }
   });
-  const nearby = choices(mind, session, undefined, new Set(), places, trip?.source);
+  const nearby = choices(seeing(mind, session), undefined, new Set(), places, trip?.source);
   const continuation = nearby.find((p) => p.id === trip?.id);
   expect(continuation?.steps.some((s) => s.verb === 'seek')).toBe(true);
   expect(continuation?.rate).toBe(nearby.find((p) => p.id === 'attack 20')?.rate);
@@ -139,8 +140,7 @@ test('entering sight retains the combat intention and values the observed target
 
 test('observed movement costs can make walking preferable to running', async () => {
   const { movement } = await import('../src/v2/motion');
-  const world = { serial: 1, entities: new Map(), status: { stamina: 10 } } as unknown as PlayerSession['world'];
-  const choose = movement(world, (key) => ({
+  const choose = movement({ mounted: false, flying: false, winged: false, stamina: 10 }, (key) => ({
     steps: 10,
     seconds: key.includes('run') ? 2 : 4,
     stamina: key.includes('run') ? 10 : 0

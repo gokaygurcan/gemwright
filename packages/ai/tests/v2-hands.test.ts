@@ -214,3 +214,60 @@ test('checking funds waits for a fresh banker reply and accepts a zero balance',
   expect(await new Hands(session, undefined).do({ verb: 'balance' }, () => true)).toBe(true);
   expect(sent).toEqual(['balance']);
 });
+
+// A step the shard refuses leaves the client unsure where it stands: it asks (0x22) before going on.
+test('a refused step is followed by asking the shard where it stands', async () => {
+  const { session } = client();
+  let asked = 0;
+  Object.assign(session, {
+    walk: async () => false,
+    resyncPosition: async () => {
+      asked++;
+      return true;
+    }
+  });
+  const terrain = {
+    pathAsync: async (start: { x: number; y: number }) => [{ x: start.x + 1, y: start.y, z: 0 }]
+  } as unknown as Terrain;
+  expect(await new Hands(session, terrain).do({ verb: 'walk', x: 15, y: 10, range: 0 }, () => true)).toBe(false);
+  expect(asked).toBeGreaterThan(0);
+});
+
+// Put somewhere else by a teleporter, it asks the shard where exactly it now stands.
+test('after a teleporter it asks the shard where it stands', async () => {
+  const { session, world } = client();
+  let asked = 0;
+  Object.assign(session, {
+    walk: async (direction: number) => {
+      if (world.position.direction !== direction) {
+        world.position.direction = direction;
+        return true;
+      }
+      const [dx, dy] = steps[direction] ?? [0, 0];
+      world.position = { ...world.position, x: world.position.x + dx, y: world.position.y + dy };
+      // Stepping on the teleporter at 12,10 puts it far away.
+      if (world.position.x === 12) world.position = { ...world.position, x: 500, y: 500 };
+      return true;
+    },
+    resyncPosition: async () => {
+      asked++;
+      return true;
+    }
+  });
+  const terrain = {
+    pathAsync: async (start: { x: number; y: number }, goal: { x: number; y: number }) =>
+      start.x < goal.x ? [{ x: start.x + 1, y: start.y, z: 0 }] : []
+  } as unknown as Terrain;
+  const hands = new Hands(session, terrain);
+  hands.reach = {
+    route: () => ({
+      steps: 2,
+      legs: [
+        { kind: 'teleport', x: 12, y: 10, z: 0 },
+        { kind: 'walk', x: 500, y: 500, z: 0 }
+      ]
+    })
+  } as unknown as NonNullable<Hands['reach']>;
+  expect(await hands.do({ verb: 'walk', x: 500, y: 500, range: 0 }, () => true)).toBe(true);
+  expect(asked).toBe(1);
+});

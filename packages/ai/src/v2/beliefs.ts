@@ -196,6 +196,11 @@ export class Beliefs {
     return this.pasts.keys();
   }
 
+  // Whether it has tried this key at all: what it could expect from it, if anything.
+  has(key: string) {
+    return this.pasts.has(key);
+  }
+
   // All it has lived, whatever the attempt, added up, and over how many attempts.
   readonly lived = empty();
   attempts = 0;

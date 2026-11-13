@@ -17,6 +17,8 @@ export interface Deliberation {
   traits: Traits;
   trade?: ReadonlySet<string>;
   expected: (key: string) => { outcome?: Outcome };
+  // What the market was last seen to pay for what an attempt brings (the wiki's prices until then).
+  market?: (name: string) => number;
   steps?: Steps;
 }
 
@@ -46,6 +48,7 @@ export function consider({
   traits,
   trade,
   expected,
+  market,
   steps
 }: Deliberation) {
   const present = new Set(['self']);
@@ -69,7 +72,7 @@ export function consider({
     if (outcome)
       options.push({
         key,
-        value: round(value(honestly(key, outcome, traits), traits, rates, carried, trade))
+        value: round(value(honestly(key, outcome, traits), traits, rates, carried, trade, market))
       });
   }
   // Or going somewhere to do something: the walk there counts as time.
@@ -86,7 +89,7 @@ export function consider({
     going.seconds += venture.walk;
     options.push({
       key: `go ${venture.where.x},${venture.where.y}: ${venture.key}`,
-      value: round(value(going, traits, rates, carried, trade)),
+      value: round(value(going, traits, rates, carried, trade, market)),
       seconds: going.seconds
     });
   }

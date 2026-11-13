@@ -2,12 +2,19 @@ import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import { skillNames } from '@gemwright/common/game/skills';
 import { Layer } from '@gemwright/network/layers';
 import type { PlayerSession } from '@gemwright/network/session';
+import type { WorldView } from '@gemwright/network/world';
 import type { JournalEntry } from '@gemwright/network/world-types';
 
 import { selfProjection } from '../perception-self';
 import { decodeOut, OUT } from '../recording';
+import type { Place } from './atlas';
 import type { HistoryEvent } from './history';
 import { identify, identifyVendor } from './knowledge';
+
+// The live screen, read-only: what the hands that act on it see (hands.ts and the other doers),
+// and the only way past perception to the world. Choosing reads the mind, never this.
+export type Screen = Readonly<WorldView>;
+export const screenOf = (session: PlayerSession): Screen => session.world;
 
 const facts = [
   'graphic',
@@ -48,11 +55,16 @@ export function perceive(
   resident: string,
   sink: (event: HistoryEvent) => void,
   // The land tile at a spot of a map, as the client draws it from the map files.
-  landAt: (x: number, y: number, map: number | null) => number | undefined = () => undefined
+  landAt: (x: number, y: number, map: number | null) => number | undefined = () => undefined,
+  // Where a spot is on the map (atlas.ts).
+  placeAt?: (p: { x: number; y: number; z: number; map: number | null }) => Place
 ): () => void {
   const world = session.world;
   const known = new Map<number, { facts: Facts; owned: boolean; shown?: string }>();
+  const sheet = (s: { value: number; base: number; cap: number; lock: number }) =>
+    `${s.value},${s.base},${s.cap},${s.lock}`;
   const skills = new Map([...world.skills].map(([id, s]) => [id, s.value]));
+  const sheets = new Map([...world.skills].map(([id, s]) => [id, sheet(s)]));
   const { position: _, range: __, ...initial } = selfProjection(world);
   let self = JSON.stringify(initial);
   let heard: JournalEntry | undefined = world.journal.at(-1);
@@ -76,6 +88,29 @@ export function perceive(
         shown.delete(id);
         record(`${kind}-closed`, { key: id.slice(kind.length + 1) });
       }
+  };
+
+  // Where it stands, known at every step: recorded whenever the place changes.
+  let tile: string | undefined;
+  let place: string | undefined;
+  const locate = () => {
+    const p = world.position;
+    if (!p || !placeAt) return;
+    const at = `${p.x},${p.y},${p.z},${world.map}`;
+    if (at === tile) return;
+    tile = at;
+    const found = placeAt({ ...p, map: world.map });
+    // From one level of a dungeon to another: down to a deeper one, or up.
+    const before = place === undefined ? undefined : (JSON.parse(place) as Place);
+    const now: Place =
+      before?.dungeon && before.dungeon === found.dungeon && before.level && found.level && before.level !== found.level
+        ? { ...found, came: found.level > before.level ? 'down' : 'up' }
+        : before?.dungeon === found.dungeon && before?.level === found.level && before?.came
+          ? { ...found, came: before.came }
+          : found;
+    const text = JSON.stringify(now);
+    if (text !== place) record('place', now);
+    place = text;
   };
 
   const record = (kind: string, data: object) => {
@@ -120,7 +155,8 @@ export function perceive(
         serial,
         kind: entity.kind,
         ...now,
-        is: identify(entity)
+        is: identify(entity),
+        ...(entity.properties ? { properties: entity.properties } : {})
       });
     const changed: Record<string, unknown> = Object.fromEntries(
       facts.filter((k) => now[k] !== before.facts[k]).map((k) => [k, now[k]])
@@ -129,7 +165,8 @@ export function perceive(
     const shown = entity.properties && JSON.stringify(entity.properties);
     if (shown && shown !== before.shown) changed.properties = entity.properties;
     known.set(serial, { facts: now, owned: mine, shown: shown ?? before.shown });
-    if ('name' in changed || 'graphic' in changed || 'properties' in changed) changed.is = identify(entity);
+    if ('name' in changed || 'graphic' in changed || 'hue' in changed || 'properties' in changed)
+      changed.is = identify(entity);
     if (Object.keys(changed).length) record('changed', { serial, ...changed });
   };
 
@@ -141,7 +178,7 @@ export function perceive(
         if (ghost && !now) record('revived', {});
         ghost = now;
       }
-      if (change.fields.length) {
+      if (change.fields.length || change.entities.includes(world.serial ?? -1)) {
         const { position: _, range: __, ...now } = selfProjection(world);
         const next = JSON.stringify(now);
         if (next !== self) {
@@ -154,12 +191,25 @@ export function perceive(
         }
       }
       for (const id of change.skills) {
-        const value = world.skills.get(id)?.value;
-        if (value === undefined || value === skills.get(id)) continue;
-        record('skill', { skill: skillNames[id] ?? id, value, before: skills.get(id) ?? null });
-        skills.set(id, value);
+        const now = world.skills.get(id);
+        if (!now || sheet(now) === sheets.get(id)) continue;
+        record('skill', {
+          skill: skillNames[id] ?? id,
+          value: now.value,
+          before: skills.get(id) ?? null,
+          base: now.base,
+          cap: now.cap,
+          lock: now.lock
+        });
+        skills.set(id, now.value);
+        sheets.set(id, sheet(now));
       }
       for (const serial of change.entities) read(serial, change.opcode === 0x3c);
+      // An opened container shows all it holds: what is not listed is no longer in it.
+      if (change.opcode === 0x3c)
+        for (const parent of new Set(world.lastContainerContents.map((serial) => world.entities.get(serial)?.parent)))
+          if (parent !== undefined)
+            record('listed', { serial: parent, contents: [...world.entities.childSerials(parent)] });
       for (const serial of change.removed) {
         const before = known.get(serial);
         if (!before) continue;
@@ -201,6 +251,7 @@ export function perceive(
         record('changed', { serial: vendor, is });
       }
       show('sell', world.sellOffers);
+      locate();
       show('damage', world.damage);
       // Every action a mobile in view plays: swings, casts, bows (the client's animations).
       for (const [serial, animation] of world.animations)
@@ -231,8 +282,18 @@ export function perceive(
     serial: world.serial,
     ghost,
     self: initial,
-    skills: Object.fromEntries([...skills].map(([id, v]) => [skillNames[id] ?? id, v]))
+    skills: Object.fromEntries([...skills].map(([id, v]) => [skillNames[id] ?? id, v])),
+    // Every skill as its sheet shows it: value, base, cap and lock (0 up, 1 down, 2 locked).
+    sheet: Object.fromEntries(
+      [...world.skills].map(([id, s]) => [
+        skillNames[id] ?? id,
+        { value: s.value, base: s.base, cap: s.cap, lock: s.lock }
+      ])
+    )
   });
+  locate();
+  const protection = world.journal.findLast((line) => line.cliloc === 500112 || line.cliloc === 500113);
+  if (protection) record('heard', { serial: protection.serial, name: protection.name, cliloc: protection.cliloc });
   for (const serial of world.entities.keys()) read(serial, true);
   return () => {
     unsubscribe();

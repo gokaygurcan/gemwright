@@ -2,6 +2,7 @@ import { creatures, skillOf } from '@gemwright/common/game/rules';
 
 import type { HistoryEvent } from './history';
 import { gaining } from './knowledge';
+import { Self } from './self';
 
 type Data = Record<string, unknown>;
 type Mean = { sum: number; n: number };
@@ -103,8 +104,18 @@ const hitChance = (attack: number, defend: number) => Math.min(1, Math.max(0.02,
 // has never had: how long the kill takes, what it costs in health, whether it lives through it, and
 // the gold the creature carries.
 export class Fight {
+  // What it is (self.ts): the skills it fights with, kept there and nowhere else. A fight weighed on
+  // its own, with no mind about it, keeps a sheet of its own from what it observes.
+  private readonly sheet: Self;
+  private readonly own: boolean;
+  constructor(sheet?: Self) {
+    this.sheet = sheet ?? new Self();
+    this.own = !sheet;
+  }
+
   snapshot() {
-    return { ...this };
+    const { sheet: _, own: __, ...state } = this;
+    return state;
   }
 
   restore(state: ReturnType<Fight['snapshot']>) {
@@ -112,7 +123,6 @@ export class Fight {
   }
 
   private self = -1;
-  private readonly skills = new Map<string, number>();
   private readonly weapons = new Map<number, string[]>();
   private readonly struck = new Map<number, number>();
   private readonly cast = new Map<number, number>();
@@ -129,20 +139,26 @@ export class Fight {
   private readonly hits = new Map<string, Mean>();
 
   observe(event: HistoryEvent, nameOf: (serial: number) => string | undefined) {
+    if (this.own) this.sheet.observe(event);
     const data = event.data as Data;
     switch (event.kind) {
       case 'awake':
+        this.weapons.clear();
         this.self = data.serial as number;
-        for (const [skill, value] of Object.entries((data.skills as Record<string, number>) ?? {}))
-          this.skills.set(skill, value);
-        break;
-      case 'skill':
-        this.skills.set(String(data.skill), data.value as number);
         break;
       case 'gained':
       case 'revealed':
-        if (data.layer === 1 || data.layer === 2)
-          this.weapons.set(data.serial as number, (data.is as string[] | undefined) ?? []);
+      case 'changed':
+        if (
+          (data.parent !== undefined && data.parent !== this.self) ||
+          ('layer' in data && data.layer !== 1 && data.layer !== 2)
+        )
+          this.weapons.delete(data.serial as number);
+        else if (data.layer === 1 || data.layer === 2 || this.weapons.has(data.serial as number))
+          this.weapons.set(
+            data.serial as number,
+            (data.is as string[] | undefined) ?? nameOf(data.serial as number)?.split('/') ?? []
+          );
         break;
       case 'lost':
         this.weapons.delete(data.serial as number);
@@ -254,12 +270,12 @@ export class Fight {
   }
 
   skill(name: string) {
-    return this.skills.get(name) ?? 0;
+    return this.sheet.skill(name);
   }
 
   // All its skills together, as the shard caps them.
   get skillTotal() {
-    return [...this.skills.values()].reduce((sum, value) => sum + value, 0);
+    return this.sheet.skillTotal;
   }
 
   // What a creature of these possible kinds takes from it over so many seconds of its blows and
@@ -275,7 +291,7 @@ export class Fight {
       mean(this.hits.get(name)) ?? (listed === undefined ? undefined : listed * (mean(this.hits.get('absorbed')) ?? 1));
     if (itsSkill === undefined || itsDamage === undefined) return undefined;
     const blows = seconds / itsInterval;
-    const lands = hitChance(itsSkill, this.skills.get(this.weaponSkill) ?? 0);
+    const lands = hitChance(itsSkill, this.sheet.skill(this.weaponSkill));
     const low = average((c) => c.damage?.[0]) ?? itsDamage;
     const high = average((c) => c.damage?.at(-1)) ?? itsDamage;
     const scale = itsDamage / ((low + high) / 2 || 1);
@@ -335,7 +351,7 @@ export class Fight {
     const myDamage = mean(this.hits.get('me')) ?? fists.damage;
     if (itsHits === undefined || itsSkill === undefined) return undefined;
     const weaponSkill = this.weaponSkill;
-    const mySkill = this.skills.get(weaponSkill) ?? 0;
+    const mySkill = this.sheet.skill(weaponSkill);
     const odds = hitChance(mySkill, itsSkill);
     const seconds = (itsHits * remaining) / ((odds * myDamage) / myInterval);
     const harm = this.harm(name, seconds);
@@ -351,7 +367,7 @@ export class Fight {
       died,
       gained: (gold ? { Gold: gold * (1 - died) } : {}) as Record<string, number>,
       // What each swing may teach: its weapon's skill and Tactics, a check a swing.
-      ...taught(swung, [weaponSkill, 'Tactics'], (skill) => this.skills.get(skill) ?? 0, this.skillTotal, odds)
+      ...taught(swung, [weaponSkill, 'Tactics'], (skill) => this.sheet.skill(skill), this.skillTotal, odds)
     };
   }
 }

@@ -1,12 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import type { PlayerSession } from '@gemwright/network/session';
-
 import { WorkIndex } from '../src/terrain-work';
 import { Beliefs, empty } from '../src/v2/beliefs';
 import { Mind } from '../src/v2/mind';
 import { choices, continuation } from '../src/v2/planning';
 import { traitsOf } from '../src/v2/traits';
+import { seeing } from './fixtures/v2/mind-sync';
 
 test('a refused drop is remembered for the same item, amount and place, including replay', () => {
   const events: Parameters<Mind['observe']>[0][] = [];
@@ -115,6 +114,7 @@ test('a checkpoint resumes with identical beliefs and learns the same subsequent
 test('equivalent overweight journeys share their inventory feasibility calculation', () => {
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits, [], ['Macing']);
   mind.observe({ resident: 'r', at: 0, kind: 'awake', data: { serial: 1, self: {} } });
+  mind.observe({ resident: 'r', at: 0, kind: 'self', data: { weight: { current: 493, max: 471 } } });
   mind.journeys = function* () {
     for (let x = 100; x < 1100; x++)
       yield {
@@ -139,6 +139,6 @@ test('equivalent overweight journeys share their inventory feasibility calculati
       entities: new Map()
     }
   };
-  expect(choices(mind, session as PlayerSession, undefined, new Set(), { bankers: [], vendors: [] })).toEqual([]);
+  expect(choices(seeing(mind, session), undefined, new Set(), { bankers: [], vendors: [] })).toEqual([]);
   expect(inventories).toBeLessThan(20);
 });

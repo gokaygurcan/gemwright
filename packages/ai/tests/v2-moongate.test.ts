@@ -43,7 +43,8 @@ function trip(ghost = false) {
       else world.position = { ...world.position, x: world.position.x + (direction === 2 ? 1 : -1) };
       if (world.position.x === from.x) offer();
       return true;
-    }
+    },
+    resyncPosition: async () => true
   } as unknown as PlayerSession;
   const hands = new Hands(session, undefined);
   hands.reach = {

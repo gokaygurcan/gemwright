@@ -2,27 +2,26 @@ import { bandage, curePotion, healPotion, spellbook } from '@gemwright/common/ga
 import { ShardMessage } from '@gemwright/network/replies';
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { packItems } from '../v1/inventory';
 import { spellNamed } from '../v1/spell-rules';
 import { onItem, useOn } from '../v1/target-action';
 import type { Mind } from './mind';
+import { screenOf } from './perceive';
 
 export type Treatment =
   | { kind: 'potion' | 'bandage'; serial: number; cure: boolean }
   | { kind: 'spell'; spell: number; cure: boolean };
 
-export function treatment(session: PlayerSession, mind: Mind): Treatment | undefined {
-  const world = session.world;
-  const status = world.status;
-  const cure = (world.poisonLevel ?? 0) > 0;
-  if (!status || (!cure && status.hits >= status.maxHits)) return undefined;
-  const pack = world.childrenOf(world.serial ?? -1).find((item) => item.layer === 21);
-  const carried = pack ? packItems(session, pack.serial) : [];
+export function treatment(mind: Mind): Treatment | undefined {
+  const health = mind.self.health;
+  const cure = mind.self.poison > 0;
+  if (!health || (!cure && health.current >= health.max)) return undefined;
+  const view = mind.has();
+  const carried = view.pack.map((item) => ({ ...item, graphic: mind.graphicOf(item.serial) }));
   const potion = carried.find((item) => item.graphic === (cure ? curePotion : healPotion));
-  const missing = status.maxHits - status.hits;
+  const missing = health.max - health.current;
   const potions = carried.filter((item) => item.graphic === healPotion).reduce((n, item) => n + (item.amount ?? 1), 0);
   // Preserve v1's healing-potion economy; a cure is useful whenever poisoned.
-  if (potion && (cure || (missing * Math.min(missing, 20)) / Math.max(1, status.maxHits) > 20 / (potions + 1)))
+  if (potion && (cure || (missing * Math.min(missing, 20)) / Math.max(1, health.max) > 20 / (potions + 1)))
     return { kind: 'potion', serial: potion.serial, cure };
   const cloth = carried.find((item) => item.graphic === bandage);
   if (cloth && (!cure || (mind.skill('Healing') >= 60 && mind.skill('Anatomy') >= 60)))
@@ -31,8 +30,10 @@ export function treatment(session: PlayerSession, mind: Mind): Treatment | undef
   if (
     !mind.spellMissing(spell.id) &&
     mind.skill('Magery') >= 14.3 * (spell.circle - 1) &&
-    status.mana >= spell.mana &&
-    [...carried, ...world.childrenOf(world.serial ?? -1)].some((item) => item.graphic === spellbook) &&
+    (mind.self.mana?.current ?? 0) >= spell.mana &&
+    [...carried, ...view.worn.map((item) => ({ graphic: mind.graphicOf(item.serial) }))].some(
+      (item) => item.graphic === spellbook
+    ) &&
     spell.reagents.every((graphic) => carried.some((item) => item.graphic === graphic))
   )
     return { kind: 'spell', spell: spell.id, cure };
@@ -45,7 +46,7 @@ export async function takeTreatment(
   treatment: Treatment,
   going: () => boolean | Promise<boolean>
 ) {
-  const world = session.world;
+  const world = screenOf(session);
   const before = world.status?.hits ?? 0;
   const heard = new Set(world.journal);
   const changed = () => (treatment.cure ? world.poisonLevel === 0 : (world.status?.hits ?? before) > before);

@@ -25,6 +25,7 @@ import { ResidentStore } from './v1/store';
 import { buildWorkAreas } from './v1/work-area-build';
 import { applyWorld, useCities, world } from './v1/world';
 import { useLand } from './v2/reach';
+import { confine } from './v2/shadow';
 import { WalkGraph } from './walk-graph';
 import { useWalkGraph } from './walk-graph-store';
 
@@ -66,6 +67,7 @@ setPopulationChaos(shard.ai?.chaos ?? world.lifecycle?.chaos ?? 0.3);
 setWars(shard.ai?.wars === true);
 // The cities residents may go to (world.ts useCities): every city when unset.
 useCities(shard.ai?.cities);
+confine(shard.ai?.cities);
 const shardFile = join(data, 'gemwright.json');
 await mkdir(data, { recursive: true });
 await writeFile(shardFile, JSON.stringify(shard));

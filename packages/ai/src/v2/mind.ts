@@ -1,15 +1,23 @@
+import { gumpButtons } from '@gemwright/network/gumps';
+
 import type { Spawner } from '../spawns';
 import { reportedBankGold } from '../v1/bank-gold';
+import type { Atlas, Place } from './atlas';
 import { add, Beliefs, type Context, difference, empty, type Outcome, round } from './beliefs';
+import { CareMemory } from './care-memory';
 import { goods, honestly, usual, value, worth } from './choose';
 import { consider, journeys } from './deliberate';
 import type { Encounter } from './encounter';
 import { Fight } from './fight';
 import type { HistoryEvent } from './history';
+import { kindOf } from './inventory';
 import { foreseeHarvest, foreseeTrade } from './knowledge';
 import type { Locomotion } from './motion';
+import type { Places } from './places';
+import { Self } from './self';
 import { Things } from './things';
 import type { Traits } from './traits';
+import { learnRoute, reachable } from './unreachable';
 import { type Steps, Ventures } from './ventures';
 
 // Verbs that move, look or toggle rather than try something.
@@ -26,18 +34,29 @@ type Data = Record<string, unknown>;
 // learning applies to all it has lived.
 export class Mind {
   private readonly beliefs = new Beliefs();
-  private readonly fight = new Fight();
+  // What it is: its skills, stats and what they make it able to do (self.ts).
+  readonly self = new Self();
+  routeScope = '';
+  readonly care = new CareMemory();
+  private readonly fight = new Fight(this.self);
   // Awake it chooses; re-living its past it only learns (those choices are long made).
   awake = true;
   // Acting itself (live.ts), it chooses before it acts rather than beside another's acts.
   acting = false;
   private readonly ventures: Ventures;
   private readonly things = new Things();
-  private health: number | null = null;
-  private maxHealth: number | null = null;
+  // Its health as it knows it (self.ts).
+  private get health() {
+    return this.self.health?.current ?? null;
+  }
+  private get maxHealth() {
+    return this.self.health?.max ?? null;
+  }
   private where: HistoryEvent['where'];
   private attempt?: {
     key: string;
+    // The menu answers this attempt has made so far (each may open what the next one answers).
+    replies?: { serial: number; gump: number; button: number }[];
     // What the wiki foresees for this one attempt, when its key alone cannot say (a trade's prices,
     // a harvest's yield).
     foresight?: Partial<Outcome>;
@@ -63,7 +82,8 @@ export class Mind {
     private readonly born: Traits,
     spawners: readonly Spawner[] = [],
     // The skills of its trade (its template's primary skills): what it lives by.
-    trade: readonly string[] = []
+    trade: readonly string[] = [],
+    public supporting: readonly string[] = []
   ) {
     this.trade = trade.length ? new Set(trade) : undefined;
     this.ventures = new Ventures(spawners, (visit) => this.write('visited', visit));
@@ -71,9 +91,21 @@ export class Mind {
   }
   private readonly traits: Traits;
   private readonly trade?: ReadonlySet<string>;
+  // The skills of its trade, as given.
+  get tradeSkills(): readonly string[] {
+    return [...(this.trade ?? [])];
+  }
   // How many times it has put things in its bank box.
   private deposits = 0;
   bankGold?: number;
+  guarded?: boolean;
+  // Where it is (atlas.ts), as of its last step; the map it reads that from.
+  here?: Place;
+  atlas?: Atlas;
+  // Where things were seen, and how long each kind stays (places.ts).
+  places?: Places;
+  // Where it may be at all (gemwright.json ai.cities, atlas.ts `within`): anywhere until told.
+  allowed: (p: { x: number; y: number }) => boolean = () => true;
   private readonly missingSpells = new Set<number>();
   // How far what came of its attempts has surprised it, for each trait that weighs a part of it, over
   // the attempts where that part was expected or came: surviving more than it feared makes it bolder,
@@ -86,26 +118,46 @@ export class Mind {
     return {
       beliefs: this.beliefs.snapshot(),
       fight: this.fight.snapshot(),
+      self: this.self.snapshot(),
+      care: { ...this.care },
+      supporting: this.supporting,
       things: this.things.snapshot(),
       ventures: this.ventures.snapshot(),
-      health: this.health,
-      maxHealth: this.maxHealth,
       where: this.where,
       attempt: this.attempt,
       harmed: this.harmed,
       traits: this.traits,
       deposits: this.deposits,
       bankGold: this.bankGold,
+      guarded: this.guarded,
+      here: this.here,
       missingSpells: this.missingSpells,
       surprised: this.surprised,
       revision: this.revision,
-      refusedDrops: this.refusedDrops
+      refusedDrops: this.refusedDrops,
+      menus: this.menus,
+      roots: this.roots,
+      links: this.links,
+      targetTools: this.targetTools,
+      probed: this.probed,
+      prices: this.prices
     };
   }
 
   restore(snapshot: ReturnType<Mind['snapshot']>) {
-    const { beliefs, fight, things, ventures, ...state } = snapshot;
+    // Health is what it is (self.ts); a checkpoint from before kept it here.
+    const { beliefs, fight, self, care, things, ventures, ...rest } = snapshot;
+    if (care) Object.assign(this.care, care);
+    const {
+      health: _health,
+      maxHealth: _maxHealth,
+      ...state
+    } = rest as typeof rest & {
+      health?: unknown;
+      maxHealth?: unknown;
+    };
     this.beliefs.restore(beliefs);
+    if (self) this.self.restore(self);
     this.fight.restore(fight);
     this.things.restore(things);
     this.ventures.restore(ventures);
@@ -114,6 +166,39 @@ export class Mind {
 
   revision = 0;
   private readonly refusedDrops = new Map<number, { amount: number | undefined; place: string }>();
+  // What its tools answered when it tried them, as a player learns a tool's menus: every menu the
+  // shard opened (its serial, id and reply buttons), the menu each tool opens, and which button of
+  // which menu opens what next — the whole interaction chain, its branches and its ways back. Also
+  // the tools whose use asked for a target instead, and those that answered with nothing.
+  private readonly menus: Record<string, { serial: number; gump: number; buttons: number[] }> = {};
+  private readonly roots: Record<string, string> = {};
+  private readonly links: Record<string, string> = {};
+  private readonly targetTools = new Set<string>();
+  private readonly probed = new Set<string>();
+  // What the shard's vendors were last seen to pay for each thing (their sell lists, read whenever
+  // it sells): what the market pays for what it brings, rather than what the wiki says it is worth.
+  private readonly prices: Record<string, number> = {};
+
+  // What a thing is worth to it now: what the market last paid for it, or its worth until then.
+  price = (name: string) => {
+    for (const type of name.split('/')) {
+      const paid = this.prices[type];
+      if (paid !== undefined) return paid;
+    }
+    return worth(name);
+  };
+
+  // The thing of the plain use still open — a tool of its own, or a person — if that is what a menu
+  // or a cursor answers.
+  private openTool() {
+    return /^double-click (?:my )?(.+)$/.exec(this.attempt?.key ?? '')?.[1];
+  }
+
+  // What a person calls itself, as its client's name answer said (a person is a Person; Marcy is
+  // Marcy), and what its attempts and beliefs are kept under.
+  label(serial: number) {
+    return this.things.labels.get(serial);
+  }
 
   canDrop(serial: number) {
     const refused = this.refusedDrops.get(serial);
@@ -140,6 +225,9 @@ export class Mind {
           Object.keys(data).some((key) => ['weight', 'attributes', 'poison', 'map', 'gold', 'mana'].includes(key)))) ||
       (event.kind === 'swing' && data.target === this.things.self) ||
       [
+        'care',
+        'stranded',
+        'route-failed',
         'awake',
         'died',
         'death',
@@ -158,8 +246,18 @@ export class Mind {
       this.revision++;
     this.where = event.where ?? this.where;
     this.fight.observe(event, (serial) => this.things.names.get(serial));
+    this.self.observe(event);
+    this.care.observe(event);
+    learnRoute(event, this.routeScope);
     const outcome = this.attempt?.outcome;
     switch (event.kind) {
+      case 'care':
+        if (data.action === 'spell-known') this.missingSpells.delete(Number(data.spell));
+        this.things.observe(event, outcome, this.attempt);
+        break;
+      case 'training':
+        this.supporting = data.skills as string[];
+        break;
       case 'drop-refused':
         this.refusedDrops.set(Number(data.serial), {
           amount: data.amount as number | undefined,
@@ -180,13 +278,11 @@ export class Mind {
         this.beliefs.executed(String(data.id), data.succeeded === true);
         break;
       case 'awake': {
+        this.guarded = undefined;
         // A session that ended without sleep (a crash) left its last attempt unfinished: unknowable.
         this.attempt = undefined;
         this.harmed = undefined;
         this.things.wake(data.serial as number);
-        const health = (data.self as { health?: { current?: number; max?: number } | null }).health;
-        this.health = health?.current ?? null;
-        this.maxHealth = health?.max ?? null;
         break;
       }
       case 'asleep':
@@ -198,10 +294,57 @@ export class Mind {
         if (data.verb === 'walk') this.ventures.walk(event.at, event.where);
         this.act(data, event.at);
         break;
+      // A menu opened, whether from a tool's use or from answering a button: its buttons are
+      // recorded, and what opened it — the tool, or which button of which menu — so the chain that
+      // led here stays known, branches and ways back included.
+      case 'gump': {
+        const opened = data.value as { serial?: number; id?: number; layout?: string } | undefined;
+        if (
+          opened &&
+          typeof opened.serial === 'number' &&
+          typeof opened.id === 'number' &&
+          typeof opened.layout === 'string'
+        ) {
+          const menu = `${opened.serial}:${opened.id}`;
+          const buttons = gumpButtons(opened.layout);
+          if (buttons.length) this.menus[menu] = { serial: opened.serial, gump: opened.id, buttons };
+          const reply = this.attempt?.replies?.at(-1);
+          if (reply) this.links[`${reply.serial}:${reply.gump} ${reply.button}`] = menu;
+          else {
+            const tool = this.openTool();
+            if (tool) this.roots[tool] = menu;
+          }
+        }
+        break;
+      }
+      // A tool whose use asked for a target rather than opening a menu: it works on something the
+      // client shows it, not through a list.
+      case 'screen':
+        if (data.key === 'cursor' && data.value) {
+          const tool = this.openTool();
+          if (tool) this.targetTools.add(tool);
+        }
+        break;
+      // A vendor's sell list: what it pays for the goods offered to it, which is what those goods
+      // are worth to the mind from then on.
+      case 'sell': {
+        const offers = data.value as { serial?: number; price?: number }[] | undefined;
+        if (Array.isArray(offers))
+          for (const offer of offers) {
+            if (typeof offer.serial !== 'number' || typeof offer.price !== 'number' || offer.price <= 0) continue;
+            const thing = this.thing(offer.serial);
+            if (!thing?.startsWith('my ')) continue;
+            for (const type of thing.slice(3).split('/')) this.prices[type] = offer.price;
+          }
+        break;
+      }
+      case 'place':
+        this.here = data as unknown as Place;
+        this.guarded = this.here.guarded;
+        this.revision++;
+        break;
       case 'self': {
-        const health = data.health as { current?: number; max?: number } | null | undefined;
-        if (health?.current !== undefined) this.health = health.current;
-        if (health?.max !== undefined) this.maxHealth = health.max;
+        if ('map' in data) this.guarded = undefined;
         break;
       }
       case 'spell-missing':
@@ -219,17 +362,28 @@ export class Mind {
       case 'changed':
       case 'lost':
       case 'gone':
+      case 'listed':
+      case 'missing':
         this.things.observe(event, outcome, this.attempt);
         if (this.things.mobiles.has(data.serial as number) && typeof data.x === 'number' && typeof data.y === 'number')
           this.ventures.saw(this.things.names.get(data.serial as number) ?? '', data.x, data.y);
         break;
       case 'heard': {
+        if (data.cliloc === 500112 || data.cliloc === 500113) {
+          this.guarded = data.cliloc === 500112;
+          // The shard is right about its guards; where the map said otherwise, that is noted.
+          if (this.here && this.here.guarded !== this.guarded)
+            this.write('place-disagreed', { regions: this.here.regions, map: this.here.guarded, shard: this.guarded });
+          this.revision++;
+        }
         const balance = reportedBankGold(Number(data.cliloc), String(data.arguments ?? ''));
         if (balance !== undefined) {
           this.bankGold = balance;
           this.revision++;
         }
-        if (outcome && (data.name === 'System' || data.serial === 0xffffffff))
+        // Its own attempts' system messages, and what whoever it addressed answers back, are what
+        // came of them: a reply is part of the outcome of the attempt it answers.
+        if (outcome && (data.name === 'System' || data.serial === 0xffffffff || data.serial === this.attempt?.object))
           add(outcome.heard, String(data.cliloc ?? data.text), 1);
         // A vendor paid from the bank says what it took (ServUO BaseVendor): gold that never left the pack.
         const paid = /(\d+) gold, which has been withdrawn from your bank/.exec(String(data.text ?? ''));
@@ -295,7 +449,13 @@ export class Mind {
     if (verb === 'pick-up') this.things.lift(data.serial as number, data.amount as number | undefined);
     if (verb === 'drop' && typeof data.container === 'number' && this.things.inBank(data.container)) {
       this.deposits++;
-      this.bankGold = undefined;
+      if (
+        this.things.owned
+          .get(data.serial as number)
+          ?.name.split('/')
+          .includes('Gold')
+      )
+        this.bankGold = undefined;
     }
     // Opening the corpse of what it killed and taking from it is still that fight: what it takes is
     // what the fight brought.
@@ -316,20 +476,31 @@ export class Mind {
             : (this.thing(data.serial) ??
               (data.graphic ? `tile${data.graphic}` : data.land !== undefined ? `land${data.land}` : 'land'));
       this.attempt.key += ` > ${verb} ${on}`;
+      if (verb === 'gump-response') {
+        const reply = { serial: Number(data.serial), gump: Number(data.gump), button: Number(data.button) };
+        this.attempt.replies = [...(this.attempt.replies ?? []), reply];
+      }
       this.attempt.context = this.context(this.attempt.object, this.attempt.key);
       const tool = /^double-click my (.+)$/.exec(this.attempt.key.split(' > ')[0] ?? '')?.[1];
       if (verb === 'target' && tool && !data.serial)
         this.attempt.foresight = foreseeHarvest(
           tool,
           data.graphic ? { tile: data.graphic as number } : { land: data.land as number | undefined },
-          (skill) => this.fight.skill(skill)
+          (skill) => this.self.skill(skill)
         );
       this.predict();
       return;
     }
     this.finish(at);
     const object = [data.serial, data.vendor].find((serial) => typeof serial === 'number') as number | undefined;
+    // Addressed, a person is named by what it calls itself, so what it learns of one person is that
+    // person's alone. Trades and the rest keep naming a mobile by what kind of thing it is.
+    const named =
+      verb === 'double-click' && object !== undefined && this.things.mobiles.has(object)
+        ? this.label(object)
+        : undefined;
     let on =
+      named ??
       this.thing(object) ??
       (verb === 'text-command' ? String(data.command) : verb === 'speech' ? String(data.text) : '');
     let foresight: Partial<Outcome> | undefined;
@@ -373,7 +544,10 @@ export class Mind {
   // Its situation now, relative to itself: how healthy, how laden, how many creatures about, and how
   // hurt what it acts on is.
   private context(object?: number, key?: string): Context {
-    const carried = [...this.things.owned.values()].reduce((sum, item) => sum + worth(item.name) * item.amount, 0);
+    const carried = [...this.things.owned].reduce(
+      (sum, [serial, item]) => sum + (this.things.inBank(serial) ? 0 : worth(item.name) * item.amount),
+      0
+    );
     const creatures = [...this.things.mobiles].filter((serial) =>
       this.fight.isCreature(this.things.names.get(serial))
     ).length;
@@ -384,7 +558,7 @@ export class Mind {
       carried: round(Math.log1p(carried)),
       creatures,
       ...(its === undefined ? {} : { its: round(its) }),
-      ...(trained ? { skill: this.fight.skill(trained) } : {})
+      ...(trained ? { skill: this.self.skill(trained) } : {})
     };
   }
 
@@ -408,6 +582,9 @@ export class Mind {
     const attempt = this.attempt;
     if (!attempt) return;
     this.attempt = undefined;
+    // A tool — or a person — used on its own that answered with nothing: no point trying again.
+    const tool = /^double-click (?:my )?(.+)$/.exec(attempt.key)?.[1];
+    if (tool && !this.roots[tool]) this.probed.add(tool);
     const observed = attempt.outcome;
     observed.seconds = round((at - attempt.at) / 1000);
     if (attempt.where && this.where) {
@@ -445,9 +622,12 @@ export class Mind {
       ...(outcome ? { error: difference(observed, outcome) } : {})
     });
     const rates = usual([this.beliefs.lived], this.trade);
-    const carried = [...this.things.owned.values()].reduce((sum, item) => sum + worth(item.name) * item.amount, 0);
+    const carried = [...this.things.owned].reduce(
+      (sum, [serial, item]) => sum + (this.things.inBank(serial) ? 0 : worth(item.name) * item.amount),
+      0
+    );
     this.beliefs.learn(attempt.key, attempt.context, observed, (o) =>
-      value(o, this.traits, rates, carried, this.trade)
+      value(o, this.traits, rates, carried, this.trade, this.price)
     );
     this.ventures.remember(attempt.key, attempt.where);
   }
@@ -471,9 +651,13 @@ export class Mind {
   appraise(key: string, foresight?: Partial<Outcome>, object?: number) {
     const { n, outcome } = this.expected(key, foresight, this.context(object, key));
     if (!outcome) return undefined;
-    const carried = [...this.things.owned.values()].reduce((sum, item) => sum + worth(item.name) * item.amount, 0);
+    const carried = [...this.things.owned].reduce(
+      (sum, [serial, item]) => sum + (this.things.inBank(serial) ? 0 : worth(item.name) * item.amount),
+      0
+    );
     const rates = usual([this.beliefs.lived], this.trade);
-    const worthOf = (o: Outcome) => value(honestly(key, o, this.traits), this.traits, rates, carried, this.trade);
+    const worthOf = (o: Outcome) =>
+      value(honestly(key, o, this.traits), this.traits, rates, carried, this.trade, this.price);
     const expected = worthOf(outcome);
     // What the wiki promises beyond what its few tries have shown, hoped for as far as it is curious
     // and as little as it has tried.
@@ -513,12 +697,121 @@ export class Mind {
     this.write('executed', { id, succeeded });
   }
 
+  notice(kind: string, data: object) {
+    const event = { resident: this.resident, at: Date.now(), kind, data, ...(this.where ? { where: this.where } : {}) };
+    this.observe(event);
+    this.record(event);
+  }
+
+  reachable(goal: { x: number; y: number; z?: number }) {
+    return !this.where || reachable(this.where, goal, Date.now(), this.routeScope);
+  }
+
   // What it calls a thing in view, its own things, its skills and traits: what its hands work with.
+  // Where it stands, as of what it last perceived.
+  get position() {
+    return this.where;
+  }
+  get serial() {
+    return this.things.self;
+  }
+  // What is on its screen now, one thing or all (things.ts).
+  sight(serial: number) {
+    return this.things.sight(serial);
+  }
+  sights() {
+    return this.things.sights();
+  }
+  // Whether a thing of its own is on its person now (worn or in its pack).
+  carrying(serial: number) {
+    return this.things.carrying(serial);
+  }
+  // Its backpack and bank box, by serial, as worn.
+  get pack() {
+    return this.things.worn(21);
+  }
+  get bankCapacity() {
+    const box = this.bankBox;
+    const contents = box === undefined ? undefined : this.described(box)?.contents;
+    return { count: Math.max(this.has().bank.length, contents?.count ?? 0), max: contents?.max ?? 125 };
+  }
+  get bankBox() {
+    return this.things.worn(29);
+  }
+  deathRobe(serial: number) {
+    return this.things.deathRobe(serial);
+  }
+  get riding() {
+    return this.things.riding();
+  }
   call(serial: number) {
     return this.thing(serial);
   }
+  // Everything it has, by where it is and of what kind, each with what it is worth and weighs:
+  // worn and in its pack as they are now, its bank as last seen, the ground and corpses about it.
+  has() {
+    const view = this.things.has(this.where, 18);
+    const tag = <T extends { serial: number; name: string; amount: number }>(item: T) => ({
+      ...item,
+      kind: kindOf(item.name),
+      worth: this.price(item.name) * item.amount,
+      weight: this.things.described.get(item.serial)?.weight
+    });
+    // Out of sight, the ground and corpses are as it last saw them, for as long as their kind is
+    // seen to stay (places.ts).
+    const shown = new Set([...view.ground, ...view.corpses].map((thing) => thing.serial));
+    const remembered = [...(this.places?.remembered() ?? [])].filter(
+      (fact) => !shown.has(fact.serial) && !this.things.owned.has(fact.serial) && !this.creature(fact.name)
+    );
+    const corpse = (name: string) => name.split('/').includes('Corpse');
+    return {
+      worn: view.worn.map(tag),
+      pack: view.pack.map(tag),
+      bank: view.bank.map(tag),
+      ground: [
+        ...view.ground.map(tag),
+        ...remembered
+          .filter((fact) => !corpse(fact.name))
+          .map((fact) => ({ ...tag({ ...fact, amount: 1 }), z: 0, remembered: true }))
+      ],
+      corpses: [
+        ...view.corpses.map((corpse) => ({ ...corpse, items: corpse.items.map(tag) })),
+        ...remembered
+          .filter((fact) => corpse(fact.name))
+          .map((fact) => ({ serial: fact.serial, name: fact.name, x: fact.x, y: fact.y, items: [], remembered: true }))
+      ]
+    };
+  }
+
   belongings(): ReadonlyMap<number, { name: string; amount: number }> {
     return this.things.owned;
+  }
+  // The menus a tool's use was seen to open, the menu a key stands for, and where a button leads.
+  root(name: string) {
+    return this.roots[name];
+  }
+  menu(key: string) {
+    return this.menus[key];
+  }
+  through(key: string, button: number) {
+    return this.links[`${key} ${button}`];
+  }
+  asksTarget(name: string) {
+    return this.targetTools.has(name);
+  }
+  tried(name: string) {
+    return this.probed.has(name);
+  }
+  // Whether it has tried an attempt before (and so can expect something of it).
+  knows(key: string) {
+    return this.beliefs.has(key);
+  }
+  // How many of a kind of thing it carries in reach: what a learned attempt's costs are paid from.
+  owned(name: string) {
+    let carried = 0;
+    for (const [serial, item] of this.things.owned)
+      if (item.name.split('/').includes(name) && !this.banked(serial)) carried += item.amount;
+    return carried;
   }
   spellMissing(spell: number) {
     return this.missingSpells.has(spell);
@@ -539,13 +832,14 @@ export class Mind {
     return carried + (this.bankGold ?? banked);
   }
   skill(name: string) {
-    return this.fight.skill(name);
+    return this.self.skill(name);
   }
   // Putting these of its things in the bank, in seconds of its usual progress: what it would stand to
   // lose of them by dying before it is next back, as timid as it is. How often it dies a second is its
   // own deaths over its life, starting from a guess of one in its first hour; how long until it is
-  // next back is how long it has gone between deposits, starting from that hour too.
-  deposit(serials: readonly number[]) {
+  // next back is how long it has gone between deposits, starting from that hour too. Guard protection
+  // replaces that prior with the next activity's modeled risk.
+  deposit(serials: readonly number[], nextRisk = 0) {
     const lived = this.beliefs.lived;
     const carried = serials.reduce((sum, serial) => {
       const item = this.things.owned.get(serial);
@@ -554,7 +848,9 @@ export class Mind {
     const deaths = (lived.died + 1) / (lived.seconds + 3600);
     const away = (lived.seconds + 3600) / (this.deposits + 1);
     const rates = usual([lived], this.trade);
-    return round(((2 - this.traits.boldness) * carried * Math.min(1, deaths * away)) / rates.gold);
+    const protectedHere = this.guarded;
+    const risk = protectedHere ? Math.max(0, Math.min(1, nextRisk)) : Math.min(1, deaths * away);
+    return round(((2 - this.traits.boldness) * carried * risk) / rates.gold);
   }
 
   // What a thing in view is worth to it, a whole stack of it (what a vendor pays).
@@ -579,6 +875,10 @@ export class Mind {
   unitWeight(name: string) {
     return this.things.unitWeight(name);
   }
+  graphicOf(serial: number) {
+    return this.things.graphics.get(serial);
+  }
+
   // Whether one of its things lies in its bank box.
   banked(serial: number) {
     return this.things.inBank(serial);
@@ -591,7 +891,7 @@ export class Mind {
     return this.things.mount;
   }
   get skillTotal() {
-    return this.fight.skillTotal;
+    return this.self.skillTotal;
   }
   // How many steps the way from one spot to another takes (walk-graph.ts), once the land is known.
   steps?: Steps;
@@ -608,13 +908,17 @@ export class Mind {
     });
     const died = this.fight.endured(foes, seconds, this.health);
     if (!died) return 0;
-    const carried = [...this.things.owned.values()].reduce((sum, item) => sum + worth(item.name) * item.amount, 0);
+    const carried = [...this.things.owned].reduce(
+      (sum, [serial, item]) => sum + (this.things.inBank(serial) ? 0 : worth(item.name) * item.amount),
+      0
+    );
     return value(
       { ...empty(), seconds: 0, died },
       this.traits,
       usual([this.beliefs.lived], this.trade),
       carried,
-      this.trade
+      this.trade,
+      this.price
     );
   }
   struck(serial: number) {
@@ -647,6 +951,7 @@ export class Mind {
       traits: this.traits,
       trade: this.trade,
       expected: (key: string) => this.expected(key),
+      market: this.price,
       steps: this.steps
     };
   }

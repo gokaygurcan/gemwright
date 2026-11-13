@@ -1,5 +1,3 @@
-import type { PlayerSession } from '@gemwright/network/session';
-
 import type { Outcome } from './beliefs';
 import { worth } from './choose';
 import { harvestBy, isKeepsake, tools } from './knowledge';
@@ -7,20 +5,14 @@ import type { Mind } from './mind';
 
 // Makes room at the value of what is put down, preserving the proposed action's inputs.
 // Weights come from observed hovers; an unknown weight cannot promise carrying room.
-export function burden(
-  mind: Mind,
-  session: PlayerSession,
-  outcome: Partial<Outcome>,
-  consumes: readonly number[] = []
-) {
-  const world = session.world;
-  const status = world.status;
+export function burden(mind: Mind, outcome: Partial<Outcome>, consumes: readonly number[] = []) {
+  const status = mind.self.weight;
   if (!status) return { cost: 0, drops: [] as number[] };
   const weigh = (things: Record<string, number> = {}) =>
     Object.entries(things).reduce((sum, [name, n]) => sum + (mind.unitWeight(name) ?? 0) * n, 0);
-  const excess = status.weight + weigh(outcome.gained) - weigh(outcome.lost) - status.maxWeight;
+  const excess = status.current + weigh(outcome.gained) - weigh(outcome.lost) - status.max;
   if (excess <= 0) return { cost: 0, drops: [] as number[] };
-  const items = droppable(mind, session, consumes);
+  const items = droppable(mind, consumes);
   const drops: number[] = [];
   let freed = 0;
   let lost = 0;
@@ -38,20 +30,18 @@ export function burden(
   return freed >= excess ? { cost: mind.cost(lost), drops } : undefined;
 }
 
-export function droppable(mind: Mind, session: PlayerSession, consumes: readonly number[] = []) {
-  const world = session.world;
+export function droppable(mind: Mind, consumes: readonly number[] = []) {
   const using = new Set(consumes);
-  const pack = [...world.entities.values()].find((e) => e.parent === world.serial && e.layer === 21);
+  const pack = mind.pack;
   return [...mind.belongings()]
     .filter(([serial, item]) => {
-      const entity = world.entities.get(serial);
       return (
         mind.canDrop(serial) &&
         pack !== undefined &&
-        entity?.parent === pack.serial &&
+        mind.sight(serial)?.parent === pack &&
         !using.has(serial) &&
         !harvestBy(item.name) &&
-        !tools.has(entity?.graphic ?? 0) &&
+        !tools.has(mind.graphicOf(serial) ?? 0) &&
         !isKeepsake(item.name) &&
         (mind.described(serial)?.weight ?? 0) > 0
       );

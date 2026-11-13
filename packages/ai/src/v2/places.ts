@@ -108,6 +108,17 @@ export class Places {
     this.record({ resident: this.resident, at, kind, data });
   }
 
+  // What it saw and no longer sees, still believed where it was: each thing out of sight for less
+  // than its kind is seen to stay.
+  *remembered(now = Date.now()) {
+    for (const [serial, fact] of this.facts) {
+      if (fact.watching) continue;
+      const kind = this.kinds.get(fact.name);
+      const lifetime = kind ? kind.watched / (kind.endings + 1) : 0;
+      if ((now - fact.last) / 1000 < lifetime) yield { serial, name: fact.name, x: fact.x, y: fact.y, last: fact.last };
+    }
+  }
+
   // Where it believes things of a type are, and how sure it is that each is still there: certain
   // while in view, then fading by how long that kind of thing has been seen to stay.
   believed(type: string, now = Date.now()) {

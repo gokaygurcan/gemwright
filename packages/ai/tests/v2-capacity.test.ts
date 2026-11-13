@@ -8,9 +8,11 @@ import { Mind } from '../src/v2/mind';
 import * as affordances from '../src/v2/options';
 import { choices } from '../src/v2/planning';
 import { traitsOf } from '../src/v2/traits';
+import { seeing } from './fixtures/v2/mind-sync';
 
 function alternatives(resources: number, routes: number, needed: number, deficit = 22) {
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  mind.observe({ resident: 'r', at: 0, kind: 'self', data: { weight: { current: 471 + deficit, max: 471 } } });
   mind.appraise = () => ({ n: 0, seconds: 1, value: 1, outcome: { ...empty(), gained: { Cargo: needed } } });
   mind.unitWeight = () => 1;
   const session = {
@@ -41,7 +43,7 @@ function alternatives(resources: number, routes: number, needed: number, deficit
       });
   const options = spyOn(affordances, 'options').mockReturnValue(candidates);
   try {
-    const plans = choices(mind, session, undefined, new Set(), { bankers: [], vendors: [] });
+    const plans = choices(seeing(mind, session), undefined, new Set(), { bankers: [], vendors: [] });
     return { plans, examined };
   } finally {
     options.mockRestore();
@@ -64,35 +66,25 @@ function loaded() {
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
   const observe = (kind: string, data: object) => mind.observe({ resident: 'r', at: 0, kind, data });
   observe('awake', { serial: 1, self: {} });
+  observe('self', { weight: { current: 493, max: 471 } });
   observe('revealed', { serial: 2, kind: 'item', parent: 1, layer: 21, is: ['Backpack'] });
   observe('revealed', { serial: 10, kind: 'item', parent: 2, graphic: 0x19b8, amount: 40, is: ['IronOre'] });
   observe('changed', { serial: 10, properties: [{ cliloc: 1072789, arguments: '160' }] });
-  const session = {
-    world: {
-      serial: 1,
-      status: { weight: 493, maxWeight: 471 },
-      entities: new Map([
-        [2, { serial: 2, kind: 'item', parent: 1, layer: 21 }],
-        [10, { serial: 10, kind: 'item', parent: 2, graphic: 0x19b8 }]
-      ])
-    }
-  } as unknown as PlayerSession;
-  return { mind, session };
+  return { mind };
 }
 
 test('overload recovery may put down carried raw materials even when work produces the same material', () => {
-  const { mind, session } = loaded();
-  expect(burden(mind, session, { gained: { IronOre: 1 } })?.drops).toEqual([10]);
+  const { mind } = loaded();
+  expect(burden(mind, { gained: { IronOre: 1 } })?.drops).toEqual([10]);
 });
 
 test('making room cannot discard the item required by the proposed action', () => {
-  const { mind, session } = loaded();
-  expect(burden(mind, session, { lost: { IronOre: 1 } }, [10])).toBeUndefined();
+  const { mind } = loaded();
+  expect(burden(mind, { lost: { IronOre: 1 } }, [10])).toBeUndefined();
 });
 
 test('live deliberation yields to other residents and can stop before returning a plan', async () => {
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
-  const session = { world: { entities: new Map(), serial: 1 } } as unknown as PlayerSession;
   let stopped = false;
   let tick = 0;
   const clock = spyOn(performance, 'now').mockImplementation(() => (tick += 10));
@@ -105,9 +97,7 @@ test('live deliberation yields to other residents and can stop before returning 
   });
   try {
     const { liveChoices } = await import('../src/v2/planning');
-    expect(
-      await liveChoices(mind, session, undefined, new Set(), { bankers: [], vendors: [] }, () => stopped)
-    ).toBeUndefined();
+    expect(await liveChoices(mind, undefined, new Set(), { bankers: [], vendors: [] }, () => stopped)).toBeUndefined();
     expect(stopped).toBe(true);
   } finally {
     clock.mockRestore();
@@ -118,4 +108,24 @@ test('live deliberation yields to other residents and can stop before returning 
 test('an overweight resident chooses one useful preparation and reassesses', () => {
   const { plans } = alternatives(3, 1, 1, 1);
   expect(plans.map((plan) => plan.key)).toEqual(['process', 'process', 'process']);
+});
+
+test('a weighing that is not fresh-bound finishes even while what it sees keeps changing', async () => {
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  let tick = 0;
+  const clock = spyOn(performance, 'now').mockImplementation(() => (tick += 10));
+  mind.appraise = () => ({ n: 0, seconds: 1, value: 1, outcome: empty() });
+  const options = spyOn(affordances, 'options').mockImplementation(() => {
+    const changing = setInterval(() => mind.revision++, 0);
+    setTimeout(() => clearInterval(changing), 50);
+    return [{ key: 'work', steps: [], value: 1 }];
+  });
+  try {
+    const { liveChoices } = await import('../src/v2/planning');
+    const places = { bankers: [], vendors: [] };
+    expect(await liveChoices(mind, undefined, new Set(), places, () => false, undefined, false)).toBeDefined();
+  } finally {
+    clock.mockRestore();
+    options.mockRestore();
+  }
 });

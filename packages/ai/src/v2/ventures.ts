@@ -32,12 +32,13 @@ const square = 64;
 const cell = (x: number, y: number) => `${Math.floor(x / square)},${Math.floor(y / square)}`;
 
 // Going somewhere to do something: where it last did each attempt, and the creature spawns it knows
-// in Trammel (those it has come within sight of), reached at the pace it has been seen to walk along
-// the way there (walk-graph.ts): a place with no way to it is nowhere to go. A spawner says what may
-// be there, not what is: each time the resident comes within sight of one, it is a visit, and seeing
-// one of its kinds there a find. The chance of finding something there is (finds + 1) / (visits + 2),
-// and a place it last saw empty fills again over the spawner's own delay, counted to when it would
-// get there.
+// in Trammel (those it has come within sight of, and those it only has the shard's word for),
+// reached at the pace it has been seen to walk along the way there (walk-graph.ts): a place with no
+// way to it is nowhere to go. A spawner says what may be there, not what is: each time the resident
+// comes within sight of one, it is a visit, and seeing one of its kinds there a find. The chance of
+// finding something there is (finds + 1) / (visits + 2) — one it has never been to keeps the odds of
+// a place nothing is yet known about, half — and a place it last saw empty fills again over the
+// spawner's own delay, counted to when it would get there.
 export class Ventures {
   snapshot() {
     const { visited: _, ...state } = this;
@@ -74,7 +75,7 @@ export class Ventures {
       this.walked.seconds += (at - this.last.at) / 1000;
     }
     this.last = where ? { at, where } : undefined;
-    if (!where || where.map !== 1) return this.leave(at);
+    if (where?.map !== 1) return this.leave(at);
     for (const spot of this.near) if (away(where, spot) > sight) this.left(spot, at);
     for (let dx = -1; dx <= 1; dx++)
       for (let dy = -1; dy <= 1; dy++)
@@ -133,10 +134,12 @@ export class Ventures {
       const walked = steps(here, where);
       if (walked !== undefined) yield { key, where, walk: walked / pace, chance: 1 };
     }
-    // A spawner in sight needs no going to: what is there it sees, and what is not it does not.
+    // A spawner in sight needs no going to: what is there it sees, and what is not it does not. One
+    // it has never been within sight of is where the shard says something may be, and nothing more
+    // than that: it goes on the word, at the odds of a place nothing is yet known about.
     for (const [type, spots] of this.byType)
       for (const place of spots) {
-        if (!place.visits || away(here, place) <= sight) continue;
+        if (away(here, place) <= sight) continue;
         const walked = steps(here, place);
         if (walked === undefined) continue;
         const walk = walked / pace;

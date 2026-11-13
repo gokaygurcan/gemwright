@@ -32,7 +32,8 @@ export class History {
         resident TEXT PRIMARY KEY, compatibility TEXT NOT NULL, through INTEGER NOT NULL, state BLOB NOT NULL
       );
       CREATE INDEX IF NOT EXISTS events_resident_at ON events (resident, at);
-      CREATE INDEX IF NOT EXISTS events_resident_kind ON events (resident, kind, at);`);
+      CREATE INDEX IF NOT EXISTS events_resident_kind ON events (resident, kind, at);
+      CREATE INDEX IF NOT EXISTS events_kind_at ON events (kind, at);`);
     this.timer = setInterval(() => this.flush(), 1000);
     this.timer.unref();
   }
@@ -86,6 +87,17 @@ export class History {
       .query<{ data: string }, [string, string]>('SELECT data FROM events WHERE resident = ? AND kind = ? ORDER BY id')
       .all(resident, kind)
       .map((row) => JSON.parse(row.data) as object);
+  }
+
+  recent(kind: string, since: number): HistoryEvent[] {
+    this.flush();
+    return this.db
+      .query<{ resident: string; at: number; data: string }, [string, number]>(
+        'SELECT resident, at, data FROM events WHERE kind = ? AND at >= ? ORDER BY id DESC LIMIT 20000'
+      )
+      .all(kind, since)
+      .reverse()
+      .map((row) => ({ ...row, kind, data: JSON.parse(row.data) as object }));
   }
 
   // The newest event so far: a replay up to it does not meet what this session records after.

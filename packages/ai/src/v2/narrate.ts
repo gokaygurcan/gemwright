@@ -3,6 +3,7 @@ import type { PlayerSession } from '@gemwright/network/session';
 
 import { debugEnabled } from '../debug';
 import type { Step } from './options';
+import { screenOf } from './perceive';
 
 // Staff commands spoken to a resident (GEMWRIGHT::STOP, CONTINUE or RESUME, STATUS, WHY), heeded only
 // from someone the shard makes invulnerable (staff; players cannot be). Not conversation: never
@@ -18,12 +19,12 @@ export class Narrator {
   why = 'nothing has gone wrong lately';
 
   constructor(private readonly session: PlayerSession) {
-    this.heard = session.world.journal.length;
+    this.heard = screenOf(session).journal.length;
   }
 
   // Staff orders heard since last looked; true while it is held.
   listen() {
-    const world = this.session.world;
+    const world = screenOf(this.session);
     for (const entry of world.journal.slice(this.heard)) {
       const order = command.exec(entry.text ?? '')?.[1]?.toUpperCase();
       if (!order || world.entities.get(entry.serial)?.notoriety !== Notoriety.invulnerable) continue;

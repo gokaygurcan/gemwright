@@ -8,6 +8,7 @@ import type { HistoryEvent } from '../src/v2/history';
 import { Mind } from '../src/v2/mind';
 import { options } from '../src/v2/options';
 import { traitsOf } from '../src/v2/traits';
+import { seeing } from './fixtures/v2/mind-sync';
 
 const traits = traitsOf([], () => 0.5).traits;
 const event = (at: number, kind: string, data: object): HistoryEvent => ({ resident: 'r', at, kind, data });
@@ -36,7 +37,7 @@ test('a tool it carries offers working the tiles it works nearby', () => {
     findStatics: () => [],
     cell: (x: number, y: number) => ({ land: { x, y, z: 0, id: x === 13 && y === 10 ? rock : 3 } })
   } as unknown as Terrain;
-  const [found] = options(mind, session, terrain, new Set());
+  const [found] = options(seeing(mind, session), terrain, new Set());
   expect(found).toMatchObject({
     key: `double-click my Pickaxe > target land${rock}`,
     steps: [
@@ -47,7 +48,7 @@ test('a tool it carries offers working the tiles it works nearby', () => {
     ],
     foresight: { gained: { IronOre: 0.6 } }
   });
-  expect(options(mind, session, terrain, new Set(['13,10']))).toEqual([]);
+  expect(options(seeing(mind, session), terrain, new Set(['13,10']))).toEqual([]);
 });
 
 // Riding, it gets off before it mines (ServUO: no mining while riding).
@@ -71,7 +72,7 @@ test('mining from a horse starts by getting off it', () => {
     findStatics: () => [],
     cell: (x: number, y: number) => ({ land: { x, y, z: 0, id: x === 11 && y === 10 ? rock : 3 } })
   } as unknown as Terrain;
-  expect(options(mind, session, terrain, new Set())[0]?.steps.map((s) => s.verb)).toEqual([
+  expect(options(seeing(mind, session), terrain, new Set())[0]?.steps.map((s) => s.verb)).toEqual([
     'walk',
     'dismount',
     'use',
@@ -97,7 +98,7 @@ test('a tool in its bank box offers nothing', () => {
     findStatics: () => [],
     cell: (x: number, y: number) => ({ land: { x, y, z: 0, id: x === 11 && y === 10 ? rock : 3 } })
   } as unknown as Terrain;
-  expect(options(mind, session, terrain, new Set()).filter((o) => o.key.includes('Pickaxe'))).toEqual([]);
+  expect(options(seeing(mind, session), terrain, new Set()).filter((o) => o.key.includes('Pickaxe'))).toEqual([]);
 });
 
 // A blue diamond dug from a vein sells to no vendor, but it is a crafting material worth keeping: by
@@ -125,7 +126,7 @@ test('rare gems from harvesting are banked with the gold', () => {
       ])
     }
   } as unknown as PlayerSession;
-  const deposit = options(mind, session, undefined, new Set()).find((o) => o.key === 'deposit');
+  const deposit = options(seeing(mind, session), undefined, new Set()).find((o) => o.key === 'deposit');
   expect(deposit?.steps.at(-1)).toEqual({ verb: 'deposit', items: [8, 9] });
 });
 
@@ -145,9 +146,11 @@ test('a creature is fought only once its name is read', () => {
         entities: new Map([[3, { serial: 3, kind: 'mobile', graphic: 201, name, position: { x: 11, y: 10, z: 0 } }]])
       }
     }) as unknown as PlayerSession;
-  expect(options(mind, world(), undefined, new Set())).toEqual([]);
+  expect(options(seeing(mind, world()), undefined, new Set())).toEqual([]);
   mind.observe(event(1, 'changed', { serial: 3, name: 'a hell cat', is: ['HellCat'] }));
-  expect(options(mind, world('a hell cat'), undefined, new Set()).map((o) => o.key)).toEqual(['attack HellCat']);
+  expect(options(seeing(mind, world('a hell cat')), undefined, new Set()).map((o) => o.key)).toEqual([
+    'attack HellCat'
+  ]);
 });
 
 test('a broke miner can withdraw and sell remembered bank ingots to fund a replacement tool', async () => {
@@ -164,7 +167,7 @@ test('a broke miner can withdraw and sell remembered bank ingots to fund a repla
     world: { serial: 1, map: 1, position: { x: 10, y: 10, z: 0, direction: 2 }, entities: new Map() }
   } as unknown as PlayerSession;
   const places = { bankers: [{ x: 10, y: 10 }], vendors: [{ x: 12, y: 10, types: ['Blacksmith'] }] };
-  const best = choices(mind, session, undefined, new Set(), places)[0];
+  const best = choices(seeing(mind, session), undefined, new Set(), places)[0];
   expect(best?.key).toBe('sell Blacksmith: 43 IronIngot');
   expect(best?.rate).toBeGreaterThan(-1);
   expect(best?.steps).toEqual([
@@ -183,7 +186,7 @@ test('a miner can buy a replacement tool with a balance reported by the banker',
   const session = {
     world: { serial: 1, position: { x: 10, y: 10, z: 0, direction: 2 }, entities: new Map() }
   } as unknown as PlayerSession;
-  const found = choices(mind, session, undefined, new Set(), {
+  const found = choices(seeing(mind, session), undefined, new Set(), {
     bankers: [],
     vendors: [{ x: 10, y: 10, types: ['Tinker'] }]
   });
@@ -198,13 +201,13 @@ test('unknown funds lead to checking the bank before ruling out replacement tool
   } as unknown as PlayerSession;
   const places = { bankers: [{ x: 10, y: 10 }], vendors: [{ x: 12, y: 10, types: ['Tinker'] }] };
   expect(
-    options(mind, session, undefined, new Set(), places.bankers, places.vendors).find(
+    options(seeing(mind, session), undefined, new Set(), places.bankers, places.vendors).find(
       (o) => o.key === 'check bank balance'
     )?.steps
   ).toEqual([{ verb: 'walk', x: 10, y: 10, range: 11 }, { verb: 'balance' }]);
   mind.observe(event(1, 'heard', { serial: 20, cliloc: 1042759, arguments: '0' }));
   expect(
-    options(mind, session, undefined, new Set(), places.bankers, places.vendors).some(
+    options(seeing(mind, session), undefined, new Set(), places.bankers, places.vendors).some(
       (o) => o.key === 'check bank balance'
     )
   ).toBe(false);

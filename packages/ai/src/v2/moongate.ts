@@ -4,6 +4,8 @@ import { moongateList } from '@gemwright/common/game/rules';
 import { moongateDestination } from '@gemwright/network/gumps';
 import type { PlayerSession } from '@gemwright/network/session';
 
+import { screenOf } from './perceive';
+
 const away = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 const refusals = new Set([1019003, 1019002, 1019004, 1005561, 1005564, 1049616, 1071955]);
@@ -16,7 +18,7 @@ export async function takeMoongate(
   going: Going
 ) {
   const target = Object.entries(moongateList).find(([name]) => name === leg.to)?.[1];
-  const world = session.world;
+  const world = screenOf(session);
   if (!target || world.map !== 1 || !(await going())) return false;
   if (!(await walk({ ...leg, range: 1 }, going))) return false;
   const gate = [...world.entities.values()].find(

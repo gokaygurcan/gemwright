@@ -6,6 +6,7 @@ import { burden } from '../src/v2/burden';
 import type { HistoryEvent } from '../src/v2/history';
 import { Mind } from '../src/v2/mind';
 import { traitsOf } from '../src/v2/traits';
+import { seeing } from './fixtures/v2/mind-sync';
 
 const traits = traitsOf([], () => 0.5).traits;
 const event = (at: number, kind: string, data: object): HistoryEvent => ({ resident: 'r', at, kind, data });
@@ -41,14 +42,14 @@ const pack = (weight: number) => {
 // Room to spare: picking up ore weighs on nothing.
 test('what fits in the pack costs nothing to carry', () => {
   const { mind, session } = pack(100);
-  expect(burden(mind, session, { gained: { IronOre: 1 } })).toEqual({ cost: 0, drops: [] });
+  expect(burden(seeing(mind, session), { gained: { IronOre: 1 } })).toEqual({ cost: 0, drops: [] });
 });
 
 // 299 of 300 stones and a pile of ore to pick up: over its strength it would tire with every step, so
 // it puts down what is worth least for its weight (the firewood) to make room, at what that is worth.
 test('a pick-up that would overload it makes room by dropping what is worth least for its weight', () => {
   const { mind, session } = pack(299);
-  const carried = burden(mind, session, { gained: { IronOre: 1 } });
+  const carried = burden(seeing(mind, session), { gained: { IronOre: 1 } });
   expect(carried?.drops).toEqual([7]);
   expect(carried?.cost).toBe(mind.cost(12));
 });

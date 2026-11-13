@@ -5,22 +5,29 @@ import { CommandRejected } from '@gemwright/network/errors';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import type { Terrain } from '../src/terrain';
-import { dress } from '../src/v2/dress';
+import { dress, shed } from '../src/v2/dress';
+import { mindFor, perceived } from './fixtures/v2/mind-sync';
 
-// Raised by a healer in the shard's death robe, with its own robe in its pack: its robe goes back on
-// and the death robe is dropped.
-test('its own robe goes back on over a death robe, which it drops', async () => {
+const ROBE = 7939;
+const deathRobe = hueOf('DeathRobe');
+// A screen whose drops land on the floor, or are refused (the robe back in the pack, as the shard
+// answers a refused lift: "You must wait to perform another action", 500119) while `refuse` says so.
+function shard(
+  things: [number, { serial: number; kind: string; graphic: number; hue?: number; parent?: number; layer?: number }][],
+  refuse: () => boolean = () => false
+) {
   const done: string[] = [];
-  const entities = new Map<
-    number,
-    { serial: number; kind: string; graphic: number; hue?: number; parent?: number; layer?: number }
-  >([
-    [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
-    [3, { serial: 3, kind: 'item', graphic: 7939, hue: hueOf('DeathRobe'), parent: 1, layer: 22 }],
-    [4, { serial: 4, kind: 'item', graphic: 7939, hue: 1105, parent: 2 }]
-  ]);
+  const entities = new Map(things);
+  const journal: { cliloc?: number }[] = [];
+  const world = { serial: 1, position: { x: 5, y: 5, z: 0 }, entities, journal };
   const session = {
-    world: { serial: 1, entities },
+    world,
+    // The shard's answer to 0x22: where it truly stands, a floor up from what the client believed.
+    resyncPosition: async () => {
+      done.push('where am I');
+      world.position = { x: 5, y: 5, z: 20 };
+      return true;
+    },
     moveItem: async (serial: number, container: number) => {
       done.push(`move ${serial} to ${container}`);
       Object.assign(entities.get(serial) ?? {}, { parent: container, layer: undefined });
@@ -29,84 +36,146 @@ test('its own robe goes back on over a death robe, which it drops', async () => 
       done.push(`wear ${serial}`);
       Object.assign(entities.get(serial) ?? {}, { parent: 1, layer });
     },
-    resyncPosition: async () => true,
     dropAtFeet: async (serial: number) => {
-      done.push(`drop ${serial}`);
+      if (refuse()) {
+        done.push(`refused ${serial}`);
+        journal.push({ cliloc: 500119 });
+        Object.assign(entities.get(serial) ?? {}, { parent: 2, layer: undefined });
+        throw new CommandRejected('item-drop-rejected', 'Ground drop refused; item returned to its owner');
+      }
+      done.push(`drop ${serial} at ${world.position.x},${world.position.y},${world.position.z}`);
       entities.delete(serial);
     }
-  } as unknown as PlayerSession;
-  const terrain = { tile: () => ({ flags: 0x00400000, layer: 22 }) } as unknown as Terrain;
-  expect(await dress(session, terrain, () => 0, new Map())).toBe(true);
-  expect(done).toEqual(['move 3 to 2', 'wear 4', 'drop 3']);
-});
-
-// Dropped once, the death robe is gone: nothing more to drop.
-test('a dropped death robe is dropped once', async () => {
-  const drops: number[] = [];
-  const entities = new Map([
-    [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
-    [3, { serial: 3, kind: 'item', graphic: 7939, hue: hueOf('DeathRobe'), parent: 2 }]
-  ]);
-  const session = {
-    world: { serial: 1, entities },
-    resyncPosition: async () => true,
-    dropAtFeet: async (serial: number) => {
-      drops.push(serial);
-      entities.delete(serial);
-    }
-  } as unknown as PlayerSession;
-  const terrain = { tile: () => ({ flags: 0, layer: 0 }) } as unknown as Terrain;
-  const refused = new Map<number, string>();
-  expect(await dress(session, terrain, () => 0, refused)).toBe(true);
-  expect(await dress(session, terrain, () => 0, refused)).toBe(false);
-  expect(drops).toEqual([3]);
-});
-
-// Before dropping the death robe it asks the shard where it stands, so the drop lands on its own tile
-// at the height the shard has; if the shard still refuses, the robe stays in its pack.
-test('the death robe is dropped where the shard says it stands, and a refusal is no crash', async () => {
-  const done: string[] = [];
-  const entities = new Map([
-    [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
-    [3, { serial: 3, kind: 'item', graphic: 7939, hue: hueOf('DeathRobe'), parent: 2 }]
-  ]);
-  const session = {
-    world: { serial: 1, entities },
-    resyncPosition: async () => done.push('where am I'),
-    dropAtFeet: async () => {
-      done.push('drop');
-      throw new CommandRejected('item-drop-rejected', 'Ground drop refused; item returned to its owner');
-    }
-  } as unknown as PlayerSession;
-  const terrain = { tile: () => ({ flags: 0, layer: 0 }) } as unknown as Terrain;
-  expect(await dress(session, terrain, () => 0, new Map())).toBe(true);
-  expect(done).toEqual(['where am I', 'drop']);
-});
-
-// Refused here, it carries on; standing somewhere else later, it tries again.
-test('a refused robe drop is tried again from another tile', async () => {
-  const drops: string[] = [];
-  const world = {
-    serial: 1,
-    position: { x: 5, y: 5, z: 0, direction: 0 },
-    entities: new Map([
-      [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
-      [3, { serial: 3, kind: 'item', graphic: 7939, hue: hueOf('DeathRobe'), parent: 2 }]
-    ])
   };
+  const mind = mindFor(session);
+  return { done, entities, mind, session: perceived(session, mind) };
+}
+
+// Raised in the shard's death robe with its own robe in its pack: the death robe goes to the floor
+// first, then its own robe goes on.
+test('a worn death robe is on the floor before its own robe goes back on', async () => {
+  const { done, mind, session } = shard([
+    [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
+    [3, { serial: 3, kind: 'item', graphic: ROBE, hue: deathRobe, parent: 1, layer: 22 }],
+    [4, { serial: 4, kind: 'item', graphic: ROBE, hue: 1105, parent: 2 }]
+  ]);
+  const terrain = { tile: () => ({ flags: 0x00400000, layer: 22 }) } as unknown as Terrain;
+  expect(
+    await shed(
+      session,
+      mind,
+      () => false,
+      () => {},
+      () => {}
+    )
+  ).toBe(true);
+  expect(await dress(session, mind, terrain, new Map())).toBe(true);
+  expect(done).toEqual(['where am I', 'drop 3 at 5,5,20', 'wear 4']);
+});
+
+// Every death robe it carries, in its pack and in bags in it, goes to the floor; once down, there is
+// nothing more to drop.
+test('every carried death robe is put on the floor, and only once', async () => {
+  const { done, mind, session } = shard([
+    [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
+    [6, { serial: 6, kind: 'item', graphic: 3701, parent: 2 }],
+    [10, { serial: 10, kind: 'item', graphic: ROBE, hue: deathRobe, parent: 2 }],
+    [11, { serial: 11, kind: 'item', graphic: ROBE, hue: deathRobe, parent: 2 }],
+    [12, { serial: 12, kind: 'item', graphic: ROBE, hue: deathRobe, parent: 6 }]
+  ]);
+  expect(
+    await shed(
+      session,
+      mind,
+      () => false,
+      () => {},
+      () => {}
+    )
+  ).toBe(true);
+  expect(
+    await shed(
+      session,
+      mind,
+      () => false,
+      () => {},
+      () => {}
+    )
+  ).toBe(true);
+  expect(done.filter((step) => step.startsWith('drop')).sort()).toEqual([
+    'drop 10 at 5,5,20',
+    'drop 11 at 5,5,20',
+    'drop 12 at 5,5,20'
+  ]);
+});
+
+// The shard refusing a drop (too soon after the last action) does not move it on: the same robe is
+// tried again, on the same tile at the height the shard says it stands, at the shard's pace, until it
+// lies on the floor.
+test('a refused robe drop is tried again on the same tile until the robe is on the floor', async () => {
+  let refusals = 2;
+  const { done, mind, session } = shard(
+    [
+      [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
+      [3, { serial: 3, kind: 'item', graphic: ROBE, hue: deathRobe, parent: 2 }]
+    ],
+    () => refusals-- > 0
+  );
+  expect(
+    await shed(
+      session,
+      mind,
+      () => false,
+      () => {},
+      () => {}
+    )
+  ).toBe(true);
+  expect(done).toEqual(['where am I', 'refused 3', 'where am I', 'refused 3', 'where am I', 'drop 3 at 5,5,20']);
+});
+
+test('a thrown equipment refusal is remembered so the next turn can do different work', async () => {
+  let attempts = 0;
   const session = {
-    world,
-    resyncPosition: async () => true,
-    dropAtFeet: async () => {
-      drops.push(`${world.position.x},${world.position.y}`);
-      throw new CommandRejected('item-drop-rejected', 'Ground drop refused; item returned to its owner');
+    world: {
+      serial: 1,
+      entities: new Map([
+        [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
+        [4, { serial: 4, kind: 'item', graphic: 0x311, parent: 2 }]
+      ])
+    },
+    equipItem: async () => {
+      attempts++;
+      throw new CommandRejected('equipment-rejected', 'Equipment refused');
     }
   } as unknown as PlayerSession;
-  const terrain = { tile: () => ({ flags: 0, layer: 0 }) } as unknown as Terrain;
+  const terrain = { tile: () => ({ flags: 0x00400000, layer: 7 }) } as unknown as Terrain;
   const refused = new Map<number, string>();
-  await dress(session, terrain, () => 0, refused);
-  await dress(session, terrain, () => 0, refused);
-  world.position = { ...world.position, x: 9 };
-  await dress(session, terrain, () => 0, refused);
-  expect(drops).toEqual(['5,5', '9,5']);
+  for (let turn = 0; turn < 4; turn++) {
+    try {
+      await dress(perceived(session, mindFor(session)), mindFor(session), terrain, refused);
+    } catch (error) {
+      expect(error).toBeInstanceOf(CommandRejected);
+    }
+  }
+  expect(attempts).toBe(1);
+});
+
+test('usable armor inside an owned bag is worn rather than overlooked', async () => {
+  const entities = new Map([
+    [2, { serial: 2, graphic: 3701, parent: 1, layer: 21 }],
+    [6, { serial: 6, graphic: 3701, parent: 2 }],
+    [10, { serial: 10, graphic: 5083, parent: 6 }]
+  ]);
+  const worn: number[] = [];
+  const session = {
+    world: { serial: 1, entities },
+    equipItem: async (serial: number, layer: number) => {
+      worn.push(serial);
+      Object.assign(entities.get(serial) ?? {}, { parent: 1, layer });
+    }
+  } as unknown as PlayerSession;
+  const terrain = {
+    tile: (graphic: number) => ({ flags: graphic === 5083 ? 0x00400000 : 0, layer: 13 })
+  } as unknown as Terrain;
+  expect(await dress(perceived(session, mindFor(session)), mindFor(session), terrain, new Map())).toBe(true);
+  expect(worn).toEqual([10]);
 });

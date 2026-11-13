@@ -85,11 +85,28 @@ export interface ShardWorld {
   regions: Rect[];
   towns: Town[];
   // Every named region, towns included (Haven Island).
-  named: Town[];
+  named: Region[];
   // Overland decoration (x < 5120): forges, ankhs.
   decoration: Placement[];
   teleporters: Link[];
+  // The players' caps (Config/PlayerCaps.cfg): one skill and all together (in tenths there), and
+  // stats all together and each of strength, dexterity and intelligence.
+  caps?: ReturnType<typeof parseCaps>;
 }
+// ServUO Config/PlayerCaps.cfg: SkillCap and TotalSkillCap in tenths of a point, the stat caps whole.
+export function parseCaps(cfg: string) {
+  const read = (key: string, fallback: number) => {
+    const found = new RegExp(`^\\s*${key}\\s*=\\s*(\\d+)`, 'm').exec(cfg)?.[1];
+    return found === undefined ? fallback : Number(found);
+  };
+  return {
+    skill: read('SkillCap', 1000) / 10,
+    total: read('TotalSkillCap', 7000) / 10,
+    stats: read('TotalStatCap', 225),
+    stat: [read('StrCap', 125), read('DexCap', 125), read('IntCap', 125)]
+  };
+}
+
 // Every file the world folder must hold (start.sh waits for them).
 export const WORLD_FILES = ['Spawns', 'Regions.xml', 'Decoration', 'teleporters.csv'];
 
@@ -110,6 +127,9 @@ export function readShardWorld(directory: string): ShardWorld | undefined {
     decoration: files('Decoration', '.cfg')
       .flatMap(({ text }) => parseDecoration(text))
       .filter((p) => p.x < 5120),
-    teleporters: parseTeleporters(readFileSync(join(directory, 'teleporters.csv'), 'utf8'))
+    teleporters: parseTeleporters(readFileSync(join(directory, 'teleporters.csv'), 'utf8')),
+    ...(existsSync(join(directory, 'PlayerCaps.cfg'))
+      ? { caps: parseCaps(readFileSync(join(directory, 'PlayerCaps.cfg'), 'utf8')) }
+      : {})
   };
 }

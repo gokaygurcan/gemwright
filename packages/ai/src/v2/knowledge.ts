@@ -3,12 +3,14 @@ import {
   carpentryTools,
   cookingTools,
   fletchingTools,
+  isDeathRobe,
   scribesPens,
   smithTools,
   tinkerTools,
   tongs
 } from '@gemwright/common/game/items';
 import {
+  anvils,
   buys,
   classesShowing,
   creatures,
@@ -16,9 +18,11 @@ import {
   fishableWater,
   harvestOf,
   harvestTiles,
+  heatSources,
   isA,
   npcTypes,
-  sells
+  sells,
+  smithingForges
 } from '@gemwright/common/game/rules';
 
 import { baselineTraits } from '../perception-reference';
@@ -31,6 +35,7 @@ const doors: ReadonlySet<number> = new Set(doorGraphics.flat());
 export function identify(entity: {
   kind: 'mobile' | 'item';
   graphic: number;
+  hue?: number;
   name?: string;
   properties?: readonly { cliloc: number; arguments: string }[];
 }): string[] {
@@ -38,10 +43,27 @@ export function identify(entity: {
     const reference = baselineTraits(entity.graphic, entity.name).value;
     return reference.humanLike ? ['Person'] : reference.candidates.map((c) => c.type);
   }
+  if (isDeathRobe(entity)) return ['DeathRobe'];
   if (doors.has(entity.graphic)) return ['Door'];
   const looks = classesShowing(entity.graphic).filter((name) => isA(name, 'Item'));
-  return entity.properties ? described(looks, entity.properties) : looks;
+  if (entity.properties) return described(looks, entity.properties);
+  // Before its hover, its colour already tells the metal, as a player sees a valorite ingot.
+  const metal = metalHues.get(entity.hue ?? 0);
+  return metal ? ofMetal(looks, metal) : looks;
 }
+
+// The colour each metal gives its ore and ingots (ServUO ResourceInfo, CraftResourceInfo hues).
+const metalHues = new Map([
+  [0x000, 'Iron'],
+  [0x973, 'DullCopper'],
+  [0x966, 'ShadowIron'],
+  [0x96d, 'Copper'],
+  [0x972, 'Bronze'],
+  [0x8a5, 'Gold'],
+  [0x979, 'Agapite'],
+  [0x89f, 'Verite'],
+  [0x8ab, 'Valorite']
+]);
 
 // The metal a resource's hover names (ServUO CraftResources: its localized name, from Valorite
 // 1053101 to Iron 1053109). Things of the standard metal name none: iron.
@@ -61,7 +83,12 @@ const metals = new Map([
 // mouse-over) says it is: an ore or ingot of the metal it names, iron when it names none.
 function described(looks: string[], properties: readonly { cliloc: number }[]) {
   if (!looks.some((name) => isA(name, 'BaseOre') || isA(name, 'BaseIngot'))) return looks;
-  const metal = properties.map((p) => metals.get(p.cliloc)).find((m) => m !== undefined) ?? 'Iron';
+  return ofMetal(looks, properties.map((p) => metals.get(p.cliloc)).find((m) => m !== undefined) ?? 'Iron');
+}
+
+// An ore or ingot of one metal, of the kinds its look allows.
+function ofMetal(looks: string[], metal: string) {
+  if (!looks.some((name) => isA(name, 'BaseOre') || isA(name, 'BaseIngot'))) return looks;
   const kind = looks.some((name) => isA(name, 'BaseOre')) ? 'Ore' : 'Ingot';
   const exact = looks.filter((name) => name === `${metal}${kind}`);
   return exact.length ? exact : [`${metal}${kind}`];
@@ -270,6 +297,10 @@ const smelting: Record<string, number> = {
 };
 // The forges a target may be (Ore.cs IsForge): its static graphics.
 export const isForge = (graphic: number) => graphic === 4017 || (graphic >= 6522 && graphic <= 6569);
+// A fixed station a trade works at (the rules' stations: anvils, smithing forges and heat). What a
+// tool whose use asks for a target can be used on, whatever the trade.
+export const isStation = (graphic: number) =>
+  anvils.has(graphic) || smithingForges.has(graphic) || heatSources.has(graphic);
 export function foreseeSmelt(ore: string, amount: number, graphic: number, mining: number, total?: number) {
   const difficulty = smelting[ore];
   if (difficulty === undefined || (difficulty > 50 && difficulty > mining)) return { gained: {}, lost: {} };
@@ -309,6 +340,7 @@ export const isKeepsake = (name: string) => name.split('/').some((type) => keeps
 // (physical 1060448, fire 1060447, cold 1060445, poison 1060449, energy 1060446) and durability
 // (1060639). What it does not say is left out.
 export interface Facts {
+  contents?: { count: number; max?: number };
   weight?: number;
   blessed?: boolean;
   exceptional?: boolean;
@@ -331,6 +363,8 @@ export function facts(properties: readonly { cliloc: number; arguments: string }
   for (const { cliloc, arguments: text } of properties) {
     const [a = Number.NaN, b = Number.NaN] = numbers(text);
     if (cliloc === 1072788 || cliloc === 1072789) found.weight = a;
+    else if (cliloc === 1073841 || cliloc === 1072241) found.contents = { count: a, max: b };
+    else if (cliloc === 1050044) found.contents = { count: a };
     else if (cliloc === 1038021) found.blessed = true;
     else if (cliloc === 1060636) found.exceptional = true;
     else if (cliloc === 1061168) found.damage = [a, b];

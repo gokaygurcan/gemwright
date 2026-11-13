@@ -142,3 +142,19 @@ test('a creature that struck it weighs on everything but fighting it back', () =
   expect(mind.pressed(60)).toBeLessThan(0);
   expect(mind.pressed(60, 3)).toBe(0);
 });
+
+test('combat predictions follow a weapon moving between hand and backpack', () => {
+  const fight = new Fight();
+  const names = (serial: number) => (serial === 9 ? 'Longsword' : undefined);
+  fight.observe(event(0, 'awake', { serial: 1, skills: { Wrestling: 75, Swords: 0 } }), names);
+  const bare = fight.foresee('Mongbat', 100)?.seconds;
+  fight.observe(event(1, 'gained', { serial: 9, parent: 1, layer: 1, is: ['Longsword'] }), names);
+  const armed = fight.foresee('Mongbat', 100)?.seconds;
+  expect(armed).toBeGreaterThan(bare as number);
+  fight.observe(event(2, 'changed', { serial: 9, parent: 2, layer: undefined }), names);
+  expect(fight.foresee('Mongbat', 100)?.seconds).toBe(bare);
+  fight.observe(event(3, 'changed', { serial: 9, parent: 1, layer: 1 }), names);
+  expect(fight.foresee('Mongbat', 100)?.seconds).toBe(armed);
+  fight.observe(event(4, 'awake', { serial: 1, skills: { Wrestling: 75, Swords: 0 } }), names);
+  expect(fight.foresee('Mongbat', 100)?.seconds).toBe(bare);
+});

@@ -46,7 +46,7 @@ test('it emotes each change of what it does when debugging', () => {
   const doing = describe('go 100,200: attack Mongbat/StrongMongbat', []);
   narrator.tell(doing);
   narrator.tell(doing);
-  narrator.tell('resting: nothing is worth doing here');
+  narrator.tell('looking for different work');
   setDebug(false);
-  expect(emoted).toEqual(['traveling to 100,200: fighting Mongbat', 'resting: nothing is worth doing here']);
+  expect(emoted).toEqual(['traveling to 100,200: fighting Mongbat', 'looking for different work']);
 });

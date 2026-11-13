@@ -86,3 +86,26 @@ test("an item's hover is perceived with what it shows it to be", () => {
     }
   ]);
 });
+
+test('inventory hovers received before waking are included in the initial perception', async () => {
+  const { Mind } = await import('../src/v2/mind');
+  const { traitsOf } = await import('../src/v2/traits');
+  const world = new WorldView();
+  world.serial = 1;
+  world.put({ serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 });
+  world.put({
+    serial: 10,
+    kind: 'item',
+    graphic: 7154,
+    parent: 2,
+    amount: 3000,
+    properties: [{ cliloc: 1072789, arguments: '600' }]
+  });
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const stop = perceive({ world } as unknown as PlayerSession, 'r', (e) => mind.observe(e));
+  try {
+    expect(mind.unitWeight('IronIngot')).toBe(0.2);
+  } finally {
+    stop();
+  }
+});

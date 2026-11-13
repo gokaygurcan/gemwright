@@ -44,6 +44,10 @@ export class WalkGraph {
   // different ones have no way between them, whatever gates are open.
   private readonly group: Int32Array;
   private readonly toMark: Float32Array[] = [];
+  // Which pieces join up on foot alone, no teleporter or gate taken: an island, a dungeon level.
+  readonly land: Int32Array;
+  // Each teleporter's and gate's jump: the node stepped on, the node it puts one on.
+  readonly jumps: { from: number; to: number }[] = [];
 
   constructor(
     graph: WalkGraphData,
@@ -99,6 +103,25 @@ export class WalkGraph {
       if (ra !== rb) this.group[ra] = rb;
     });
     for (let i = 0; i < count; i++) this.group[i] = root(i);
+    this.land = Int32Array.from({ length: count }, (_, i) => i);
+    const landOf = (i: number): number => {
+      while (this.land[i] !== i) {
+        this.land[i] = this.land[this.land[i] ?? i] ?? i;
+        i = this.land[i] ?? i;
+      }
+      return i;
+    };
+    from.forEach((a, i) => {
+      const b = to[i] ?? 0;
+      if (data.kind[a]) {
+        this.jumps.push({ from: a, to: b });
+        return;
+      }
+      const ra = landOf(a);
+      const rb = landOf(b);
+      if (ra !== rb) this.land[ra] = rb;
+    });
+    for (let i = 0; i < count; i++) this.land[i] = landOf(i);
     // The same edges reversed, for the steps from every node to a landmark.
     const back = {
       first: new Int32Array(count + 1),
@@ -207,6 +230,37 @@ export class WalkGraph {
       if (away !== undefined && this.data.kind[id] !== 1) nodes.set(id, away);
     }
     return { far, nodes };
+  }
+
+  // The piece of land a spot stands on (`land`), by the nearest node it walks to in its cell.
+  landAt(spot: Spot) {
+    let best: number | undefined;
+    let away = Number.POSITIVE_INFINITY;
+    for (const [id, steps] of this.reach(spot).nodes)
+      if (steps < away) {
+        away = steps;
+        best = id;
+      }
+    // A room no crossing of its cell is walked to from: the nearest node about it, near its height.
+    return best === undefined ? this.landNear(spot) : this.land[best];
+  }
+
+  // The piece of land of the nearest node about a spot, near its height, without walking to it: for
+  // placing many spots at once (spawners), where a lookup must stay cheap.
+  landNear(spot: Spot) {
+    let best: number | undefined;
+    let away = Number.POSITIVE_INFINITY;
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        for (const id of this.byCell.get(this.cellOf(spot.x + dx * CELL, spot.y + dy * CELL))?.values() ?? []) {
+          if (Math.abs((this.data.z[id] ?? 0) - spot.z) > 10) continue;
+          const d = chebyshev(spot.x, spot.y, this.data.x[id] ?? 0, this.data.y[id] ?? 0);
+          if (d < away) {
+            away = d;
+            best = id;
+          }
+        }
+    return best === undefined ? undefined : this.land[best];
   }
 
   // A* from a spot's nodes to another's, or (with no goal) Dijkstra to every node. Gates the

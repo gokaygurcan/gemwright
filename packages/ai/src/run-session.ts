@@ -9,6 +9,7 @@ import { logger } from './log';
 import { recordDecision, recordSession } from './recording';
 import { emitEvent, inSession, makeEvent } from './telemetry';
 import { SESSION_BREAK } from './v1/action-errors';
+import { supportingOf } from './v1/archetypes';
 import { runBard } from './v1/bard';
 import { superviseBehavior } from './v1/behavior-supervisor';
 import { registerChaos } from './v1/chaos';
@@ -379,7 +380,8 @@ export async function runResident(shared: RuntimeShared, options: ResidentOption
                 resident.id,
                 historyAt(join(dataDirectory, 'history.sqlite')),
                 () => stopping() || Date.now() > until,
-                (template.archetype?.primarySkills ?? []).map((skill) => skillNames[skillId(skill)] ?? skill)
+                (template.archetype?.primarySkills ?? []).map((skill) => skillNames[skillId(skill)] ?? skill),
+                (supportingOf(template.archetype) ?? []).map((skill) => skillNames[skillId(skill)] ?? skill)
               );
               return 'stopped';
             }

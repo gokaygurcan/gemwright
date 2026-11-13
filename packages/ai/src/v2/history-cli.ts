@@ -27,7 +27,10 @@ const { values } = parseArgs({
     lifetimes: { type: 'boolean' },
     know: { type: 'string' },
     choices: { type: 'boolean' },
-    world: { type: 'string' }
+    world: { type: 'string' },
+    json: { type: 'boolean' },
+    since: { type: 'string' },
+    until: { type: 'string' }
   }
 });
 if (!values.db) throw new Error('--db is required');
@@ -47,9 +50,38 @@ if (values.minutes) {
   where.push('at >= ?');
   args.push(Date.now() - Number(values.minutes) * 60_000);
 }
+for (const [name, operator] of [
+  ['since', '>='],
+  ['until', '<=']
+] as const) {
+  const timestamp = values[name];
+  if (!timestamp) continue;
+  const at = Date.parse(timestamp);
+  if (!Number.isFinite(at)) throw new Error(`--${name} must be an ISO timestamp`);
+  where.push(`at ${operator} ?`);
+  args.push(at);
+}
 const filter = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-if (values.choices) {
+if (values.json) {
+  const rows = db
+    .query<
+      {
+        id: number;
+        resident: string;
+        at: number;
+        kind: string;
+        x: number | null;
+        y: number | null;
+        z: number | null;
+        map: number | null;
+        data: string;
+      },
+      typeof args
+    >(`SELECT * FROM events ${filter} ORDER BY id`)
+    .iterate(...args);
+  for (const { data, ...row } of rows) console.log(JSON.stringify({ ...row, data: JSON.parse(data) }));
+} else if (values.choices) {
   const scope = `${filter ? `${filter} AND` : 'WHERE'} kind = 'considered'`;
   const agreement = db
     .query<{ n: number; agrees: number }, typeof args>(

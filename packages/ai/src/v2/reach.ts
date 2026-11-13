@@ -63,5 +63,6 @@ let land: WalkGraph | undefined;
 export const useLand = (graph: WalkGraph) => {
   land = graph;
 };
+export const landGraph = () => land;
 // Each resident's own reach over it (each stands somewhere else), or nothing before it is known.
 export const reachOver = (terrain: Ground) => (land ? new Reach(land, terrain) : undefined);

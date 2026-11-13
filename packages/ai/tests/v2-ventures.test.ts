@@ -27,8 +27,8 @@ const pass = (ventures: Ventures, x: number, when: number, seen?: string) => {
   ventures.walk(when + 3000, at(x + 200));
 };
 
-// Walking 2 tiles a second, it can go back to a fishing spot or to a mongbat spawn it has passed,
-// each at the steps of the way there.
+// Walking 2 tiles a second, it can go back to a fishing spot, to a mongbat spawn it has passed, or
+// to one it has only the shard's word for, each at the steps of the way there.
 test('ventures go where something can be done again, at its walking pace along the way', () => {
   const ventures = new Ventures([spawner(100, ['mongbat']), spawner(40, ['mongbat'])]);
   ventures.walk(0, at(0));
@@ -38,15 +38,20 @@ test('ventures go where something can be done again, at its walking pace along t
   ventures.remember('pick-up PlateChest > drop my Backpack', at(30));
   expect([...ventures.ahead(at(0), new Set(), () => true, along)]).toEqual([
     { key: 'double-click my FishingPole > target tile6042', where: at(20), walk: 10, chance: 1 },
-    { key: 'attack Mongbat', where: { x: 100, y: 0, z: 0, map: 1 }, walk: 50, chance: 2 / 3 }
+    { key: 'attack Mongbat', where: { x: 100, y: 0, z: 0, map: 1 }, walk: 50, chance: 2 / 3 },
+    { key: 'attack Mongbat', where: at(40), walk: 20, chance: 1 / 2 }
   ]);
 });
 
-// A spawner it has never come within sight of is nowhere it knows to go.
-test('a spawner never seen is not somewhere to go', () => {
+// A spawner it has never come within sight of is somewhere the shard says something may be: it goes
+// on that word, at the odds of a place nothing is yet known about, half.
+test("a spawner never seen is somewhere to go, on the shard's word", () => {
   const ventures = new Ventures([spawner(100, ['mongbat']), spawner(300, ['mongbat'])]);
   pass(ventures, 100, 0, 'Mongbat');
-  expect([...ventures.ahead(at(0), new Set(), () => true, along)].map((v) => v.where.x)).toEqual([100]);
+  expect([...ventures.ahead(at(0), new Set(), () => true, along)].map((v) => [v.where.x, v.chance])).toEqual([
+    [100, 2 / 3],
+    [300, 1 / 2]
+  ]);
 });
 
 // One across water, with no way there, is not somewhere to go, however well it is known.

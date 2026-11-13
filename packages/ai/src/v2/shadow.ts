@@ -6,15 +6,19 @@ import { npcTypes } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { isAnkh } from '../decoration';
+import { PathPool } from '../path-pool';
 import { readShardWorld, type ShardWorld } from '../spawns';
 import { Terrain } from '../terrain';
+import { Atlas } from './atlas';
 import type { History } from './history';
 import { isForge } from './knowledge';
 import { live } from './live';
 import { Mind } from './mind';
-import { perceive } from './perceive';
+import { perceive, screenOf } from './perceive';
 import { Places } from './places';
+import { landGraph } from './reach';
 import { traitsOf } from './traits';
+import { learnRoute } from './unreachable';
 
 // The shard's world files beside the history (its data folder's `world`), read once.
 const worlds = new Map<string, ShardWorld | undefined>();
@@ -22,6 +26,28 @@ const shardWorld = (history: string) => {
   const directory = join(dirname(history), 'world');
   if (!worlds.has(directory)) worlds.set(directory, readShardWorld(directory));
   return worlds.get(directory);
+};
+
+// The map of a shard's world, built once its walk graph is known (serve.ts loads it at start).
+const atlases = new Map<string, Atlas>();
+const atlasOf = (history: string) => {
+  const world = shardWorld(history);
+  if (!world) return undefined;
+  const graph = landGraph();
+  const directory = join(dirname(history), 'world');
+  const known = atlases.get(directory);
+  if (known) return known;
+  const atlas = new Atlas(world.named, world.spawners, world.decoration, world.teleporters, graph);
+  atlas.useRoads(PathPool.roads());
+  // Without the walk graph yet, only its regions: built again once the graph is known.
+  if (graph) atlases.set(directory, atlas);
+  return atlas;
+};
+
+// The cities residents are kept to (gemwright.json ai.cities; serve.ts): every city when unset.
+let confined: readonly string[] | undefined;
+export const confine = (cities: readonly string[] | undefined) => {
+  confined = cities;
 };
 
 const npcByName = new Map(npcTypes.map((type) => [type.toLowerCase(), type]));
@@ -51,16 +77,25 @@ export async function act(
   resident: string,
   history: History,
   stopping: () => boolean,
-  trade: readonly string[] = []
+  trade: readonly string[] = [],
+  supporting: readonly string[] = []
 ) {
-  const { mind, ready, stop, terrain } = wake(session, resident, history, trade);
+  const { mind, ready, stop, terrain } = wake(session, resident, history, trade, supporting);
+  let started = Date.now();
+  const record = (kind: string, data: object) =>
+    history.record({ resident, at: Date.now(), kind, data, ...where(session) });
+  let failure: string | undefined;
   try {
     await ready;
+    started = Date.now();
+    mind.notice('training', { skills: supporting });
+    record('life-started', { trade, goal: 'Gain wealth and trade skills while surviving' });
     mind.acting = true;
     // Where the shard places healers, ankhs and bankers in Trammel: where a ghost and a depositor go.
+    // Only those within the cities it is kept to.
     const placed = (kind: string) =>
       (shardWorld(history.path)?.spawners ?? [])
-        .filter((s) => s.map === 'Trammel' && s.kinds.some((k) => k.endsWith(kind)))
+        .filter((s) => s.map === 'Trammel' && s.kinds.some((k) => k.endsWith(kind)) && mind.allowed(s))
         .map(({ x, y }) => ({ x, y }));
     await live(
       session,
@@ -70,35 +105,57 @@ export async function act(
         shrines: [
           ...placed('healer').map((p) => ({ kind: 'healer' as const, ...p })),
           ...(shardWorld(history.path)?.decoration ?? [])
-            .filter((p) => isAnkh(p.type))
+            .filter((p) => isAnkh(p.type) && mind.allowed(p))
             .map(({ x, y }) => ({ kind: 'ankh' as const, x, y }))
         ],
         bankers: placed('banker'),
         forges: (shardWorld(history.path)?.decoration ?? [])
-          .filter((p) => isForge(p.graphic))
+          .filter((p) => isForge(p.graphic) && mind.allowed(p))
           .map((p) => ({ x: p.x, y: p.y, z: p.z, id: p.graphic })),
         // Vendors the shard places, by the kinds each spawner spawns (its type names as the wiki has them).
         vendors: (shardWorld(history.path)?.spawners ?? [])
-          .filter((s) => s.map === 'Trammel')
+          .filter((s) => s.map === 'Trammel' && mind.allowed(s))
           .map(({ x, y, kinds, range }) => ({ x, y, range, types: kinds.flatMap((k) => npcByName.get(k) ?? []) }))
           .filter((v) => v.types.length)
       },
       stopping,
-      (kind, data) => history.record({ resident, at: Date.now(), kind, data, ...where(session) })
+      record
     );
+  } catch (error) {
+    failure = error instanceof Error ? error.message : String(error);
+    throw error;
   } finally {
+    record('life-ended', {
+      seconds: (Date.now() - started) / 1000,
+      phase: session.phase,
+      reason: failure ? 'failed' : stopping() ? 'stopped' : 'session ended',
+      failure
+    });
     stop();
   }
 }
 
 const where = (session: PlayerSession) => {
-  const p = session.world.position;
-  return p ? { where: { x: p.x, y: p.y, z: p.z, map: session.world.map ?? 1 } } : {};
+  const screen = screenOf(session);
+  const p = screen.position;
+  return p ? { where: { x: p.x, y: p.y, z: p.z, map: screen.map ?? 1 } } : {};
 };
 
 // On waking the mind re-lives its history in slices, yielding between them so the session keeps
 // up; what happens meanwhile waits its turn, and nothing it concludes while re-living is written again.
-function wake(session: PlayerSession, resident: string, history: History, trade: readonly string[] = []) {
+const routesLoaded = new WeakSet<History>();
+
+function wake(
+  session: PlayerSession,
+  resident: string,
+  history: History,
+  trade: readonly string[] = [],
+  supporting: readonly string[] = []
+) {
+  if (!routesLoaded.has(history)) {
+    for (const event of history.recent('route-failed', Date.now() - 2 * 3_600_000)) learnRoute(event, history.path);
+    routesLoaded.add(history);
+  }
   const write = (event: Parameters<History['record']>[0]) => history.record(event);
   const { traits, drawn } = traitsOf(history.read(resident, 'born'));
   if (drawn) write({ resident, at: Date.now(), kind: 'born', data: { traits } });
@@ -107,17 +164,28 @@ function wake(session: PlayerSession, resident: string, history: History, trade:
   if (trade.length && JSON.stringify(known) !== JSON.stringify(trade))
     write({ resident, at: Date.now(), kind: 'trade', data: { skills: trade } });
   let awake = false;
-  const mind = new Mind(resident, (event) => awake && write(event), traits, shardWorld(history.path)?.spawners, trade);
+  const mind = new Mind(
+    resident,
+    (event) => awake && write(event),
+    traits,
+    shardWorld(history.path)?.spawners,
+    trade,
+    supporting
+  );
+  mind.routeScope = history.path;
   mind.awake = false;
   const places = new Places(resident, write, {
     lifetimes: history.read(resident, 'lifetimes'),
     left: history.read(resident, 'left')
   });
+  mind.places = places;
+  mind.self.caps = shardWorld(history.path)?.caps;
   const through = history.latest();
   const compatibility = createHash('sha256')
     .update(
       JSON.stringify({
-        version: 2,
+        version: 5,
+        supporting,
         traits,
         trade,
         spawners: shardWorld(history.path)?.spawners
@@ -134,6 +202,9 @@ function wake(session: PlayerSession, resident: string, history: History, trade:
   // Residents live in Trammel, short of its far edges where the terrain reader stops.
   const landAt = (x: number, y: number, map: number | null) =>
     mapped && map === 1 && x < 7167 && y < 4095 ? Terrain.shared(assets, map).cell(x, y).land.id : undefined;
+  const atlas = atlasOf(history.path);
+  mind.atlas = atlas;
+  if (atlas) mind.allowed = atlas.within(confined);
   const stop = perceive(
     session,
     resident,
@@ -143,7 +214,8 @@ function wake(session: PlayerSession, resident: string, history: History, trade:
       if (awake) mind.observe(event);
       else waiting.push(event);
     },
-    landAt
+    landAt,
+    atlas && ((p) => atlas.at(p))
   );
   const ready = (async () => {
     let count = 0;

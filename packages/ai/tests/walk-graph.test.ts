@@ -16,6 +16,7 @@ import { traitsOf } from '../src/v2/traits';
 import { WalkGraph } from '../src/walk-graph';
 import { buildWalkGraph, type Spot, spotKey, steps } from '../src/walk-graph-build';
 import { useWalkGraph } from '../src/walk-graph-store';
+import { seeing } from './fixtures/v2/mind-sync';
 
 // Against the real map: the client's map files (files/) and a shard's world files, both kept out of
 // the repository; without them there is nothing to test against.
@@ -266,9 +267,11 @@ describe.skipIf(!available)('walk graph on the real map', () => {
     expect(times[Math.floor(times.length * 0.95)] ?? 0).toBeLessThan(20);
   }, 600_000);
 
-  // In New Haven, having passed both the graveyard's zombie spawn and one on the mainland far off (both
-  // empty then), the only zombie trip it weighs is the near one: the far one is no likelier and much
-  // further. Measuring a known spawner from where it stands takes a few milliseconds.
+  // In New Haven, having passed both the graveyard's zombie spawn and one on the mainland far off
+  // (both empty then), the only zombie trip it weighs is the near one: its places are walked
+  // nearest-first, and the far reaches of the shard's word are never weighed while the graveyard's
+  // spawn still promises something. Measuring a known spawner from where it stands takes a few
+  // milliseconds.
   test('in New Haven, a zombie trip goes to New Haven, not across the map', () => {
     const spawners = readShardWorld(world)?.spawners ?? [];
     const home = { x: 3460, y: 2640, z: 0, map: 1 };
@@ -291,13 +294,16 @@ describe.skipIf(!available)('walk graph on the real map', () => {
     const reach = new Reach(graph, terrain);
     mind.steps = reach.steps;
     const journeys = [...mind.journeys()].filter((journey) => journey.key === 'attack Zombie');
-    expect(journeys).toHaveLength(2);
-    expect(journeys[0]?.chance).toBe(journeys[1]?.chance);
+    // Every zombie spawn the shard names is somewhere it could go; the two it has walked past are the
+    // ones it knows anything about, and it knows the same of both.
+    const visited = journeys.filter((journey) => journey.where.x === 3407 || journey.where.x === 1122);
+    expect(visited).toHaveLength(2);
+    expect(visited[0]?.chance).toBe(visited[1]?.chance);
     const started = performance.now();
     const session = {
       world: { serial: 1, position: { ...home, direction: 0 }, entities: new Map() }
     } as unknown as PlayerSession;
-    const zombieTrips = choices(mind, session, undefined, new Set(), { bankers: [], vendors: [] })
+    const zombieTrips = choices(seeing(mind, session), undefined, new Set(), { bankers: [], vendors: [] })
       .filter((o) => o.key.startsWith('go ') && o.key.endsWith('attack Zombie'))
       .map((o) => o.key);
     expect(performance.now() - started).toBeLessThan(1000);

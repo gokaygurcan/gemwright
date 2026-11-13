@@ -9,6 +9,7 @@ import { Mind } from '../src/v2/mind';
 import { options, type Step } from '../src/v2/options';
 import { stance } from '../src/v2/planning';
 import { traitsOf } from '../src/v2/traits';
+import { seeing } from './fixtures/v2/mind-sync';
 
 function miner() {
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits, [], ['Mining']);
@@ -45,14 +46,18 @@ function miner() {
 test('a harvest destination beyond the old search radius remains a choice', () => {
   const { mind, session, terrain } = miner();
   expect(
-    options(mind, session, terrain, new Set()).some((o) => o.steps.some((s) => s.verb === 'walk' && s.x === 310))
+    options(seeing(mind, session), terrain, new Set()).some((o) =>
+      o.steps.some((s) => s.verb === 'walk' && s.x === 310)
+    )
   ).toBe(true);
 });
 
 test('an observed forge remains usable beyond eight tiles', () => {
   const { mind, session, terrain } = miner();
   expect(
-    options(mind, session, terrain, new Set()).some((o) => o.steps.some((s) => s.verb === 'use' && s.serial === 11))
+    options(seeing(mind, session), terrain, new Set()).some((o) =>
+      o.steps.some((s) => s.verb === 'use' && s.serial === 11)
+    )
   ).toBe(true);
 });
 
@@ -142,7 +147,7 @@ test('a harvest does not finish at its initial tool message', async () => {
 
 test('smelting ends before there are ingots to sell', () => {
   const { mind, session, terrain } = miner();
-  const found = options(mind, session, terrain, new Set(), [], [{ x: 400, y: 20, types: ['Blacksmith'] }]);
+  const found = options(seeing(mind, session), terrain, new Set(), [], [{ x: 400, y: 20, types: ['Blacksmith'] }]);
   expect(found.some((o) => o.id?.startsWith('smelt '))).toBe(true);
   expect(found.some((o) => o.steps.some((s) => s.verb === 'sell-to'))).toBe(false);
 });
@@ -154,6 +159,7 @@ test('a vendor known by location can be resolved as a person and checked through
     serial: 1,
     position: { x: 10, y: 10, z: 0 },
     entities: new Map<number, object>([
+      [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
       [20, { serial: 20, kind: 'mobile', position: { x: 11, y: 10, z: 0 } }],
       [11, { serial: 11, kind: 'item', parent: 2 }]
     ]),
@@ -218,8 +224,8 @@ test('selling uses only the ingots actually carried', () => {
     data: { serial: 13, kind: 'item', graphic: 0x1bf2, parent: 2, amount: 2, is: ['IronIngot'] }
   });
   session.world.entities.set(13, { serial: 13, kind: 'item', graphic: 0x1bf2, parent: 2, amount: 2 });
-  const trip = options(mind, session, terrain, new Set(), [], [{ x: 400, y: 20, types: ['Blacksmith'] }]).find((o) =>
-    o.steps.some((s) => s.verb === 'sell-to')
+  const trip = options(seeing(mind, session), terrain, new Set(), [], [{ x: 400, y: 20, types: ['Blacksmith'] }]).find(
+    (o) => o.steps.some((s) => s.verb === 'sell-to')
   );
   expect(trip?.foresight?.gained).toEqual({ Gold: 8 });
   expect(trip?.foresight?.lost).toEqual({ IronIngot: 2 });

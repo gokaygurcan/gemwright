@@ -1,6 +1,8 @@
 import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
 import { Layer } from '@gemwright/network/layers';
-import type { WorldView } from '@gemwright/network/world';
+
+import type { Mind } from './mind';
+import type { Screen } from './perceive';
 
 export interface Travel {
   steps: number;
@@ -12,15 +14,37 @@ export interface Locomotion {
   curiosity: number;
   observed: (key: string, steps: number, seconds: number, stamina: number) => void;
 }
-type Visible = Pick<WorldView, 'entities' | 'serial'> & Partial<Pick<WorldView, 'status'>>;
-export function motion(world: Visible, tiles: number, learned?: Locomotion) {
-  return movement(world, learned?.experience, learned?.curiosity)(tiles);
+// The body that moves: riding or not, flying or not, whether it has wings to choose with, and the
+// stamina it has to run on.
+export interface Body {
+  mounted: boolean;
+  flying: boolean;
+  winged: boolean;
+  stamina?: number;
 }
-export function movement(world: Visible, experience: Locomotion['experience'] = () => undefined, curiosity = 0) {
-  const mounted = [...world.entities.values()].some((e) => e.parent === world.serial && e.layer === Layer.Mount);
-  const self = world.entities.get(world.serial ?? -1);
-  const flying = !!((self?.flags ?? 0) & 4);
-  const wings = GARGOYLE_BODIES.has(self?.graphic ?? 0) ? [flying, !flying] : [flying];
+// Its body as it knows itself (mind.ts), for weighing journeys.
+export const bodyOf = (mind: Mind): Body => ({
+  mounted: mind.riding,
+  flying: mind.self.flying,
+  winged: GARGOYLE_BODIES.has(mind.self.body ?? 0),
+  stamina: mind.self.stamina?.current
+});
+// Its body as the screen shows it now (perceive.ts), for the hands that move it.
+export const bodyOnScreen = (screen: Screen): Body => {
+  const self = screen.entities.get(screen.serial ?? -1);
+  return {
+    mounted: [...screen.entities.values()].some((e) => e.parent === screen.serial && e.layer === Layer.Mount),
+    flying: !!((self?.flags ?? 0) & 4),
+    winged: GARGOYLE_BODIES.has(self?.graphic ?? 0),
+    stamina: screen.status?.stamina
+  };
+};
+export function motion(body: Body, tiles: number, learned?: Locomotion) {
+  return movement(body, learned?.experience, learned?.curiosity)(tiles);
+}
+export function movement(body: Body, experience: Locomotion['experience'] = () => undefined, curiosity = 0) {
+  const { mounted, flying } = body;
+  const wings = body.winged ? [flying, !flying] : [flying];
   return (tiles: number) =>
     wings
       .flatMap((flight) =>
@@ -30,7 +54,7 @@ export function movement(world: Visible, experience: Locomotion['experience'] = 
           const prior = (mounted ? 0.2 : 0.4) / (running ? 2 : 1);
           const seconds = (tiles * ((past?.seconds ?? 0) + prior)) / ((past?.steps ?? 0) + 1);
           const fatigue = (tiles * Math.max(0, past?.stamina ?? 0)) / ((past?.steps ?? 0) + 1);
-          const chance = fatigue ? Math.min(1, (world.status?.stamina ?? fatigue) / fatigue) : 1;
+          const chance = fatigue ? Math.min(1, (body.stamina ?? fatigue) / fatigue) : 1;
           return {
             key,
             running,

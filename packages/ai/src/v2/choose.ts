@@ -27,6 +27,8 @@ export const goods = (o: Outcome) =>
 // How much an attempt serves the life goal (stronger, richer, through its trade, without dying) for
 // this resident, in seconds of its own usual progress: gold over what it usually earns a second,
 // skill over what it usually gains a second, a death as all it carries, less the seconds it takes.
+// What an attempt brings is weighed at what the market was last seen to pay for it (`market`, the
+// wiki's prices until it has sold any); what it gives up keeps its worth, what replacing it costs.
 // Only the skills of its trade make it stronger; earnings from any activity can fund its trade.
 // Traits weight gold, skill and death. Without a trade, every skill and every coin counts.
 export function value(
@@ -34,11 +36,14 @@ export function value(
   traits: Traits,
   usual: { gold: number; skill: number },
   carried: number,
-  trade?: ReadonlySet<string>
+  trade?: ReadonlySet<string>,
+  market: (name: string) => number = worth
 ) {
   const taught = Object.entries(o.skills ?? {});
   const own = trade ? taught.filter(([skill]) => trade.has(skill)).reduce((sum, [, v]) => sum + v, 0) : o.skill;
-  const richer = goods(o) / usual.gold;
+  const gained = Object.entries(o.gained).reduce((sum, [name, n]) => sum + market(name) * n, 0);
+  const lost = Object.entries(o.lost).reduce((sum, [name, n]) => sum + worth(name) * n, 0);
+  const richer = (gained - lost) / usual.gold;
   const stronger = own / usual.skill;
   const dying = (o.died * carried) / usual.gold;
   return (1 + traits.greed) * richer + (1 + traits.diligence) * stronger - (2 - traits.boldness) * dying - o.seconds;

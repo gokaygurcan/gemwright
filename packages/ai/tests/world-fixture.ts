@@ -41,8 +41,13 @@ export function useTestWorld() {
     towns: places.towns as Town[],
     // Haven Island (Regions.xml NoHousingRegion) beside the towns.
     named: [
-      ...(places.towns as Town[]),
-      { name: 'Haven Island', rects: [{ x: 3314, y: 2345, width: 500, height: 750 }] }
+      ...(places.towns as Town[]).map((town) => ({ ...town, facet: 'Trammel', type: 'TownRegion' })),
+      {
+        facet: 'Trammel',
+        type: 'NoHousingRegion',
+        name: 'Haven Island',
+        rects: [{ x: 3314, y: 2345, width: 500, height: 750 }]
+      }
     ],
     decoration: places.decoration as Placement[],
     teleporters: places.teleporters as Link[]

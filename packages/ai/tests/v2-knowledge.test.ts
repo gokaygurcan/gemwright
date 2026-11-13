@@ -77,3 +77,36 @@ test('a hover tells what a piece weighs and how good it is', () => {
     weight: 1
   });
 });
+
+test('before its hover, an ingot is known by its colour (ServUO ResourceInfo hues)', () => {
+  expect(identify({ kind: 'item', graphic: 7154, hue: 0x966 })).toEqual(['ShadowIronIngot']);
+  expect(identify({ kind: 'item', graphic: 7154, hue: 0 })).toEqual(['IronIngot']);
+});
+
+test('a hover the shard did not answer is asked again', async () => {
+  const { hover } = await import('../src/v2/hover');
+  const { WorldView } = await import('@gemwright/network/world');
+  const world = new WorldView();
+  world.serial = 1;
+  world.put({ serial: 5, kind: 'item', graphic: 7154, parent: 1 });
+  let asks = 0;
+  let stop = false;
+  const session = {
+    world,
+    phase: 'ready',
+    inspectProperties: async () => {
+      if (++asks === 1) throw new Error('Timed out waiting for object properties');
+      stop = true;
+    }
+  } as never;
+  const mind = { belongings: () => new Map([[5, {}]]) } as never;
+  await hover(
+    session,
+    mind,
+    () => stop,
+    new Set(),
+    () => false,
+    1
+  );
+  expect(asks).toBe(2);
+});

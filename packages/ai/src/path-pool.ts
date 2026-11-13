@@ -23,6 +23,10 @@ export class PathPool {
   private static readonly pools = new Map<string, PathPool>();
   // The public road corridors (route-build.ts), handed to every path worker.
   private static corridors: Corridor[] = [];
+  // The roads as last handed out, for whoever reads the land (v2/roads.ts).
+  static roads(): readonly Corridor[] {
+    return PathPool.corridors;
+  }
   static useCorridors(corridors: Corridor[]) {
     PathPool.corridors = corridors;
     for (const pool of PathPool.pools.values()) for (const slot of pool.slots) slot.worker.postMessage({ corridors });
