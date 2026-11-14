@@ -35,7 +35,7 @@ export class WalkGraph {
   private readonly rank: Float64Array;
   private readonly position: Int32Array;
   // Each spot's steps, as asked: the land does not change. Emptied past a bound on its size.
-  private readonly known = new Map<number, Spot[]>();
+  private readonly known = new Map<number, number[]>();
   // Landmarks spread across the graph and the exact steps from each to every node and from every
   // node to each (all gates open, no variation): by the triangle inequality, a lower bound on the
   // steps between any two nodes that teleporters and gates cannot undercut.

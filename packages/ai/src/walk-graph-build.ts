@@ -84,14 +84,20 @@ export function steps(terrain: Ground, at: Spot, closed: ReadonlySet<number>): S
 }
 
 export const spotKey = (p: Spot) => (p.x * 4096 + p.y) * 512 + p.z + 256;
+const spotOf = (key: number): Spot => ({
+  x: Math.floor(key / 2_097_152),
+  y: Math.floor(key / 512) % 4096,
+  z: (key % 512) - 256
+});
 
 // Breadth-first steps from `source` without leaving its cell: every spot it reaches and how far.
-// `known` keeps each spot's steps for further walks in the same cell.
+// `known` keeps each spot's steps for further walks in the same cell, as their keys: one array of
+// numbers a spot, not an object a step, as it is kept for many thousands of spots.
 export function walkInCell(
   terrain: Ground,
   source: Spot,
   closed: ReadonlySet<number>,
-  known: Map<number, Spot[]> = new Map()
+  known: Map<number, number[]> = new Map()
 ) {
   const x0 = Math.floor(source.x / CELL) * CELL;
   const y0 = Math.floor(source.y / CELL) * CELL;
@@ -103,12 +109,13 @@ export function walkInCell(
     const away = far.get(here) ?? 0;
     let around = known.get(here);
     if (!around) {
-      around = [...steps(terrain, at, closed)];
+      around = steps(terrain, at, closed).map(spotKey);
       known.set(here, around);
     }
-    for (const next of around) {
-      const key = spotKey(next);
-      if (next.x < x0 || next.x >= x0 + CELL || next.y < y0 || next.y >= y0 + CELL || far.has(key)) continue;
+    for (const key of around) {
+      if (far.has(key)) continue;
+      const next = spotOf(key);
+      if (next.x < x0 || next.x >= x0 + CELL || next.y < y0 || next.y >= y0 + CELL) continue;
       far.set(key, away + 1);
       queue.push(next);
     }
@@ -234,7 +241,7 @@ export async function buildWalkGraph(
   const label = async (x0: number, y0: number) => {
     const column = piece.get(x0 / CELL) ?? new Map<number, number>();
     piece.set(x0 / CELL, column);
-    const known = new Map<number, Spot[]>();
+    const known = new Map<number, number[]>();
     const seen = new Set<number>();
     for (let y = Math.max(1, y0); y < Math.min(4094, y0 + CELL); y++)
       for (let x = Math.max(1, x0); x < Math.min(7166, x0 + CELL); x++) {
@@ -333,7 +340,7 @@ export async function buildWalkGraph(
   // any teleporter entrance a step beside the way.
   let walked = 0;
   for (const members of byCell.values()) {
-    const known = new Map<number, Spot[]>();
+    const known = new Map<number, number[]>();
     const keys = new Map(
       members.map((id) => [spotKey({ x: data.x[id] ?? 0, y: data.y[id] ?? 0, z: data.z[id] ?? 0 }), id])
     );
