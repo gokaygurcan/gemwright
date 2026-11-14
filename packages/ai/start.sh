@@ -12,6 +12,13 @@ if [ -e /app/data/restore/residents.sqlite ]; then
     mv /app/data/restore/residents.sqlite /app/data/residents.sqlite
     # The residents retired by hand travel with the database they belong to.
     if [ -e /app/data/restore/retired.json ]; then mv /app/data/restore/retired.json /app/data/retired.json; fi
+    # And their v2 minds' history, the replaced one kept beside it.
+    if [ -e /app/data/restore/history.sqlite ]; then
+        rm -f /app/data/history.sqlite.before-restore
+        if [ -e /app/data/history.sqlite ]; then mv /app/data/history.sqlite /app/data/history.sqlite.before-restore; fi
+        rm -f /app/data/history.sqlite-wal /app/data/history.sqlite-shm
+        mv /app/data/restore/history.sqlite /app/data/history.sqlite
+    fi
     rm -rf /app/data/restore
     echo 'Restored the resident database from a gemwright pull.'
 fi

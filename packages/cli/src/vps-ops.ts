@@ -39,7 +39,7 @@ export async function vpsRestore(
   directory = process.cwd(),
   progress = console.log
 ) {
-  const { source, saves, database, retired, want } = await restoreSelection(parts, directory);
+  const { source, saves, database, retired, history, want } = await restoreSelection(parts, directory);
   const restored = (['server', 'ai'] as const).filter((part) => want[part]);
   progress(`Restoring from ${source}:`);
   if (want.server)
@@ -65,7 +65,11 @@ export async function vpsRestore(
         await createArchive(
           archive,
           dirname(database),
-          ['residents.sqlite', ...(existsSync(retired) ? ['retired.json'] : [])],
+          [
+            'residents.sqlite',
+            ...(existsSync(retired) ? ['retired.json'] : []),
+            ...(existsSync(history) ? ['history.sqlite'] : [])
+          ],
           directory
         );
       await attachedCommand(

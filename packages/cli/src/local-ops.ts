@@ -131,6 +131,7 @@ export async function restoreSelection(parts: RestoreParts, directory: string) {
   const saves = join(source, 'server/Saves');
   const database = join(source, 'ai/residents.sqlite');
   const retired = join(source, 'ai/retired.json');
+  const history = join(source, 'ai/history.sqlite');
   const all = !parts.server && !parts.ai;
   const want = {
     server: (all || !!parts.server) && existsSync(join(saves, 'Mobiles')),
@@ -141,7 +142,7 @@ export async function restoreSelection(parts: RestoreParts, directory: string) {
   if (!want.server && !want.ai) throw new Error(`Nothing to restore in ${source}.`);
   if (want.server && (await loadShard(directory)).emulator !== 'servuo')
     throw new Error('Restoring world saves supports ServUO shards only.');
-  return { source, saves, database, retired, want };
+  return { source, saves, database, retired, history, want };
 }
 
 export async function localRestore(
@@ -151,7 +152,7 @@ export async function localRestore(
   progress = console.log
 ) {
   const { root, state } = await deployed(directory);
-  const { source, saves, database, retired, want } = await restoreSelection(parts, directory);
+  const { source, saves, database, retired, history, want } = await restoreSelection(parts, directory);
   if (want.server && !state.parts.includes('server')) throw new Error('No local server is deployed here.');
   if (want.ai && !state.parts.includes('ai')) throw new Error('No local AI residents are deployed here.');
   progress(`Restoring from ${source}:`);
@@ -184,7 +185,11 @@ export async function localRestore(
     ]);
   if (want.server) await stage('server', dirname(saves), ['Saves']);
   if (want.ai)
-    await stage('ai', dirname(database), ['residents.sqlite', ...(existsSync(retired) ? ['retired.json'] : [])]);
+    await stage('ai', dirname(database), [
+      'residents.sqlite',
+      ...(existsSync(retired) ? ['retired.json'] : []),
+      ...(existsSync(history) ? ['history.sqlite'] : [])
+    ]);
   const restart = [...(want.server ? ['server'] : []), ...(want.ai ? ['ai'] : [])];
   progress(`Restarting ${restart.join(' and ')}...`);
   await attachedCommand(['docker', 'compose', '-f', 'compose.json', 'restart', ...restart], root);

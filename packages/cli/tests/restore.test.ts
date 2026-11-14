@@ -67,3 +67,14 @@ test('a failed upload restarts nothing, and an unconfirmed restore never runs', 
   await expect(restore({}, directory, record)).rejects.toThrow('--yes');
   expect(calls).toEqual([]);
 });
+
+test("a pull's v2 history is restored with its resident database", async () => {
+  const { directory, pull } = await shardWithPull();
+  await writeFile(join(pull, 'ai/history.sqlite'), '');
+  const uploads: string[] = [];
+  await restore({ ai: true, yes: true }, directory, async (args) => {
+    if (args[0] !== 'restart') uploads.push(String(args.at(-3)));
+    return '{}';
+  });
+  expect(uploads).toEqual(['/restore/residents.sqlite', '/restore/history.sqlite']);
+});

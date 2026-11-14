@@ -99,6 +99,8 @@ export async function restore(
     await upload(ai.volume, database, '/restore/residents.sqlite');
     const retired = join(source, 'ai/retired.json');
     if (existsSync(retired)) await upload(ai.volume, retired, '/restore/retired.json');
+    const history = join(source, 'ai/history.sqlite');
+    if (existsSync(history)) await upload(ai.volume, history, '/restore/history.sqlite');
   }
   if (want.server) {
     progress('Restarting the shard...');
