@@ -102,9 +102,25 @@ export class WorldView {
     if (entity.serial === this.serial && entity.position) this.position = entity.position;
   }
 
+  // How many of its oldest lines the journal has let go.
+  private dropped = 0;
+
+  // How much it has heard all told: a mark that stays true after the journal drops its oldest lines.
+  get heard() {
+    return this.dropped + this.journal.length;
+  }
+
   addJournal(entry: Omit<JournalEntry, 'at'>): void {
     this.journal.push({ ...entry, at: new Date().toISOString() });
-    if (this.journal.length > 200) this.journal.shift();
+    if (this.journal.length > 200) {
+      this.journal.shift();
+      this.dropped++;
+    }
+  }
+
+  // What it heard after the mark `heard` was taken (those still kept).
+  journalSince(mark: number): JournalEntry[] {
+    return this.journal.slice(Math.max(0, mark - this.dropped));
   }
 
   containerEntry(packet: Buffer, offset: number): void {

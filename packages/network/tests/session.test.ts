@@ -146,3 +146,17 @@ test('a cursor left up for more than ten seconds is cancelled before the next us
   expect(world.target).toBeNull();
   expect(sent[0]?.[0]).toBe(0x6c);
 });
+
+test('a step asked for while another is in flight waits for its answer, as a client queues them', async () => {
+  const shard = await mockShard();
+  const session = new PlayerSession(shard.config);
+  try {
+    await session.connect(credentials, { slot: 0 });
+    const both = await Promise.all([session.walk(2), session.walk(2)]);
+    expect(both).toEqual([true, true]);
+    expect(session.world.position?.x).toBe(101);
+  } finally {
+    session.close();
+    await shard.close();
+  }
+});

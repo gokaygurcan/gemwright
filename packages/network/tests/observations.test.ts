@@ -154,3 +154,12 @@ test('a mobile animating is recorded, new style and old', () => {
   world.apply(old);
   expect(world.animations.get(8)).toMatchObject({ type: null, action: 5 });
 });
+
+test('what was heard since a moment stays findable after the journal has filled', () => {
+  const world = new WorldView();
+  for (let i = 0; i < 250; i++) world.addJournal({ serial: 0, name: 'System', text: `line ${i}` });
+  const mark = world.heard;
+  world.addJournal({ serial: 0, name: 'System', cliloc: 501988 });
+  expect(world.journalSince(mark).map((entry) => entry.cliloc)).toEqual([501988]);
+  expect(world.journal.length).toBe(200);
+});

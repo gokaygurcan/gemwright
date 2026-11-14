@@ -134,3 +134,51 @@ test('a ground drop goes to a tile no mobile stands on, as ServUO PlayerMobile.O
     session.close();
   }
 });
+test('part of a stack refused on one tile comes back merged under a new serial, and goes to the next tile', async () => {
+  const { session } = fixture();
+  const { world } = session;
+  world.entities.set(42, { serial: 42, kind: 'item', graphic: 0x19b9, parent: 10, amount: 33 });
+  const lifts: [number, number][] = [];
+  const drops: number[] = [];
+  try {
+    await dropAtFeet(
+      session,
+      (packet) => {
+        if (packet[0] === 7) {
+          // ServUO lifts the part and leaves the rest as a new item in the pack.
+          const serial = packet.readUInt32BE(1);
+          lifts.push([serial, packet.readUInt16BE(5)]);
+          world.entities.delete(serial);
+          world.entities.set(serial + 1, { serial: serial + 1, kind: 'item', graphic: 0x19b9, parent: 10, amount: 30 });
+          return;
+        }
+        if (packet[0] !== 0x08) return;
+        const serial = packet.readUInt32BE(1);
+        drops.push(serial);
+        if (drops.length === 1) {
+          // Refused: what was lifted merges back into the rest.
+          // ServUO sends no rejection: the rest grows back by what was lifted.
+          const rest = world.entities.get(serial + 1);
+          if (rest) rest.amount = 33;
+          return;
+        }
+        world.entities.set(serial, {
+          serial,
+          kind: 'item',
+          graphic: 0x19b9,
+          position: { x: 100, y: 101, z: 0 }
+        } as never);
+      },
+      42,
+      undefined,
+      3
+    );
+    expect(lifts).toEqual([
+      [42, 3],
+      [43, 3]
+    ]);
+    expect(drops).toEqual([42, 43]);
+  } finally {
+    session.close();
+  }
+});

@@ -42,15 +42,27 @@ export async function dropOnTile(
   session: PlayerSession,
   send: (packet: Buffer) => void,
   serial: number,
-  at: { x: number; y: number; z: number }
+  at: { x: number; y: number; z: number },
+  // Part of a stack: the rest stays where it was (ServUO lifts the part, leaving the rest as a new item).
+  amount?: number
 ) {
   const { world } = session;
   const item = world.entities.get(serial);
   if (item?.kind !== 'item') throw new Error('Drop requires an observed item');
-  if (await lift(session, send, serial, item.amount ?? 1, () => !world.entities.has(serial), 'item lift'))
+  const quantity = Math.min(amount ?? item.amount ?? 1, item.amount ?? 1);
+  if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Invalid drop amount');
+  if (await lift(session, send, serial, quantity, () => !world.entities.has(serial), 'item lift'))
     throw new Error('Item lift rejected');
   const rejected = world.received.get(0x27) ?? 0;
-  const refused = () => (world.received.get(0x27) ?? 0) > rejected;
+  // A refused part of a stack comes back merged into the rest, with no packet of its own: the rest
+  // grows again.
+  const rest = new Map(
+    [...world.entities.values()]
+      .filter((e) => e.kind === 'item' && e.parent === item.parent && e.graphic === item.graphic && e.hue === item.hue)
+      .map((e) => [e.serial, e.amount ?? 1])
+  );
+  const merged = () => [...rest].some(([other, before]) => (world.entities.get(other)?.amount ?? 0) > before);
+  const refused = () => (world.received.get(0x27) ?? 0) > rejected || merged();
   send(packets.dropGround(serial, at.x, at.y, at.z));
   try {
     await session.waitFor(
@@ -66,7 +78,8 @@ export async function dropOnTile(
     if (!(error instanceof WaitTimeout)) throw error;
   }
   // A drop the shard accepted is no longer observed at the feet: the item left the container it was
-  // lifted from, and refusals and returns arrive as packets of their own, so absence is acceptance.
+  // lifted from, and refusals and returns show as packets or as the rest growing back, so absence is
+  // acceptance.
   return !refused() && world.entities.get(serial)?.parent === undefined;
 }
 
@@ -77,7 +90,8 @@ export async function dropAtFeet(
   session: PlayerSession,
   send: (packet: Buffer) => void,
   serial: number,
-  offset?: { x: number; y: number }
+  offset?: { x: number; y: number },
+  amount?: number
 ) {
   const { world } = session;
   const here = world.position;
@@ -98,11 +112,30 @@ export async function dropAtFeet(
         [-1, -1],
         [1, -1]
       ].map(([x = 0, y = 0]) => ({ x, y }));
+  // A refused drop comes back to where it was lifted from, and a part of a stack merges back into
+  // the rest under a new serial: the next tile is tried with what came back.
+  const lifted = world.entities.get(serial);
+  const back = (gone: number) =>
+    world.entities.has(gone)
+      ? gone
+      : [...world.entities.values()].find(
+          (e) =>
+            e.kind === 'item' && e.parent === lifted?.parent && e.graphic === lifted?.graphic && e.hue === lifted?.hue
+        )?.serial;
+  let current: number | undefined = serial;
   for (const tile of tiles) {
     const x = here.x + tile.x;
     const y = here.y + tile.y;
     if (!offset && occupied(x, y)) continue;
-    if (await dropOnTile(session, send, serial, { x, y, z: here.z })) return;
+    if (current === undefined) break;
+    if (await dropOnTile(session, send, current, { x, y, z: here.z }, amount)) return;
+    const refused = current;
+    await session
+      .waitFor(() => back(refused) !== undefined, 'returned drop', 2000, { interruptible: false, deadline: 'timeout' })
+      .catch((error) => {
+        if (!(error instanceof WaitTimeout)) throw error;
+      });
+    current = back(refused);
   }
   throw new CommandRejected('item-drop-rejected', 'Ground drop refused; item returned to its owner');
 }

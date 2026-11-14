@@ -276,9 +276,23 @@ export class PlayerSession {
     if (check) this.execution.check();
   }
 
+  // One step at a time, as a client queues them: a step asked for while another is in flight
+  // waits for that one's answer.
   async walk(direction: number, expectedZ?: number, running = false): Promise<boolean> {
+    while (this.stepping) await this.stepping.catch(() => undefined);
+    const step = this.step(direction, expectedZ, running);
+    this.stepping = step;
+    try {
+      return await step;
+    } finally {
+      if (this.stepping === step) this.stepping = undefined;
+    }
+  }
+
+  private stepping?: Promise<boolean>;
+
+  private async step(direction: number, expectedZ?: number, running = false): Promise<boolean> {
     this.requireReady();
-    if (this.movement) throw new Error('A movement request is already pending');
     if (!this.world.position) throw new Error('Character position is unknown');
     const pending = {
       sequence: this.sequence,
@@ -459,10 +473,10 @@ export class PlayerSession {
     await giveToMobile(this, (packet) => this.send(packet), serial, mobile, amount);
   }
 
-  // Drops an item at the character's feet (an unwanted death robe).
-  async dropAtFeet(serial: number, offset?: { x: number; y: number }): Promise<void> {
+  // Drops an item at the character's feet (an unwanted death robe), or part of a stack.
+  async dropAtFeet(serial: number, offset?: { x: number; y: number }, amount?: number): Promise<void> {
     this.requireReady();
-    await dropAtFeet(this, (packet) => this.send(packet), serial, offset);
+    await dropAtFeet(this, (packet) => this.send(packet), serial, offset, amount);
   }
 
   async equipItem(serial: number, layer: number): Promise<void> {
