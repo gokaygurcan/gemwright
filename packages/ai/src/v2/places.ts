@@ -38,6 +38,8 @@ export class Places {
     for (const { serial, ended, ...fact } of past.left as (Fact & { serial: number; ended: boolean })[])
       if (ended) this.facts.delete(serial);
       else this.facts.set(serial, { ...fact, since: fact.last, watching: false });
+    // What it no longer believes from all it ever walked away from is not carried into this life.
+    for (const _ of this.remembered());
   }
 
   observe(event: HistoryEvent) {
@@ -109,14 +111,20 @@ export class Places {
   }
 
   // What it saw and no longer sees, still believed where it was: each thing out of sight for less
-  // than its kind is seen to stay.
+  // than its kind is seen to stay. One out of sight for longer is no longer believed, and forgotten.
   *remembered(now = Date.now()) {
     for (const [serial, fact] of this.facts) {
       if (fact.watching) continue;
-      const kind = this.kinds.get(fact.name);
-      const lifetime = kind ? kind.watched / (kind.endings + 1) : 0;
-      if ((now - fact.last) / 1000 < lifetime) yield { serial, name: fact.name, x: fact.x, y: fact.y, last: fact.last };
+      if ((now - fact.last) / 1000 < this.lifetime(fact.name))
+        yield { serial, name: fact.name, x: fact.x, y: fact.y, last: fact.last };
+      else this.facts.delete(serial);
     }
+  }
+
+  // How long a kind of thing is seen to stay: its watched time over its witnessed endings.
+  private lifetime(name: string) {
+    const kind = this.kinds.get(name);
+    return kind ? kind.watched / (kind.endings + 1) : 0;
   }
 
   // Where it believes things of a type are, and how sure it is that each is still there: certain
@@ -125,8 +133,7 @@ export class Places {
     return [...this.facts.values()]
       .filter((fact) => fact.name.split('/').includes(type))
       .map((fact) => {
-        const kind = this.kinds.get(fact.name);
-        const lifetime = kind ? kind.watched / (kind.endings + 1) : 0;
+        const lifetime = this.lifetime(fact.name);
         const confidence = fact.watching ? 1 : lifetime ? Math.exp(-(now - fact.last) / 1000 / lifetime) : 0;
         return { name: fact.name, x: fact.x, y: fact.y, map: fact.map, confidence, lifetime };
       });

@@ -30,3 +30,27 @@ test('a kind lifetime counts endings it witnessed, not things it walked away fro
     WoodenChair: { watched: 30, endings: 0 }
   });
 });
+
+// A thing out of sight for longer than its kind is seen to stay is no longer believed there, so it is
+// forgotten: a long life of walking away from things must not be carried, and walked through, forever.
+test('what is past its kind lifetime is forgotten, at wake and later', () => {
+  const now = Date.now();
+  const left = (serial: number, name: string, secondsAgo: number) => ({
+    serial,
+    name,
+    x: serial,
+    y: 0,
+    map: 1,
+    last: now - secondsAgo * 1000,
+    ended: false
+  });
+  const places = new Places('r', () => {}, {
+    // Rats stay about 10 seconds, chairs about 1000.
+    lifetimes: [{ Rat: { watched: 10, endings: 0 }, WoodenChair: { watched: 1000, endings: 0 } }],
+    left: [left(1, 'Rat', 60), left(2, 'WoodenChair', 60), left(3, 'WoodenChair', 5000)]
+  });
+  expect(places.believed('Rat')).toEqual([]);
+  expect(places.believed('WoodenChair').map((f) => f.x)).toEqual([2]);
+  expect([...places.remembered(now + 2000 * 1000)]).toEqual([]);
+  expect(places.believed('WoodenChair')).toEqual([]);
+});
