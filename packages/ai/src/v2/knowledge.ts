@@ -22,7 +22,8 @@ import {
   isA,
   npcTypes,
   sells,
-  smithingForges
+  smithingForges,
+  titled
 } from '@gemwright/common/game/rules';
 
 import { baselineTraits } from '../perception-reference';
@@ -41,7 +42,10 @@ export function identify(entity: {
 }): string[] {
   if (entity.kind === 'mobile') {
     const reference = baselineTraits(entity.graphic, entity.name).value;
-    return reference.humanLike ? ['Person'] : reference.candidates.map((c) => c.type);
+    if (!reference.humanLike) return reference.candidates.map((c) => c.type);
+    // A townsperson's title, after its name in its hover (ServUO 1050045: prefix, name, suffix).
+    const shown = entity.properties?.find((p) => p.cliloc === 1050045)?.arguments.split('\t')[2];
+    return [...(shown ? titled(shown) : []), 'Person'];
   }
   if (isDeathRobe(entity)) return ['DeathRobe'];
   if (doors.has(entity.graphic)) return ['Door'];
@@ -98,6 +102,9 @@ let stocks: [string, ReadonlySet<number>][] | undefined;
 // What kind of vendor offers this stock: the vendor types whose lists match what it shows best
 // (shared goods over all goods of either),
 // as a player tells a weaponsmith from a baker by the goods on the counter.
+// The trades a person in view is known by (from its title), without the person it also is.
+export const trades = (name: string | undefined) => (name ?? '').split('/').filter((type) => type && type !== 'Person');
+
 export function identifyVendor(graphics: readonly number[]): string[] {
   stocks ??= npcTypes
     .map((type) => [type, new Set(sells(type).map((item) => item.graphic))] as [string, ReadonlySet<number>])

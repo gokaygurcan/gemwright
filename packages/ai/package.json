@@ -18,7 +18,7 @@
   "scripts": {
     "start": "bun dist/serve.js",
     "dev": "bun --watch src/serve.ts",
-    "build": "rm -rf dist && bun build src/index.ts src/serve.ts src/v1/report.ts src/v1/progress-report.ts src/load-test.ts src/v1/persistence-worker.ts src/v1/life-journal-worker.ts src/path-worker.ts src/v2/history-cli.ts --root src --outdir dist --target bun && cp ../../LICENSE ."
+    "build": "rm -rf dist && bun build src/index.ts src/serve.ts src/v1/report.ts src/v1/progress-report.ts src/load-test.ts src/v1/persistence-worker.ts src/v1/life-journal-worker.ts src/path-worker.ts src/v2/history-cli.ts src/v2/simulate-cli.ts --root src --outdir dist --target bun && cp ../../LICENSE ."
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "1.8.0",

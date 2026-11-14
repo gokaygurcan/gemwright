@@ -23,7 +23,8 @@ export function equipmentToKeep(mind: Mind, terrain?: Terrain, bank = false) {
       graphic === undefined ||
       (!(bank && mind.banked(serial)) && !mind.carrying(serial)) ||
       item.name === 'DeathRobe' ||
-      mind.deathRobe(serial)
+      mind.deathRobe(serial) ||
+      !mind.wears(serial)
     )
       continue;
     const skill = weaponSkill(item.name);

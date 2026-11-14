@@ -34,17 +34,18 @@ export type Step =
   | { verb: 'claim' }
   | { verb: 'clear-bank'; serial: number }
   | { verb: 'practice'; skill: string; serial?: number; ground?: boolean; delay: number; spell?: number }
-  | { verb: 'walk'; x: number; y: number; range: number; running?: boolean; flying?: boolean }
-  | { verb: 'seek'; kind: string; x: number; y: number; range: number }
+  // `trying`: walked whatever its memory says of the way (a ghost, whom nothing can harm, always tries).
+  | { verb: 'walk'; x: number; y: number; range: number; running?: boolean; flying?: boolean; trying?: boolean }
+  | { verb: 'seek'; kind: string; x: number; y: number; z?: number; range: number }
   | { verb: 'use'; serial: number; gump?: number }
   | { verb: 'equip'; serial: number; layer: number }
   | { verb: 'stow'; serial: number }
   | { verb: 'inspect'; serial: number }
-  | { verb: 'drop'; serial: number }
+  | { verb: 'drop'; serial: number; amount?: number }
   | { verb: 'dismount' }
   | { verb: 'war'; enabled: boolean }
   | { verb: 'target'; serial?: number; x?: number; y?: number; z?: number; graphic?: number }
-  | { verb: 'fight'; serial: number }
+  | { verb: 'fight'; serial: number; back?: boolean }
   | { verb: 'say'; text: string }
   | { verb: 'balance' }
   | { verb: 'deposit'; items: number[]; amounts?: Record<number, number> }
@@ -54,9 +55,9 @@ export type Step =
   | { verb: 'craft'; skill: string; tools: number[]; group: number; label: number; spell?: number }
   | { verb: 'sell'; vendor: number; items: number[] }
   | { verb: 'sell-to'; x: number; y: number; range?: number; types: string[]; names: string[]; except?: number[] }
-  | { verb: 'gump-response'; serial: number; gump: number; button: number }
+  | { verb: 'gump-response'; gump: number; button: number }
   | { verb: 'rest'; seconds: number }
-  | { verb: 'escape' }
+  | { verb: 'escape'; to?: { x: number; y: number } }
   | { verb: 'tame'; serial: number }
   | { verb: 'treat'; treatment: Treatment };
 
@@ -358,9 +359,7 @@ function interactions(
     const rootKey = mind.root(name);
     const root = rootKey === undefined ? undefined : mind.menu(rootKey);
     if (rootKey === undefined || !root) return false;
-    const reached: { key: string; via: { serial: number; gump: number; button: number }[] }[] = [
-      { key: rootKey, via: [] }
-    ];
+    const reached: { key: string; via: { gump: number; button: number }[] }[] = [{ key: rootKey, via: [] }];
     for (const node of reached) {
       const menu = mind.menu(node.key);
       if (!menu) continue;
@@ -379,7 +378,7 @@ function interactions(
             ...before,
             { verb: 'use', serial, gump: root.gump },
             ...node.via.map((step) => ({ verb: 'gump-response' as const, ...step })),
-            { verb: 'gump-response', serial: menu.serial, gump: menu.gump, button }
+            { verb: 'gump-response', gump: menu.gump, button }
           ],
           ...(mind.knows(key) ? {} : { value: mind.temper.curiosity, seconds: 1 })
         });
@@ -388,7 +387,7 @@ function interactions(
       for (const button of menu.buttons) {
         const child = mind.through(node.key, button);
         if (child === undefined || reached.some((seen) => seen.key === child) || !mind.menu(child)) continue;
-        reached.push({ key: child, via: [...node.via, { serial: menu.serial, gump: menu.gump, button }] });
+        reached.push({ key: child, via: [...node.via, { gump: menu.gump, button }] });
       }
     }
     return true;

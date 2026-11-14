@@ -5,7 +5,7 @@ import type { Terrain } from '../terrain';
 import { BANKER_SPEECH_RANGE } from '../v1/bank-gold';
 import { droppable } from './burden';
 import { equipmentToKeep } from './inventory';
-import { foreseeHarvest, harvestBy, isKeepsake, tools } from './knowledge';
+import { foreseeHarvest, harvestBy, isKeepsake, tools, trades } from './knowledge';
 import type { Mind } from './mind';
 import type { Option, Step } from './options';
 import type { Steps } from './ventures';
@@ -32,7 +32,7 @@ export function tooling(
   if (!here || owned) return [];
   const inView = [...mind.sights()]
     .filter((e) => e.kind === 'mobile' && e.position)
-    .map((e) => ({ x: e.position?.x ?? 0, y: e.position?.y ?? 0, types: (mind.call(e.serial) ?? '').split('/') }));
+    .map((e) => ({ x: e.position?.x ?? 0, y: e.position?.y ?? 0, types: trades(mind.call(e.serial)) }));
   const found: Option[] = [];
   // Worth what its uses would bring at what one use is expected to bring.
   const worthOf = (tool: string) => {

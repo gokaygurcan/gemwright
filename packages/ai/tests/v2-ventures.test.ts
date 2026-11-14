@@ -38,19 +38,19 @@ test('ventures go where something can be done again, at its walking pace along t
   ventures.remember('pick-up PlateChest > drop my Backpack', at(30));
   expect([...ventures.ahead(at(0), new Set(), () => true, along)]).toEqual([
     { key: 'double-click my FishingPole > target tile6042', where: at(20), walk: 10, chance: 1 },
-    { key: 'attack Mongbat', where: { x: 100, y: 0, z: 0, map: 1 }, walk: 50, chance: 2 / 3 },
-    { key: 'attack Mongbat', where: at(40), walk: 20, chance: 1 / 2 }
+    { key: 'attack Mongbat', where: { x: 100, y: 0, z: 0, map: 1 }, walk: 50, chance: 1 },
+    { key: 'attack Mongbat', where: at(40), walk: 20, chance: 1 }
   ]);
 });
 
-// A spawner it has never come within sight of is somewhere the shard says something may be: it goes
-// on that word, at the odds of a place nothing is yet known about, half.
+// A spawner it has never come within sight of is somewhere the shard says something is: it goes on
+// that word, at the odds the spawner's own counts give (one kind, always there when full).
 test("a spawner never seen is somewhere to go, on the shard's word", () => {
   const ventures = new Ventures([spawner(100, ['mongbat']), spawner(300, ['mongbat'])]);
   pass(ventures, 100, 0, 'Mongbat');
   expect([...ventures.ahead(at(0), new Set(), () => true, along)].map((v) => [v.where.x, v.chance])).toEqual([
-    [100, 2 / 3],
-    [300, 1 / 2]
+    [100, 1],
+    [300, 1]
   ]);
 });
 
@@ -77,7 +77,7 @@ test('a spawner is trusted as far as walking past it has borne out', () => {
   const chances = Object.fromEntries(
     [...ventures.ahead(at(600), new Set(), () => true, along)].map((v) => [v.key, v.chance])
   );
-  expect(chances).toEqual({ 'attack Mongbat': 2 / 3, 'attack Ettin': 1 / 3 });
+  expect(chances).toEqual({ 'attack Mongbat': 1, 'attack Ettin': 2 / 3 });
 });
 
 // Seen empty, a spawner fills again over its own delay (here 5 to 15 minutes, 10 on average): just
@@ -90,7 +90,7 @@ test('a spawner seen empty fills again over its spawn delay', () => {
     ventures.walk(now, at(400));
     return [...ventures.ahead(at(400), new Set(), () => true, along)][0]?.chance ?? 0;
   };
-  const trusted = 1 / 3;
+  const trusted = 2 / 3;
   // Left at 3 seconds; 300 steps at 2.5 a second is two minutes on the way.
   expect(chance(10_000)).toBeCloseTo((trusted * (10_000 + 120_000 - 3000)) / 600_000, 5);
   expect(chance(183_000)).toBeCloseTo(trusted * 0.5, 5);
@@ -102,7 +102,7 @@ test('a person seen at a spawner of people is a find', () => {
   const ventures = new Ventures([spawner(100, ['naturalist'])]);
   pass(ventures, 100, 0, 'Person');
   expect([...ventures.ahead(at(400), new Set(), () => true, along)].map((v) => [v.key, v.chance])).toEqual([
-    ['attack Naturalist', 2 / 3]
+    ['attack Naturalist', 1]
   ]);
 });
 
@@ -111,7 +111,7 @@ test('each visit to a spawner is told with what it found', () => {
   const visits: object[] = [];
   const ventures = new Ventures([spawner(100, ['mongbat'])], (visit) => visits.push(visit));
   pass(ventures, 100, 0, 'Mongbat');
-  expect(visits).toEqual([{ x: 100, y: 0, kinds: ['Mongbat'], found: true }]);
+  expect(visits).toEqual([{ x: 100, y: 0, kinds: ['Mongbat'], found: ['Mongbat'] }]);
 });
 
 // Standing by a mongbat spawn and seeing none, there is no going there: only to the one further off.
@@ -147,4 +147,59 @@ test('a place outside where it may go is never measured', () => {
   const within = (p: { x: number }) => p.x < 200;
   expect([...ventures.ahead(at(0), new Set(), () => true, counting, within)].map((v) => v.where.x)).toEqual([100]);
   expect(measured).toEqual([100]);
+});
+
+// A spawner of many kinds says how many of each it keeps (ServUO XmlSpawner MX, out of MaxCount): one
+// mongbat place among cows and birds is not a mongbat place, and seeing a cow there is no mongbat.
+test('each kind of a mixed spawner is weighed by its own share of the spawns and its own finds', () => {
+  const mixed: Spawner = {
+    ...spawner(100, ['mongbat', 'bull', 'bird']),
+    max: 4,
+    mx: { mongbat: 1, bull: 4, bird: 5 }
+  };
+  const ventures = new Ventures([mixed]);
+  const chances = () =>
+    Object.fromEntries([...ventures.ahead(at(400), new Set(), () => true, along)].map((v) => [v.key, v.chance]));
+  // At least one of four spawns a mongbat when one in ten is: 1 - 0.9^4.
+  const mongbat = 1 - 0.9 ** 4;
+  expect(chances()['attack Mongbat']).toBeCloseTo(mongbat, 5);
+  pass(ventures, 100, 0, 'Bull');
+  // Passing it and seeing a bull and no mongbat: likelier bulls, less likely mongbats.
+  expect(chances()['attack Mongbat']).toBeLessThan(mongbat);
+  expect(chances()['attack Bull']).toBeGreaterThan(1 - 0.6 ** 4);
+});
+
+// One spawn each delay, of a kind as often as its share: a kind seen gone comes back over its own
+// share of the spawns, not over one delay.
+test('a kind seen gone comes back at the pace the spawner makes that kind', () => {
+  const mixed: Spawner = { ...spawner(100, ['mongbat', 'bird'], [10, 10]), max: 1, mx: { mongbat: 1, bird: 9 } };
+  const ventures = new Ventures([mixed]);
+  pass(ventures, 100, 0, 'Bird');
+  const chance = (now: number) => {
+    ventures.walk(now, at(400));
+    return (
+      [...ventures.ahead(at(400), new Set(), () => true, along)].find((v) => v.key === 'attack Mongbat')?.chance ?? 0
+    );
+  };
+  // A mongbat is one spawn in ten, each ten minutes apart: a hundred minutes to come back.
+  const later = chance(3000 + 50 * 60_000 - 120_000);
+  const full = chance(3000 + 200 * 60_000);
+  expect(later).toBeCloseTo(full / 2, 2);
+});
+
+// What its hands learned they cannot walk to from here, its deliberation never offers: a way that
+// failed stays failed until the time it was given runs out.
+test('a place its walks failed to reach is not somewhere to go until that failure has run out', async () => {
+  const { Mind } = await import('../src/v2/mind');
+  const { traitsOf } = await import('../src/v2/traits');
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits, [
+    spawner(100, ['mongbat']),
+    spawner(300, ['mongbat'])
+  ]);
+  mind.steps = along;
+  mind.observe({ resident: 'r', at: 0, kind: 'acted', data: { verb: 'walk' }, where: at(0) });
+  const places = () => [...mind.journeys()].map((journey) => journey.where.x);
+  expect(places().sort()).toEqual([100, 300]);
+  mind.notice('route-failed', { from: at(0), goal: { x: 100, y: 0, z: 0 }, until: Date.now() + 60_000 });
+  expect(places()).toEqual([300]);
 });

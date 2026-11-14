@@ -17,13 +17,14 @@ const away = (a: { x: number; y: number }, b: { x: number; y: number }) =>
 
 export type Shrine = { kind: 'healer' | 'ankh'; x: number; y: number };
 
-// Dead, as a player is: a ghost fears nothing, and its one aim is to live again. Whatever
+// Dead, as a player is: a ghost fears nothing, and its one aim is to live again. Nothing can harm
+// it, so it always tries the way, whatever its memory says of it. Whatever
 // resurrection is offered is taken. Otherwise it goes straight to the nearest healer or ankh by the
 // way there (one in view, or one the shard places that has not lately failed it). A healer offers
 // when a ghost steps within two tiles of it from farther off, at most every two seconds (ServUO
 // BaseHealer.OnMovement): it walks into that reach, and if no offer comes, out and in again. An ankh
 // offers when it is used from within two tiles (Ankhs.Resurrect). A place is given up only after it
-// failed three times.
+// failed three times, and then only for the next one in turn.
 export async function rebirth(
   session: PlayerSession,
   hands: Hands,
@@ -32,7 +33,7 @@ export async function rebirth(
   tried: Map<string, number>,
   stopping: () => boolean,
   steps?: Steps
-) {
+): Promise<string | undefined> {
   const world = screenOf(session);
   const offer = () => [...world.gumps.values()].find((gump) => gump.layout.includes(offered));
   const accept = async () => {
@@ -48,7 +49,11 @@ export async function rebirth(
   };
   if (await accept()) return;
   const here = world.position;
-  if (!here) return void (await Bun.sleep(2000));
+  // Not knowing where it stands, it asks the shard, as a client resyncs.
+  if (!here) {
+    await session.resyncPosition();
+    return 'not knowing where it stands';
+  }
   const going = () => !stopping() && !offer();
   const healers = () =>
     [...world.entities.values()].filter(
@@ -61,15 +66,30 @@ export async function rebirth(
     );
   const now = Date.now();
   const inView = healers().map((e) => ({ kind: 'healer' as const, x: e.position?.x ?? 0, y: e.position?.y ?? 0 }));
-  const place = byWay(steps, here, world.map, [
-    ...inView,
-    ...shrines.filter((s) => (tried.get(`${s.x},${s.y}`) ?? 0) < now)
-  ])[0];
-  if (!place) return void (await Bun.sleep(5000));
+  // Every healer and ankh is always somewhere to go: the one it tried least lately first, and among
+  // those the nearest by the way there, then the nearest as the crow flies. Nothing is ever ruled out.
+  const all = [...inView, ...shrines];
+  const walked = byWay(steps, here, world.map, all);
+  const place = [...walked, ...byWay(undefined, here, world.map, all).filter((p) => !walked.includes(p))].sort(
+    (a, b) => (tried.get(`${a.x},${a.y}`) ?? 0) - (tried.get(`${b.x},${b.y}`) ?? 0)
+  )[0];
+  // Knowing of none at all, it searches: out a screen's walk in turn each way until one is in view.
+  if (!place) {
+    const [dx, dy] = (
+      [
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [0, -1]
+      ] as const
+    )[Math.floor(now / 60_000) % 4] ?? [1, 0];
+    await hands.do({ verb: 'walk', trying: true, x: here.x + dx * 18, y: here.y + dy * 18, range: 2 }, going);
+    return 'no healer or ankh known anywhere: searching';
+  }
   const key = `${place.x},${place.y}`;
   for (let attempt = 0; attempt < 3 && going(); attempt++) {
     if (place.kind === 'ankh') {
-      await hands.do({ verb: 'walk', x: place.x, y: place.y, range: 1 }, going);
+      await hands.do({ verb: 'walk', trying: true, x: place.x, y: place.y, range: 1 }, going);
       if (!offer()) {
         const ankh = [...world.entities.values()].find(
           (e) => ankhGraphics.has(e.graphic) && e.position && away(e.position, place) <= 2
@@ -81,7 +101,8 @@ export async function rebirth(
     }
     // To where the healer keeps, until one is in sight.
     const near = () => healers().find((e) => e.position && away(e.position, place) <= 12);
-    if (!near()) await hands.do({ verb: 'walk', x: place.x, y: place.y, range: 2 }, () => going() && !near());
+    if (!near())
+      await hands.do({ verb: 'walk', trying: true, x: place.x, y: place.y, range: 2 }, () => going() && !near());
     const healer = near() ?? healers()[0];
     const at = healer?.position;
     if (!healer || !at) {
@@ -93,10 +114,12 @@ export async function rebirth(
     if (away(me, at) <= 2) {
       const dx = Math.sign(me.x - at.x) || 1;
       const dy = Math.sign(me.y - at.y);
-      await hands.do({ verb: 'walk', x: at.x + dx * 4, y: at.y + dy * 4, range: 0 }, going);
+      await hands.do({ verb: 'walk', trying: true, x: at.x + dx * 4, y: at.y + dy * 4, range: 0 }, going);
     }
-    await hands.do({ verb: 'walk', x: at.x, y: at.y, range: 1 }, going);
+    await hands.do({ verb: 'walk', trying: true, x: at.x, y: at.y, range: 1 }, going);
     if (await answered(3000)) return;
   }
-  if (!(await accept())) tried.set(key, Date.now() + 10 * 60_000);
+  if (await accept()) return;
+  tried.set(key, Date.now());
+  return `no resurrection at the ${place.kind} at ${key} yet; trying the next`;
 }

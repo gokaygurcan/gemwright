@@ -200,3 +200,35 @@ test('what it knows is written down when it changes, and said over its head when
   expect(said.some((text) => text.startsWith('can tame '))).toBe(true);
   expect(written[2]?.data.tames).toContain('Horse');
 });
+
+test('a thing that never answers its hover (its own hair) does not hold up the rest of its things', async () => {
+  const world = new WorldView();
+  world.apply(loginConfirm(1, 10, 10, 0, 2));
+  world.apply(mobileIncoming(1, 400, 10, 10, 0, 2, [{ serial: 2, graphic: 3701, layer: Layer.Backpack }]));
+  world.apply(itemInContainer(20, 6585, 14, 2));
+  const mind = new Mind('r', () => {}, traits);
+  const asked: number[] = [];
+  const session = {
+    world,
+    phase: 'ready',
+    inspectProperties: async (serial: number) => {
+      asked.push(serial);
+      const item = world.entities.get(serial);
+      // The pack answers nothing, as hair does not.
+      if (serial === 2) throw new Error('Timed out waiting for object properties');
+      if (item) world.put({ ...item, properties: [{ cliloc: 1072789, arguments: '168' }] });
+    }
+  } as unknown as PlayerSession;
+  const stop = perceive(session, 'r', (e) => mind.observe(e));
+  let turns = 0;
+  await hover(
+    session,
+    mind,
+    () => ++turns > 3,
+    new Set(),
+    () => false,
+    1
+  );
+  stop();
+  expect(asked.slice(0, 2).sort()).toEqual([2, 20]);
+});

@@ -83,7 +83,7 @@ test('a carried tool is tried once, and the menu it answers with becomes the int
       expect(option).toBeDefined();
       expect(option?.steps).toEqual([
         { verb: 'use', serial: tool.serial, gump: tool.gump },
-        { verb: 'gump-response', serial: tool.serial, gump: tool.gump, button }
+        { verb: 'gump-response', gump: tool.gump, button }
       ]);
     }
     expect(found.some((entry) => entry.key === `double-click my ${tool.name}`)).toBe(false);

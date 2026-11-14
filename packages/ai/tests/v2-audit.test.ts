@@ -14,7 +14,7 @@ test('history retains repeated decisions, selected plans and measurable progress
   world.serial = 1;
   world.position = { x: 100, y: 100, z: 0, direction: 0 };
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
-  const session = { world, phase: 'ready', refreshSkills: async () => {} } as unknown as PlayerSession;
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
   const source = { key: 'work', steps: [{ verb: 'say' as const, text: 'work' }] };
   const plan = { ...source, source, id: 'work', value: 10, rate: 5, seconds: 2 };
   const choose = spyOn(planning, 'liveChoices').mockResolvedValue([plan]);
@@ -54,7 +54,7 @@ test('an interrupted plan records the better opportunity and the patience compar
   const world = new WorldView();
   world.serial = 1;
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
-  const session = { world, phase: 'ready', refreshSkills: async () => {} } as unknown as PlayerSession;
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
   const source = { key: 'work', steps: [{ verb: 'say' as const, text: 'work' }] };
   const current = { ...source, source, id: 'work', value: 10, rate: 5, seconds: 2 };
   const other = { ...current, id: 'other', key: 'better work', rate: 100 };
@@ -103,7 +103,7 @@ test('a plan broken off for another is not taken back while that one lasts', asy
   const world = new WorldView();
   world.serial = 1;
   const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
-  const session = { world, phase: 'ready', refreshSkills: async () => {} } as unknown as PlayerSession;
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
   const plan = (id: string, rate: number) => {
     const source = { key: id, steps: [{ verb: 'say' as const, text: id }] };
     return { ...source, source, id, value: 10, rate, seconds: 2 };

@@ -6,8 +6,9 @@ import { logger } from '../log';
 import type { Terrain } from '../terrain';
 import { journey } from './atlas';
 import { byWay } from './banking';
+import { shedding } from './burden';
 import { dress, shed } from './dress';
-import { Encounter } from './encounter';
+import { type Answer, Encounter } from './encounter';
 import { keepStatLocks } from './growth';
 import { Hands } from './hands';
 import { hover } from './hover';
@@ -15,7 +16,7 @@ import { LoopBreaker, planBudget } from './loop-breaker';
 import type { Mind } from './mind';
 import { describe, Narrator } from './narrate';
 import { screenOf } from './perceive';
-import { advance, liveChoices, type Places, stance } from './planning';
+import { advance, digest, liveChoices, type Places, stance, weighed } from './planning';
 import { reachOver } from './reach';
 import { rebirth, type Shrine } from './rebirth';
 import { shower } from './show';
@@ -41,12 +42,16 @@ export async function live(
     forges?: Places['forges'];
   },
   stopping: () => boolean,
-  record: (kind: string, data: object) => void
+  record: (kind: string, data: object, via?: 'noticed') => void,
+  // The id of the newest event in its history: where each decision's trace begins.
+  mark: () => number = () => 0
 ) {
   const screen = screenOf(session);
-  const narrator = new Narrator(session);
+  const narrator = new Narrator(session, record);
   const encounter = new Encounter(session, mind, terrain, () => stopping() || narrator.listen());
   mind.encounter = encounter;
+  // The banks stand in guarded towns: where it runs when running costs less than fighting.
+  encounter.havens = places.bankers;
   const hands = new Hands(
     session,
     terrain,
@@ -59,13 +64,15 @@ export async function live(
   );
   hands.canReach = (goal) => mind.reachable(goal);
   hands.notice = (kind, data) => mind.notice(kind, data);
-  hands.blocked = (from, goal) => {
+  // A way the land closes stays closed for hours; one only the creatures about close, for the minute
+  // they take to move on.
+  hands.blocked = (from, goal, hemmed) => {
     mind.notice('route-failed', {
       from,
       goal,
-      until: Date.now() + (encounter.needsEscape() ? 10 * 60_000 : 2 * 3_600_000)
+      until: Date.now() + (hemmed ? 60_000 : encounter.needsEscape() ? 10 * 60_000 : 2 * 3_600_000)
     });
-    mind.notice('stranded', { from, goal });
+    if (!hemmed) mind.notice('stranded', { from, goal });
   };
   // The way to far places, for weighing trips and for walking them.
   const reach = terrain && reachOver(terrain);
@@ -75,12 +82,11 @@ export async function live(
   }
   hands.missing = (serial, where) => {
     const data = { serial, where };
-    record('missing', data);
+    record('missing', data, 'noticed');
     mind.observe({ resident: '', at: Date.now(), kind: 'missing', data });
   };
   // Healers and ankhs that offered nothing lately.
   const tried = new Map<string, number>();
-  const refusedToWear = new Map<number, string>();
   const hovered = new Set<number>();
   const asked = new Map<number, number>();
   let spot: string | undefined;
@@ -92,13 +98,35 @@ export async function live(
   let searches = 0;
   let progress = mind.progress;
   const cancelled = () => stopping() || session.phase !== 'ready' || narrator.listen();
+  // A weighing, traced so it can be simulated again (simulate.ts): where in its history it began,
+  // how far it had come each time it let the session run (and what had happened by then), and every
+  // answer the encounter gave it.
+  const think = async (active?: Parameters<typeof liveChoices>[5]) => {
+    const tape: Answer[] = [];
+    const trace = { from: mark(), now: Date.now(), slices: [] as [number, number, number][], tape, active };
+    encounter.tapes.add(tape);
+    const thinking = performance.now();
+    // Thinking long enough to be seen standing still, it shows it is thinking.
+    const pondering = setTimeout(() => narrator.tell('thinking it over'), 1000);
+    try {
+      const valued = await liveChoices(mind, terrain, new Set(), places, cancelled, active, false, (steps, at) =>
+        trace.slices.push([steps, mark(), at])
+      );
+      return {
+        valued,
+        ms: Math.round(performance.now() - thinking),
+        trace: { ...trace, digest: digest(valued), weighed: weighed(valued) }
+      };
+    } finally {
+      clearTimeout(pondering);
+      encounter.tapes.delete(tape);
+    }
+  };
   const relocate = async (reason: string) => {
     const here = screen.position;
     if (cancelled()) return;
-    if (!here) {
-      record('loop-blocked', { reason: 'Player position unavailable' });
-      throw new Error('Resident cannot change course: player position unavailable');
-    }
+    // Not knowing where it stands, it asks the shard, as a client resyncs.
+    if (!here) return void (await session.resyncPosition());
     for (const [key, at] of visited) if (Date.now() - at >= 300_000) visited.delete(key);
     record('loop-broken', { reason, position: here });
     logger('v2').info(`[v2] changing course: ${reason}`);
@@ -130,8 +158,12 @@ export async function live(
       visited.set(key, Date.now());
       const until = Date.now() + 30_000;
       const going = () => !cancelled() && !encounter.needsEscape() && Date.now() < until;
-      await hands.do(stance([]), going);
-      const moved = await hands.do({ verb: 'walk', ...destination, range: 2 }, going);
+      const refused = (error: Error) => {
+        narrator.why = `walking to ${key} refused (${error.message})`;
+        return false;
+      };
+      await hands.do(stance([]), going).catch(refused);
+      const moved = await hands.do({ verb: 'walk', ...destination, range: 2 }, going).catch(refused);
       const now = screen.position;
       record('course-changed', { destination, reached: moved, position: now });
       if (moved && now && Math.max(Math.abs(now.x - here.x), Math.abs(now.y - here.y)) > 2) {
@@ -141,12 +173,14 @@ export async function live(
       }
     }
     if (!cancelled() && !encounter.needsEscape()) {
-      if (mind.care.needsHelp() && (await hands.do({ verb: 'help' }, () => !cancelled()))) {
+      if (mind.care.needsHelp() && (await hands.do({ verb: 'help' }, () => !cancelled()).catch(() => false))) {
         breaker.relocated();
         return;
       }
+      // Every way it tried refused it: it says so and thinks again from where it stands; the places
+      // it tried wait five minutes before it tries them again.
       record('loop-blocked', { reason: 'No alternative destination reachable', attempted: seen.size });
-      throw new Error('Resident cannot change course: no alternative destination reachable');
+      narrator.why = `no way to any of ${seen.size} places it tried`;
     }
   };
   // Woken, it looks at its skills (the client asks for them) and in its backpack: what it knows of
@@ -203,9 +237,18 @@ export async function live(
       continue;
     }
     if (GHOST_BODIES.has(screen.entities.get(screen.serial ?? -1)?.graphic ?? 0)) {
-      if (mind.care.needsHelp() && (await hands.do({ verb: 'help' }, () => !cancelled()))) continue;
+      if (mind.care.needsHelp() && (await hands.do({ verb: 'help' }, () => !cancelled()).catch(() => false))) continue;
       narrator.tell('dead; looking for a healer or an ankh');
-      await rebirth(session, hands, places.shrines, (serial) => mind.call(serial), tried, stopping, mind.steps);
+      const unanswered = await rebirth(
+        session,
+        hands,
+        places.shrines,
+        (serial) => mind.call(serial),
+        tried,
+        stopping,
+        mind.steps
+      ).catch((error: Error) => `seeking resurrection refused (${error.message})`);
+      if (unanswered) narrator.why = unanswered;
       continue;
     }
     // Raised, or woken carrying one: every death robe goes to the floor before anything else.
@@ -223,11 +266,21 @@ export async function live(
     // banker there by the way, and nothing else until it stands within them.
     const standing = screen.position;
     if (standing && !mind.allowed(standing)) {
-      const home = byWay(mind.steps, standing, screen.map, places.bankers)[0];
+      // The nearest banker by the way there, or the nearest at all when no way is known.
+      const home =
+        byWay(mind.steps, standing, screen.map, places.bankers)[0] ??
+        byWay(undefined, standing, screen.map, places.bankers)[0];
       narrator.tell('going back where it belongs');
       record('returning', { from: standing, to: home ?? null });
-      if (!home || !(await hands.do({ verb: 'walk', x: home.x, y: home.y, range: 3 }, () => !cancelled())))
-        await Bun.sleep(2000);
+      const back =
+        home &&
+        (await hands
+          .do({ verb: 'walk', x: home.x, y: home.y, range: 3 }, () => !cancelled())
+          .catch((error: Error) => {
+            narrator.why = `going back refused (${error.message})`;
+            return false;
+          }));
+      if (!back) await relocate('No way back to where it belongs');
       continue;
     }
     if (
@@ -254,7 +307,7 @@ export async function live(
       session.requestName(entity.serial);
     }
     // A refusal while dressing is the world saying no, like any refused step: noted, never a crash.
-    const dressed = await dress(session, mind, terrain, refusedToWear).catch((error: Error) => {
+    const dressed = await dress(session, mind, terrain).catch((error: Error) => {
       logger('v2').info(`[v2] dressing refused: ${error.message}`);
       narrator.why = `dressing refused (${error.message})`;
       return false;
@@ -264,9 +317,7 @@ export async function live(
       continue;
     }
     const trigger = mind.changedBy;
-    const thinking = performance.now();
-    const valued = await liveChoices(mind, terrain, new Set(), places, cancelled, undefined, false);
-    const ms = Math.round(performance.now() - thinking);
+    const { valued, ms, trace } = await think();
     if (ms >= SLOW_DECISION_MS) logger('v2').info(`[v2] slow decision: ${ms} ms after ${trigger || 'start'}`);
     if (!valued) {
       if (++searches >= 3) await relocate('Deliberation repeatedly invalidated before choosing work');
@@ -279,6 +330,7 @@ export async function live(
     record('considered', {
       ms,
       trigger,
+      trace,
       doing,
       choice: doing,
       agrees: true,
@@ -301,13 +353,30 @@ export async function live(
       }))
     });
     if (changing || !best) {
-      if (mind.self.weight && mind.self.weight.current > mind.self.weight.max) {
-        record('loop-blocked', { reason: 'No successful overload recovery available' });
-        throw new Error('Resident cannot travel: overload recovery exhausted');
+      // Over its limit: the least it can put down to move freely again.
+      const shed = shedding(mind);
+      if (shed) {
+        narrator.tell(`putting down ${shed.amount} ${mind.call(shed.serial) ?? 'things'} to carry less`);
+        const dropped = await hands
+          .do({ verb: 'drop', ...shed }, () => !cancelled())
+          .catch((error: Error) => {
+            narrator.why = `putting down to carry less refused (${error.message})`;
+            return false;
+          });
+        if (!dropped) mind.refuseDrop(shed.serial);
+        continue;
       }
-      if (encounter.needsEscape()) {
-        record('loop-blocked', { reason: 'Safety response exhausted its attempt budget' });
-        throw new Error('Resident cannot change course: safety response exhausted its attempt budget');
+      // In danger with no way out it is taking: it turns on the nearest of those fighting it.
+      const foe = encounter.needsEscape() ? encounter.attacker() : undefined;
+      if (foe !== undefined) {
+        narrator.tell(`fighting back ${mind.call(foe)?.split('/')[0] ?? 'an attacker'}`);
+        await hands
+          .do({ verb: 'fight', serial: foe, back: true }, () => !cancelled())
+          .catch((error: Error) => {
+            narrator.why = `fighting back refused (${error.message})`;
+            return false;
+          });
+        continue;
       }
       await relocate('No worthwhile unblocked work at the current location');
       continue;
@@ -321,7 +390,12 @@ export async function live(
     if (bound) record('bound', { id: best.id, ...bound });
     narrator.tell(bound ? `${describe(best.key, best.steps)} (${bound.to})` : describe(best.key, best.steps));
     // Keeping at it, unless something else is worth more by more than its patience holds it.
-    await hands.do(stance(best.steps), () => !stopping());
+    await hands
+      .do(stance(best.steps), () => !stopping())
+      .catch((error: Error) => {
+        narrator.why = `${describe(best.key, best.steps)}: getting ready refused (${error.message})`;
+        return false;
+      });
     let remaining = best.source;
     let interrupted = false;
     let interruption: object | undefined;
@@ -333,9 +407,7 @@ export async function live(
       reconsidering = true;
       const noticed = mind.noticed;
       const trigger = mind.changedBy;
-      const thinking = performance.now();
-      const alternatives = await liveChoices(mind, terrain, new Set(), places, cancelled, remaining, false);
-      const ms = Math.round(performance.now() - thinking);
+      const { valued: alternatives, ms, trace } = await think(remaining);
       reconsidering = false;
       if (!alternatives || interrupted) return;
       checkedNoticed = noticed;
@@ -353,6 +425,7 @@ export async function live(
         id: best.id,
         ms,
         trigger,
+        trace,
         kept: keep,
         keeping,
         alternative: other && { id: other.id, key: other.key, rate: other.rate }
@@ -379,7 +452,7 @@ export async function live(
       if (checkedNoticed !== mind.noticed && !reconsidering) void reconsider();
       return true;
     };
-    const heard = screen.journal.length;
+    const heard = screen.heard;
     const started = Date.now();
     // As long as it expects the plan to take (the walk there included), stretched by its patience;
     // never under a minute.
@@ -412,7 +485,7 @@ export async function live(
     // however quickly a plan ends (already there), a client's next move takes a moment.
     busy = false;
     await Bun.sleep(done ? 250 : 2000);
-    if (spot && screen.journal.slice(heard).some((e) => e.cliloc !== undefined && nothingLeft.has(e.cliloc))) {
+    if (spot && screen.journalSince(heard).some((e) => e.cliloc !== undefined && nothingLeft.has(e.cliloc))) {
       const bank = best.depletion;
       if (bank) mind.exhausted(bank);
     }

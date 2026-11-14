@@ -18,23 +18,38 @@ export async function hover(
   pause = 300
 ) {
   const screen = screenOf(session);
+  // What did not answer waits until everything else has been asked once (hair answers nothing),
+  // rather than holding up the rest.
+  const unanswered = new Set<number>();
   while (!stopping() && session.phase === 'ready') {
     if (busy()) {
       await Bun.sleep(pause);
       continue;
     }
-    const next = [...mind.belongings().keys()].find((serial) => {
-      const item = screen.entities.get(serial);
-      return item?.kind === 'item' && !item.properties && !asked.has(serial);
-    });
+    const unasked = (serial: number) => !asked.has(serial) && !unanswered.has(serial);
+    // Its own things first; then the people about, whose hover names their trade (a vendor's title).
+    const next =
+      [...mind.belongings().keys()].find((serial) => {
+        const item = screen.entities.get(serial);
+        return item?.kind === 'item' && !item.properties && unasked(serial);
+      }) ??
+      [...screen.entities.values()].find(
+        (e) =>
+          e.kind === 'mobile' &&
+          e.serial !== screen.serial &&
+          !e.properties &&
+          unasked(e.serial) &&
+          mind.call(e.serial)?.split('/').includes('Person')
+      )?.serial;
     if (next === undefined) {
+      for (const serial of unanswered) asked.delete(serial);
+      unanswered.clear();
       await Bun.sleep(pause * 3);
       continue;
     }
     asked.add(next);
     await session.inspectProperties(next).catch((error: Error) => {
-      // Unanswered, it is looked at again later, as a player mouses over it once more.
-      asked.delete(next);
+      unanswered.add(next);
       logger('v2').info(`[v2] no hover for ${next}: ${error.message}`);
     });
     await Bun.sleep(pause);

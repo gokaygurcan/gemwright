@@ -2,20 +2,20 @@ import { expect, test } from 'bun:test';
 
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { setDebug } from '../src/debug';
 import { describe, Narrator } from '../src/v2/narrate';
+import { heard } from './fixtures/journal';
 
 // A staff member says STOP: it holds until CONTINUE, answers STATUS with what it is doing, and ignores
 // the same words from a player.
 test('staff commands stop, resume and ask a resident', () => {
   const said: string[] = [];
-  const world = {
+  const world = heard({
     journal: [] as { serial: number; text: string }[],
     entities: new Map([
       [7, { serial: 7, notoriety: 7 }],
       [8, { serial: 8, notoriety: 1 }]
     ])
-  };
+  });
   const session = {
     world,
     phase: 'ready',
@@ -34,11 +34,10 @@ test('staff commands stop, resume and ask a resident', () => {
 });
 
 // With debugging on, each change of what it does is said over its head, once.
-test('it emotes each change of what it does when debugging', () => {
-  setDebug(true);
+test('it emotes each change of what it does, debugging or not', () => {
   const emoted: string[] = [];
   const session = {
-    world: { journal: [] },
+    world: heard({ journal: [] }),
     phase: 'ready',
     emote: (t: string) => emoted.push(t)
   } as unknown as PlayerSession;
@@ -47,6 +46,5 @@ test('it emotes each change of what it does when debugging', () => {
   narrator.tell(doing);
   narrator.tell(doing);
   narrator.tell('looking for different work');
-  setDebug(false);
   expect(emoted).toEqual(['traveling to 100,200: fighting Mongbat', 'looking for different work']);
 });

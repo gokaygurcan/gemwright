@@ -9,6 +9,7 @@ import { Mind } from '../src/v2/mind';
 import { options, type Step } from '../src/v2/options';
 import { stance } from '../src/v2/planning';
 import { traitsOf } from '../src/v2/traits';
+import { heard } from './fixtures/journal';
 import { seeing } from './fixtures/v2/mind-sync';
 
 function miner() {
@@ -129,7 +130,7 @@ test('seeking a creature continues into combat with the observed creature', asyn
 });
 
 test('a harvest does not finish at its initial tool message', async () => {
-  const world = { target: {}, journal: [] as { cliloc: number }[] };
+  const world = heard({ target: {}, journal: [] as { cliloc: number }[] });
   let finished = false;
   const session = {
     world,
@@ -234,7 +235,7 @@ test('selling uses only the ingots actually carried', () => {
 test('interrupting a plan releases its cursor before another action can own it', async () => {
   const used: number[] = [];
   const targets: unknown[] = [];
-  const world = { target: {}, entities: new Map([[10, { serial: 10, kind: 'item' }]]), journal: [] };
+  const world = heard({ target: {}, entities: new Map([[10, { serial: 10, kind: 'item' }]]), journal: [] });
   const session = {
     world,
     phase: 'ready',
@@ -259,7 +260,7 @@ test('a confirmed kill loots its own corpse even when deliberation wants another
   const journal: { cliloc: number }[] = [];
   let opens = 0;
   const session = {
-    world: { serial: 1, position: at, entities, deaths, journal },
+    world: heard({ serial: 1, position: at, entities, deaths, journal }),
     attack: async () => {
       entities.delete(20);
       deaths.set(20, { corpse: 31 });
@@ -284,4 +285,49 @@ test('a confirmed kill loots its own corpse even when deliberation wants another
   expect(opens).toBe(2);
   expect(moved).toEqual([40]);
   expect(entities.get(40)).toMatchObject({ parent: 31 });
+});
+
+test('a seek that arrives with none of its kind on screen is done: what is there is what it works with', async () => {
+  const world = { serial: 1, position: { x: 0, y: 10, z: 0, direction: 2 }, entities: new Map<number, object>() };
+  const session = {
+    world,
+    walk: async () => {
+      world.position.x++;
+      return true;
+    }
+  } as unknown as PlayerSession;
+  const terrain = {
+    pathAsync: async (from: { x: number }, goal: { x: number; y: number }) =>
+      Array.from({ length: Math.max(0, goal.x - from.x) }, (_, i) => ({ x: from.x + i + 1, y: 10, z: 0 }))
+  } as unknown as Terrain;
+  const hands = new Hands(
+    session,
+    terrain,
+    () => undefined,
+    () => 'Bull'
+  );
+  expect(await hands.do({ verb: 'seek', kind: 'Mongbat', x: 20, y: 10, range: 8 }, () => true)).toBe(true);
+  expect(world.position.x).toBeGreaterThanOrEqual(12);
+});
+
+test('a menu is answered by what it is, not by one time it was opened: whichever of it is open now', async () => {
+  const gumps = new Map<string, object>();
+  const replies: [number, number, number][] = [];
+  const world = { serial: 1, position: { x: 0, y: 0, z: 0 }, entities: new Map(), gumps };
+  const session = {
+    world,
+    replyGump: (serial: number, id: number, button: number) => {
+      if (!gumps.has(`${serial}:${id}`)) throw new Error('Gump is not currently open');
+      replies.push([serial, id, button]);
+      gumps.delete(`${serial}:${id}`);
+    }
+  } as unknown as PlayerSession;
+  // The shard sends this opening of it a moment later, under a serial of its own.
+  setTimeout(
+    () => gumps.set('4711:269917563', { serial: 4711, id: 269917563, layout: '{ button 1 1 1 1 1 0 7 }' }),
+    50
+  );
+  const hands = new Hands(session, undefined);
+  expect(await hands.do({ verb: 'gump-response', gump: 269917563, button: 7 }, () => true)).toBe(true);
+  expect(replies).toEqual([[4711, 269917563, 7]]);
 });

@@ -18,7 +18,8 @@ const TOWN_MINE = { x: 104, y: 100 };
 const ATTACK = /^attack /;
 const HARVEST = /^double-click my .+ > target land/;
 
-// The shard's word, as its spawn file has it: two places east where zombies may be. Nothing else —
+// The shard's word, as its spawn file has it: two places east where zombies may be, among birds (half
+// their spawns each, two at most). Nothing else —
 // no route, no destination, no promise that either will have anything when it arrives.
 const spawners: Spawner[] = [
   {
@@ -29,8 +30,8 @@ const spawners: Spawner[] = [
     map: 'Trammel',
     range: 4,
     max: 2,
-    kinds: ['zombie'],
-    mx: {},
+    kinds: ['zombie', 'bird'],
+    mx: { zombie: 1, bird: 1 },
     delay: [5, 10]
   },
   {
@@ -41,8 +42,8 @@ const spawners: Spawner[] = [
     map: 'Trammel',
     range: 4,
     max: 2,
-    kinds: ['zombie'],
-    mx: {},
+    kinds: ['zombie', 'bird'],
+    mx: { zombie: 1, bird: 1 },
     delay: [5, 10]
   }
 ];
@@ -129,7 +130,8 @@ test('it works out the town seam, leaves on the shard’s word, and takes up wha
         entry.kind === 'visited' &&
         entry.data.x === PROMISE.x &&
         entry.data.y === PROMISE.y &&
-        entry.data.found === false
+        Array.isArray(entry.data.found) &&
+        !entry.data.found.includes('Zombie')
     );
     return far.length >= 2 && killed && empty;
   });
@@ -177,10 +179,10 @@ test('it works out the town seam, leaves on the shard’s word, and takes up wha
   expect(fight?.data.observed?.killed).toBe(1);
   expect(fight?.data.observed?.gained?.Gold).toBeGreaterThanOrEqual(40);
 
-  // Then the other place the shard named, at last: empty when it stood there, and said so.
+  // Then the other place the shard named, at last: reached, empty when it stood there, and said so.
   expect(
     list.some(
-      (entry) => entry.kind === 'plan-ended' && entry.data.id === seekId(PROMISE) && entry.data.result === 'refused'
+      (entry) => entry.kind === 'plan-ended' && entry.data.id === seekId(PROMISE) && entry.data.result === 'completed'
     )
   ).toBe(true);
   expect(
@@ -189,13 +191,14 @@ test('it works out the town seam, leaves on the shard’s word, and takes up wha
         entry.kind === 'visited' &&
         entry.data.x === PROMISE.x &&
         entry.data.y === PROMISE.y &&
-        entry.data.found === false
+        Array.isArray(entry.data.found) &&
+        !entry.data.found.includes('Zombie')
     )
   ).toBe(true);
 
   // And it did not go back to the empty place: nothing since sends it there again.
   const emptyAt = list.findIndex(
-    (entry) => entry.kind === 'plan-ended' && entry.data.id === seekId(PROMISE) && entry.data.result === 'refused'
+    (entry) => entry.kind === 'plan-ended' && entry.data.id === seekId(PROMISE) && entry.data.result === 'completed'
   );
   expect(
     list.some((entry) => entry.index > emptyAt && entry.kind === 'plan-ended' && entry.data.id === seekId(PROMISE))

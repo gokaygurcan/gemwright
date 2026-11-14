@@ -5,6 +5,7 @@ import type { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
 import type { Terrain } from '../src/terrain';
+import type { Encounter } from '../src/v2/encounter';
 import { Hands } from '../src/v2/hands';
 import { Mind } from '../src/v2/mind';
 import { perceive } from '../src/v2/perceive';
@@ -210,6 +211,25 @@ test('a navigation refusal is shared, while a cancelled walk is not a failed rou
   }
 });
 
+test('a walk refused only for the creatures in the way is told as only that', async () => {
+  const c = client();
+  // The land has a way; the creatures about close it for now.
+  const terrain = {
+    pathAsync: async (_from: unknown, goal: { x: number; y: number }, _range: number, blocked: Set<string>) =>
+      blocked.size ? [] : [{ ...goal, z: 0 }]
+  } as unknown as Terrain;
+  const encounter = { blocked: () => new Set(['910,900']) } as unknown as Encounter;
+  const hands = new Hands(c.session, terrain, undefined, undefined, undefined, undefined, undefined, encounter);
+  const failures: boolean[] = [];
+  hands.blocked = (_from, _goal, hemmed) => failures.push(hemmed);
+  try {
+    expect(await hands.do({ verb: 'walk', x: 920, y: 900, range: 2 }, () => true)).toBe(false);
+    expect(failures).toEqual([true]);
+  } finally {
+    c.stop();
+  }
+});
+
 test('skill practice targets its pickaxe and observes a server response', async () => {
   const c = client();
   c.world.put({ serial: 3, kind: 'item', graphic: 3718, parent: 2 });
@@ -331,6 +351,27 @@ test('a claim that brings out two horses rides one and stables the other', async
     expect(c.mind.mount).toBe(30);
     expect(said).toEqual(['claim', 'stable']);
     expect(targeted).toBe(31);
+  } finally {
+    c.stop();
+  }
+});
+
+test('a walk that tries anyway is walked whatever its memory says of the way', async () => {
+  const c = client();
+  const searched: string[] = [];
+  const terrain = {
+    pathAsync: async (_from: unknown, goal: { x: number; y: number }) => {
+      searched.push(`${goal.x},${goal.y}`);
+      return [];
+    }
+  } as unknown as Terrain;
+  const hands = new Hands(c.session, terrain);
+  hands.canReach = () => false;
+  try {
+    await hands.do({ verb: 'walk', x: 920, y: 900, range: 2 }, () => true);
+    expect(searched).toEqual([]);
+    await hands.do({ verb: 'walk', x: 920, y: 900, range: 2, trying: true }, () => true);
+    expect(searched).toEqual(['920,900']);
   } finally {
     c.stop();
   }

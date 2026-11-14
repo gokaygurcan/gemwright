@@ -24,13 +24,7 @@ const undressed: ReadonlySet<number> = new Set([
 // strength) is not tried again. True when it changed anything. What it has is what it knows it has
 // (mind.ts); the screen only says whether a piece it put on landed. Death robes never get here: they
 // are on the floor first (`shed`).
-export async function dress(
-  session: PlayerSession,
-  mind: Mind,
-  terrain: Terrain | undefined,
-  // What the shard refused to let it wear.
-  refused: Map<number, string>
-) {
+export async function dress(session: PlayerSession, mind: Mind, terrain: Terrain | undefined) {
   const screen = screenOf(session);
   const self = mind.serial;
   const pack = mind.pack;
@@ -38,7 +32,7 @@ export async function dress(
   const value = (serial: number) => (mind.deathRobe(serial) ? -1 : mind.worthOf(serial));
   const has = mind.has();
   let changed = false;
-  for (const item of has.pack.filter((i) => !refused.has(i.serial))) {
+  for (const item of has.pack.filter((i) => mind.wears(i.serial))) {
     const graphic = mind.graphicOf(item.serial);
     const tile = graphic === undefined ? undefined : terrain?.tile(graphic, true);
     if (!tile) continue;
@@ -50,12 +44,12 @@ export async function dress(
     try {
       await session.equipItem(item.serial, tile.layer);
     } catch (error) {
-      if (error instanceof CommandRejected) refused.set(item.serial, '');
+      if (error instanceof CommandRejected) mind.notice('wear-refused', { serial: item.serial });
       throw error;
     }
     for (const end = Date.now() + 1500; Date.now() < end && screen.entities.get(item.serial)?.parent !== self; )
       await Bun.sleep(100);
-    if (screen.entities.get(item.serial)?.parent !== self) refused.set(item.serial, '');
+    if (screen.entities.get(item.serial)?.parent !== self) mind.notice('wear-refused', { serial: item.serial });
     changed = true;
   }
   return changed;
@@ -93,7 +87,7 @@ export async function shed(
       missing(robe);
       continue;
     }
-    const heard = screen.journal.length;
+    const heard = screen.heard;
     await Bun.sleep(pace);
     // Exactly where it stands, as the shard has it (0x22 answered by 0x20: x, y and z): the drop goes
     // to that tile at that height, never to where the client only believes it is.
@@ -104,7 +98,7 @@ export async function shed(
       if (!(error instanceof CommandRejected) && !(error instanceof Error && /lift/i.test(error.message))) throw error;
     }
     // Told to wait, it waits a little longer before the same robe again.
-    if (screen.journal.slice(heard).some((entry) => entry.cliloc === mustWait)) await Bun.sleep(pace);
+    if (screen.journalSince(heard).some((entry) => entry.cliloc === mustWait)) await Bun.sleep(pace);
   }
   return !robes().length;
 }

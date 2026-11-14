@@ -53,3 +53,37 @@ export function droppable(mind: Mind, consumes: readonly number[] = []) {
     }))
     .sort((a, b) => a.worth / a.weight - b.worth / b.weight);
 }
+
+// Over its limit with nothing better to do, it puts down the least it can to be under it again, as a
+// player does: of what it carries loose in its pack, the part of a stack whose loss is worth least
+// for the weight it frees. A unit weight not yet known is learned by putting down one and seeing what
+// the shard counts afterwards.
+export function shedding(mind: Mind): { serial: number; amount: number } | undefined {
+  const weight = mind.self.weight;
+  const pack = mind.pack;
+  if (!weight || pack === undefined || weight.current <= weight.max) return undefined;
+  const excess = weight.current - weight.max;
+  const candidates = [...mind.belongings()]
+    .filter(
+      ([serial, item]) =>
+        mind.canDrop(serial) &&
+        mind.sight(serial)?.parent === pack &&
+        !harvestBy(item.name) &&
+        !tools.has(mind.graphicOf(serial) ?? 0) &&
+        !isKeepsake(item.name)
+    )
+    .map(([serial, item]) => {
+      const unit = mind.unitWeight(item.name);
+      const amount = unit ? Math.min(item.amount, Math.ceil(excess / unit)) : 1;
+      return { serial, amount, freed: unit ? unit * amount : undefined, lost: worth(item.name) * amount };
+    })
+    // What frees enough first, then what is known to free most for its worth; unknown last.
+    .sort(
+      (a, b) =>
+        Number((b.freed ?? 0) >= excess) - Number((a.freed ?? 0) >= excess) ||
+        (a.freed === undefined ? 1 : 0) - (b.freed === undefined ? 1 : 0) ||
+        a.lost / (a.freed ?? 1) - b.lost / (b.freed ?? 1)
+    );
+  const chosen = candidates[0];
+  return chosen && { serial: chosen.serial, amount: chosen.amount };
+}

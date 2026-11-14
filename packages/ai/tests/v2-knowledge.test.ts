@@ -110,3 +110,18 @@ test('a hover the shard did not answer is asked again', async () => {
   );
   expect(asks).toBe(2);
 });
+
+// A townsperson's hover shows its title after its name (ServUO 1050045: prefix, name, suffix): the
+// trade it names is what the person is, as a player reads "Ianthe the tinker" off the screen.
+test('a person is known by the trade their title names', () => {
+  const person = (title: string) =>
+    identify({
+      kind: 'mobile',
+      graphic: 401,
+      name: 'Ianthe',
+      properties: [{ cliloc: 1050045, arguments: ` \tIanthe\t ${title}` }]
+    });
+  expect(person('the blacksmith')).toEqual(['Blacksmith', 'Person']);
+  expect(person('the blacksmith guildmistress')).toEqual(['BlacksmithGuildmaster', 'Person']);
+  expect(identify({ kind: 'mobile', graphic: 401, name: 'Ianthe' })).toEqual(['Person']);
+});

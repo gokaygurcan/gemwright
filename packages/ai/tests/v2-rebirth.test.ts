@@ -52,3 +52,39 @@ test('a ghost steps into a healer reach from outside it and takes the resurrecti
   expect(walks).toEqual(['7,10', '10,10']);
   expect(replies).toEqual([9]);
 });
+
+// No healer or ankh is ever ruled out: one that gave nothing is tried again after the others, in turn.
+test('a ghost goes round every healer and ankh in turn and never stops trying', async () => {
+  const world = {
+    serial: 1,
+    map: 1,
+    position: { x: 10, y: 10, z: 0, direction: 0 },
+    entities: new Map(),
+    gumps: new Map()
+  };
+  const went: string[] = [];
+  const hands = {
+    do: async (step: { verb: string; x: number; y: number }) => {
+      if (step.verb === 'walk') went.push(`${step.x},${step.y}`);
+      return true;
+    }
+  } as unknown as Hands;
+  const session = { world, use: () => {}, replyGump: () => {} } as unknown as PlayerSession;
+  const shrines = [
+    { kind: 'ankh' as const, x: 20, y: 10 },
+    { kind: 'ankh' as const, x: 40, y: 10 }
+  ];
+  const tried = new Map<string, number>();
+  const ankhs = () => went.filter((spot) => spot === '20,10' || spot === '40,10');
+  for (let round = 0; round < 3; round++)
+    await rebirth(
+      session,
+      hands,
+      shrines,
+      () => undefined,
+      tried,
+      () => false
+    );
+  expect([...new Set(ankhs())]).toEqual(['20,10', '40,10']);
+  expect(ankhs().at(-1)).toBe('20,10');
+}, 60_000);

@@ -1,7 +1,6 @@
 import { Notoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 
-import { debugEnabled } from '../debug';
 import type { Step } from './options';
 import { screenOf } from './perceive';
 
@@ -14,18 +13,22 @@ export class Narrator {
   private heard: number;
   private held?: number;
   private told?: string;
+  private reason = 'nothing has gone wrong lately';
   // What it is doing and why, for STATUS and WHY.
   doing = 'waking up';
-  why = 'nothing has gone wrong lately';
 
-  constructor(private readonly session: PlayerSession) {
-    this.heard = screenOf(session).journal.length;
+  constructor(
+    private readonly session: PlayerSession,
+    // Every change of what it is doing or why, written down whether said aloud or not.
+    private readonly record: (kind: string, data: object) => void = () => {}
+  ) {
+    this.heard = screenOf(session).heard;
   }
 
   // Staff orders heard since last looked; true while it is held.
   listen() {
     const world = screenOf(this.session);
-    for (const entry of world.journal.slice(this.heard)) {
+    for (const entry of world.journalSince(this.heard)) {
       const order = command.exec(entry.text ?? '')?.[1]?.toUpperCase();
       if (!order || world.entities.get(entry.serial)?.notoriety !== Notoriety.invulnerable) continue;
       if (order === 'STOP') this.held = entry.serial;
@@ -33,17 +36,26 @@ export class Narrator {
       else if (order === 'STATUS') this.session.say(`${this.doing}${this.held ? ' (stopped)' : ''}`.slice(0, 200));
       else this.session.say(this.why.slice(0, 200));
     }
-    this.heard = world.journal.length;
+    this.heard = world.heard;
     if (this.held !== undefined && !world.entities.has(this.held)) this.held = undefined;
     return this.held !== undefined;
   }
 
-  // Each time it turns to something else, said over its head when the shard's debugging is on.
+  get why() {
+    return this.reason;
+  }
+  set why(why: string) {
+    if (why !== this.reason) this.record('narrated', { why });
+    this.reason = why;
+  }
+
+  // Each time it turns to something else, said over its head for all to see.
   tell(doing: string) {
     this.doing = doing;
     if (doing === this.told) return;
     this.told = doing;
-    if (debugEnabled() && this.session.phase === 'ready') this.session.emote(doing.slice(0, 120));
+    this.record('narrated', { doing });
+    if (this.session.phase === 'ready') this.session.emote(doing.slice(0, 120));
   }
 }
 

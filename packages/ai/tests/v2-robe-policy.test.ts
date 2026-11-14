@@ -4,6 +4,7 @@ import { hueOf } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { shed } from '../src/v2/dress';
+import { heard } from './fixtures/journal';
 import { mindFor, perceived, seeing } from './fixtures/v2/mind-sync';
 
 for (const parent of [1, 2, 5, 6]) {
@@ -25,8 +26,9 @@ for (const parent of [1, 2, 5, 6]) {
         entities.delete(serial);
       }
     } as unknown as PlayerSession;
-    const world = (session as unknown as { world: { journal?: unknown[] } }).world;
+    const world = (session as unknown as { world: { journal: unknown[] } }).world;
     world.journal = [];
+    heard(world);
     await shed(
       perceived(session, mindFor(session)),
       mindFor(session),

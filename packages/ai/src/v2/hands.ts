@@ -2,6 +2,7 @@ import { GARGOYLE_BODIES } from '@gemwright/common/game/bodies';
 import { isDeathRobe } from '@gemwright/common/game/items';
 import { classesShowing, doorGraphics, skillOf } from '@gemwright/common/game/rules';
 import { skillId } from '@gemwright/common/game/skills';
+import { CommandRejected } from '@gemwright/network/errors';
 import { Layer } from '@gemwright/network/layers';
 import { Opcode } from '@gemwright/network/opcodes';
 import { Actions } from '@gemwright/network/replies';
@@ -129,7 +130,11 @@ export class Hands {
         return this.tame(step.serial, going);
       case 'escape':
         return (
-          this.encounter?.escape((point, range) => this.walk({ ...point, range, running: true }, going), going) ?? false
+          this.encounter?.escape(
+            (point, range) => this.walk({ ...point, range, running: true }, going),
+            going,
+            step.to
+          ) ?? false
         );
       case 'war':
         if (this.world.warMode !== step.enabled) this.session.setWarMode(step.enabled);
@@ -157,11 +162,11 @@ export class Hands {
       case 'dismount':
         return this.dismount();
       case 'drop':
-        return this.drop(step.serial);
+        return this.drop(step.serial, step.amount);
       case 'target':
         return this.target(step);
       case 'fight':
-        return this.fight(step.serial, going);
+        return this.fight(step.serial, going, step.back);
       case 'seek':
         return this.seek(step, going);
       case 'balance': {
@@ -199,8 +204,14 @@ export class Hands {
         return this.sellTo(step, going);
       case 'sell':
         return this.sell(step.vendor, step.items, going);
+      // A menu is answered by what it is: whichever opening of it the shard has sent, each under a
+      // serial of its own (ServUO Gump), once it has arrived.
       case 'gump-response': {
-        this.session.replyGump(step.serial, step.gump, step.button, []);
+        const open = () => [...(this.world.gumps?.values() ?? [])].find((g) => g.id === step.gump);
+        if (!open() && !(await this.until(() => !!open(), 3000))) return false;
+        const gump = open();
+        if (!gump) return false;
+        this.session.replyGump(gump.serial, step.gump, step.button, []);
         return true;
       }
       case 'rest':
@@ -217,18 +228,25 @@ export class Hands {
   reach?: Reach;
   canReach?: (goal: { x: number; y: number; z?: number }) => boolean;
   notice?: (kind: string, data: object) => void;
-  blocked?: (from: { x: number; y: number; z: number; map: number }, goal: { x: number; y: number; z: number }) => void;
+  // A walk that did not get there: closed by the land, or only by the creatures about (`hemmed`).
+  blocked?: (
+    from: { x: number; y: number; z: number; map: number },
+    goal: { x: number; y: number; z: number },
+    hemmed: boolean
+  ) => void;
   // Told when a thing of its own it reached for is not there: in its pack (or worn), or in its bank
   // box with the box open.
   missing?: (serial: number, where: 'pack' | 'bank') => void;
+  // The walk under way was stopped by the creatures about rather than by the land.
+  private hemmed = false;
 
   // To within range: somewhere far along the way it knows (each leg walked, teleporters stepped on),
   // and with no way known there, not at all; somewhere near straight on.
   private async walk(
-    goal: { x: number; y: number; range: number; running?: boolean; flying?: boolean },
+    goal: { x: number; y: number; z?: number; range: number; running?: boolean; flying?: boolean; trying?: boolean },
     going: () => boolean | Promise<boolean>
   ) {
-    if (this.canReach && !this.canReach(goal)) return false;
+    if (!goal.trying && this.canReach && !this.canReach(goal)) return false;
     const from = this.world.position && { ...this.world.position, map: this.world.map ?? 1 };
     let interrupted = false;
     const keep = async () => {
@@ -236,18 +254,21 @@ export class Hands {
       if (!yes) interrupted = true;
       return yes;
     };
+    this.hemmed = false;
     const reached = await this.follow(goal, keep);
-    if (!reached && !interrupted && from && (await keep())) this.blocked?.(from, { x: goal.x, y: goal.y, z: from.z });
+    if (!reached && !interrupted && from && (await keep()))
+      this.blocked?.(from, { x: goal.x, y: goal.y, z: goal.z ?? from.z }, this.hemmed);
     return reached;
   }
 
   private async follow(
-    goal: { x: number; y: number; range: number; running?: boolean; flying?: boolean },
+    goal: { x: number; y: number; z?: number; range: number; running?: boolean; flying?: boolean },
     going: () => boolean | Promise<boolean>
   ) {
     const here = this.world.position;
     if (!this.reach || !here || away(here, goal) <= FAR) return this.stepTo(goal, going);
-    const route = this.reach.route(here, { x: goal.x, y: goal.y, z: here.z }, routeSeed(goal));
+    // At the height it is going to when that is known (a spawner's), else at its own.
+    const route = this.reach.route(here, { x: goal.x, y: goal.y, z: goal.z ?? here.z }, routeSeed(goal));
     if (!route) return false;
     let last: { x: number; y: number } = here;
     for (const [i, leg] of route.legs.entries()) {
@@ -316,11 +337,21 @@ export class Hands {
       const here = this.world.position;
       if (!here) return false;
       if (away(here, goal) <= goal.range) return true;
-      const blocked = new Set([...refusals, ...(this.encounter?.blocked() ?? [])]);
+      const around = this.encounter?.blocked() ?? new Set<string>();
+      const blocked = new Set([...refusals, ...around]);
       const path = this.terrain
         ? await this.terrain.pathAsync(here, goal, goal.range, blocked, undefined, undefined, true)
         : [{ x: goal.x, y: goal.y, z: here.z }];
-      if (!path?.length) return false;
+      if (!path?.length) {
+        // Closed only by the creatures about, not by the land: no failed route, just not now.
+        if (
+          around.size &&
+          this.terrain &&
+          (await this.terrain.pathAsync(here, goal, goal.range, refusals, undefined, undefined, true))?.length
+        )
+          this.hemmed = true;
+        return false;
+      }
       let stopped = false;
       for (const next of path) {
         if (!(await going())) return false;
@@ -388,15 +419,24 @@ export class Hands {
         held.serial !== serial
       )
         await this.session.moveItem(held.serial, pack.serial);
-    await this.session.equipItem(serial, layer);
-    return this.until(() => world.entities.get(serial)?.parent === world.serial, 2000);
+    // Refused, it is never offered to be worn again.
+    const refused = () => this.notice?.('wear-refused', { serial });
+    try {
+      await this.session.equipItem(serial, layer);
+    } catch (error) {
+      if (error instanceof CommandRejected) refused();
+      throw error;
+    }
+    if (await this.until(() => world.entities.get(serial)?.parent === world.serial, 2000)) return true;
+    refused();
+    return false;
   }
 
   // Putting something down on the tile it stands on, at the height the shard has for it.
-  private async drop(serial: number) {
+  private async drop(serial: number, amount?: number) {
     if (!this.world.entities.has(serial)) return this.gone(serial, 'pack');
     await this.session.resyncPosition();
-    await this.session.dropAtFeet(serial);
+    await this.session.dropAtFeet(serial, undefined, amount);
     return !this.world.entities.get(serial)?.parent;
   }
 
@@ -450,22 +490,23 @@ export class Hands {
   // kept: told to wait, it waits as long as it took and tries once more.
   private async use(serial: number, ready = () => !!this.world.target, going = () => true, menu?: number) {
     if (!this.world.entities.has(serial)) return this.gone(serial, 'pack');
-    const open = menu === undefined ? undefined : () => !!this.world.gumps?.get(`${serial}:${menu}`);
+    const open =
+      menu === undefined ? undefined : () => [...(this.world.gumps?.values() ?? [])].some((g) => g.id === menu);
     for (let tries = 0; tries < 2 && going(); tries++) {
       const asked = Date.now();
-      const heard = this.world.journal.length;
+      const heard = this.world.heard;
       const opened = new Set(this.world.gumps?.values() ?? []);
       const replied = () =>
         [...(this.world.gumps?.values() ?? [])].some((g) => !opened.has(g) && (menu === undefined || g.id === menu)) ||
         !!open?.();
       this.session.use(serial);
       const settled = await this.until(
-        () => !going() || ready() || replied() || this.world.journal.slice(heard).some((e) => e.cliloc === busy),
+        () => !going() || ready() || replied() || this.world.journalSince(heard).some((e) => e.cliloc === busy),
         3000
       );
       if (!going()) return false;
       if (ready() || replied()) return true;
-      if (!settled || !this.world.journal.slice(heard).some((e) => e.cliloc === busy)) return settled;
+      if (!settled || !this.world.journalSince(heard).some((e) => e.cliloc === busy)) return settled;
       await Bun.sleep(Date.now() - asked + 500);
     }
     return false;
@@ -474,30 +515,34 @@ export class Hands {
   // Answering the cursor, then waiting for the world to answer back (a message, something gained).
   private async target(step: Extract<Step, { verb: 'target' }>) {
     if (!this.world.target) return false;
-    const heard = this.world.journal.length;
+    const heard = this.world.heard;
     this.session.target(
       step.serial !== undefined
         ? { serial: step.serial, x: 0, y: 0, z: 0, graphic: 0 }
         : { serial: 0, x: step.x ?? 0, y: step.y ?? 0, z: step.z ?? 0, graphic: step.graphic ?? 0 }
     );
     // The tool's targeting prompt is not a harvest result.
-    const answered = await this.until(() => this.world.journal.slice(heard).some((e) => e.cliloc !== 503033), 8000);
+    const answered = await this.until(() => this.world.journalSince(heard).some((e) => e.cliloc !== 503033), 8000);
     if (!answered) return false;
     return true;
   }
 
   private async sellTo(step: Extract<Step, { verb: 'sell-to' }>, going: () => boolean | Promise<boolean>) {
-    const seller = () =>
-      [...this.world.entities.values()].find(
-        (e) =>
-          e.kind === 'mobile' &&
-          e.position &&
-          (this.call(e.serial)
-            ?.split('/')
-            .some((type) => step.types.includes(type)) ||
-            (this.call(e.serial) === 'Person' && away(e.position, step) <= (step.range ?? 0))) &&
-          away(this.world.position ?? step, e.position) <= reach
+    // One whose title names the trade; else, until titles are known, an untitled person standing
+    // where that trade's spawner keeps it.
+    const seller = () => {
+      const near = [...this.world.entities.values()].filter(
+        (e) => e.kind === 'mobile' && e.position && away(this.world.position ?? step, e.position) <= reach
       );
+      return (
+        near.find((e) =>
+          this.call(e.serial)
+            ?.split('/')
+            .some((type) => step.types.includes(type))
+        ) ??
+        near.find((e) => this.call(e.serial) === 'Person' && e.position && away(e.position, step) <= (step.range ?? 0))
+      );
+    };
     await this.walk({ ...step, range: 0 }, () => !seller() && going());
     const vendor = seller();
     if (!vendor) return false;
@@ -537,16 +582,19 @@ export class Hands {
             away(this.world.position ?? step, a.position ?? step) -
             away(this.world.position ?? step, b.position ?? step)
         )[0];
-    if (!target()) await this.walk({ ...step, range: step.range }, () => !target() && going());
+    const arrived = !target() && (await this.walk({ ...step, range: step.range }, () => !target() && going()));
     const seen = target();
-    if (!seen) return false;
+    // There, with none of its kind about: the going is done, and what it sees there is what it next
+    // weighs (the spawner's kind is remembered gone).
+    if (!seen) return arrived;
     return this.fight(seen.serial, going);
   }
 
   // Attacking, and staying beside it until it falls, leaves, is out of reach or is given up.
-  private async fight(serial: number, going: () => boolean | Promise<boolean>) {
+  // Fighting back, it stays on what is already fighting it whether or not it would have chosen to.
+  private async fight(serial: number, going: () => boolean | Promise<boolean>, back = false) {
     if (this.world.entities.get(serial)?.kind !== 'mobile') return false;
-    if (this.encounter?.allows(serial) === false) {
+    if (!back && this.encounter?.allows(serial) === false) {
       if (this.world.warMode) this.session.setWarMode(false);
       return false;
     }
@@ -558,7 +606,7 @@ export class Hands {
         return false;
       await this.session.attack(serial);
       while (this.world.entities.has(serial) && (await going())) {
-        if (this.encounter?.allows(serial) === false) return false;
+        if (!back && this.encounter?.allows(serial) === false) return false;
         const them = this.world.entities.get(serial)?.position;
         const here = this.world.position;
         if (!them || !here) break;
@@ -751,12 +799,12 @@ export class Hands {
   // end of the 9 to 12 seconds a try takes (ServUO AnimalTaming): accepted as master, or not.
   private async tame(serial: number, going: () => boolean | Promise<boolean>) {
     if (!this.world.entities.has(serial)) return false;
-    const heard = this.world.journal.length;
+    const heard = this.world.heard;
     this.session.useSkill(skillId('AnimalTaming'));
     if (!(await this.until(() => !!this.world.target, 3000))) return false;
     this.session.target({ serial, x: 0, y: 0, z: 0, graphic: 0 });
     for (const end = Date.now() + 20_000; Date.now() < end; await Bun.sleep(250)) {
-      const said = this.world.journal.slice(heard).map((e) => e.cliloc);
+      const said = this.world.journalSince(heard).map((e) => e.cliloc);
       if (said.some((cliloc) => cliloc !== undefined && tamed.has(cliloc))) return true;
       if (said.some((cliloc) => cliloc !== undefined && untamed.has(cliloc))) return false;
       if (!(await going())) return false;

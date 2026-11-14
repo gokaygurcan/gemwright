@@ -27,7 +27,7 @@ test('productive recovery after a loss is not blocked for remaining below a prev
     return true;
   });
   const events: string[] = [];
-  const session = { world, phase: 'ready', refreshSkills: async () => {} } as unknown as PlayerSession;
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
   try {
     await live(
       session,

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { Terrain } from '../terrain';
 import { droppable } from './burden';
 import type { Mind } from './mind';
@@ -27,7 +29,10 @@ type Predicted = {
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
-function* deliberate(
+// How near a spawner it goes to see what is there: well within the client's view of 18 tiles.
+const SEEN = 8;
+
+export function* deliberate(
   mind: Mind,
   terrain: Terrain | undefined,
   spent: ReadonlySet<string>,
@@ -62,7 +67,11 @@ function* deliberate(
       learn: venture.key,
       foresight: venture.expected,
       walk: venture.walk,
-      steps: [...arming(mind, terrain), { verb: 'seek', kind, x: venture.where.x, y: venture.where.y, range: 0 }]
+      // Close enough to see the whole of where it spawns, not onto the spawner's own tile.
+      steps: [
+        ...arming(mind, terrain),
+        { verb: 'seek', kind, x: venture.where.x, y: venture.where.y, z: venture.where.z, range: SEEN }
+      ]
     });
   }
   if (
@@ -255,6 +264,15 @@ export function choices(...args: Parameters<typeof deliberate>): Valued[] {
   return next.value;
 }
 
+// What a weighing came to: every option it valued, in order, with what it valued it at; two
+// weighings agree when these do.
+export const weighed = (valued: readonly Valued[] | undefined) =>
+  valued?.map(({ id, value, rate, seconds }): [string, number, number, number] => [id, value, rate, seconds]);
+export const digest = (valued: readonly Valued[] | undefined) => {
+  const all = weighed(valued);
+  return all && createHash('sha1').update(JSON.stringify(all)).digest('hex');
+};
+
 export async function liveChoices(
   mind: Mind,
   terrain: Terrain | undefined,
@@ -263,21 +281,35 @@ export async function liveChoices(
   stopping: () => boolean,
   active?: Option,
   // False when a later change of what it perceives should not void the weighing under way.
-  fresh = true
+  fresh = true,
+  // Told how far the weighing had come, and the moment, each time it resumes after letting the session run.
+  resumed: (steps: number, at: number) => void = () => {}
 ) {
   const revision = mind.revision;
   const work = deliberate(mind, terrain, spent, places, active);
   await Bun.sleep(0);
+  let steps = 0;
   // Scheduling quantum for shared socket and lease timers. Search resumes with its frontier intact.
   const sliceMs = 5;
-  let until = performance.now() + sliceMs;
+  // Each slice weighs as of one moment: the clock read once when it resumes, so the same slice of
+  // the same weighing always comes to the same values (simulate.ts weighs it again as of then).
+  const realNow = Date.now;
   while (!stopping() && (!fresh || mind.revision === revision)) {
-    const next = work.next();
-    if (next.done) return next.value;
-    if (performance.now() >= until) {
-      await Bun.sleep(0);
-      until = performance.now() + sliceMs;
+    const at = realNow();
+    resumed(steps, at);
+    const until = performance.now() + sliceMs;
+    Date.now = () => at;
+    let next: IteratorResult<void, Valued[]>;
+    try {
+      do {
+        next = work.next();
+        steps++;
+      } while (!next.done && performance.now() < until);
+    } finally {
+      Date.now = realNow;
     }
+    if (next.done) return next.value;
+    await Bun.sleep(0);
   }
   work.return([]);
   return undefined;

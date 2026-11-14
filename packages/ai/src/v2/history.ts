@@ -8,6 +8,22 @@ export interface HistoryEvent {
   data: object;
   // Where the resident stood when it happened: every event carries its place.
   where?: { x: number; y: number; z: number; map: number | null };
+  // How the live mind met it (simulate.ts replays exactly that): perceived (its places and mind
+  // observed it), noticed (its mind observed it), or only told (written down, never observed).
+  via?: 'perceived' | 'noticed' | 'told';
+}
+
+// Where a waking began: the checkpoint it restored (none when it re-lived from the start), the
+// history it re-lived through, and who it was then. A decision is re-lived from it (simulate.ts).
+export interface Wake {
+  id: number;
+  resident: string;
+  at: number;
+  through: number;
+  after: number;
+  trade: string[];
+  supporting: string[];
+  state?: object;
 }
 
 // A resident's life, append-only and never evicted: everything perceived, predicted, decided and
@@ -15,10 +31,16 @@ export interface HistoryEvent {
 export class History {
   private readonly db: Database;
   private pending: HistoryEvent[] = [];
-  private readonly timer: ReturnType<typeof setInterval>;
+  private readonly timer?: ReturnType<typeof setInterval>;
+  // The id the last event recorded has, or will have once written: events are numbered as recorded.
+  private last = 0;
 
-  constructor(readonly path: string) {
-    this.db = new Database(path, { create: true, strict: true });
+  constructor(
+    readonly path: string,
+    readonly readonly = false
+  ) {
+    this.db = new Database(path, readonly ? { readonly: true, strict: true } : { create: true, strict: true });
+    if (readonly) return;
     this.db.exec(`PRAGMA journal_mode = WAL;
       CREATE TABLE IF NOT EXISTS events (
         id INTEGER PRIMARY KEY,
@@ -33,13 +55,27 @@ export class History {
       );
       CREATE INDEX IF NOT EXISTS events_resident_at ON events (resident, at);
       CREATE INDEX IF NOT EXISTS events_resident_kind ON events (resident, kind, at);
-      CREATE INDEX IF NOT EXISTS events_kind_at ON events (kind, at);`);
+      CREATE INDEX IF NOT EXISTS events_kind_at ON events (kind, at);
+      CREATE TABLE IF NOT EXISTS wakes (
+        id INTEGER PRIMARY KEY, resident TEXT NOT NULL, at INTEGER NOT NULL, through INTEGER NOT NULL,
+        after INTEGER NOT NULL, trade TEXT NOT NULL, supporting TEXT NOT NULL, state BLOB
+      );`);
+    const columns = this.db.query<{ name: string }, []>('PRAGMA table_info(events)').all();
+    if (!columns.some((c) => c.name === 'via')) this.db.exec('ALTER TABLE events ADD COLUMN via TEXT');
+    this.last = this.db.query<{ id: number | null }, []>('SELECT MAX(id) AS id FROM events').get()?.id ?? 0;
     this.timer = setInterval(() => this.flush(), 1000);
     this.timer.unref();
   }
 
+  // Its id: what it will be written under.
   record(event: HistoryEvent) {
     this.pending.push(event);
+    return ++this.last;
+  }
+
+  // The id of the newest event recorded so far, written or not.
+  mark() {
+    return this.last;
   }
 
   flush() {
@@ -47,11 +83,13 @@ export class History {
     const batch = this.pending;
     this.pending = [];
     const insert = this.db.query(
-      'INSERT INTO events (resident, at, kind, x, y, z, map, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO events (id, resident, at, kind, x, y, z, map, data, via) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
+    const first = this.last - batch.length - this.pending.length + 1;
     this.db.transaction(() => {
-      for (const e of batch)
+      for (const [i, e] of batch.entries())
         insert.run(
+          first + i,
           e.resident,
           e.at,
           e.kind,
@@ -59,7 +97,8 @@ export class History {
           e.where?.y ?? null,
           e.where?.z ?? null,
           e.where?.map ?? null,
-          JSON.stringify(e.data)
+          JSON.stringify(e.data),
+          e.via ?? null
         );
     })();
   }
@@ -80,22 +119,93 @@ export class History {
     return row ? { through: row.through, state: deserialize(row.state) as T } : undefined;
   }
 
-  // A resident's past events of one kind, oldest first: what its beliefs are rebuilt from.
-  read(resident: string, kind: string): object[] {
+  saveWake(wake: Omit<Wake, 'id'>) {
+    this.db
+      .query('INSERT INTO wakes (resident, at, through, after, trade, supporting, state) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(
+        wake.resident,
+        wake.at,
+        wake.through,
+        wake.after,
+        JSON.stringify(wake.trade),
+        JSON.stringify(wake.supporting),
+        wake.state ? serialize(wake.state) : null
+      );
+  }
+
+  // The waking a resident's event `id` belongs to: its latest before it.
+  wakeBefore(resident: string, id: number, wake?: number): Wake | undefined {
+    const row = this.db
+      .query<
+        {
+          id: number;
+          at: number;
+          through: number;
+          after: number;
+          trade: string;
+          supporting: string;
+          state: Uint8Array | null;
+        },
+        [string, number, number | null, number | null]
+      >('SELECT * FROM wakes WHERE resident = ? AND through < ? AND (? IS NULL OR id = ?) ORDER BY id DESC LIMIT 1')
+      .get(resident, id, wake ?? null, wake ?? null);
+    return row
+      ? {
+          ...row,
+          resident,
+          trade: JSON.parse(row.trade) as string[],
+          supporting: JSON.parse(row.supporting) as string[],
+          state: row.state ? (deserialize(row.state) as object) : undefined
+        }
+      : undefined;
+  }
+
+  // Every waking of a resident, oldest first.
+  wakes(resident: string): Wake[] {
+    return this.db
+      .query<{ id: number }, [string]>('SELECT id FROM wakes WHERE resident = ? ORDER BY id')
+      .all(resident)
+      .flatMap((row) => this.wakeBefore(resident, Number.MAX_SAFE_INTEGER, row.id) ?? []);
+  }
+
+  // One event by its id.
+  event(id: number): (HistoryEvent & { id: number }) | undefined {
+    this.flush();
+    const row = this.db
+      .query<Row & { id: number; resident: string }, [number]>('SELECT * FROM events WHERE id = ?')
+      .get(id);
+    return row ? { id: row.id, ...fromRow(row.resident, row) } : undefined;
+  }
+
+  // A resident's events after `after` up to `through`, as they were met (simulate.ts).
+  *between(resident: string, after: number, through: number): Generator<HistoryEvent & { id: number }> {
+    const rows = this.db
+      .query<Row & { id: number }, [string, number, number]>(
+        'SELECT * FROM events WHERE resident = ? AND id > ? AND id <= ? ORDER BY id'
+      )
+      .iterate(resident, after, through);
+    for (const row of rows) yield { id: row.id, ...fromRow(resident, row) };
+  }
+
+  // A resident's past events of one kind, oldest first: what its beliefs are rebuilt from; up to
+  // `through` when given.
+  read(resident: string, kind: string, through = Number.MAX_SAFE_INTEGER): object[] {
     this.flush();
     return this.db
-      .query<{ data: string }, [string, string]>('SELECT data FROM events WHERE resident = ? AND kind = ? ORDER BY id')
-      .all(resident, kind)
+      .query<{ data: string }, [string, string, number]>(
+        'SELECT data FROM events WHERE resident = ? AND kind = ? AND id <= ? ORDER BY id'
+      )
+      .all(resident, kind, through)
       .map((row) => JSON.parse(row.data) as object);
   }
 
-  recent(kind: string, since: number): HistoryEvent[] {
+  recent(kind: string, since: number, through = Number.MAX_SAFE_INTEGER): HistoryEvent[] {
     this.flush();
     return this.db
-      .query<{ resident: string; at: number; data: string }, [string, number]>(
-        'SELECT resident, at, data FROM events WHERE kind = ? AND at >= ? ORDER BY id DESC LIMIT 20000'
+      .query<{ resident: string; at: number; data: string }, [string, number, number]>(
+        'SELECT resident, at, data FROM events WHERE kind = ? AND at >= ? AND id <= ? ORDER BY id DESC LIMIT 20000'
       )
-      .all(kind, since)
+      .all(kind, since, through)
       .reverse()
       .map((row) => ({ ...row, kind, data: JSON.parse(row.data) as object }));
   }
@@ -103,6 +213,10 @@ export class History {
   // The newest event so far: a replay up to it does not meet what this session records after.
   latest() {
     this.flush();
+    return this.readonly ? this.newest() : this.last;
+  }
+
+  private newest() {
     return this.db.query<{ id: number | null }, []>('SELECT MAX(id) AS id FROM events').get()?.id ?? 0;
   }
 
@@ -142,11 +256,30 @@ export class History {
   }
 
   close() {
-    clearInterval(this.timer);
+    if (this.timer) clearInterval(this.timer);
     this.flush();
     this.db.close();
   }
 }
+
+type Row = {
+  at: number;
+  kind: string;
+  x: number | null;
+  y: number | null;
+  z: number | null;
+  map: number | null;
+  data: string;
+  via: string | null;
+};
+const fromRow = (resident: string, r: Row): HistoryEvent => ({
+  resident,
+  at: r.at,
+  kind: r.kind,
+  data: JSON.parse(r.data) as object,
+  ...(r.x === null || r.y === null || r.z === null ? {} : { where: { x: r.x, y: r.y, z: r.z, map: r.map } }),
+  ...(r.via ? { via: r.via as HistoryEvent['via'] } : {})
+});
 
 const open = new Map<string, History>();
 export const historyAt = (path: string) => {

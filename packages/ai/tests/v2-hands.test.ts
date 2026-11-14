@@ -4,6 +4,7 @@ import type { PlayerSession } from '@gemwright/network/session';
 
 import type { Terrain } from '../src/terrain';
 import { Hands } from '../src/v2/hands';
+import { heard } from './fixtures/journal';
 
 const steps = [
   [0, -1],
@@ -19,13 +20,13 @@ const steps = [
 // A client that turns before it steps, raises a cursor for a tool and is answered for a target.
 function client() {
   const sent: string[] = [];
-  const world = {
+  const world = heard({
     serial: 1,
     position: { x: 10, y: 10, z: 0, direction: 0 },
     entities: new Map([[5, { serial: 5, kind: 'item', graphic: 3718 }]]),
     journal: [] as { cliloc?: number }[],
     target: null as object | null
-  };
+  });
   const session = {
     world,
     walk: async (direction: number) => {

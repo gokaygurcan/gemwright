@@ -39,7 +39,7 @@ export interface Recorded {
     x?: number;
     y?: number;
     kinds?: string[];
-    found?: boolean;
+    found?: boolean | string[];
   };
 }
 export const recorded = (events: HistoryEvent[]): Recorded[] =>

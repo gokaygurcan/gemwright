@@ -3,31 +3,22 @@ import { join } from 'node:path';
 
 import { clientVersion, decisionProviders } from '@gemwright/common/config/shard';
 import type { DecisionSettings } from '@gemwright/common/config/types';
-import { moongateList } from '@gemwright/common/game/rules';
 import { validateConnection } from '@gemwright/network/connection';
 
 import { setDebug } from './debug';
+import { prepareLand } from './land';
 import { logger, logToStdout } from './log';
 import { startExport, stopExport } from './otlp-export';
 import { runPopulation } from './run-population';
-import { readShardWorld } from './spawns';
-import { Terrain } from './terrain';
-import { useShardAreas } from './v1/area-build';
 import { setPopulationChaos } from './v1/chaos';
 import { type PopulationConfig, validateConfig } from './v1/config';
 import { validateDecisionConfig } from './v1/decision-provider';
 import { setWars } from './v1/guild-wars';
 import { enablePhrasing } from './v1/phrasing';
-import { useShardRoutes } from './v1/route-build';
 import { checkProvisioning, loadShardProfile } from './v1/shard-profile';
-import { useShardWorld } from './v1/shard-world';
 import { ResidentStore } from './v1/store';
-import { buildWorkAreas } from './v1/work-area-build';
 import { applyWorld, useCities, world } from './v1/world';
-import { useLand } from './v2/reach';
-import { confine, prepareArea } from './v2/shadow';
-import { WalkGraph } from './walk-graph';
-import { useWalkGraph } from './walk-graph-store';
+import { confine } from './v2/shadow';
 
 // The deployed AI service (gemwright shard deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
@@ -121,34 +112,9 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const)
   process.once(signal, () => {
     stopping = true;
   });
-// The shard's own spawners (the deployment's world files) decide where vendors stand and residents
-// hunt; with no residents to run there is no land to learn.
+// With no residents to run there is no land to learn.
 if (count > 0) {
-  const shardWorld = readShardWorld(join(data, 'world'));
-  if (!shardWorld)
-    throw new Error(
-      `No world files in ${join(data, 'world')} (Spawns/ and Regions.xml): run gemwright shard deploy --ai to upload them.`
-    );
-  useShardWorld(shardWorld);
-  logger('serve').info(`[serve] vendors and hunting grounds from ${shardWorld.spawners.length} spawners`);
-  const terrain = Terrain.shared(join(data, 'assets'), 1);
-  // Where each town's mines and woods lie, from the map.
-  buildWorkAreas(terrain);
-  // Which places can be walked to from which, and the public roads long walks follow: kept on the
-  // volume, built again only for a new world or map.
-  await useShardAreas(data, terrain, join(data, 'assets'), shardWorld.teleporters);
-  useShardRoutes(data, terrain, join(data, 'assets'));
-  // How the land joins up on foot, by teleporter and by moongate (walk-graph.ts), for the v2 mind.
-  const teleporters = shardWorld.teleporters;
-  useLand(
-    new WalkGraph(
-      await useWalkGraph(data, terrain, join(data, 'assets'), teleporters, moongateList),
-      terrain,
-      new Set(teleporters.map((l) => l.from.x * 4096 + l.from.y))
-    )
-  );
-  // What the cities residents are kept to hold, listed before anyone wakes.
-  prepareArea(join(data, 'history.sqlite'), terrain);
+  await prepareLand(data, shard.ai?.cities);
 }
 while (!stopping) {
   const started = Date.now();

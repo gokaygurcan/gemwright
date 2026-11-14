@@ -46,6 +46,10 @@ export class CareMemory {
     }
     if (event.kind === 'spell-missing') this.knownSpells.delete(Number(data.spell));
     if (event.kind === 'stranded') this.stranded.push(event.at);
+    // What is too old to count is forgotten as time passes, not when asked: asking changes nothing.
+    this.deaths = this.deaths.filter((d) => event.at - d.at < 3_600_000);
+    this.stranded = this.stranded.filter((at) => event.at - at < 3_600_000);
+    this.helpUses = this.helpUses.filter((at) => event.at - at < 24 * 3_600_000);
     if (event.kind === 'self' || event.kind === 'awake') {
       const self = event.kind === 'awake' ? data.self : data;
       const health = (self as { health?: { current: number; max: number } } | undefined)?.health;
@@ -58,9 +62,12 @@ export class CareMemory {
   }
 
   needsHelp(now = Date.now()) {
-    this.deaths = this.deaths.filter((d) => now - d.at < 3_600_000);
-    this.stranded = this.stranded.filter((at) => now - at < 3_600_000);
-    this.helpUses = this.helpUses.filter((at) => now - at < 24 * 3_600_000);
-    return now >= this.helpAfter && this.helpUses.length < 2 && (this.deaths.length >= 3 || this.stranded.length >= 3);
+    const recent = (at: number, within: number) => now - at < within;
+    return (
+      now >= this.helpAfter &&
+      this.helpUses.filter((at) => recent(at, 24 * 3_600_000)).length < 2 &&
+      (this.deaths.filter((d) => recent(d.at, 3_600_000)).length >= 3 ||
+        this.stranded.filter((at) => recent(at, 3_600_000)).length >= 3)
+    );
   }
 }

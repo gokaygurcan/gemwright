@@ -1,4 +1,6 @@
+import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import { creatures } from '@gemwright/common/game/rules';
+import { Layer } from '@gemwright/network/layers';
 import { hostileNotoriety } from '@gemwright/network/opcodes';
 import type { PlayerSession } from '@gemwright/network/session';
 import type { Entity } from '@gemwright/network/world';
@@ -19,11 +21,53 @@ import { screenOf } from './perceive';
 const away = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
+export type Answer = [question: string, answer: unknown];
+
+// The answers a traced decision was given, given again in its simulation, in the order asked.
+export class TapedEncounter {
+  private readonly asked = new Map<string, unknown[]>();
+  readonly unanswered = new Set<string>();
+
+  constructor(tape: readonly Answer[]) {
+    for (const [question, answer] of tape) {
+      const answers = this.asked.get(question) ?? [];
+      answers.push(answer);
+      this.asked.set(question, answers);
+    }
+  }
+
+  private answer<T>(question: string, otherwise: T): T {
+    const answers = this.asked.get(question);
+    if (!answers?.length) {
+      this.unanswered.add(question);
+      return otherwise;
+    }
+    return (answers.length > 1 ? answers.shift() : answers[0]) as T;
+  }
+
+  allows(serial: number) {
+    return this.answer(`allows ${serial}`, false);
+  }
+  allowsKind(kind: string) {
+    return this.answer(`allowsKind ${kind}`, false);
+  }
+  response() {
+    return this.answer<Option | null | undefined>('response', undefined) ?? undefined;
+  }
+}
+
 // The same encounter admission for choosing a target, approaching it and continuing a fight.
 export class Encounter {
   private revision = -1;
   private readonly admitted = new Map<number, boolean>();
   escaping = false;
+  // The answers it gives while a decision is traced (live.ts), for its simulation to give again.
+  readonly tapes = new Set<Answer[]>();
+
+  private told<T>(question: string, answer: T) {
+    for (const tape of this.tapes) tape.push([question, answer]);
+    return answer;
+  }
 
   constructor(
     private readonly session: PlayerSession,
@@ -66,14 +110,14 @@ export class Encounter {
           })
       );
     }
-    return this.admitted.get(serial) ?? false;
+    return this.told(`allows ${serial}`, this.admitted.get(serial) ?? false);
   }
 
   allowsKind(kind: string) {
     const world = screenOf(this.session);
     const here = world.position;
     const known = creatures.find((creature) => creature.type === kind);
-    if (!known || !here) return false;
+    if (!known || !here) return this.told(`allowsKind ${kind}`, false);
     const target: Entity = {
       serial: -1,
       kind: 'mobile',
@@ -81,10 +125,13 @@ export class Encounter {
       ...(known.name ? { name: known.name } : {}),
       position: here
     };
-    return canBeat(this.session, selfState(this.session, false), target, {
-      seen: [],
-      riskTolerance: this.mind.temper.boldness
-    });
+    return this.told(
+      `allowsKind ${kind}`,
+      canBeat(this.session, selfState(this.session, false), target, {
+        seen: [],
+        riskTolerance: this.mind.temper.boldness
+      })
+    );
   }
 
   // Who is fighting it: what has struck it and is still about, and what it is fighting itself.
@@ -101,13 +148,25 @@ export class Encounter {
     );
   }
 
-  // In danger when the fight as it stands costs more than it can take: every attacker together, put
-  // down one at a time (the quickest first), each striking until it falls, against its health now,
-  // its healing and its boldness (ServUO's fight as combat-forecast.ts models it).
-  needsEscape() {
+  // The nearest of those fighting it: what it turns on when there is no getting away.
+  attacker(): number | undefined {
+    const here = screenOf(this.session).position;
+    return this.attackers()
+      .filter((enemy) => here && enemy.position)
+      .sort(
+        (a, b) =>
+          away(here ?? a.position ?? b.position ?? { x: 0, y: 0 }, a.position ?? { x: 0, y: 0 }) -
+          away(here ?? a.position ?? { x: 0, y: 0 }, b.position ?? { x: 0, y: 0 })
+      )[0]?.serial;
+  }
+
+  // The fight as it stands: every attacker together, put down one at a time (the quickest first),
+  // each striking until it falls (ServUO's fight as combat-forecast.ts models it): the health it
+  // would cost, and how hard they press meanwhile.
+  private forecast() {
     const attackers = this.attackers();
     const status = screenOf(this.session).status;
-    if (!attackers.length || !status?.maxHits) return false;
+    if (!attackers.length || !status?.maxHits) return undefined;
     const self = selfState(this.session, false);
     const fights = attackers
       .map((mobile) => {
@@ -116,6 +175,7 @@ export class Encounter {
           weapon: self.held ?? self.spare
         });
         return {
+          serial: mobile.serial,
           seconds: one.remaining / Math.max(Number.EPSILON, one.outgoingPerSecond),
           pressure: one.incomingPerSecond,
           heal: one.healAmount
@@ -129,15 +189,67 @@ export class Encounter {
       loss += fight.seconds * pressure;
       pressure -= fight.pressure;
     }
+    return { status, fights, total, loss };
+  }
+
+  // In danger when the fight as it stands costs more than it can take, against its health now, its
+  // healing and its boldness.
+  needsEscape() {
+    const fight = this.forecast();
+    if (!fight) return false;
     const verdict = compareCombatOptions({
-      hits: status.hits,
-      maxHits: status.maxHits,
-      incomingPerSecond: total,
-      secondsToDefeat: loss / Math.max(Number.EPSILON, total),
-      healAmount: fights[0]?.heal ?? 0,
+      hits: fight.status.hits,
+      maxHits: fight.status.maxHits,
+      incomingPerSecond: fight.total,
+      secondsToDefeat: fight.loss / Math.max(Number.EPSILON, fight.total),
+      healAmount: fight.fights[0]?.heal ?? 0,
       riskTolerance: this.mind.temper.boldness
     });
     return verdict.action === 'flee-town';
+  }
+
+  // Guarded places to run to (the towns' banks, live.ts): the guards there end a fight it cannot.
+  havens: readonly { x: number; y: number }[] = [];
+
+  // In danger, running or fighting back, by what each costs: running, the blows taken all the way to
+  // the nearest guarded place at the pace of the slower of it and them (nothing is outrun that steps
+  // as fast); fighting back, the forecast's loss. Not every danger is equal: what the attackers are
+  // (their health, their blows) is what the forecast weighs.
+  private turning(): Option | undefined {
+    const fight = this.forecast();
+    const here = screenOf(this.session).position;
+    if (!fight || !here) return undefined;
+    const world = screenOf(this.session);
+    const riding = [...world.entities.values()].some((e) => e.parent === world.serial && e.layer === Layer.Mount);
+    const own = riding ? 0.1 : 0.2;
+    const theirs = Math.min(
+      ...fight.fights.map(
+        (f) => creatures.find((c) => this.mind.call(f.serial)?.split('/').includes(c.type))?.speed ?? 0.2
+      )
+    );
+    const haven = [...this.havens].sort((a, b) => away(here, a) - away(here, b))[0];
+    // Outrunning them, only the first steps are taken under their blows.
+    const exposed = theirs > own ? 3 : haven ? away(here, haven) * own : Number.POSITIVE_INFINITY;
+    const running = fight.total * exposed;
+    const quickest = fight.fights[0];
+    if (haven && running < fight.loss)
+      return {
+        key: 'leave an unsafe encounter',
+        id: 'escape',
+        urgent: true,
+        value: 0,
+        seconds: exposed,
+        steps: [{ verb: 'escape', to: haven }]
+      };
+    if (!quickest) return undefined;
+    return {
+      key: `fight back ${this.mind.call(quickest.serial)?.split('/')[0] ?? 'an attacker'}`,
+      id: `fight back ${quickest.serial}`,
+      urgent: true,
+      value: 0,
+      seconds: quickest.seconds,
+      steps: [{ verb: 'fight', serial: quickest.serial, back: true }]
+    };
   }
 
   treat(medicine: Treatment, going: () => boolean | Promise<boolean>) {
@@ -145,6 +257,10 @@ export class Encounter {
   }
 
   response(): Option | undefined {
+    return this.told('response', this.responding());
+  }
+
+  private responding(): Option | undefined {
     const medicine = treatment(this.mind);
     const danger = this.needsEscape();
     if (medicine && (!danger || medicine.kind === 'potion'))
@@ -157,19 +273,13 @@ export class Encounter {
         steps: [{ verb: 'treat', treatment: medicine }]
       };
     if (!danger) return undefined;
-    return {
-      key: 'leave an unsafe encounter',
-      id: 'escape',
-      urgent: true,
-      value: 0,
-      seconds: 3,
-      steps: [{ verb: 'escape' }]
-    };
+    return this.turning();
   }
 
   async escape(
     navigate: (point: { x: number; y: number }, range: number) => Promise<boolean>,
-    going: () => boolean | Promise<boolean>
+    going: () => boolean | Promise<boolean>,
+    to?: { x: number; y: number }
   ) {
     if (!(await going())) return false;
     if (screenOf(this.session).target) this.session.target(null);
@@ -190,7 +300,7 @@ export class Encounter {
               throw new Blocked('unreachable', 'No observed route away from the encounter');
           }
         },
-        undefined
+        to
       );
       return !this.needsEscape();
     } catch (error) {
@@ -204,8 +314,10 @@ export class Encounter {
   blocked() {
     const result = new Set<string>();
     if (this.escaping) return result;
-    const here = screenOf(this.session).position;
-    if (!here) return result;
+    const world = screenOf(this.session);
+    const here = world.position;
+    // Nothing can harm the dead (ServUO: no harm to a mobile that is not alive): a ghost's way is open.
+    if (!here || GHOST_BODIES.has(world.entities.get(world.serial ?? -1)?.graphic ?? 0)) return result;
     for (const enemy of this.seen()) {
       const at = enemy.position;
       if (!at || harmless(enemy) || !hostileNotoriety.includes(enemy.notoriety ?? 0) || this.allows(enemy.serial))

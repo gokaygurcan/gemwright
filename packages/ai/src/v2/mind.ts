@@ -59,7 +59,7 @@ export class Mind {
   private attempt?: {
     key: string;
     // The menu answers this attempt has made so far (each may open what the next one answers).
-    replies?: { serial: number; gump: number; button: number }[];
+    replies?: { gump: number; button: number }[];
     // What the wiki foresees for this one attempt, when its key alone cannot say (a trade's prices,
     // a harvest's yield).
     foresight?: Partial<Outcome>;
@@ -140,6 +140,7 @@ export class Mind {
       surprised: this.surprised,
       revision: this.revision,
       refusedDrops: this.refusedDrops,
+      unworn: this.unworn,
       menus: this.menus,
       roots: this.roots,
       links: this.links,
@@ -181,7 +182,7 @@ export class Mind {
   // shard opened (its serial, id and reply buttons), the menu each tool opens, and which button of
   // which menu opens what next — the whole interaction chain, its branches and its ways back. Also
   // the tools whose use asked for a target instead, and those that answered with nothing.
-  private readonly menus: Record<string, { serial: number; gump: number; buttons: number[] }> = {};
+  private readonly menus: Record<string, { gump: number; buttons: number[] }> = {};
   private readonly roots: Record<string, string> = {};
   private readonly links: Record<string, string> = {};
   private readonly targetTools = new Set<string>();
@@ -242,6 +243,7 @@ export class Mind {
       case 'stranded':
       case 'route-failed':
       case 'drop-refused':
+      case 'wear-refused':
       case 'resource-spent':
         return true;
       case 'self':
@@ -277,6 +279,13 @@ export class Mind {
       default:
         return false;
     }
+  }
+
+  // What the shard would not let it wear (an item of another race, too heavy for its hands): never
+  // offered to be put on again.
+  private readonly unworn = new Set<number>();
+  wears(serial: number) {
+    return !this.unworn.has(serial);
   }
 
   refuseDrop(serial: number) {
@@ -334,6 +343,10 @@ export class Mind {
       case 'training':
         this.supporting = data.skills as string[];
         break;
+      case 'wear-refused':
+        this.revision++;
+        this.unworn.add(Number(data.serial));
+        break;
       case 'drop-refused':
         this.refusedDrops.set(Number(data.serial), {
           amount: data.amount as number | undefined,
@@ -381,11 +394,13 @@ export class Mind {
           typeof opened.id === 'number' &&
           typeof opened.layout === 'string'
         ) {
-          const menu = `${opened.serial}:${opened.id}`;
+          // A menu is known by what it is (its gump id), never by one opening of it: the shard gives
+          // every opening a serial of its own, and what its buttons lead to stays the same.
+          const menu = String(opened.id);
           const buttons = gumpButtons(opened.layout);
-          if (buttons.length) this.menus[menu] = { serial: opened.serial, gump: opened.id, buttons };
+          if (buttons.length) this.menus[menu] = { gump: opened.id, buttons };
           const reply = this.attempt?.replies?.at(-1);
-          if (reply) this.links[`${reply.serial}:${reply.gump} ${reply.button}`] = menu;
+          if (reply) this.links[`${reply.gump} ${reply.button}`] = menu;
           else {
             const tool = this.openTool();
             if (tool) this.roots[tool] = menu;
@@ -554,7 +569,7 @@ export class Mind {
               (data.graphic ? `tile${data.graphic}` : data.land !== undefined ? `land${data.land}` : 'land'));
       this.attempt.key += ` > ${verb} ${on}`;
       if (verb === 'gump-response') {
-        const reply = { serial: Number(data.serial), gump: Number(data.gump), button: Number(data.button) };
+        const reply = { gump: Number(data.gump), button: Number(data.button) };
         this.attempt.replies = [...(this.attempt.replies ?? []), reply];
       }
       this.attempt.context = this.context(this.attempt.object, this.attempt.key);
@@ -769,15 +784,16 @@ export class Mind {
   }
 
   complete(id: string, succeeded: boolean) {
-    this.finish(Date.now());
+    const at = Date.now();
+    this.finish(at);
     this.beliefs.executed(id, succeeded);
-    this.write('executed', { id, succeeded });
+    this.write('executed', { id, succeeded }, at);
   }
 
   notice(kind: string, data: object) {
     const event = { resident: this.resident, at: Date.now(), kind, data, ...(this.where ? { where: this.where } : {}) };
     this.observe(event);
-    this.record(event);
+    this.record({ ...event, via: 'noticed' });
   }
 
   reachable(goal: { x: number; y: number; z?: number }) {
@@ -1040,11 +1056,19 @@ export class Mind {
       expected: (key: string) => this.expected(key),
       market: this.price,
       steps: this.steps,
-      allowed: this.allowed
+      // Where it may go, and has not learned its hands cannot walk to from here.
+      allowed: (p: { x: number; y: number; z?: number }) => this.allowed(p) && this.reachable(p)
     };
   }
 
-  private write(kind: string, data: object) {
-    this.record({ resident: this.resident, at: Date.now(), kind, data, ...(this.where ? { where: this.where } : {}) });
+  private write(kind: string, data: object, at = Date.now()) {
+    this.record({
+      resident: this.resident,
+      at,
+      kind,
+      data,
+      via: 'told',
+      ...(this.where ? { where: this.where } : {})
+    });
   }
 }

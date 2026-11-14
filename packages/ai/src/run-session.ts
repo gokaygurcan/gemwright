@@ -93,7 +93,7 @@ async function exercise(session: PlayerSession) {
     resource: 'target'
   });
   const cursor = session.world.target?.id;
-  const feedbackBefore = session.world.journal.length;
+  const feedbackBefore = session.world.heard;
   const position = session.world.position;
   if (!position || session.world.serial === null) throw new Error('Character state disappeared');
   session.target({
@@ -101,7 +101,7 @@ async function exercise(session: PlayerSession) {
     ...position,
     graphic: session.world.entities.get(session.world.serial)?.graphic ?? 0
   });
-  await session.waitFor(() => session.world.journal.length > feedbackBefore, 'tool targeting feedback');
+  await session.waitFor(() => session.world.heard > feedbackBefore, 'tool targeting feedback');
   return {
     walked: true,
     before,
@@ -109,7 +109,7 @@ async function exercise(session: PlayerSession) {
     speechEchoed: true,
     backpackObserved: true,
     targetingCursor: cursor,
-    targetFeedback: session.world.journal.slice(feedbackBefore)
+    targetFeedback: session.world.journalSince(feedbackBefore)
   };
 }
 

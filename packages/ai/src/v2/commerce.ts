@@ -3,7 +3,7 @@ import { buys, isA } from '@gemwright/common/game/rules';
 import type { Terrain } from '../terrain';
 import { bankBatch, bankSteps } from './banking';
 import { equipmentToKeep } from './inventory';
-import { foreseeTrade, harvestBy, tools } from './knowledge';
+import { foreseeTrade, harvestBy, tools, trades } from './knowledge';
 import type { Mind } from './mind';
 import type { Option, Step } from './options';
 
@@ -15,9 +15,7 @@ export function sales(
   reserved: ReadonlySet<number> = new Set()
 ): Option[] {
   const seen = [...mind.sights()].flatMap((e) =>
-    e.kind === 'mobile' && e.position
-      ? [{ x: e.position.x, y: e.position.y, types: (mind.call(e.serial) ?? '').split('/') }]
-      : []
+    e.kind === 'mobile' && e.position ? [{ x: e.position.x, y: e.position.y, types: trades(mind.call(e.serial)) }] : []
   );
   const sellers = new Map([...vendors, ...seen].map((v) => [`${v.x},${v.y}:${v.types.join('/')}`, v]));
   const keep = equipmentToKeep(mind, terrain, true);

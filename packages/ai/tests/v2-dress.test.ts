@@ -6,6 +6,7 @@ import type { PlayerSession } from '@gemwright/network/session';
 
 import type { Terrain } from '../src/terrain';
 import { dress, shed } from '../src/v2/dress';
+import { heard } from './fixtures/journal';
 import { mindFor, perceived } from './fixtures/v2/mind-sync';
 
 const ROBE = 7939;
@@ -19,7 +20,7 @@ function shard(
   const done: string[] = [];
   const entities = new Map(things);
   const journal: { cliloc?: number }[] = [];
-  const world = { serial: 1, position: { x: 5, y: 5, z: 0 }, entities, journal };
+  const world = heard({ serial: 1, position: { x: 5, y: 5, z: 0 }, entities, journal });
   const session = {
     world,
     // The shard's answer to 0x22: where it truly stands, a floor up from what the client believed.
@@ -69,7 +70,7 @@ test('a worn death robe is on the floor before its own robe goes back on', async
       () => {}
     )
   ).toBe(true);
-  expect(await dress(session, mind, terrain, new Map())).toBe(true);
+  expect(await dress(session, mind, terrain)).toBe(true);
   expect(done).toEqual(['where am I', 'drop 3 at 5,5,20', 'wear 4']);
 });
 
@@ -148,10 +149,9 @@ test('a thrown equipment refusal is remembered so the next turn can do different
     }
   } as unknown as PlayerSession;
   const terrain = { tile: () => ({ flags: 0x00400000, layer: 7 }) } as unknown as Terrain;
-  const refused = new Map<number, string>();
   for (let turn = 0; turn < 4; turn++) {
     try {
-      await dress(perceived(session, mindFor(session)), mindFor(session), terrain, refused);
+      await dress(perceived(session, mindFor(session)), mindFor(session), terrain);
     } catch (error) {
       expect(error).toBeInstanceOf(CommandRejected);
     }
@@ -176,6 +176,30 @@ test('usable armor inside an owned bag is worn rather than overlooked', async ()
   const terrain = {
     tile: (graphic: number) => ({ flags: graphic === 5083 ? 0x00400000 : 0, layer: 13 })
   } as unknown as Terrain;
-  expect(await dress(perceived(session, mindFor(session)), mindFor(session), terrain, new Map())).toBe(true);
+  expect(await dress(perceived(session, mindFor(session)), mindFor(session), terrain)).toBe(true);
   expect(worn).toEqual([10]);
+});
+
+test('a weapon the shard refused to put in its hands is never offered for arming again', async () => {
+  const { Hands } = await import('../src/v2/hands');
+  const { arming } = await import('../src/v2/options');
+  const entities = new Map([
+    [2, { serial: 2, kind: 'item', graphic: 3701, parent: 1, layer: 21 }],
+    [9, { serial: 9, kind: 'item', graphic: 0x901, parent: 2 }]
+  ]);
+  const session = {
+    world: { serial: 1, entities },
+    moveItem: async () => {},
+    equipItem: async () => {
+      throw new CommandRejected('equipment-rejected', 'Equipment refused (0x901 on layer 1)');
+    }
+  } as unknown as PlayerSession;
+  const mind = mindFor(session);
+  perceived(session, mind);
+  const hands = new Hands(session, undefined);
+  hands.notice = (kind, data) => mind.notice(kind, data);
+  await expect(hands.do({ verb: 'equip', serial: 9, layer: 1 }, () => true)).rejects.toBeInstanceOf(CommandRejected);
+  expect(mind.wears(9)).toBe(false);
+  const terrain = { tile: () => ({ flags: 0x00400000, layer: 1 }) } as unknown as Terrain;
+  expect(arming(mind, terrain).some((step) => 'serial' in step && step.serial === 9)).toBe(false);
 });

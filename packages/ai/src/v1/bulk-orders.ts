@@ -146,11 +146,11 @@ async function claimReward(ctx: Ctx, vendor: { mobile: Entity; entry: { index: n
     .then(() => gumpWith(ctx, REWARD_CONFIRM))
     .catch(() => undefined);
   if (!confirm) return true;
-  const heard = session.world.journal.length;
+  const heard = session.world.heard;
   session.replyGump(confirm.serial, confirm.id, CONFIRM_BUTTON, []);
   await session
     .waitFor(
-      () => session.world.journal.slice(heard).some((entry) => entry.cliloc === REWARD_GIVEN),
+      () => session.world.journalSince(heard).some((entry) => entry.cliloc === REWARD_GIVEN),
       'reward in the backpack',
       3000
     )

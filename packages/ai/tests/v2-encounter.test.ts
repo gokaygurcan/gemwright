@@ -111,3 +111,40 @@ test('a few weak attackers are fought out at good health, and the same strong on
   strikes(strong, [60, 61, 62], 20);
   expect(new Encounter(strong.session, strong.mind, undefined).needsEscape()).toBe(true);
 });
+
+test('a ghost walks through ground a living body would keep clear of: nothing can harm the dead', async () => {
+  const { Encounter } = await import('../src/v2/encounter');
+  const f = encounter();
+  for (const [serial, graphic, name, x] of [
+    [51, 17, 'an orc', 102],
+    [52, 28, 'a giant spider', 103],
+    [53, 28, 'a giant spider', 104]
+  ] as const)
+    f.world.put({ serial, kind: 'mobile', graphic, name, notoriety: 3, position: { x, y: 100, z: 0, direction: 0 } });
+  f.world.revision++;
+  const awareness = new Encounter(f.session, f.mind, undefined);
+  expect(awareness.blocked().size).toBeGreaterThan(0);
+  required(f.world.entities.get(1)).graphic = 403;
+  f.world.revision++;
+  expect(awareness.blocked().size).toBe(0);
+});
+
+// On foot nothing is outrun (ServUO: a running player and these creatures both take 0.2 seconds a
+// step): it runs only when a guarded town is near enough that the way there costs less than the
+// fight, and otherwise turns on the one it puts down soonest.
+test('in danger it runs for a near town, and with none near it fights back', async () => {
+  const { Encounter } = await import('../src/v2/encounter');
+  const far = encounter();
+  crowd(far, 24, 'a lich', 'Lich', 3);
+  strikes(far, [60, 61, 62], 20);
+  const cornered = new Encounter(far.session, far.mind, undefined);
+  cornered.havens = [{ x: 900, y: 100 }];
+  expect(cornered.needsEscape()).toBe(true);
+  expect(cornered.response()?.steps[0]).toMatchObject({ verb: 'fight', back: true });
+  const near = encounter();
+  crowd(near, 24, 'a lich', 'Lich', 3);
+  strikes(near, [60, 61, 62], 20);
+  const home = new Encounter(near.session, near.mind, undefined);
+  home.havens = [{ x: 98, y: 100 }];
+  expect(home.response()?.steps[0]).toEqual({ verb: 'escape', to: { x: 98, y: 100 } });
+});

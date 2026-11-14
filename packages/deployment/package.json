@@ -25,6 +25,7 @@
     "./target": "./src/target.ts",
     "./deploy": "./src/deploy.ts",
     "./restore": "./src/restore.ts",
+    "./simulate": "./src/simulate.ts",
     "./ai-deploy": "./src/ai-deploy.ts",
     "./client-deploy": "./src/client-deploy.ts",
     "./client-files": "./src/client-files.ts",
