@@ -20,7 +20,7 @@ Keep copies outside your hosting service as well.
 
 ## Restore
 
-`gemwright shard restore` puts a pull back: the world saves (ServUO) and the AI residents database.
+`gemwright shard restore` puts a pull back: the world saves (ServUO), the AI residents database and their minds' history.
 
 ```sh
 # the newest pull, everything in it
@@ -30,4 +30,4 @@ gemwright shard restore
 gemwright shard restore --from .gemwright/pulls/<time> --server
 ```
 
-Files are uploaded first; each service then restarts and swaps them in on boot. The replaced files stay beside them (`Saves.before-restore`, `residents.sqlite.before-restore`). Restoring disconnects everyone and returns the shard to that save, so the command asks first; `--yes` skips the question.
+Files are uploaded first; each service then restarts and swaps them in on boot. The replaced files stay beside them (`Saves.before-restore`, `residents.sqlite.before-restore`, `history.sqlite.before-restore`). Restoring disconnects everyone and returns the shard to that save, so the command asks first; `--yes` skips the question.

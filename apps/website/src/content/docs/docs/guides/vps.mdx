@@ -9,25 +9,46 @@ import { Steps } from '@astrojs/starlight/components';
 
 On a VPS the shard runs in Docker Compose. Images are built on your machine and sent over SSH, so the server never compiles.
 
+A shard with AI residents needs at least 4 GB of RAM. With 2 GB the AI service is swapped out and killed under memory pressure, and its residents keep dropping.
+
 <Steps>
 
-1. Prepare a new Ubuntu server once.
+1. Create an Ubuntu server and log in once, so your machine learns its host key.
 
    ```sh
-   gemwright shard setup --ssh user@your-server --client
+   ssh root@your-server-ip
    ```
 
-   Setup shows what it will change, then installs Docker, gives a non-root user Docker access and opens the firewall ports (SSH, 2593, and 80/443 with `--client`) over one SSH session. Sudo asks for its password on the server. The result is saved to [`vps`](/docs/reference/configuration/#vps) in `gemwright.json`.
+   SSH shows the server's key fingerprint and asks whether to trust it. Check it against the one in your provider's console before answering `yes`.
 
-2. Deploy.
+2. Prepare it once.
 
    ```sh
-   gemwright shard deploy --target vps --files ~/uo
+   gemwright shard setup --ssh root@your-server-ip --public-host your-server-ip --client
+   ```
+
+   Setup shows what it will change, then over one SSH session installs Docker, adds swap and opens the firewall ports (SSH, 2593, and 80/443 with `--client`). The result is saved to [`vps`](/docs/reference/configuration/#vps) in `gemwright.json`.
+
+   Logged in as another user, setup gives that user Docker access, and sudo asks for its password on the server.
+
+3. Deploy.
+
+   ```sh
+   gemwright shard deploy --target vps --server --client --ai --files ~/uo
    ```
 
    Without flags, the questionnaire asks for SSH access, game files and an optional browser-client domain.
 
 </Steps>
+
+## The `gemwright` user
+
+Logged in as root, setup creates a non-root `gemwright` user and deploys as that user from then on.
+
+- **No password.** The account is created without one and its password is locked, so nobody can log in as `gemwright` with a password, over SSH or on the console. There is no password to look up or set.
+- **Same SSH keys as root.** Setup copies root's `~/.ssh/authorized_keys` to `/home/gemwright/.ssh/authorized_keys`, so every key that logs in as root also logs in as `gemwright` without a password: `ssh gemwright@your-server-ip`. A key added to root later is not copied; add it to both files.
+- **Docker, no sudo.** It is in the `docker` group, which on that server is equivalent to root access, and it has no sudo. Gemwright deploys and runs the shard as this user.
+- **Root for everything else.** For system updates and other administration, log in as `root` with your key as before.
 
 ## Browser client over HTTPS
 
@@ -36,6 +57,45 @@ Point an A record at the server, then deploy the client with its hostname:
 ```sh
 gemwright shard deploy --client --domain play.yourshard.com
 ```
+
+Caddy gets the certificate once the name resolves to the server.
+
+### With Cloudflare DNS
+
+The Cloudflare CLI (`cf`) changes the record from your machine. Find the record's id, check the change with `--dry-run`, then apply it. Only the address changes; the record's name, type and proxy setting stay as they are:
+
+```sh
+cf dns records list -z yourshard.com --name play.yourshard.com --type A
+cf dns records edit <record-id> -z yourshard.com --body '{"content":"your-server-ip"}' --dry-run
+cf dns records edit <record-id> -z yourshard.com --body '{"content":"your-server-ip"}'
+```
+
+Until Caddy has its certificate, a proxied record answers with Cloudflare error 525: Cloudflare reaches the server, but no TLS handshake completes. Caddy retries by itself, waiting longer after each failure, and attempts made before the record changed fail against the old server. To try again at once, restart Caddy; the certificate arrives within a minute:
+
+```sh
+ssh gemwright@your-server-ip docker restart gemwright-caddy
+```
+
+A login name for native clients, such as `login.yourshard.com`, needs its own A record, and it must not be proxied: Cloudflare's proxy carries web traffic only, not the game's TCP port. Players then log in at `login.yourshard.com:2593`, and a later move to another server changes only this record:
+
+```sh
+cf dns records create -z yourshard.com --body '{"type":"A","name":"login.yourshard.com","content":"your-server-ip","proxied":false,"ttl":1}'
+```
+
+Run `cf` outside a folder whose `.env` sets `CLOUDFLARE_API_TOKEN`. Bun loads that file, and a token there replaces your `cf` login, so the zone can appear missing. `cf auth whoami` shows which credentials it uses.
+
+## Move to a new server
+
+Pull from the old server before setup replaces the `vps` settings, deploy to the new one, then [restore](/docs/guides/backups/) the pull there. The old server keeps running until you stop it.
+
+```sh
+gemwright shard pull --target vps --server --ai
+gemwright shard setup --ssh root@new-server-ip --public-host new-server-ip --client
+gemwright shard deploy --target vps --server --client --ai --files ~/uo
+gemwright shard restore --target vps --server --ai
+```
+
+Point the domain at the new server last.
 
 ## Review before installing
 
