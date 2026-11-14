@@ -80,3 +80,35 @@ test('an interrupted copy leaves no file', async () => {
   await expect(toFile(['sh', '-c', 'head -c 100000 /dev/zero; exit 1'], file)).rejects.toThrow();
   expect(existsSync(file)).toBe(false);
 });
+
+// A stream through the AI service ends early, without an error, when the service is killed meanwhile:
+// a database that arrives short is no pulled database.
+test('a database that arrives incomplete fails its part of the pull and leaves no file', async () => {
+  const directory = await shard();
+  await mkdir(join(directory, '.gemwright/vps'), { recursive: true });
+  await writeFile(join(directory, '.gemwright/vps/state.json'), JSON.stringify({ ai: true }));
+  await mkdir(join(directory, 'bin'));
+  await writeFile(
+    join(directory, 'bin/docker'),
+    `#!/bin/sh
+[ "$1" = info ] && exit 0
+case "$*" in
+  *" stat "*) echo 2000 ;;
+  *" cat "*) head -c 1000 /dev/zero ;;
+esac
+exit 0
+`,
+    { mode: 0o755 }
+  );
+  const path = process.env.PATH;
+  process.env.PATH = `${join(directory, 'bin')}:${path}`;
+  try {
+    const out = join(directory, 'out');
+    await pull({ ai: true, output: out, vps: vpsRunner(directory, { id: 'test', vps }) }, directory);
+    expect(existsSync(join(out, 'ai/history.sqlite'))).toBe(false);
+    const manifest = await Bun.file(join(out, 'manifest.json')).json();
+    expect(JSON.stringify(manifest)).toContain('history.sqlite arrived incomplete: 1000 of 2000 bytes');
+  } finally {
+    process.env.PATH = path;
+  }
+});

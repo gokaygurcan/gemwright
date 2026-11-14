@@ -71,30 +71,33 @@ export async function pull(
     if (want.ai || want.logs) {
       const deployed = JSON.parse(await command(vps.shell(`cat ${quote(`${vps.root}/state.json`)}`), directory));
       if (want.ai && deployed.ai) {
-        // A consistent copy made inside the running container, so a live write never tears it.
-        const snapshot = `/tmp/pull-${stamp}.sqlite`;
-        const vacuum = `new (require('bun:sqlite').Database)('/app/data/residents.sqlite').exec("VACUUM INTO '${snapshot}'")`;
+        // A consistent copy of a database (VACUUM INTO) on the AI's data volume, streamed out by a
+        // container of its own: the running AI service may be restarted or killed meanwhile, and a
+        // stream through it would end early without a word. The copy must arrive whole, byte for
+        // byte, or this part of the pull fails.
         await mkdir(join(out, 'ai'), { recursive: true });
-        await record('ai', 'ai/residents.sqlite', () =>
-          toFile(
-            vps.shell(
-              `${compose(['exec', '-T', 'ai', 'bun', '-e', vacuum])} && ${compose(['exec', '-T', 'ai', 'cat', snapshot])}; ${compose(['exec', '-T', 'ai', 'rm', '-f', snapshot])}`
-            ),
-            join(out, 'ai/residents.sqlite')
-          )
-        );
+        const once = (entrypoint: string, ...args: string[]) =>
+          vps.shell(compose(['run', '--rm', '--no-deps', '-T', '--entrypoint', entrypoint, 'ai', ...args]));
+        const snapshot = async (database: string, name: string, readonly: boolean) => {
+          const copy = `/app/data/pull-${stamp}-${name}`;
+          const vacuum = `const D = require('bun:sqlite').Database; new D('/app/data/${database}'${readonly ? ', { readonly: true }' : ''}).exec("VACUUM INTO '${copy}'"); new D('${copy}').exec('PRAGMA journal_mode = DELETE')`;
+          try {
+            await command(once('bun', '-e', vacuum), directory);
+            const expected = Number((await command(once('stat', '-c', '%s', copy), directory)).trim());
+            await toFile(once('cat', copy), join(out, 'ai', name));
+            const arrived = await size(join(out, 'ai', name));
+            if (arrived !== expected) {
+              await rm(join(out, 'ai', name), { force: true });
+              throw new Error(`${name} arrived incomplete: ${arrived} of ${expected} bytes`);
+            }
+          } finally {
+            await command(once('rm', '-f', copy), directory).catch(() => {});
+          }
+        };
+        await record('ai', 'ai/residents.sqlite', () => snapshot('residents.sqlite', 'residents.sqlite', false));
         // The v2 minds' histories, when any resident has one: opened read-only, so a pull never
         // creates one, and copied with a plain journal, so the copy opens read-only on its own.
-        const history = `/tmp/pull-${stamp}-history.sqlite`;
-        const copy = `const D = require('bun:sqlite').Database; new D('/app/data/history.sqlite', { readonly: true }).exec("VACUUM INTO '${history}'"); new D('${history}').exec('PRAGMA journal_mode = DELETE')`;
-        await record('ai', 'ai/history.sqlite', () =>
-          toFile(
-            vps.shell(
-              `${compose(['exec', '-T', 'ai', 'bun', '-e', copy])} && ${compose(['exec', '-T', 'ai', 'cat', history])}; ${compose(['exec', '-T', 'ai', 'rm', '-f', history])}`
-            ),
-            join(out, 'ai/history.sqlite')
-          )
-        );
+        await record('ai', 'ai/history.sqlite', () => snapshot('history.sqlite', 'history.sqlite', true));
         await record('ai', 'ai/report.md', async () =>
           writeFile(
             join(out, 'ai/report.md'),
