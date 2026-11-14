@@ -95,7 +95,9 @@ function mind(db: Database, resident: string, name: string | undefined, events: 
   // The spawners it has passed, and how often it found what they spawn there.
   const places = rows<{ x: number; y: number; kinds: string; visits: number; finds: number }>(
     `SELECT json_extract(data, '$.x') AS x, json_extract(data, '$.y') AS y, json_extract(data, '$.kinds') AS kinds,
-      COUNT(*) AS visits, SUM(json_extract(data, '$.found')) AS finds
+      COUNT(*) AS visits,
+      SUM(CASE WHEN json_type(data, '$.found') = 'array' THEN json_array_length(data, '$.found') > 0
+        ELSE json_extract(data, '$.found') END) AS finds
     FROM events WHERE resident = ? AND kind = 'visited' GROUP BY x, y, kinds ORDER BY visits DESC LIMIT 40`,
     resident
   ).map(
@@ -105,7 +107,7 @@ function mind(db: Database, resident: string, name: string | undefined, events: 
         (JSON.parse(p.kinds) as string[]).join(', '),
         num(p.visits),
         num(p.finds),
-        num((p.finds + 1) / (p.visits + 2), 2)
+        num(p.finds / p.visits, 2)
       ] as Cell[]
   );
   const lifetimes = rows<{ name: string; watched: number; endings: number }>(
@@ -120,7 +122,7 @@ function mind(db: Database, resident: string, name: string | undefined, events: 
     {
       kind: 'fields',
       rows: [
-        ['Events', num(events)],
+        ['Events', { ...(num(events) as { text: string }), href: `/trace/${resident}` }],
         ['Last perceived', when(last)],
         ['Agrees with what it did', `${agreement.agrees ?? 0} of ${agreement.n} choices`],
         ...Object.entries(traits).map(
@@ -156,7 +158,7 @@ function mind(db: Database, resident: string, name: string | undefined, events: 
     },
     {
       kind: 'table',
-      head: ['Spawner', 'Spawns', 'Passed', 'Found', 'Trust'],
+      head: ['Spawner', 'Spawns', 'Passed', 'Found', 'Found share'],
       rows: places,
       numeric: [2, 3, 4],
       interactive: true,

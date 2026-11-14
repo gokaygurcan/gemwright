@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util';
 
 import { loadShard } from '@gemwright/common/config/shard';
 import { pull } from '@gemwright/deployment/pull';
+import { simulateDecision } from '@gemwright/deployment/simulate';
 import { pullFrom } from '@gemwright/deployment/target';
 
 import { type Analysis, analyze } from './analysis';
@@ -11,6 +12,8 @@ import { decisionDoc, decisionsDoc } from './decisions';
 import type { Doc } from './doc';
 import { economyDoc } from './economy';
 import { historyDoc, readHistory, recordHistory } from './history';
+import { readLived, withLived } from './lived';
+import { livedDecisionsDoc, livedLoopsDoc, livedSpentDoc, livedTroubleDoc } from './lived-pages';
 import { loopsDoc } from './loops';
 import { mapData } from './map';
 import { mindsDoc } from './minds';
@@ -26,6 +29,7 @@ import { replayDoc } from './replay';
 import { readResidents, residentsDoc } from './residents';
 import { search } from './search';
 import { spentDoc } from './spent';
+import { eventDoc, simulationDoc, traceDoc } from './trace';
 import { readLasting, troubleDoc } from './trouble';
 
 // The app: built with Tailwind by web/build.ts, read from dist/web when built, and from source
@@ -76,12 +80,14 @@ interface Open {
   residents: ReturnType<typeof readResidents>;
   history: ReturnType<typeof readHistory>;
   pulse: ReturnType<typeof readPulse>;
+  lived: ReturnType<typeof readLived>;
 }
 let open: Open | undefined;
 const load = (saves: string, label: string, stamp?: string) => {
   const started = performance.now();
   const analysis = analyze(saves);
-  const residents = readResidents(saves);
+  const lived = readLived(saves);
+  const residents = withLived(readResidents(saves), lived);
   recordHistory(saves, analysis, residents, savedAt(saves));
   open = {
     stamp,
@@ -92,7 +98,8 @@ const load = (saves: string, label: string, stamp?: string) => {
     lasting: readLasting(saves),
     residents,
     history: readHistory(saves),
-    pulse: readPulse(saves)
+    pulse: readPulse(saves),
+    lived
   };
   console.log(`Read ${saves} in ${Math.round(performance.now() - started)} ms.`);
 };
@@ -176,20 +183,22 @@ const server = Bun.serve({
       }
     },
     '/api/page/overview': () =>
-      page((o) => overviewDoc(o.analysis, o.residents, o.lasting, o.history, o.pulse, o.savedAt, Boolean(client))),
+      page((o) =>
+        overviewDoc(o.analysis, o.residents, o.lasting, o.history, o.pulse, o.savedAt, Boolean(client), o.lived)
+      ),
     '/api/page/players': () => page((o) => playersDoc(o.analysis)),
     '/api/page/residents': () => page((o) => residentsDoc(o.analysis, o.residents)),
-    '/api/page/trouble': () => page((o) => troubleDoc(o.lasting)),
-    '/api/page/loops': () => page((o) => loopsDoc(o.lasting)),
+    '/api/page/trouble': () => page((o) => (o.lived ? livedTroubleDoc(o.lived) : troubleDoc(o.lasting))),
+    '/api/page/loops': () => page((o) => (o.lived ? livedLoopsDoc(o.lived) : loopsDoc(o.lasting))),
     '/api/page/history': () => page((o) => historyDoc(o.history)),
     '/api/page/economy': () => page((o) => economyDoc(o.saves)),
-    '/api/page/spent': () => page((o) => spentDoc(o.saves)),
+    '/api/page/spent': () => page((o) => (o.lived ? livedSpentDoc(o.lived, o.saves) : spentDoc(o.saves))),
     '/api/page/minds': () => page((o) => mindsDoc(o.saves)),
     '/api/page/decisions': (request) => {
       const query = new URL(request.url).searchParams;
-      return page((o) =>
-        decisionsDoc(o.saves, Math.max(0, Number(query.get('page')) || 0), query.get('kind') ?? undefined)
-      );
+      const at = Math.max(0, Number(query.get('page')) || 0);
+      const kind = query.get('kind') ?? undefined;
+      return page((o) => (o.lived ? livedDecisionsDoc(o.lived, at, kind) : decisionsDoc(o.saves, at, kind)));
     },
     '/api/page/decision/:id': (request) => page((o) => decisionDoc(o.saves, request.params.id), 'decision'),
     '/api/page/questions': (request) =>
@@ -199,7 +208,35 @@ const server = Bun.serve({
       const query = new URL(request.url).searchParams.get('q') ?? '';
       return page((o) => searchDoc(o.analysis, query, search(o.analysis, query), client));
     },
-    '/api/page/replay/:serial': (request) => page((o) => replayDoc(o.saves, Number(request.params.serial)), 'resident'),
+    '/api/page/trace/:resident': (request) => {
+      const query = new URL(request.url).searchParams;
+      return page((o) =>
+        traceDoc(
+          o.saves,
+          request.params.resident,
+          Math.max(0, Number(query.get('page')) || 0),
+          query.get('kind') ?? undefined,
+          Number(query.get('before')) || undefined
+        )
+      );
+    },
+    '/api/page/event/:id': (request) => page((o) => eventDoc(o.saves, Number(request.params.id)), 'event'),
+    // Weighed again inside the deployed AI service, where its history and world are.
+    '/api/page/simulate/:id': async (request) => {
+      try {
+        const config = await loadShard(directory, () => {});
+        const report = await simulateDecision(directory, config, Number(request.params.id));
+        return Response.json(simulationDoc(report as Parameters<typeof simulationDoc>[0]));
+      } catch (error) {
+        return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+      }
+    },
+    '/api/page/replay/:serial': (request) =>
+      page((o) => {
+        const serial = Number(request.params.serial);
+        const v2 = o.lived && [...o.lived.residents.values()].find((r) => r.serial === serial);
+        return v2 ? traceDoc(o.saves, v2.id, 0) : replayDoc(o.saves, serial);
+      }, 'resident'),
     '/api/page/mobile/:serial': (request) =>
       page((o) => {
         const m = o.analysis.world.mobiles.get(Number(request.params.serial));

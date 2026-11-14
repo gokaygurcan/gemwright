@@ -74,24 +74,29 @@ export async function localPull(parts: PullParts, directory = process.cwd(), pro
       });
   else if (want.server && !all) progress('No local server is deployed here.');
   if (want.ai && state.parts.includes('ai')) {
-    // A consistent copy made inside the running container, so a live write never tears it.
-    const snapshot = `/tmp/pull-${stamp}.sqlite`;
-    await record('ai', 'ai/residents.sqlite', async () => {
-      try {
-        await compose(root, [
-          'exec',
-          '-T',
-          'ai',
-          'bun',
-          '-e',
-          `new (require('bun:sqlite').Database)('/app/data/residents.sqlite').exec("VACUUM INTO '${snapshot}'")`
-        ]);
-        await mkdir(join(out, 'ai'), { recursive: true });
-        await compose(root, ['cp', `ai:${snapshot}`, join(out, 'ai/residents.sqlite')]);
-      } finally {
-        await compose(root, ['exec', '-T', 'ai', 'rm', '-f', snapshot]).catch(() => undefined);
-      }
-    });
+    // A consistent copy made inside the running container, so a live write never tears it; the v2
+    // minds' history opened read-only, so a pull never creates one, with a plain journal so the copy
+    // opens read-only on its own.
+    const snapshot = (name: string, readonly: boolean) =>
+      record('ai', `ai/${name}`, async () => {
+        const copy = `/app/data/pull-${stamp}-${name}`;
+        try {
+          await compose(root, [
+            'exec',
+            '-T',
+            'ai',
+            'bun',
+            '-e',
+            `const D = require('bun:sqlite').Database; new D('/app/data/${name}'${readonly ? ', { readonly: true }' : ''}).exec("VACUUM INTO '${copy}'"); new D('${copy}').exec('PRAGMA journal_mode = DELETE')`
+          ]);
+          await mkdir(join(out, 'ai'), { recursive: true });
+          await compose(root, ['cp', `ai:${copy}`, join(out, 'ai', name)]);
+        } finally {
+          await compose(root, ['exec', '-T', 'ai', 'rm', '-f', copy]).catch(() => undefined);
+        }
+      });
+    await snapshot('residents.sqlite', false);
+    await snapshot('history.sqlite', true);
     await record('ai', 'ai/report.md', async () =>
       writeFile(
         join(out, 'ai/report.md'),

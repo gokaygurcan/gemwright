@@ -4,6 +4,7 @@ import { GHOST_BODIES } from '@gemwright/common/game/bodies';
 import type { Analysis } from './analysis';
 import { type Block, type Cell, type Doc, link, num, type Stat } from './doc';
 import type { Snapshot } from './history';
+import type { Lived } from './lived';
 import type { Pulse } from './pulse';
 import type { ResidentRow } from './residents';
 import type { readLasting } from './trouble';
@@ -43,7 +44,8 @@ export function overviewDoc(
   history: Snapshot[],
   pulse: Pulse | undefined,
   savedAt: string,
-  drawn: boolean
+  drawn: boolean,
+  lived?: Lived
 ): Doc {
   const subtitle: Cell[] = [
     `${gold(a.characters.length)} characters, ${gold(a.world.items.size)} items in the save`,
@@ -62,10 +64,16 @@ export function overviewDoc(
   const skills = rows.reduce((n, r) => n + (bySerial.get(r.serial)?.skillTotal ?? 0), 0) / (rows.length || 1);
   const deaths = rows.reduce((n, r) => n + r.deaths, 0);
   const troubleCells = new Map<string, number>();
-  for (const [key] of lasting?.trouble ?? []) {
-    const cell = key.split('|')[0] ?? '';
-    troubleCells.set(cell, (troubleCells.get(cell) ?? 0) + 1);
-  }
+  if (lived)
+    for (const m of lived.trouble)
+      if (m.kind !== 'died' && m.x !== null && m.y !== null) {
+        const cell = `${(m.x >> 3) << 3},${(m.y >> 3) << 3}`;
+        troubleCells.set(cell, (troubleCells.get(cell) ?? 0) + 1);
+      } else
+        for (const [key] of lasting?.trouble ?? []) {
+          const cell = key.split('|')[0] ?? '';
+          troubleCells.set(cell, (troubleCells.get(cell) ?? 0) + 1);
+        }
   const online = pulse?.online.at(-1)?.[1];
   const stats: Stat[] = [
     {
@@ -114,7 +122,12 @@ export function overviewDoc(
       note: `of ${troubleCells.size} with failed walks`,
       href: '/trouble'
     },
-    { label: 'Loops', value: gold((lasting?.loops ?? []).length), note: 'last 24 hours', href: '/loops' }
+    {
+      label: 'Loops',
+      value: gold(lived ? lived.loops.length : (lasting?.loops ?? []).length),
+      note: 'last 24 hours',
+      href: '/loops'
+    }
   ];
 
   const blocks: Block[] = [{ kind: 'stats', items: stats }];
