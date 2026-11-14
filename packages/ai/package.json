@@ -21,13 +21,13 @@
     "build": "rm -rf dist && bun build src/index.ts src/serve.ts src/v1/report.ts src/v1/progress-report.ts src/load-test.ts src/v1/persistence-worker.ts src/v1/life-journal-worker.ts src/path-worker.ts src/v2/history-cli.ts --root src --outdir dist --target bun && cp ../../LICENSE ."
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "1.6.0",
+    "@anthropic-ai/sdk": "1.8.0",
     "@gemwright/common": "workspace:*",
     "@gemwright/network": "workspace:*",
     "@opentelemetry/api-logs": "0.223.0",
-    "@opentelemetry/exporter-logs-otlp-http": "0.301.0",
-    "@opentelemetry/resources": "3.1.0",
-    "@opentelemetry/sdk-logs": "3.1.0",
+    "@opentelemetry/exporter-logs-otlp-http": "0.301.2",
+    "@opentelemetry/resources": "3.1.1",
+    "@opentelemetry/sdk-logs": "3.1.1",
     "@typesafe-ai/sdk": "0.7.0"
   },
   "files": [

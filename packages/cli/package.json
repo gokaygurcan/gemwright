@@ -23,7 +23,7 @@
     "build": "rm -rf dist && bun build src/index.ts --outdir dist --target node --external @clack/prompts --external chalk && bun src/prepare-assets.ts"
   },
   "dependencies": {
-    "@clack/prompts": "1.8.1",
+    "@clack/prompts": "1.9.0",
     "chalk": "6.0.1"
   },
   "devDependencies": {
