@@ -223,5 +223,5 @@ test('images are built for the VPS architecture and only the built services are 
     typeof createConfig
   >;
   expect(builtServices(['server', 'mysql', 'client', 'caddy', 'ai'])).toEqual(['server', 'client', 'ai']);
-  expect(builtImages(config, ['server', 'ai'])).toEqual(['gemwright-gemwright-server', 'gemwright-gemwright-ai']);
+  expect(builtImages(config, ['server', 'ai'])).toEqual(['gemwright-server', 'gemwright-ai']);
 });

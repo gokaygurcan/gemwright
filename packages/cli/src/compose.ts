@@ -112,12 +112,10 @@ export function composeProject(config: ShardConfig, state: LocalState, vps?: { d
     volumes['caddy-data'] = {};
     volumes['caddy-config'] = {};
   }
-  // Containers are named after the shard and their part (gemwright-ai), not by Compose's project,
-  // service and number; on a VPS the project's name, which its volumes carry, stays as it was.
+  // Everything is named after the shard and its part (gemwright-ai, gemwright-ai-data), not by
+  // Compose's project, service and number: containers, images, volumes and the network.
   for (const [service, definition] of Object.entries(compose))
     Object.assign(definition as object, { container_name: `${config.id}-${service}` });
-  if (vps) return { name: `gemwright-${config.id}`, services: compose, volumes };
-  // Locally everything else is named the same way too: images, volumes and the network.
   for (const volume of Object.keys(volumes)) volumes[volume] = { name: `${config.id}-${volume}` };
   return {
     name: config.id,

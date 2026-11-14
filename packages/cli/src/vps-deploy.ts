@@ -250,7 +250,7 @@ export function dockerPlatform(machine: string) {
 export const builtServices = (services: string[]) =>
   services.filter((service) => ['server', 'client', 'ai'].includes(service));
 export const builtImages = (config: ShardConfig, services: string[]) =>
-  builtServices(services).map((service) => `gemwright-${config.id}-${service}`);
+  builtServices(services).map((service) => `${config.id}-${service}`);
 
 export function bundleInstructions(options: VpsOptions & { ssh?: string }) {
   if (options.ssh) return undefined;
@@ -309,14 +309,7 @@ export async function deployVps(options: VpsOptions & { ssh?: string }, director
   const prerequisites = await localPrerequisites(options, root);
   await attachedCommand([...prerequisites.sudo, 'docker', 'compose', '-f', 'compose.json', 'config', '--quiet'], root);
   const containers = await command(
-    [
-      ...prerequisites.sudo,
-      'docker',
-      'ps',
-      '-aq',
-      '--filter',
-      `label=com.docker.compose.project=gemwright-${config.id}`
-    ],
+    [...prerequisites.sudo, 'docker', 'ps', '-aq', '--filter', `label=com.docker.compose.project=${config.id}`],
     root
   );
   if (containers) {

@@ -187,7 +187,7 @@ chmod 700 ${shellQuote(destination)} ${shellQuote(incoming)}`);
   const services = composeServices(options, config).join(' ');
   const start = `if docker info >/dev/null 2>&1; then docker_cmd=docker; else docker_cmd='sudo docker'; fi
 $docker_cmd compose -f compose.json config --quiet
-for container in $($docker_cmd ps -aq --filter ${shellQuote(`label=com.docker.compose.project=gemwright-${config.id}`)}); do
+for container in $($docker_cmd ps -aq --filter ${shellQuote(`label=com.docker.compose.project=${config.id}`)}); do
     owner=$($docker_cmd inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$container")
     if [ "$owner" != "$(pwd)" ]; then echo 'This Compose project belongs to another deployment directory.' >&2; exit 1; fi
 done
