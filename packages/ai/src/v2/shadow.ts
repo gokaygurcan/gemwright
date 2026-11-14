@@ -9,11 +9,13 @@ import { isAnkh } from '../decoration';
 import { PathPool } from '../path-pool';
 import { readShardWorld, type ShardWorld } from '../spawns';
 import { Terrain } from '../terrain';
+import { prepareAreaWork } from './area-work';
 import { Atlas } from './atlas';
 import type { History } from './history';
-import { isForge } from './knowledge';
+import { harvestKinds, isForge } from './knowledge';
 import { live } from './live';
 import { Mind } from './mind';
+import { registerMind } from './mind-sizes';
 import { perceive, screenOf } from './perceive';
 import { Places } from './places';
 import { landGraph } from './reach';
@@ -44,6 +46,14 @@ const atlasOf = (history: string) => {
   return atlas;
 };
 
+// At start, before anyone wakes (serve.ts): the tiles each harvest works inside the cities
+// residents are kept to, listed once for them all to look up.
+export function prepareArea(history: string, terrain: Terrain) {
+  const atlas = atlasOf(history);
+  const bounds = atlas?.bounds(confined);
+  if (atlas && bounds) prepareAreaWork(terrain, atlas.within(confined), bounds, harvestKinds());
+}
+
 // The cities residents are kept to (gemwright.json ai.cities; serve.ts): every city when unset.
 let confined: readonly string[] | undefined;
 export const confine = (cities: readonly string[] | undefined) => {
@@ -57,6 +67,7 @@ const concluded = [
   'predicted',
   'outcome',
   'considered',
+  'reconsidered',
   'drifted',
   'visited',
   'left',
@@ -173,6 +184,7 @@ function wake(
     supporting
   );
   mind.routeScope = history.path;
+  registerMind(session, mind);
   mind.awake = false;
   const places = new Places(resident, write, {
     lifetimes: history.read(resident, 'lifetimes'),
@@ -204,7 +216,10 @@ function wake(
     mapped && map === 1 && x < 7167 && y < 4095 ? Terrain.shared(assets, map).cell(x, y).land.id : undefined;
   const atlas = atlasOf(history.path);
   mind.atlas = atlas;
-  if (atlas) mind.allowed = atlas.within(confined);
+  if (atlas) {
+    mind.allowed = atlas.within(confined);
+    mind.bounds = atlas.bounds(confined);
+  }
   const stop = perceive(
     session,
     resident,

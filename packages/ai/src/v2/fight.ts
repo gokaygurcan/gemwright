@@ -85,6 +85,14 @@ const dying = (lost: number, variance: number, health: number) => {
 };
 const swingActions = new Set([4, 5, 6, 9, 10, 11, 12, 13, 14, 26, 27, 28, 29]);
 const castActions = new Set([16, 17]);
+// What a mobile's animation is, as clients see it: an attack (SA type 0, or an old-style swing), a
+// cast (SA type 11, or an old-style 16-17), or neither.
+export const motion = (data: { type?: unknown; action?: unknown }) =>
+  (data.type === null ? swingActions.has(data.action as number) : data.type === 0)
+    ? 'attack'
+    : (data.type === null ? castActions.has(data.action as number) : data.type === 11)
+      ? 'cast'
+      : undefined;
 const add = (into: Map<string, Mean>, key: string, value: number) => {
   const m = into.get(key) ?? { sum: 0, n: 0 };
   m.sum += value;

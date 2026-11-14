@@ -36,8 +36,10 @@ function* deliberate(
 ): Generator<void, Valued[]> {
   const moving = movement(bodyOf(mind), mind.locomotion.experience, mind.temper.curiosity);
   const candidates = options(mind, terrain, spent, places.bankers, places.vendors, places.forges);
-  const inView = new Set(
-    [...mind.sights()].flatMap((e) => (e.kind === 'mobile' ? (mind.call(e.serial)?.split('/') ?? []) : []))
+  // Kinds it can fight where they stand, now: one of those is not sought elsewhere. One in view it
+  // cannot fight (out of reach, not admitted) leaves seeking its kind as it was.
+  const fightable = new Set(
+    candidates.flatMap((option) => (option.key.startsWith('attack ') ? option.key.slice(7).split('/') : []))
   );
   // Of all the places the shard names, nearest-first, each kind is represented by its nearest place:
   // it starts close and widens only when a kind has nothing near left to offer. What a place last
@@ -50,8 +52,8 @@ function* deliberate(
     const kind = venture.key.slice(7);
     if (!mind.allowed(venture.where)) continue;
     if (mind.encounter && !mind.encounter.allowsKind(kind)) continue;
-    // One in view is fought where it is, not sought elsewhere.
-    if (inView.has(kind)) continue;
+    // One it can fight where it stands is fought there, not sought elsewhere.
+    if (fightable.has(kind)) continue;
     if (promised.has(kind)) continue;
     promised.add(kind);
     candidates.push({

@@ -222,7 +222,12 @@ test('a plan abandoned for a better one is an unrealized experience and never co
       stopped = true;
       return true;
     }
-    mind.observe({ resident: 'r', at: Date.now(), kind: 'seen', data: { serial: 900, kind: 'item' } });
+    mind.observe({
+      resident: 'r',
+      at: Date.now(),
+      kind: 'seen',
+      data: { serial: 900, kind: 'mobile', is: ['Mongbat'] }
+    });
     return (await going?.()) ?? true;
   });
   const timer = setTimeout(() => {

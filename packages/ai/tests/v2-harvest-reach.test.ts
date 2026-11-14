@@ -76,3 +76,30 @@ test('the nearest ground is worked first, and the far ground only once the near 
   // is reached, rather than the resident standing idle beside a worked-out seam.
   expect(harvests(new Set(['130,100']))).toEqual(['harvest 10 200,100,0']);
 });
+
+// Kept to its cities, it looks for ground among the tiles listed inside them at start, never across
+// the map's own index; the nearest ground worth working still comes first.
+test('kept to its cities, ground is looked up in their list, never searched for across the map', async () => {
+  const { prepareAreaWork } = await import('../src/v2/area-work');
+  const { harvestKinds } = await import('../src/v2/knowledge');
+  const OUTSIDE = { x: 900, y: 100, z: 0, land: ROCK };
+  const terrain = {
+    ...terrainWith(),
+    findTiles: () => [NEAR, FAR, OUTSIDE],
+    bestTiles: () => {
+      throw new Error('searched the whole map');
+    }
+  } as unknown as Terrain;
+  const allowed = (p: { x: number }) => p.x < 500;
+  const bounds = { minX: 0, minY: 0, maxX: 499, maxY: 499 };
+  prepareAreaWork(terrain, allowed, bounds, harvestKinds());
+  const mind = synced(mindWithPickaxe());
+  mind.allowed = allowed;
+  mind.bounds = bounds;
+  const picked = (spent: ReadonlySet<string>) =>
+    options(mind, terrain, spent)
+      .filter((option) => String(option.id ?? '').startsWith('harvest '))
+      .map((option) => String(option.id));
+  expect(picked(new Set())).toEqual(['harvest 10 130,100,0']);
+  expect(picked(new Set(['130,100']))).toEqual(['harvest 10 200,100,0']);
+});

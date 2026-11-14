@@ -61,7 +61,7 @@ test('an interrupted plan records the better opportunity and the patience compar
   const choose = spyOn(planning, 'liveChoices').mockResolvedValueOnce([current]).mockResolvedValue([other, current]);
   const act = spyOn(Hands.prototype, 'do').mockImplementation(async (step, going) => {
     if (step.verb !== 'say') return true;
-    mind.revision++;
+    mind.noticed++;
     // The step never waits for the weighing; the next check after it stops the plan.
     expect(await going()).toBe(true);
     await Bun.sleep(0);
@@ -91,6 +91,56 @@ test('an interrupted plan records the better opportunity and the patience compar
         alternative: { id: 'other', key: 'better work', rate: 100 }
       }
     });
+  } finally {
+    choose.mockRestore();
+    act.mockRestore();
+  }
+});
+
+// Two plans cannot trade places back and forth: the one it just broke off is not taken back while the
+// one it broke off for lasts, however good it looks again.
+test('a plan broken off for another is not taken back while that one lasts', async () => {
+  const world = new WorldView();
+  world.serial = 1;
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const session = { world, phase: 'ready', refreshSkills: async () => {} } as unknown as PlayerSession;
+  const plan = (id: string, rate: number) => {
+    const source = { key: id, steps: [{ verb: 'say' as const, text: id }] };
+    return { ...source, source, id, value: 10, rate, seconds: 2 };
+  };
+  const answers = [
+    [plan('a', 1)],
+    [plan('b', 10), plan('a', 1)],
+    [plan('b', 10), plan('a', 1)],
+    [plan('a', 100), plan('b', 10)]
+  ];
+  let asked = 0;
+  const choose = spyOn(planning, 'liveChoices').mockImplementation(
+    async () => answers[Math.min(asked++, answers.length - 1)]
+  );
+  const act = spyOn(Hands.prototype, 'do').mockImplementation(async (step, going) => {
+    if (step.verb !== 'say') return true;
+    mind.noticed++;
+    await going();
+    await Bun.sleep(0);
+    return going();
+  });
+  const ended: { id: string; result: string }[] = [];
+  try {
+    await live(
+      session,
+      mind,
+      undefined,
+      { shrines: [], bankers: [], vendors: [] },
+      () => ended.length >= 2,
+      (kind, data) => {
+        if (kind === 'plan-ended') ended.push(data as { id: string; result: string });
+      }
+    );
+    expect(ended.map(({ id, result }) => [id, result])).toEqual([
+      ['a', 'interrupted'],
+      ['b', 'completed']
+    ]);
   } finally {
     choose.mockRestore();
     act.mockRestore();

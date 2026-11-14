@@ -224,6 +224,9 @@ const harvests: Record<
   }
 };
 
+// The tiles each kind of harvest works.
+export const harvestKinds = () => Object.values(harvests).map((harvest) => harvest.tiles);
+
 // The harvest a tool works, and the tiles it works on.
 export function harvestBy(tool: string) {
   const system = tool

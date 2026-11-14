@@ -238,6 +238,24 @@ export class Atlas {
     return (p: { x: number; y: number }) => this.regionsAt(p.x, p.y).some((r) => outer.includes(r.name));
   }
 
+  // The box around the cities a resident is kept to (their outermost regions), or nothing when it may
+  // go anywhere: no place it may go lies outside it.
+  bounds(cities: readonly string[] | undefined) {
+    if (!cities?.length) return undefined;
+    const rects = cities.flatMap((city) => {
+      let region = this.byName.get(city);
+      while (region?.parent && this.byName.get(region.parent)) region = this.byName.get(region.parent);
+      return region?.rects ?? [];
+    });
+    if (!rects.length) return undefined;
+    return {
+      minX: Math.min(...rects.map((r) => r.x)),
+      minY: Math.min(...rects.map((r) => r.y)),
+      maxX: Math.max(...rects.map((r) => r.x + r.width - 1)),
+      maxY: Math.max(...rects.map((r) => r.y + r.height - 1))
+    };
+  }
+
   // How a piece of land is left: its teleporters and moongates, and where each puts one, nearest first.
   exits(land: number | undefined, from?: { x: number; y: number }) {
     const exits = land === undefined ? [] : (this.lands.get(land)?.exits ?? []);

@@ -133,3 +133,18 @@ test('a remembered place is not somewhere to go without the tool, or when alread
   expect(keys(0, [])).toEqual([]);
   expect(keys(99, ['Shovel'])).toEqual([]);
 });
+
+// Kept to its cities, it never measures the way to a place outside them: every measured walk costs a
+// search through the land, and one it may not take is wasted.
+test('a place outside where it may go is never measured', () => {
+  const ventures = new Ventures([spawner(100, ['mongbat']), spawner(300, ['mongbat'])]);
+  ventures.remember('double-click my FishingPole > target tile6042', at(500));
+  const measured: number[] = [];
+  const counting: Steps = (from, to) => {
+    measured.push(to.x);
+    return along(from, to);
+  };
+  const within = (p: { x: number }) => p.x < 200;
+  expect([...ventures.ahead(at(0), new Set(), () => true, counting, within)].map((v) => v.where.x)).toEqual([100]);
+  expect(measured).toEqual([100]);
+});

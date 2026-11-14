@@ -1,3 +1,4 @@
+import { HUMAN_BODIES } from '@gemwright/common/game/bodies';
 import { variable } from '@gemwright/network/packets';
 
 // Server packets, as ServUO sends them, applied straight to a world view: the test shard's voice.
@@ -32,7 +33,8 @@ export function mobileIncoming(
   packet.writeUInt16BE(y, 11);
   packet.writeInt8(z, 13);
   packet[14] = direction & 7;
-  packet[18] = 1;
+  // As ServUO shows them (Notoriety.MobileNotoriety): people innocent, a wild creature attackable.
+  packet[18] = HUMAN_BODIES.has(body) ? 1 : 3;
   worn.forEach((item, index) => {
     const at = 19 + index * 9;
     packet.writeUInt32BE(item.serial, at);

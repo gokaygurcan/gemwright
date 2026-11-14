@@ -120,8 +120,15 @@ export class Ventures {
   }
 
   // Each venture reachable in Trammel: what to do, where, how many seconds the walk takes, and the
-  // chance of finding it there when it arrives. Without a way to measure walks, nowhere.
-  *ahead(here: Where, available: ReadonlySet<string>, owns: (name: string) => boolean = () => true, steps?: Steps) {
+  // chance of finding it there when it arrives. Without a way to measure walks, nowhere; and a place
+  // outside where it may go (`allowed`) is never measured, as every measured walk is a search.
+  *ahead(
+    here: Where,
+    available: ReadonlySet<string>,
+    owns: (name: string) => boolean = () => true,
+    steps?: Steps,
+    allowed: (p: { x: number; y: number }) => boolean = () => true
+  ) {
     // Until it has walked, a walker's pace (ServUO: a step every 0.4 seconds on foot).
     const pace = this.walked.seconds ? this.walked.tiles / this.walked.seconds : 2.5;
     if (here.map !== 1 || !steps) return;
@@ -131,6 +138,7 @@ export class Ventures {
     for (const [key, where] of this.done) {
       const tool = /^double-click my (.+?) > /.exec(key)?.[1];
       if (available.has(key) || where.map !== here.map || away(here, where) <= sight || (tool && !owns(tool))) continue;
+      if (!allowed(where)) continue;
       const walked = steps(here, where);
       if (walked !== undefined) yield { key, where, walk: walked / pace, chance: 1 };
     }
@@ -139,7 +147,7 @@ export class Ventures {
     // than that: it goes on the word, at the odds of a place nothing is yet known about.
     for (const [type, spots] of this.byType)
       for (const place of spots) {
-        if (away(here, place) <= sight) continue;
+        if (away(here, place) <= sight || !allowed(place)) continue;
         const walked = steps(here, place);
         if (walked === undefined) continue;
         const walk = walked / pace;

@@ -33,3 +33,36 @@ test('it knows what it wears, carries, banks, and what lies about and in corpses
     { serial: 11, name: 'Corpse of Skeleton', items: [{ name: 'Gold', amount: 20 }] }
   ]);
 });
+
+// What it has is known again only when something changed: asked twice with nothing in between, the
+// same answer; anything gained, lost or moved shows in the very next answer.
+test('what it has is rebuilt only on a change, and every change shows at once', () => {
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const where = { x: 100, y: 100, z: 0, map: 1 };
+  const event = (kind: string, data: object) => mind.observe({ resident: 'r', at: 1, kind, data, where });
+  event('awake', { serial: 1, self: {}, skills: {} });
+  event('revealed', { serial: 2, graphic: 3701, layer: 21, parent: 1, is: ['Backpack'] });
+  event('revealed', { serial: 6, graphic: 3821, amount: 50, parent: 2, is: ['Gold'] });
+  const first = mind.has();
+  expect(mind.has()).toBe(first);
+  event('gained', { serial: 7, graphic: 7154, amount: 3, parent: 2, is: ['IronIngot'] });
+  expect(mind.has().pack.map((i) => [i.name, i.amount])).toEqual([
+    ['Gold', 50],
+    ['IronIngot', 3]
+  ]);
+  event('lost', { serial: 6 });
+  expect(mind.has().pack.map((i) => i.name)).toEqual(['IronIngot']);
+});
+
+// A container's contents arriving (its bank box opened, a trade window) are known at the next ask.
+test('contents listed by the shard show at once', () => {
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const where = { x: 100, y: 100, z: 0, map: 1 };
+  const event = (kind: string, data: object) => mind.observe({ resident: 'r', at: 1, kind, data, where });
+  event('awake', { serial: 1, self: {}, skills: {} });
+  event('revealed', { serial: 3, graphic: 3700, layer: 29, parent: 1, is: ['BankBox'] });
+  expect(mind.has().bank).toEqual([]);
+  event('revealed', { serial: 7, graphic: 7154, amount: 300, parent: 3, is: ['IronIngot'] });
+  event('listed', { serial: 3, contents: [7] });
+  expect(mind.has().bank.map((i) => [i.name, i.amount])).toEqual([['IronIngot', 300]]);
+});

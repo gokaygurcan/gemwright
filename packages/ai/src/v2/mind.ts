@@ -1,4 +1,5 @@
 import { gumpButtons } from '@gemwright/network/gumps';
+import { Notoriety } from '@gemwright/network/opcodes';
 
 import type { Spawner } from '../spawns';
 import { reportedBankGold } from '../v1/bank-gold';
@@ -8,7 +9,7 @@ import { CareMemory } from './care-memory';
 import { goods, honestly, usual, value, worth } from './choose';
 import { consider, journeys } from './deliberate';
 import type { Encounter } from './encounter';
-import { Fight } from './fight';
+import { Fight, motion } from './fight';
 import type { HistoryEvent } from './history';
 import { kindOf } from './inventory';
 import { foreseeHarvest, foreseeTrade } from './knowledge';
@@ -21,6 +22,8 @@ import { learnRoute, reachable } from './unreachable';
 import { type Steps, Ventures } from './ventures';
 
 // Verbs that move, look or toggle rather than try something.
+// Notorieties of what does not fight: innocent, allied, invulnerable (ServUO Notoriety).
+const peaceful = new Set([Notoriety.innocent, Notoriety.ally, Notoriety.invulnerable]);
 const passing = new Set(['walk', 'war-mode', 'single-click', 'status-request', 'skill-lock', 'general']);
 // Verbs that finish what the last one began: a target for a tool, a drop for a pick-up, a button.
 const finishing = new Set(['target', 'drop', 'equip', 'gump-response', 'menu-response']);
@@ -106,6 +109,8 @@ export class Mind {
   places?: Places;
   // Where it may be at all (gemwright.json ai.cities, atlas.ts `within`): anywhere until told.
   allowed: (p: { x: number; y: number }) => boolean = () => true;
+  // The box every place it may go lies in, when it is kept to some cities.
+  bounds?: { minX: number; minY: number; maxX: number; maxY: number };
   private readonly missingSpells = new Set<number>();
   // How far what came of its attempts has surprised it, for each trait that weighs a part of it, over
   // the attempts where that part was expected or came: surviving more than it feared makes it bolder,
@@ -165,6 +170,12 @@ export class Mind {
   }
 
   revision = 0;
+  // Changes that bear on a plan in progress (matters()): what makes it think again on the way.
+  noticed = 0;
+  // The creatures in view whose coming it noticed.
+  private readonly creatures = new Set<number>();
+  // The kind of the last event that made its picture of the world change (`revision`).
+  changedBy = '';
   private readonly refusedDrops = new Map<number, { amount: number | undefined; place: string }>();
   // What its tools answered when it tried them, as a player learns a tool's menus: every menu the
   // shard opened (its serial, id and reply buttons), the menu each tool opens, and which button of
@@ -178,6 +189,10 @@ export class Mind {
   // What the shard's vendors were last seen to pay for each thing (their sell lists, read whenever
   // it sells): what the market pays for what it brings, rather than what the wiki says it is worth.
   private readonly prices: Record<string, number> = {};
+  // How often the market's prices changed, and what it last knew it had (has()), with what that
+  // knowing was built on.
+  private priced = 0;
+  private held?: { key: string; value: ReturnType<Mind['inventory']> };
 
   // What a thing is worth to it now: what the market last paid for it, or its worth until then.
   price = (name: string) => {
@@ -209,6 +224,61 @@ export class Mind {
     );
   }
 
+  // Whether an event changes what a plan in progress is worth: its own things, its health, a blow or a
+  // spell, a creature coming or going, where it is. People and vendors coming into view tell it
+  // nothing new (it knows where vendors stand and what they trade), nor do things lying about.
+  private matters(kind: string, data: Data, health: number | undefined) {
+    const person = (names: string | string[] | undefined) =>
+      (Array.isArray(names) ? names : (names?.split('/') ?? [])).includes('Person');
+    switch (kind) {
+      case 'gained':
+      case 'lost':
+      case 'listed':
+      case 'missing':
+      case 'damage':
+      case 'died':
+      case 'death':
+      case 'care':
+      case 'stranded':
+      case 'route-failed':
+      case 'drop-refused':
+      case 'resource-spent':
+        return true;
+      case 'self':
+        return (health !== undefined && this.health !== null && health < this.health) || data.poison !== undefined;
+      // Another kind of place, guarded or not, or other land: not one shop of a town for the next.
+      case 'place':
+        return (
+          !this.here ||
+          this.here.kind !== data.kind ||
+          this.here.guarded !== data.guarded ||
+          this.here.land !== data.land ||
+          this.here.map !== data.map
+        );
+      case 'swing':
+        return data.target === this.things.self;
+      case 'animated':
+        return data.serial !== this.things.self && motion(data) !== undefined;
+      // A creature that may fight or be fought: not a person, nor one innocent, allied or
+      // invulnerable (a tame horse, a pet). Its leaving matters as its coming did.
+      case 'seen':
+      case 'revealed':
+        if (
+          data.kind !== 'mobile' ||
+          data.serial === this.things.self ||
+          person(data.is as string[]) ||
+          peaceful.has(data.notoriety as number)
+        )
+          return false;
+        this.creatures.add(data.serial as number);
+        return true;
+      case 'gone':
+        return this.creatures.delete(data.serial as number);
+      default:
+        return false;
+    }
+  }
+
   refuseDrop(serial: number) {
     this.revision++;
     const refusal = { serial, amount: this.things.owned.get(serial)?.amount, place: JSON.stringify(this.where) };
@@ -219,6 +289,10 @@ export class Mind {
   observe(event: HistoryEvent) {
     const data = event.data as Data;
     const health = data.health as { current?: number } | undefined;
+    if (this.matters(event.kind, data, health?.current)) {
+      this.noticed++;
+      this.changedBy = event.kind;
+    }
     if (
       (event.kind === 'self' &&
         ((health?.current !== undefined && health.current !== this.health) ||
@@ -239,7 +313,9 @@ export class Mind {
         'revealed',
         'gone',
         'resource-spent',
-        'drop-refused'
+        'drop-refused',
+        'listed',
+        'missing'
       ].includes(event.kind) ||
       (event.kind === 'changed' && Object.keys(data).some((key) => !['serial', 'x', 'y', 'z'].includes(key)))
     )
@@ -335,6 +411,7 @@ export class Mind {
             const thing = this.thing(offer.serial);
             if (!thing?.startsWith('my ')) continue;
             for (const type of thing.slice(3).split('/')) this.prices[type] = offer.price;
+            this.priced++;
           }
         break;
       }
@@ -749,7 +826,17 @@ export class Mind {
   }
   // Everything it has, by where it is and of what kind, each with what it is worth and weighs:
   // worn and in its pack as they are now, its bank as last seen, the ground and corpses about it.
+  // What it wears, carries, banks, and sees lying about or in corpses. Built again only when its
+  // picture of the world changed (anything gained, lost or moved), it stands elsewhere, prices
+  // moved, or a second passed (things out of sight fade); every change shows at the next ask.
   has() {
+    const at = this.where;
+    const key = `${this.revision}|${at?.x},${at?.y},${at?.z},${at?.map}|${this.priced}|${Math.floor(Date.now() / 1000)}`;
+    if (this.held?.key !== key) this.held = { key, value: this.inventory() };
+    return this.held.value;
+  }
+
+  private inventory() {
     const view = this.things.has(this.where, 18);
     const tag = <T extends { serial: number; name: string; amount: number }>(item: T) => ({
       ...item,
@@ -952,7 +1039,8 @@ export class Mind {
       trade: this.trade,
       expected: (key: string) => this.expected(key),
       market: this.price,
-      steps: this.steps
+      steps: this.steps,
+      allowed: this.allowed
     };
   }
 

@@ -6,6 +6,7 @@ import { PathPool } from '../path-pool';
 import { drainSlices } from '../stall-probe';
 import { actorFor, emitEvent, makeEvent } from '../telemetry';
 import { runtimeMetrics } from '../telemetry-metrics';
+import { mindSizes } from '../v2/mind-sizes';
 import { executionFor } from './execution-session';
 import { perceptionFor } from './perception-session';
 import { goalStatus } from './resident-goal';
@@ -53,7 +54,8 @@ export function startRuntimeHealth(options: {
           self: perceptionFor(session).self()
         },
         network: session.timing.snapshot(),
-        movement: session.movementCounts
+        movement: session.movementCounts,
+        mind: mindSizes(session)
       }));
       for (const resident of residents)
         emitEvent(

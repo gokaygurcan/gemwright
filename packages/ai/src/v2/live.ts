@@ -24,6 +24,8 @@ import { shower } from './show';
 // NoResourcesMessage), and how long until a spot's resources grow back at the latest (their
 // HarvestDefinition MaxRespawn).
 const nothingLeft = new Set([503040, 500493, 503172]);
+// A decision taking this long holds every resident up (they share one thread): worth a log line.
+const SLOW_DECISION_MS = 500;
 
 // Living by its own choices: what it could do, each valued by what it expects of it, the best done
 // with its hands, step by step, until done or until something else is worth more than keeping at
@@ -82,6 +84,9 @@ export async function live(
   const hovered = new Set<number>();
   const asked = new Map<number, number>();
   let spot: string | undefined;
+  // The plan it last broke off for something better: not taken back while that something lasts, so
+  // two plans cannot trade places back and forth.
+  let left: string | undefined;
   const breaker = new LoopBreaker();
   const visited = new Map<string, number>();
   let searches = 0;
@@ -258,7 +263,11 @@ export async function live(
       breaker.finish('dressing', true, false);
       continue;
     }
+    const trigger = mind.changedBy;
+    const thinking = performance.now();
     const valued = await liveChoices(mind, terrain, new Set(), places, cancelled, undefined, false);
+    const ms = Math.round(performance.now() - thinking);
+    if (ms >= SLOW_DECISION_MS) logger('v2').info(`[v2] slow decision: ${ms} ms after ${trigger || 'start'}`);
     if (!valued) {
       if (++searches >= 3) await relocate('Deliberation repeatedly invalidated before choosing work');
       continue;
@@ -268,6 +277,8 @@ export async function live(
     const changing = !best || (!best.urgent && best.rate <= -1);
     const doing = changing ? 'change course' : best.key;
     record('considered', {
+      ms,
+      trigger,
       doing,
       choice: doing,
       agrees: true,
@@ -314,21 +325,40 @@ export async function live(
     let remaining = best.source;
     let interrupted = false;
     let interruption: object | undefined;
-    let checkedRevision = mind.revision;
+    let checkedNoticed = mind.noticed;
     let reconsidering = false;
     // Weighed again while it keeps moving, as a player thinks on the way: the step never waits for
     // it, and a better choice stops the plan at the next step.
     const reconsider = async () => {
       reconsidering = true;
-      const revision = mind.revision;
+      const noticed = mind.noticed;
+      const trigger = mind.changedBy;
+      const thinking = performance.now();
       const alternatives = await liveChoices(mind, terrain, new Set(), places, cancelled, remaining, false);
+      const ms = Math.round(performance.now() - thinking);
       reconsidering = false;
       if (!alternatives || interrupted) return;
-      checkedRevision = revision;
+      checkedNoticed = noticed;
       const current = alternatives.find((o) => o.id === best.id);
-      const other = alternatives.find((option) => breaker.allows(option.id));
+      const other = alternatives.find((option) => breaker.allows(option.id) && option.id !== left);
       const keeping = current?.rate ?? best.rate;
-      if (!other || other.id === best.id || other.rate - keeping <= mind.temper.patience * Math.abs(keeping)) return;
+      // Better by more than its patience holds it, measured against the larger of the two, so two
+      // near-even plans never flip on the noise of their estimates.
+      const keep =
+        !other ||
+        other.id === best.id ||
+        other.rate - keeping <= mind.temper.patience * Math.max(Math.abs(keeping), Math.abs(other.rate));
+      // Every second thought on the way, kept or not: what woke it, what it cost, what it weighed.
+      record('reconsidered', {
+        id: best.id,
+        ms,
+        trigger,
+        kept: keep,
+        keeping,
+        alternative: other && { id: other.id, key: other.key, rate: other.rate }
+      });
+      if (ms >= SLOW_DECISION_MS) logger('v2').info(`[v2] slow reconsideration: ${ms} ms after ${trigger}`);
+      if (keep) return;
       interrupted = true;
       interruption = {
         reason: 'better opportunity',
@@ -346,7 +376,7 @@ export async function live(
       }
       if (interrupted) return false;
       if (best.urgent) return best.steps[0]?.verb === 'escape' || !encounter.needsEscape();
-      if (checkedRevision !== mind.revision && !reconsidering) void reconsider();
+      if (checkedNoticed !== mind.noticed && !reconsidering) void reconsider();
       return true;
     };
     const heard = screen.journal.length;
@@ -398,6 +428,7 @@ export async function live(
     // unrealized experience: nothing counts against it, and nothing against the chances of the place
     // it was going to.
     if (!interrupted) breaker.finish(best.id, done === best.steps.length, advanced);
+    left = interrupted && interruption && 'alternative' in interruption ? best.id : undefined;
     if (!breaker.allows(best.id))
       record('loop-broken', { reason: 'Repeated unsuccessful or unproductive plan', id: best.id });
     record('plan-ended', {

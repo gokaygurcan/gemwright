@@ -2,6 +2,7 @@ import { craftSystemOf, isA, npcTypes, sells } from '@gemwright/common/game/rule
 import { Layer } from '@gemwright/network/layers';
 
 import type { Terrain, WorkTile } from '../terrain';
+import { areaWork, bestInArea } from './area-work';
 import {
   bankBatch,
   bankSteps,
@@ -177,15 +178,16 @@ export function options(
     // The nearest ground worth working first: a seam a few steps away is not left for one across the
     // map. Each ring outward is only looked at while the ground inside it offers nothing worth the
     // dig — spent, exhausted, or worked out — and within a ring the yield still decides.
+    // Kept to some cities, the ground is looked for among the tiles listed inside them at start
+    // (area-work.ts); otherwise across the map's own index.
+    const table = mind.bounds ? areaWork(harvest.tiles) : undefined;
     let spots: WorkTile[] = [];
     for (const radius of [40, 80, 160, 320, Number.POSITIVE_INFINITY]) {
       const within = (spot: WorkTile) => away(here, spot) <= radius;
-      spots = terrain.bestTiles(
-        harvest.tiles,
-        here,
-        (spot) => (within(spot) ? score(spot) : Number.NEGATIVE_INFINITY),
-        (kind, distance) => (distance > radius ? Number.NEGATIVE_INFINITY : Math.max(-1, rated(kind, distance, 1)))
-      );
+      const scored = (spot: WorkTile) => (within(spot) ? score(spot) : Number.NEGATIVE_INFINITY);
+      const upper = (kind: Pick<WorkTile, 'id' | 'land'>, distance: number) =>
+        distance > radius ? Number.NEGATIVE_INFINITY : Math.max(-1, rated(kind, distance, 1));
+      spots = table ? bestInArea(table, here, scored, upper) : terrain.bestTiles(harvest.tiles, here, scored, upper);
       if (spots.some((spot) => score(spot) >= 0)) break;
     }
     for (const spot of spots) {

@@ -20,16 +20,19 @@ export interface Deliberation {
   // What the market was last seen to pay for what an attempt brings (the wiki's prices until then).
   market?: (name: string) => number;
   steps?: Steps;
+  // Where it may go (the cities it is kept to).
+  allowed?: (p: { x: number; y: number }) => boolean;
 }
 
-export function* journeys({ where, fight, health, ventures, things, steps }: Deliberation) {
+export function* journeys({ where, fight, health, ventures, things, steps, allowed }: Deliberation) {
   if (!where) return;
   const forecasts = new Map<string, ReturnType<Fight['foresee']>>();
   for (const venture of ventures.ahead(
     where,
     new Set(),
     (name) => [...things.owned.values()].some((item) => item.name === name),
-    steps
+    steps,
+    allowed
   )) {
     if (!venture.key.startsWith('attack ') || fight.harmless(venture.key.slice(7))) continue;
     if (!forecasts.has(venture.key)) forecasts.set(venture.key, fight.foresee(venture.key.slice(7), health));

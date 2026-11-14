@@ -25,7 +25,7 @@ import { ResidentStore } from './v1/store';
 import { buildWorkAreas } from './v1/work-area-build';
 import { applyWorld, useCities, world } from './v1/world';
 import { useLand } from './v2/reach';
-import { confine } from './v2/shadow';
+import { confine, prepareArea } from './v2/shadow';
 import { WalkGraph } from './walk-graph';
 import { useWalkGraph } from './walk-graph-store';
 
@@ -147,6 +147,8 @@ if (count > 0) {
       new Set(teleporters.map((l) => l.from.x * 4096 + l.from.y))
     )
   );
+  // What the cities residents are kept to hold, listed before anyone wakes.
+  prepareArea(join(data, 'history.sqlite'), terrain);
 }
 while (!stopping) {
   const started = Date.now();

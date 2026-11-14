@@ -106,8 +106,14 @@ const kinds = [
   ['container', ['Container']]
 ] as const;
 export type ItemKind = (typeof kinds)[number][0] | 'other';
+// A name's kind never changes: worked out once, through the class tree, then remembered.
+const known = new Map<string, ItemKind>();
 export function kindOf(name: string): ItemKind {
-  const types = name.split('/');
-  for (const [kind, roots] of kinds) if (types.some((type) => roots.some((root) => isA(type, root)))) return kind;
-  return 'other';
+  let kind = known.get(name);
+  if (kind === undefined) {
+    const types = name.split('/');
+    kind = [...kinds].find(([, roots]) => types.some((type) => roots.some((root) => isA(type, root))))?.[0] ?? 'other';
+    known.set(name, kind);
+  }
+  return kind;
 }
