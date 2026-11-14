@@ -12,7 +12,7 @@
 8. Keep agent-authored source files below approximately 5,000 tokens where practical, estimating tokens as bytes / 4. Split oversized files along meaningful boundaries, never artificially. Exempt generated and externally maintained files, such as lockfiles. Do not introduce unrelated restructuring merely to satisfy the size guideline.
 9. Keep inline comments minimal and concise. Never comment on what the code already makes obvious. Remove redundant or narrating comments.
 10. Before fixing a bug, reproduce it on unmodified code with a failing regression test. Fix the root cause, then verify that the same test passes. If reproduction or the required test is blocked, report the blocker rather than silently skipping this requirement.
-11. Verify changes with real inputs and observable behavior. Run the project's required lint, typecheck, and test scripts before handoff or any authorized Git or release action. Passing checks alone is never sufficient proof of correctness.
+11. Verify changes with real inputs and observable behavior. During development and before handoff, commits or deploys, run lint, typecheck, and only the tests covering the touched areas; never the full test suite. Run the full test suite only before a version update or release. Passing checks alone is never sufficient proof of correctness.
 12. Never conceal failures by weakening tests, swallowing exceptions, adding arbitrary retries, bypassing checks, or dismissing errors as pre-existing without evidence.
 13. Never modify linter or tester configurations to make changes pass the process.
 14. Before handoff, review the complete diff for correctness, regressions, unintended changes, and security risks.
