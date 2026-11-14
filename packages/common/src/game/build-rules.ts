@@ -39,6 +39,7 @@ type ClassFacts = {
   hue?: number;
   bodies?: number[];
   sb?: string[];
+  t?: string;
 };
 const classes: Record<string, ClassFacts> = {};
 const doorArgs = new Map<string, RegExpMatchArray[]>();
@@ -156,6 +157,15 @@ for (const { text, engine: core } of sources) {
     if (bodies.some((v) => v > 0)) facts.bodies = [...new Set(bodies.filter((v) => v > 0))];
     const lists = [...body.matchAll(/SBInfos\.Add\(new\s+(SB\w+)/g)].map((m) => m[1] ?? '');
     if (lists.length) facts.sb = lists;
+    // A townsperson's title, as its name shows it (`: base("the blacksmith")`, ServUO BaseVendor).
+    // A guildmaster's is its trade's (BaseGuildmaster: "the blacksmith guildmaster").
+    const title =
+      /:\s*base\(\s*"(the [^"]+)"\s*\)/.exec(body)?.[1] ??
+      /\bTitle\s*=\s*"(the [^"]+)"/.exec(body)?.[1] ??
+      ((match[2] ?? '') === 'BaseGuildmaster'
+        ? /:\s*base\(\s*"(\w+)"\s*\)/.exec(body)?.[1]?.replace(/^(.*)$/, 'the $1 guildmaster')
+        : undefined);
+    if (title) facts.t = title;
     classes[name] = facts;
     if (!core && /AIType\.|SetStr|SetHits|\bName\s*=|\bBody\s*=/.test(body)) creatureBodies.set(name, body);
     const doors = [

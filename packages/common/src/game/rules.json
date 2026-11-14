@@ -500,7 +500,7 @@
     "DoughtyWarriorsQuest": { "b": "BaseQuest" },
     "DoughtyWarriors2Quest": { "b": "BaseQuest" },
     "DoughtyWarriors3Quest": { "b": "BaseQuest" },
-    "Kane": { "b": "MondainQuester", "g": [8252] },
+    "Kane": { "b": "MondainQuester", "g": [8252], "t": "the Master of Arms" },
     "AemaethOneQuest": { "b": "BaseQuest" },
     "AemaethTwoQuest": { "b": "BaseQuest" },
     "EscortToYewQuest": { "b": "BaseQuest" },
@@ -516,14 +516,21 @@
     "EscortToCoveQuest": { "b": "BaseQuest" },
     "EscortToBritainQuest": { "b": "BaseQuest" },
     "TownEscortable": { "b": "BaseEscort" },
-    "EscortableMerchant": { "b": "TownEscortable" },
-    "EscortableMage": { "b": "BaseEscortable" },
-    "EscortableMessenger": { "b": "TownEscortable" },
-    "EscortableSeekerOfAdventure": { "b": "TownEscortable" },
-    "EscortableNoble": { "b": "TownEscortable" },
-    "EscortableBrideGroom": { "b": "TownEscortable", "g": [8251, 8252] },
-    "EscortablePeasant": { "b": "NewHavenEscortable" },
-    "EscortableHealer": { "b": "TownEscortable" },
+    "EscortableMerchant": { "b": "TownEscortable", "t": "the merchant" },
+    "EscortableMage": { "b": "BaseEscortable", "t": "the mage" },
+    "EscortableMessenger": { "b": "TownEscortable", "t": "the messenger" },
+    "EscortableSeekerOfAdventure": {
+      "b": "TownEscortable",
+      "t": "the seeker of adventure"
+    },
+    "EscortableNoble": { "b": "TownEscortable", "t": "the noble" },
+    "EscortableBrideGroom": {
+      "b": "TownEscortable",
+      "g": [8251, 8252],
+      "t": "the bride"
+    },
+    "EscortablePeasant": { "b": "NewHavenEscortable", "t": "the peasant" },
+    "EscortableHealer": { "b": "TownEscortable", "t": "the wandering healer" },
     "MysticsJourneyQuest": { "b": "BaseQuest" },
     "Ortlem": { "b": "MondainQuester", "g": [16984], "sb": ["SBMystic"] },
     "GhostOfCovetousQuest": { "b": "BaseQuest" },
@@ -1147,13 +1154,25 @@
     "CollectorQuest": { "b": "QuestSystem" },
     "WieldingTheSonicBladeQuest": { "b": "BaseQuest" },
     "DiscordObjective": { "b": "SimpleObjective" },
-    "SirBerran": { "b": "MondainQuester", "bodies": [400] },
+    "SirBerran": {
+      "b": "MondainQuester",
+      "bodies": [400],
+      "t": "the Song Weilder"
+    },
     "TheBeaconOfHarmonyQuest": { "b": "BaseQuest" },
     "PeacemakingObjective": { "b": "SimpleObjective" },
-    "SirFelean": { "b": "MondainQuester", "bodies": [400] },
+    "SirFelean": {
+      "b": "MondainQuester",
+      "bodies": [400],
+      "t": "the Spirit Soother"
+    },
     "IndoctrinationOfABattleRouserQuest": { "b": "BaseQuest" },
     "ProvocationObjective": { "b": "SimpleObjective" },
-    "SirHareus": { "b": "MondainQuester", "bodies": [400] },
+    "SirHareus": {
+      "b": "MondainQuester",
+      "bodies": [400],
+      "t": "the Battle Rouser"
+    },
     "HagDuringCorpseSearchConversation": { "b": "QuestConversation" },
     "ApprenticeCorpseConversation": { "b": "QuestConversation" },
     "MurderConversation": { "b": "QuestConversation" },
@@ -1290,7 +1309,12 @@
     "TerMurSnowglobe": { "b": "Item", "g": [3631], "hue": 2599 },
     "Prugyilonus": { "b": "MondainQuester", "hue": 34547 },
     "Bexil": { "b": "MondainQuester", "own": 1, "hue": 2069, "bodies": [206] },
-    "BexilPunchingBag": { "b": "BaseCreature", "hue": 1976, "bodies": [206] },
+    "BexilPunchingBag": {
+      "b": "BaseCreature",
+      "hue": 1976,
+      "bodies": [206],
+      "t": "the Dream Serpent"
+    },
     "Grubbix": { "b": "MondainQuester", "hue": 2076, "bodies": [256] },
     "SpawnType": { "b": "SpawnDefinition" },
     "SpawnMobile": { "b": "SpawnType" },
@@ -2231,7 +2255,7 @@
     },
     "AppraiseforCleanup": { "b": "ContextMenuEntry" },
     "EnormousVenusFlytrapAddonDeed": { "b": "BaseAddonContainerDeed" },
-    "PetParrot": { "b": "BaseCreature", "bodies": [282] },
+    "PetParrot": { "b": "BaseCreature", "bodies": [282], "t": "the parrot" },
     "WoodenTableEastAddon": { "b": "BaseAddon", "g": [19659, 19658] },
     "WoodenTableEastDeed": { "b": "BaseAddonDeed" },
     "LongMetalTableSouthAddon": {
@@ -5771,7 +5795,11 @@
     "BladeSpirits": { "b": "BaseCreature", "bodies": [574] },
     "RisingColossus": { "b": "BaseCreature", "bodies": [829] },
     "VampireBatFamiliar": { "b": "BaseFamiliar", "bodies": [317] },
-    "SummonedPaladin": { "b": "BaseCreature", "bodies": [400] },
+    "SummonedPaladin": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the Paladin"
+    },
     "SummonTimer": { "b": "Timer" },
     "SummonedPaladinMoongate": { "b": "Item", "g": [3948] },
     "SpawnedOrcishLord": { "b": "OrcishLord" },
@@ -5799,14 +5827,19 @@
     "DarkWolfFamiliar": { "b": "BaseFamiliar", "bodies": [99] },
     "GargoylePet": { "b": "BaseCreature", "bodies": [730] },
     "Aurvidlem": { "b": "MondainQuester", "g": [16985] },
-    "Aminia": { "b": "BaseCreature", "g": [8251], "bodies": [23] },
+    "Aminia": {
+      "b": "BaseCreature",
+      "g": [8251],
+      "bodies": [23],
+      "t": "the master weaponsmith's wife"
+    },
     "ClockworkPuzzleQuest": { "b": "BaseQuest" },
     "Nibbet": { "b": "MondainQuester", "g": [8260] },
     "TinkersSatchel": { "b": "Backpack" },
     "ScrapingtheBottom": { "b": "BaseQuest" },
     "Xenrr": { "b": "MondainQuester", "g": [8260, 8267], "bodies": [723] },
     "Trades": { "b": "BaseCollectionMobile", "g": [8251] },
-    "Chyloth": { "b": "BaseQuester", "bodies": [400] },
+    "Chyloth": { "b": "BaseQuester", "bodies": [400], "t": "the Ferryman" },
     "ChylothPartyGump": { "b": "Gump" },
     "ComfortableSeatingQuest": { "b": "BaseQuest" },
     "Lowel": { "b": "MondainQuester", "g": [8252] },
@@ -5820,10 +5853,18 @@
     "CrimeAndPunishmentQuest": { "b": "BaseQuest" },
     "Acob": { "b": "MondainQuester", "g": [12239] },
     "Darius": { "b": "HeritageQuester", "g": [12238] },
-    "EvilWanderingHealer": { "b": "BaseHealer" },
-    "Mapmaker": { "b": "BaseVendor", "sb": ["SBMapmaker"] },
+    "EvilWanderingHealer": { "b": "BaseHealer", "t": "the priest of Mondain" },
+    "Mapmaker": {
+      "b": "BaseVendor",
+      "sb": ["SBMapmaker"],
+      "t": "the mapmaker"
+    },
     "Ciala": { "b": "MondainQuester", "g": [12240] },
-    "HarborMaster": { "b": "BaseCreature", "bodies": [401] },
+    "HarborMaster": {
+      "b": "BaseCreature",
+      "bodies": [401],
+      "t": "the Harbor Mistress"
+    },
     "ShipRecallRuneEntry": { "b": "ContextMenuEntry" },
     "AbandonShipEntry": { "b": "ContextMenuEntry" },
     "AbandonGump": { "b": "Gump" },
@@ -5834,64 +5875,105 @@
       "g": [17011],
       "sb": ["SBAlchemist"]
     },
-    "Uzeraan": { "b": "BaseQuester", "g": [8252, 8254], "bodies": [400] },
+    "Uzeraan": {
+      "b": "BaseQuester",
+      "g": [8252, 8254],
+      "bodies": [400],
+      "t": "the Conjurer"
+    },
     "Jusae": { "b": "MondainQuester", "g": [12240] },
     "CulinaryCrisisQuest": { "b": "BaseQuest" },
     "Emerillo": { "b": "MondainQuester", "g": [8252, 8268] },
-    "Scribe": { "b": "BaseVendor", "sb": ["SBScribe"] },
-    "JedahEntille": { "b": "BaseQuester", "g": [8252], "bodies": [401] },
-    "Banker": { "b": "BaseVendor", "sb": ["SBBanker"] },
+    "Scribe": { "b": "BaseVendor", "sb": ["SBScribe"], "t": "the scribe" },
+    "JedahEntille": {
+      "b": "BaseQuester",
+      "g": [8252],
+      "bodies": [401],
+      "t": "the Silent"
+    },
+    "Banker": { "b": "BaseVendor", "sb": ["SBBanker"], "t": "the banker" },
     "Thepem": {
       "b": "MondainQuester",
       "i": ["ITierQuester"],
       "g": [17067],
       "sb": ["SBAlchemist"]
     },
-    "Mage": { "b": "BaseVendor", "sb": ["SBMage"] },
-    "RangerGuildmaster": { "b": "BaseGuildmaster" },
+    "Mage": { "b": "BaseVendor", "sb": ["SBMage"], "t": "the mage" },
+    "RangerGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the ranger guildmaster"
+    },
     "TheDeluciansLostMineQuest": { "b": "BaseQuest" },
     "Jacob": { "b": "MondainQuester" },
-    "Paladin": { "b": "BaseCreature", "bodies": [400] },
+    "Paladin": { "b": "BaseCreature", "bodies": [400], "t": "the Paladin" },
     "Percolem": { "b": "MondainQuester", "i": ["ITierQuester"], "g": [8252] },
-    "Rebinil": { "b": "BaseVendor", "g": [12240] },
-    "HairStylist": { "b": "BaseVendor", "sb": ["SBHairStylist"] },
-    "Olaeni": { "b": "BaseVendor", "g": [12239] },
+    "Rebinil": { "b": "BaseVendor", "g": [12240], "t": "the healer" },
+    "HairStylist": {
+      "b": "BaseVendor",
+      "sb": ["SBHairStylist"],
+      "t": "the hair stylist"
+    },
+    "Olaeni": { "b": "BaseVendor", "g": [12239], "t": "the thaumaturgist" },
     "EyesOfRangerQuest": { "b": "BaseQuest" },
     "Walker": { "b": "MondainQuester" },
-    "Impresario": { "b": "BaseQuester", "bodies": [400] },
+    "Impresario": {
+      "b": "BaseQuester",
+      "bodies": [400],
+      "t": "the impresario"
+    },
     "SheetMusicOfferGump": { "b": "BaseQuestGump" },
-    "MageGuildmaster": { "b": "BaseGuildmaster" },
-    "BrideGroom": { "b": "BaseEscortable", "g": [8251, 8252] },
-    "ArcherGuard": { "b": "BaseGuard", "bodies": [401] },
+    "MageGuildmaster": { "b": "BaseGuildmaster", "t": "the mage guildmaster" },
+    "BrideGroom": {
+      "b": "BaseEscortable",
+      "g": [8251, 8252],
+      "t": "the bride"
+    },
+    "ArcherGuard": { "b": "BaseGuard", "bodies": [401], "t": "the guard" },
     "AvengeTimer": { "b": "Timer" },
     "AttackTimer": { "b": "Timer" },
     "IdleTimer": { "b": "Timer" },
     "SomethingFishy": { "b": "BaseQuest" },
     "Barreraak": { "b": "MondainQuester", "g": [8260, 8267], "bodies": [334] },
-    "GypsyBanker": { "b": "Banker" },
-    "HirePeasant": { "b": "BaseHire", "bodies": [401] },
+    "GypsyBanker": { "b": "Banker", "t": "the gypsy banker" },
+    "HirePeasant": { "b": "BaseHire", "bodies": [401], "t": "the peasant" },
     "CutsBothWaysQuest": { "b": "BaseQuest" },
     "DragonProtectionQuest": { "b": "BaseQuest" },
     "NothingFancyQuest": { "b": "BaseQuest" },
     "TheBulwarkQuest": { "b": "BaseQuest" },
     "Lohn": { "b": "MondainQuester", "g": [12226] },
-    "AlbertaGiacco": { "b": "BaseQuester", "g": [8253], "bodies": [401] },
+    "AlbertaGiacco": {
+      "b": "BaseQuester",
+      "g": [8253],
+      "bodies": [401],
+      "t": "the respected painter"
+    },
     "MaceAndBlade": { "b": "BaseCollectionMobile" },
     "TheSongOfTheWindQuest": { "b": "BaseQuest" },
     "BeerGogglesQuest": { "b": "BaseQuest" },
     "MessageInBottleQuest": { "b": "BaseQuest" },
     "Tholef": { "b": "MondainQuester", "g": [12226] },
-    "Bolaevin": { "b": "BaseVendor", "g": [12224] },
-    "BardGuildmaster": { "b": "BaseGuildmaster" },
+    "Bolaevin": { "b": "BaseVendor", "g": [12224], "t": "the arcanist" },
+    "BardGuildmaster": { "b": "BaseGuildmaster", "t": "the bard guildmaster" },
     "Aeluva": { "b": "MondainQuester", "g": [12240] },
-    "MansionGuard": { "b": "BaseQuester", "bodies": [400] },
-    "TinkerGuildmaster": { "b": "BaseGuildmaster" },
+    "MansionGuard": {
+      "b": "BaseQuester",
+      "bodies": [400],
+      "t": "the Mansion Guard"
+    },
+    "TinkerGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the tinker guildmaster"
+    },
     "Mielan": { "b": "MondainQuester", "g": [12238] },
-    "HireBard": { "b": "BaseHire", "bodies": [401] },
+    "HireBard": { "b": "BaseHire", "bodies": [401], "t": "the bard" },
     "Vilo": { "b": "MondainQuester", "g": [12224] },
-    "Horus": { "b": "BaseQuester", "bodies": [400] },
+    "Horus": { "b": "BaseQuester", "bodies": [400], "t": "the Guardian" },
     "SpeakPasswordEntry": { "b": "ContextMenuEntry" },
-    "GypsyMaiden": { "b": "BaseVendor", "sb": ["SBProvisioner"] },
+    "GypsyMaiden": {
+      "b": "BaseVendor",
+      "sb": ["SBProvisioner"],
+      "t": "the gypsy maiden"
+    },
     "ShearingKnowledgeQuest": { "b": "BaseQuest" },
     "WeavingFriendshipsQuest": { "b": "BaseQuest" },
     "NewSpinQuest": { "b": "BaseQuest" },
@@ -5900,13 +5982,17 @@
     "DoneInTheNameOfTinkeringQuest": { "b": "BaseQuest" },
     "Tobin": { "b": "MondainQuester", "g": [8262] },
     "CommissionPlayerVendor": { "b": "PlayerVendor" },
-    "Necromancer": { "b": "BaseVendor" },
+    "Necromancer": { "b": "BaseVendor", "t": "the Necromancer" },
     "DeliciousFishesQuest": { "b": "BaseQuest" },
     "Norton": { "b": "MondainQuester", "g": [8251] },
     "PeppercornFishsteak": { "b": "FishSteak" },
-    "VarietyDealer": { "b": "BaseVendor", "sb": ["SBVarietyDealer"] },
-    "Alelle": { "b": "BaseVendor", "g": [12236] },
-    "Vicaie": { "b": "BaseVendor", "g": [12237] },
+    "VarietyDealer": {
+      "b": "BaseVendor",
+      "sb": ["SBVarietyDealer"],
+      "t": "the variety dealer"
+    },
+    "Alelle": { "b": "BaseVendor", "g": [12236], "t": "the aborist" },
+    "Vicaie": { "b": "BaseVendor", "g": [12237], "t": "the wise" },
     "DreadhornQuest": { "b": "BaseQuest" },
     "Calendor": { "b": "MondainQuester", "g": [12240] },
     "Szandor": { "b": "MondainQuester", "bodies": [50] },
@@ -5915,19 +6001,32 @@
     "UnderstandingAnimals": { "b": "BaseCollectionMobile", "g": [8261] },
     "ArtsSection": { "b": "BaseCollectionMobile", "g": [8261] },
     "OrderGuard": { "b": "BaseShieldGuard" },
-    "TavernKeeper": { "b": "BaseVendor", "sb": ["SBTavernKeeper"] },
-    "EvilHealer": { "b": "BaseHealer", "sb": ["SBHealer"] },
-    "Yellienir": { "b": "BaseVendor", "g": [12238] },
+    "TavernKeeper": {
+      "b": "BaseVendor",
+      "sb": ["SBTavernKeeper"],
+      "t": "the tavern keeper"
+    },
+    "EvilHealer": { "b": "BaseHealer", "sb": ["SBHealer"], "t": "the healer" },
+    "Yellienir": { "b": "BaseVendor", "g": [12238], "t": "the bark weaver" },
     "Jaacar": { "b": "MondainQuester", "bodies": [723] },
     "BruisesBandagesAndBloodQuest": { "b": "BaseQuest" },
     "Avicenna": { "b": "MondainQuester" },
-    "MerchantGuildmaster": { "b": "BaseGuildmaster" },
+    "MerchantGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the merchant guildmaster"
+    },
     "Zeefzorpul": { "b": "BaseQuester", "bodies": [74] },
-    "TomasONeerlan": { "b": "BaseQuester", "g": [8251], "bodies": [400] },
-    "HireFighter": { "b": "BaseHire", "bodies": [401] },
+    "TomasONeerlan": {
+      "b": "BaseQuester",
+      "g": [8251],
+      "bodies": [400],
+      "t": "the famed toymaker"
+    },
+    "HireFighter": { "b": "BaseHire", "bodies": [401], "t": "the fighter" },
     "Weaponsmith": {
       "b": "BaseVendor",
-      "sb": ["SBWeaponSmith", "SBSEWeapons"]
+      "sb": ["SBWeaponSmith", "SBSEWeapons"],
+      "t": "the weaponsmith"
     },
     "InTheBellyOfTheBeastQuest": { "b": "BaseQuest" },
     "Frazer": {
@@ -5935,11 +6034,15 @@
       "g": [8266, 8269],
       "sb": ["SBJewel", "SBTinker"]
     },
-    "Tinker": { "b": "BaseVendor", "sb": ["SBTinker"] },
-    "Waiter": { "b": "BaseVendor", "sb": ["SBWaiter"] },
+    "Tinker": { "b": "BaseVendor", "sb": ["SBTinker"], "t": "the tinker" },
+    "Waiter": { "b": "BaseVendor", "sb": ["SBWaiter"], "t": "the waiter" },
     "TheRightToolForTheJobQuest": { "b": "BaseQuest" },
     "Amelia": { "b": "MondainQuester", "sb": ["SBTinker"] },
-    "GolemCrafter": { "b": "BaseVendor", "sb": ["SBTinker", "SBVagabond"] },
+    "GolemCrafter": {
+      "b": "BaseVendor",
+      "sb": ["SBTinker", "SBVagabond"],
+      "t": "the golem crafter"
+    },
     "MisplacedQuest": { "b": "BaseQuest" },
     "Cohenn": { "b": "MondainQuester", "g": [8261] },
     "AnsellaGryen": { "b": "BaseQuester", "g": [8251], "bodies": [401] },
@@ -5966,7 +6069,8 @@
         "SBHelmetArmor",
         "SBSELeatherArmor",
         "SBSEArmor"
-      ]
+      ],
+      "t": "the armourer"
     },
     "BaseSolenMatriarch": { "b": "BaseQuester", "g": [6184], "bodies": [808] },
     "ProcessZoogiFungusEntry": { "b": "ContextMenuEntry", "g": [6184] },
@@ -5990,7 +6094,8 @@
       "b": "BaseQuester",
       "g": [8253],
       "bodies": [401],
-      "sb": ["SBDryad"]
+      "sb": ["SBDryad"],
+      "t": "the Dryad"
     },
     "UnholyConstructQuest": { "b": "BaseQuest" },
     "Braen": { "b": "MondainQuester", "g": [12223] },
@@ -6002,38 +6107,50 @@
       "b": "BaseQuester",
       "g": [8252],
       "bodies": [401],
-      "sb": ["SBMage"]
+      "sb": ["SBMage"],
+      "t": "the Sorceress"
     },
-    "RealEstateBroker": { "b": "BaseVendor", "sb": ["SBRealEstateBroker"] },
-    "Abbein": { "b": "BaseVendor", "g": [12241] },
+    "RealEstateBroker": {
+      "b": "BaseVendor",
+      "sb": ["SBRealEstateBroker"],
+      "t": "the real estate broker"
+    },
+    "Abbein": { "b": "BaseVendor", "g": [12241], "t": "the wise" },
     "Glassblower": {
       "b": "BaseVendor",
       "bodies": [758],
-      "sb": ["SBGlassblower", "SBAlchemist"]
+      "sb": ["SBGlassblower", "SBAlchemist"],
+      "t": "the alchemist"
     },
-    "Monk": { "b": "BaseVendor", "sb": ["SBMonk"] },
+    "Monk": { "b": "BaseVendor", "sb": ["SBMonk"], "t": "the Monk" },
     "Aurelia": { "b": "MondainQuester", "g": [8263] },
     "Sledge": { "b": "MondainQuester" },
     "Bowyer": {
       "b": "BaseVendor",
-      "sb": ["SBBowyer", "SBRangedWeapon", "SBSEBowyer"]
+      "sb": ["SBBowyer", "SBRangedWeapon", "SBSEBowyer"],
+      "t": "the bowyer"
     },
-    "HireBeggar": { "b": "BaseHire", "bodies": [401] },
-    "GypsyFortuneTeller": { "b": "BaseHealer" },
+    "HireBeggar": { "b": "BaseHire", "bodies": [401], "t": "the beggar" },
+    "GypsyFortuneTeller": { "b": "BaseHealer", "t": "the fortune teller" },
     "Aernya": { "b": "MondainQuester", "g": [8263] },
-    "HireThief": { "b": "BaseHire", "bodies": [401] },
-    "Nythalia": { "b": "BaseVendor", "g": [8261] },
-    "Thief": { "b": "BaseVendor", "sb": ["SBThief"] },
+    "HireThief": { "b": "BaseHire", "bodies": [401], "t": "the thief" },
+    "Nythalia": { "b": "BaseVendor", "g": [8261], "t": "the student" },
+    "Thief": { "b": "BaseVendor", "sb": ["SBThief"], "t": "the thief" },
     "BoundToTheLandQuest": { "b": "BaseQuest" },
     "FrightenedDryad": { "b": "MondainQuester", "bodies": [266] },
     "ElwoodMcCarrin": {
       "b": "BaseQuester",
       "g": [8253, 8256],
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the well-known collector"
     },
     "Landy": { "b": "MondainQuester", "g": [12238] },
-    "Daelas": { "b": "BaseVendor", "g": [12239] },
-    "InnKeeper": { "b": "BaseVendor", "sb": ["SBInnKeeper", "SBSEFood"] },
+    "Daelas": { "b": "BaseVendor", "g": [12239], "t": "the aborist" },
+    "InnKeeper": {
+      "b": "BaseVendor",
+      "sb": ["SBInnKeeper", "SBSEFood"],
+      "t": "the innkeeper"
+    },
     "BakersDozenQuest": { "b": "BaseQuest" },
     "Asandos": { "b": "MondainQuester", "g": [8260] },
     "ChefsSatchel": { "b": "Backpack" },
@@ -6049,7 +6166,7 @@
     "Hamato": { "b": "MondainQuester", "sb": ["SBKeeperOfBushido"] },
     "DefyingTheArcaneQuest": { "b": "BaseQuest" },
     "Alefian": { "b": "MondainQuester" },
-    "Merchant": { "b": "BaseEscortable" },
+    "Merchant": { "b": "BaseEscortable", "t": "the merchant" },
     "EvilEyeQuest": { "b": "BaseQuest" },
     "ImpishDelightsQuest": { "b": "BaseQuest" },
     "StirringTheNestQuest": { "b": "BaseQuest" },
@@ -6062,30 +6179,40 @@
     "MongbatMenaceQuest": { "b": "BaseQuest" },
     "Brinnae": { "b": "MondainQuester", "g": [12240] },
     "Tamm": { "b": "MondainQuester", "g": [12223] },
-    "GypsyAnimalTrainer": { "b": "AnimalTrainer" },
+    "GypsyAnimalTrainer": {
+      "b": "AnimalTrainer",
+      "t": "the gypsy animal trainer"
+    },
     "BaseEscortable": { "b": "BaseCreature", "bodies": [401] },
     "DeleteTimer": { "b": "Timer" },
     "AskDestinationEntry": { "b": "ContextMenuEntry" },
     "AcceptEscortEntry": { "b": "ContextMenuEntry" },
     "AbandonEscortEntry": { "b": "ContextMenuEntry" },
-    "MilitiaCanoneer": { "b": "BaseQuester", "bodies": [400] },
+    "MilitiaCanoneer": {
+      "b": "BaseQuester",
+      "bodies": [400],
+      "t": "the Militia Cannoneer"
+    },
     "Emilio": { "b": "MondainQuester", "g": [8264, 8268] },
-    "Samurai": { "b": "BaseCreature", "bodies": [401] },
+    "Samurai": { "b": "BaseCreature", "bodies": [401], "t": "the samurai" },
     "HiddenFigure": { "b": "BaseQuester", "bodies": [401] },
-    "Weaver": { "b": "BaseVendor", "sb": ["SBWeaver"] },
+    "Weaver": { "b": "BaseVendor", "sb": ["SBWeaver"], "t": "the weaver" },
     "Garamon": {
       "b": "Mobile",
       "g": [8260, 8267],
       "hue": 33821,
       "bodies": [400]
     },
-    "ThiefGuildmaster": { "b": "BaseGuildmaster" },
+    "ThiefGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the thief guildmaster"
+    },
     "Curiosities": { "b": "BaseQuest" },
     "Gretchen": { "b": "MondainQuester", "g": [8263], "hue": 33767 },
     "SwiftAsAnArrowQuest": { "b": "BaseQuest" },
     "Robyn": { "b": "MondainQuester", "sb": ["SBRanger"] },
     "AriellesBauble": { "b": "Item", "g": [571] },
-    "Ninja": { "b": "BaseCreature", "bodies": [401] },
+    "Ninja": { "b": "BaseCreature", "bodies": [401], "t": "the ninja" },
     "StoneCrafter": {
       "b": "BaseVendor",
       "sb": [
@@ -6093,7 +6220,8 @@
         "SBStavesWeapon",
         "SBCarpenter",
         "SBWoodenShields"
-      ]
+      ],
+      "t": "the stone crafter"
     },
     "ImpressivePlaidQuest": { "b": "BaseQuest" },
     "NiceShirtQuest": { "b": "BaseQuest" },
@@ -6101,15 +6229,24 @@
     "FeyHeadgearQuest": { "b": "BaseQuest" },
     "NewCloakQuest": { "b": "BaseQuest" },
     "Tallinin": { "b": "MondainQuester", "g": [12224] },
-    "Grizelda": { "b": "BaseQuester", "g": [8252], "bodies": [401] },
+    "Grizelda": {
+      "b": "BaseQuester",
+      "g": [8252],
+      "bodies": [401],
+      "t": "the Hag"
+    },
     "Evan": { "b": "MondainQuester", "g": [8266, 8255] },
     "TheInnerWarriorQuest": { "b": "BaseQuest" },
     "SarsmeaSmythe": { "b": "MondainQuester" },
-    "CustomHairstylist": { "b": "BaseVendor" },
+    "CustomHairstylist": { "b": "BaseVendor", "t": "the hairstylist" },
     "HairstylistBuyGump": { "b": "Gump" },
     "ChangeHairHueGump": { "b": "Gump" },
     "ChangeHairstyleGump": { "b": "Gump" },
-    "AttendantHerald": { "b": "PersonalAttendant", "own": 1 },
+    "AttendantHerald": {
+      "b": "PersonalAttendant",
+      "own": 1,
+      "t": "the Herald"
+    },
     "OptionsGump": { "b": "Gump" },
     "SetTextGump": { "b": "Gump" },
     "AttendantMaleHerald": { "b": "AttendantHerald" },
@@ -6118,32 +6255,48 @@
     "HeraldSetGreetingTextEntry": { "b": "ContextMenuEntry", "g": [6246] },
     "PointyEarsQuest": { "b": "BaseQuest" },
     "Gorrow": { "b": "MondainQuester", "g": [8263] },
-    "Noble": { "b": "BaseEscortable" },
+    "Noble": { "b": "BaseEscortable", "t": "the noble" },
     "ChaosGuard": { "b": "BaseShieldGuard" },
-    "WarriorGuard": { "b": "BaseGuard", "bodies": [401] },
+    "WarriorGuard": { "b": "BaseGuard", "bodies": [401], "t": "the guard" },
     "EnGuardeQuest": { "b": "BaseQuest" },
     "Recaro": { "b": "MondainQuester" },
     "Arielle": { "b": "MondainQuester", "bodies": [128] },
-    "AttendantLuckyDealer": { "b": "PersonalAttendant", "own": 1 },
+    "AttendantLuckyDealer": {
+      "b": "PersonalAttendant",
+      "own": 1,
+      "t": "the Lucky Dealer"
+    },
     "AttendantMaleLuckyDealer": { "b": "AttendantLuckyDealer" },
     "AttendantFemaleLuckyDealer": { "b": "AttendantLuckyDealer" },
     "Regina": { "b": "MondainQuester", "g": [8265] },
-    "TailorGuildmaster": { "b": "BaseGuildmaster" },
+    "TailorGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the tailor guildmaster"
+    },
     "ABrokenVaseQuest": { "b": "BaseQuest" },
     "PuttingThePiecesTogetherQuest": { "b": "BaseQuest" },
     "YeOldeGargishQuest": { "b": "BaseQuest" },
     "Axem": { "b": "MondainQuester", "bodies": [666] },
-    "Herbalist": { "b": "BaseVendor", "sb": ["SBHerbalist"] },
+    "Herbalist": {
+      "b": "BaseVendor",
+      "sb": ["SBHerbalist"],
+      "t": "the herbalist"
+    },
     "SomethingToWailAboutQuest": { "b": "BaseQuest" },
     "RunawaysQuest": { "b": "BaseQuest" },
     "ViciousPredatorQuest": { "b": "BaseQuest" },
     "Jelrice": { "b": "MondainQuester", "g": [8263] },
-    "Alethanian": { "b": "BaseVendor", "g": [12226] },
-    "Blackheart": { "b": "BaseQuester", "g": [8254], "bodies": [400] },
+    "Alethanian": { "b": "BaseVendor", "g": [12226], "t": "the wise" },
+    "Blackheart": {
+      "b": "BaseQuester",
+      "g": [8254],
+      "bodies": [400],
+      "t": "the Drunken Pirate"
+    },
     "TheRudimentsOfSelfDefenseQuest": { "b": "BaseQuest" },
     "Dimethro": { "b": "MondainQuester" },
-    "Athialon": { "b": "BaseVendor", "g": [12224] },
-    "Rancher": { "b": "BaseVendor", "sb": ["SBRancher"] },
+    "Athialon": { "b": "BaseVendor", "g": [12224], "t": "the expeditionist" },
+    "Rancher": { "b": "BaseVendor", "sb": ["SBRancher"], "t": "the rancher" },
     "BaseHealer": { "b": "BaseVendor" },
     "BaseGuard": { "b": "Mobile" },
     "Canir": { "b": "MondainQuester", "g": [12240] },
@@ -6151,21 +6304,36 @@
     "SplitEndsQuest": { "b": "BaseQuest" },
     "Andric": { "b": "MondainQuester", "g": [8265] },
     "FletchersSatchel": { "b": "Backpack" },
-    "WarriorGuildmaster": { "b": "BaseGuildmaster" },
-    "Taellia": { "b": "BaseVendor", "g": [12237] },
+    "WarriorGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the warrior guildmaster"
+    },
+    "Taellia": { "b": "BaseVendor", "g": [12237], "t": "the wise" },
     "MysteriousWisp": { "b": "BaseCreature", "own": 1, "bodies": [58] },
     "BuyBackpack": { "b": "Backpack" },
     "InternalGump2": { "b": "Gump" },
-    "Miner": { "b": "BaseVendor", "sb": ["SBMiner"] },
+    "Miner": { "b": "BaseVendor", "sb": ["SBMiner"], "t": "the miner" },
     "KodarsRescueQuest": { "b": "BaseQuest" },
-    "Kodar": { "b": "BaseEscort", "g": [8269, 8266], "hue": 33790 },
-    "BaseShieldGuard": { "b": "BaseCreature", "bodies": [401] },
+    "Kodar": {
+      "b": "BaseEscort",
+      "g": [8269, 8266],
+      "hue": 33790,
+      "t": "the lost villager"
+    },
+    "BaseShieldGuard": {
+      "b": "BaseCreature",
+      "bodies": [401],
+      "t": "the guard"
+    },
     "SongsOfNote": { "b": "BaseCollectionMobile", "g": [8265] },
     "EmbracingHumanityQuest": { "b": "BaseQuest" },
     "Ioseph": { "b": "MondainQuester" },
     "TheAllureOfDarkMagicQuest": { "b": "BaseQuest" },
     "Mulcivikh": { "b": "MondainQuester", "sb": ["SBMage"] },
-    "FisherGuildmaster": { "b": "BaseGuildmaster" },
+    "FisherGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the fisher guildmaster"
+    },
     "WalkingSilentlyQuest": { "b": "BaseQuest" },
     "Jun": { "b": "MondainQuester" },
     "SquishyQuest": { "b": "BaseQuest" },
@@ -6175,16 +6343,32 @@
     "ColdHeartedQuest": { "b": "BaseQuest" },
     "ForkedTonguesQuest": { "b": "BaseQuest" },
     "Cloorne": { "b": "MondainQuester", "g": [12223] },
-    "Gardener": { "b": "BaseVendor", "sb": ["SBGardener"] },
-    "GrandpaCharley": { "b": "BaseVendor", "g": [8251, 8254] },
+    "Gardener": {
+      "b": "BaseVendor",
+      "sb": ["SBGardener"],
+      "t": "the gardener"
+    },
+    "GrandpaCharley": {
+      "b": "BaseVendor",
+      "g": [8251, 8254],
+      "t": "the farmer"
+    },
     "GargishWanderingHealer": { "b": "BaseHealer", "bodies": [666] },
     "Leon": { "b": "MondainQuester", "g": [8252, 8268] },
     "StopHarpingOnMeQuest": { "b": "BaseQuest" },
     "TheFarEyeQuest": { "b": "BaseQuest" },
     "Anolly": { "b": "MondainQuester", "g": [12224] },
-    "BlacksmithGuildmaster": { "b": "BaseGuildmaster", "sb": ["SBBlacksmith"] },
-    "Aneen": { "b": "BaseVendor", "g": [12223] },
-    "HireRanger": { "b": "BaseHire", "bodies": [401] },
+    "BlacksmithGuildmaster": {
+      "b": "BaseGuildmaster",
+      "sb": ["SBBlacksmith"],
+      "t": "the blacksmith guildmaster"
+    },
+    "Aneen": {
+      "b": "BaseVendor",
+      "g": [12223],
+      "t": "the keeper of tradition"
+    },
+    "HireRanger": { "b": "BaseHire", "bodies": [401], "t": "the ranger" },
     "Drithen": { "b": "MondainQuester" },
     "TheyreBreedingLikeRabbitsQuest": { "b": "BaseQuest" },
     "TheyllEatAnythingQuest": { "b": "BaseQuest" },
@@ -6202,8 +6386,13 @@
     "Dallid": { "b": "MondainQuester", "g": [12237] },
     "AllThatGlittersIsNotGoodQuest": { "b": "BaseQuest" },
     "Siarra": { "b": "MondainQuester", "g": [12225] },
-    "Haochi": { "b": "BaseQuester", "g": [8266], "bodies": [400] },
-    "HirePaladin": { "b": "BaseHire", "bodies": [401] },
+    "Haochi": {
+      "b": "BaseQuester",
+      "g": [8266],
+      "bodies": [400],
+      "t": "the Honorable Samurai Legend"
+    },
+    "HirePaladin": { "b": "BaseHire", "bodies": [401], "t": "the paladin" },
     "OilAndOubliette": { "b": "BaseCollectionMobile", "g": [8252, 8256] },
     "Lissbet": { "b": "BaseEscort", "g": [8253] },
     "Vollem": {
@@ -6211,26 +6400,44 @@
       "i": ["IRepairableMobile"],
       "bodies": [293]
     },
-    "HireMage": { "b": "BaseHire", "bodies": [401] },
+    "HireMage": { "b": "BaseHire", "bodies": [401], "t": "the mage" },
     "ThouAndThineShieldQuest": { "b": "BaseQuest" },
     "TylAriadne": { "b": "MondainQuester" },
     "TroubleOnTheWingQuest": { "b": "BaseQuest" },
     "Koole": { "b": "MondainQuester", "g": [12223] },
     "LeatherWorker": {
       "b": "BaseVendor",
-      "sb": ["SBLeatherArmor", "SBStuddedArmor", "SBLeatherWorker"]
+      "sb": ["SBLeatherArmor", "SBStuddedArmor", "SBLeatherWorker"],
+      "t": "the leather worker"
     },
     "ScribingArcaneKnowledgeQuest": { "b": "BaseQuest" },
     "Jillian": { "b": "MondainQuester" },
     "Nedrick": { "b": "HeritageQuester", "g": [8251, 8255] },
-    "Actor": { "b": "BaseCreature", "bodies": [401] },
+    "Actor": { "b": "BaseCreature", "bodies": [401], "t": "the actress" },
     "SkeletonKey": { "b": "BaseCollectionMobile", "g": [8261, 8268] },
-    "MinerGuildmaster": { "b": "BaseGuildmaster" },
-    "Vrulkax": { "b": "BaseVendor", "g": [16985], "hue": 34545 },
-    "Mystic": { "b": "BaseVendor", "sb": ["SBMystic"] },
-    "Zoel": { "b": "BaseQuester", "g": [8251], "bodies": [400] },
-    "Bard": { "b": "BaseVendor", "sb": ["SBBard"] },
-    "Barkeeper": { "b": "BaseVendor", "sb": ["SBBarkeeper"] },
+    "MinerGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the miner guildmaster"
+    },
+    "Vrulkax": {
+      "b": "BaseVendor",
+      "g": [16985],
+      "hue": 34545,
+      "t": "the Exalted Artificer"
+    },
+    "Mystic": { "b": "BaseVendor", "sb": ["SBMystic"], "t": "the mystic" },
+    "Zoel": {
+      "b": "BaseQuester",
+      "g": [8251],
+      "bodies": [400],
+      "t": "the Masterful Tactician"
+    },
+    "Bard": { "b": "BaseVendor", "sb": ["SBBard"], "t": "the bard" },
+    "Barkeeper": {
+      "b": "BaseVendor",
+      "sb": ["SBBarkeeper"],
+      "t": "the barkeeper"
+    },
     "CrystallineFragmentsQuest": { "b": "BaseQuest" },
     "ProtectorsEssenceQuest": { "b": "BaseQuest" },
     "HeartOfIceQuest": { "b": "BaseQuest" },
@@ -6239,7 +6446,11 @@
       "g": [8252, 8255],
       "sb": ["SBBlacksmith"]
     },
-    "Tailor": { "b": "BaseVendor", "sb": ["SBTailor", "SBSATailor"] },
+    "Tailor": {
+      "b": "BaseVendor",
+      "sb": ["SBTailor", "SBSATailor"],
+      "t": "the tailor"
+    },
     "BaseHire": { "b": "BaseCreature" },
     "PayTimer": { "b": "Timer" },
     "HireEntry": { "b": "ContextMenuEntry" },
@@ -6256,8 +6467,12 @@
     "ArachnophobiaQuest": { "b": "BaseQuest" },
     "MiniSwampThingQuest": { "b": "BaseQuest" },
     "Salaenih": { "b": "MondainQuester", "g": [12237] },
-    "Minter": { "b": "Banker" },
-    "HaochisGuardsman": { "b": "BaseQuester", "bodies": [400] },
+    "Minter": { "b": "Banker", "t": "the minter" },
+    "HaochisGuardsman": {
+      "b": "BaseQuester",
+      "bodies": [400],
+      "t": "the Guardsman of Daimyo Haochi"
+    },
     "IntoTheVoidQuest": { "b": "BaseQuest" },
     "Agralem": { "b": "MondainQuester", "g": [16989], "hue": 34536 },
     "ChangeRumorMessagePrompt": { "b": "Prompt" },
@@ -6268,17 +6483,23 @@
       "b": "BaseVendor",
       "hue": 0,
       "bodies": [401],
-      "sb": ["SBPlayerBarkeeper"]
+      "sb": ["SBPlayerBarkeeper"],
+      "t": "the barkeeper"
     },
     "BarkeeperTitleGump": { "b": "Gump" },
     "BarkeeperGump": { "b": "Gump" },
-    "HireSailor": { "b": "BaseHire", "bodies": [401] },
+    "HireSailor": { "b": "BaseHire", "bodies": [401], "t": "the sailor" },
     "KnowThineEnemyQuest": { "b": "BaseQuest" },
     "AndreasVesalius": { "b": "MondainQuester" },
-    "Butcher": { "b": "BaseVendor", "sb": ["SBButcher"] },
-    "AnimalTrainer": { "b": "BaseVendor", "own": 1, "sb": ["SBAnimalTrainer"] },
-    "Peasant": { "b": "BaseEscortable" },
-    "Jothan": { "b": "BaseVendor", "g": [12226] },
+    "Butcher": { "b": "BaseVendor", "sb": ["SBButcher"], "t": "the butcher" },
+    "AnimalTrainer": {
+      "b": "BaseVendor",
+      "own": 1,
+      "sb": ["SBAnimalTrainer"],
+      "t": "the animal trainer"
+    },
+    "Peasant": { "b": "BaseEscortable", "t": "the peasant" },
+    "Jothan": { "b": "BaseVendor", "g": [12226], "t": "the wise" },
     "ItsElementalQuest": { "b": "BaseQuest" },
     "Alejaha": { "b": "MondainQuester", "g": [12237] },
     "KingOfBearsQuest": { "b": "BaseQuest" },
@@ -6293,7 +6514,10 @@
     "TaleOfTailQuest": { "b": "BaseQuest" },
     "TrogAndHisDogQuest": { "b": "BaseQuest" },
     "Cailla": { "b": "MondainQuester", "g": [12238] },
-    "HealerGuildmaster": { "b": "BaseGuildmaster" },
+    "HealerGuildmaster": {
+      "b": "BaseGuildmaster",
+      "t": "the healer guildmaster"
+    },
     "BritanniaWaters": { "b": "BaseCollectionMobile", "g": [8260, 8255] },
     "MaulBear": { "b": "MondainQuester", "bodies": [212] },
     "ThePenIsMightierQuest": { "b": "BaseQuest" },
@@ -6304,17 +6528,30 @@
     "AttendantStopEntry": { "b": "ContextMenuEntry", "g": [6112] },
     "AttendantDismissEntry": { "b": "ContextMenuEntry", "g": [6228] },
     "AttendantUseEntry": { "b": "ContextMenuEntry" },
-    "Baker": { "b": "BaseVendor", "sb": ["SBBaker"] },
-    "Sculptor": { "b": "BaseCreature", "bodies": [401] },
+    "Baker": { "b": "BaseVendor", "sb": ["SBBaker"], "t": "the baker" },
+    "Sculptor": { "b": "BaseCreature", "bodies": [401], "t": "the sculptor" },
     "TheExchangeQuest": { "b": "BaseQuest" },
     "AWorthyPropositionQuest": { "b": "BaseQuest" },
     "Aliabeth": { "b": "MondainQuester", "sb": ["SBTinker"] },
-    "Emino": { "b": "BaseQuester", "g": [8251], "bodies": [400] },
-    "Furtrader": { "b": "BaseVendor", "sb": ["SBFurtrader"] },
+    "Emino": {
+      "b": "BaseQuester",
+      "g": [8251],
+      "bodies": [400],
+      "t": "the Notorious"
+    },
+    "Furtrader": {
+      "b": "BaseVendor",
+      "sb": ["SBFurtrader"],
+      "t": "the furtrader"
+    },
     "TheArtOfStealthQuest": { "b": "BaseQuest" },
     "Ryuichi": { "b": "MondainQuester", "sb": ["SBKeeperOfNinjitsu"] },
-    "WanderingHealer": { "b": "BaseHealer" },
-    "WanderingShaman": { "b": "WanderingHealer", "hue": 0 },
+    "WanderingHealer": { "b": "BaseHealer", "t": "the wandering healer" },
+    "WanderingShaman": {
+      "b": "WanderingHealer",
+      "hue": 0,
+      "t": "the wandering shaman"
+    },
     "Carpenter": {
       "b": "BaseVendor",
       "sb": [
@@ -6322,7 +6559,8 @@
         "SBCarpenter",
         "SBWoodenShields",
         "SBSECarpenter"
-      ]
+      ],
+      "t": "the carpenter"
     },
     "OddsAndEndsQuest": { "b": "BaseQuest" },
     "Patricus": { "b": "MondainQuester" },
@@ -6333,19 +6571,36 @@
     "Ahie": { "b": "MondainQuester", "g": [12237] },
     "Petrus": { "b": "MondainQuester", "g": [8252] },
     "Maabus": { "b": "BaseQuester", "bodies": [148] },
-    "Miller": { "b": "BaseVendor", "sb": ["SBMiller"] },
-    "Provisioner": { "b": "BaseVendor", "sb": ["SBProvisioner", "SBSEHats"] },
-    "HireBardArcher": { "b": "BaseHire", "bodies": [401] },
+    "Miller": { "b": "BaseVendor", "sb": ["SBMiller"], "t": "the miller" },
+    "Provisioner": {
+      "b": "BaseVendor",
+      "sb": ["SBProvisioner", "SBSEHats"],
+      "t": "the provisioner"
+    },
+    "HireBardArcher": { "b": "BaseHire", "bodies": [401], "t": "the bard" },
     "StoppingTheWorldQuest": { "b": "BaseQuest" },
     "Gustar": { "b": "MondainQuester" },
-    "Cook": { "b": "BaseVendor", "sb": ["SBCook", "SBSECook"] },
-    "Relnia": { "b": "BaseQuester", "g": [8252], "bodies": [401] },
+    "Cook": {
+      "b": "BaseVendor",
+      "sb": ["SBCook", "SBSECook"],
+      "t": "the cook"
+    },
+    "Relnia": {
+      "b": "BaseQuester",
+      "g": [8252],
+      "bodies": [401],
+      "t": "the Gypsy"
+    },
     "BatteredBucklersQuest": { "b": "BaseQuest" },
     "Gervis": { "b": "MondainQuester", "g": [8251] },
     "SmithsSatchel": { "b": "Backpack" },
     "Strongroot": { "b": "MondainQuester", "bodies": [301] },
     "Unoelil": { "b": "MondainQuester", "g": [12237] },
-    "Beekeeper": { "b": "BaseVendor", "sb": ["SBBeekeeper"] },
+    "Beekeeper": {
+      "b": "BaseVendor",
+      "sb": ["SBBeekeeper"],
+      "t": "the beekeeper"
+    },
     "CleansingOldHavenQuest": { "b": "BaseQuest" },
     "Aelorn": { "b": "MondainQuester", "sb": ["SBKeeperOfChivalry"] },
     "SosariaSap": { "b": "Item", "g": [6216] },
@@ -6358,15 +6613,16 @@
         "SBSABlacksmith",
         "SBSAArmor",
         "SBSAWeapons"
-      ]
+      ],
+      "t": "the blacksmith"
     },
     "LightAndMight": { "b": "BaseCollectionMobile" },
     "ShotAnArrowIntoTheAirQuest": { "b": "BaseQuest" },
     "Kashiel": { "b": "MondainQuester", "g": [8261] },
-    "Gypsy": { "b": "BaseCreature", "bodies": [401] },
+    "Gypsy": { "b": "BaseCreature", "bodies": [401], "t": "the gypsy" },
     "GuideVertexEditGump": { "b": "Gump" },
     "GuideVertex": { "b": "IComparable" },
-    "AttendantGuide": { "b": "PersonalAttendant", "own": 1 },
+    "AttendantGuide": { "b": "PersonalAttendant", "own": 1, "t": "the Guide" },
     "AttendantMaleGuide": { "b": "AttendantGuide" },
     "AttendantFemaleGuide": { "b": "AttendantGuide" },
     "IronWorker": {
@@ -6386,9 +6642,15 @@
         "SBRingmailArmor",
         "SBStuddedArmor",
         "SBLeatherArmor"
-      ]
+      ],
+      "t": "the iron worker"
     },
-    "Schmendrick": { "b": "BaseQuester", "g": [8252, 8254], "bodies": [400] },
+    "Schmendrick": {
+      "b": "BaseQuester",
+      "g": [8252, 8254],
+      "bodies": [400],
+      "t": "the High Mage"
+    },
     "Verity": { "b": "MondainQuester", "g": [8263] },
     "RumorsAboundQuest": { "b": "BaseQuest" },
     "Egwexem": { "b": "MondainQuester", "bodies": [666] },
@@ -6407,25 +6669,46 @@
     "ArchEnemiesQuest": { "b": "BaseQuest" },
     "VerminQuest": { "b": "BaseQuest" },
     "Tiana": { "b": "MondainQuester", "g": [12236] },
-    "HireRangerArcher": { "b": "BaseHire", "bodies": [401] },
+    "HireRangerArcher": { "b": "BaseHire", "bodies": [401], "t": "the ranger" },
     "CrateForSledge": { "b": "Item", "g": [8191] },
     "Brae": { "b": "MondainQuester", "g": [12226] },
     "GuiltyQuest": { "b": "BaseQuest" },
     "Natalie": { "b": "MondainQuester", "g": [8261] },
-    "Artist": { "b": "BaseCreature", "bodies": [401] },
-    "Architect": { "b": "BaseVendor", "sb": ["SBHouseDeed", "SBArchitect"] },
+    "Artist": { "b": "BaseCreature", "bodies": [401], "t": "the artist" },
+    "Architect": {
+      "b": "BaseVendor",
+      "sb": ["SBHouseDeed", "SBArchitect"],
+      "t": "the architect"
+    },
     "Sliem": { "b": "MondainQuester", "bodies": [666] },
-    "Veterinarian": { "b": "BaseVendor", "sb": ["SBVeterinarian"] },
+    "Veterinarian": {
+      "b": "BaseVendor",
+      "sb": ["SBVeterinarian"],
+      "t": "the vet"
+    },
     "VetResurrectGump": { "b": "Gump" },
     "Synaeva": { "b": "MondainQuester", "g": [11121] },
     "Neville": { "b": "BaseEscort" },
     "TheArisenQuest": { "b": "BaseQuest" },
     "Naxatilor": { "b": "MondainQuester", "bodies": [666] },
-    "GabrielPiete": { "b": "BaseQuester", "g": [8265, 8257], "bodies": [400] },
-    "Naturalist": { "b": "BaseQuester", "bodies": [400] },
+    "GabrielPiete": {
+      "b": "BaseQuester",
+      "g": [8265, 8257],
+      "bodies": [400],
+      "t": "the renowned minstrel"
+    },
+    "Naturalist": {
+      "b": "BaseQuester",
+      "bodies": [400],
+      "t": "the Naturalist"
+    },
     "BaseGuildmaster": { "b": "BaseVendor" },
     "Huntsman": { "b": "MondainQuester", "bodies": [101] },
-    "KeeperOfChivalry": { "b": "BaseVendor", "sb": ["SBKeeperOfChivalry"] },
+    "KeeperOfChivalry": {
+      "b": "BaseVendor",
+      "sb": ["SBKeeperOfChivalry"],
+      "t": "the Keeper of Chivalry"
+    },
     "BrotherlyLoveQuest": { "b": "BaseQuest" },
     "Rollarn": { "b": "MondainQuester", "g": [12225] },
     "PersonalLetterAhie": { "b": "BaseQuestItem", "g": [5357] },
@@ -6433,11 +6716,20 @@
     "Gnosos": { "b": "MondainQuester", "g": [8251, 8256] },
     "WondersOfTheNaturalWorldQuest": { "b": "BaseQuest" },
     "Lefty": { "b": "MondainQuester", "g": [8251] },
-    "Cobbler": { "b": "BaseVendor", "sb": ["SBCobbler"] },
+    "Cobbler": { "b": "BaseVendor", "sb": ["SBCobbler"], "t": "the cobbler" },
     "Ben": { "b": "MondainQuester", "g": [8264, 8268] },
     "Andros": { "b": "MondainQuester", "g": [8265, 8257] },
-    "Alchemist": { "b": "BaseVendor", "sb": ["SBAlchemist"] },
-    "Mardoth": { "b": "BaseQuester", "g": [8257, 8252], "bodies": [400] },
+    "Alchemist": {
+      "b": "BaseVendor",
+      "sb": ["SBAlchemist"],
+      "t": "the alchemist"
+    },
+    "Mardoth": {
+      "b": "BaseQuester",
+      "g": [8257, 8252],
+      "bodies": [400],
+      "t": "the Ancient Necromancer"
+    },
     "QueenZhah": { "b": "MondainQuester", "g": [17067], "bodies": [667] },
     "Waelian": { "b": "MondainQuester", "g": [12223] },
     "ChopChopOnTheDoubleQuest": { "b": "BaseQuest" },
@@ -6447,7 +6739,7 @@
     "BigWormsQuest": { "b": "BaseQuest" },
     "OrcishEliteQuest": { "b": "BaseQuest" },
     "Caelas": { "b": "MondainQuester", "g": [12224] },
-    "Jeweler": { "b": "BaseVendor", "sb": ["SBJewel"] },
+    "Jeweler": { "b": "BaseVendor", "sb": ["SBJewel"], "t": "the jeweler" },
     "NewHavenAlchemistEscortQuest": { "b": "BaseQuest" },
     "NewHavenBardEscortQuest": { "b": "BaseQuest" },
     "NewHavenWarriorEscortQuest": { "b": "BaseQuest" },
@@ -6461,21 +6753,35 @@
     "NewHavenBowyerEscortQuest": { "b": "BaseQuest" },
     "NewHavenBankEscortQuest": { "b": "BaseQuest" },
     "NewHavenEscortable": { "b": "BaseEscort" },
-    "NewHavenMerchant": { "b": "NewHavenEscortable" },
-    "NewHavenMage": { "b": "NewHavenEscortable" },
-    "NewHavenMessenger": { "b": "NewHavenEscortable" },
-    "NewHavenSeekerOfAdventure": { "b": "NewHavenEscortable" },
-    "NewHavenNoble": { "b": "NewHavenEscortable" },
-    "NewHavenBrideGroom": { "b": "NewHavenEscortable", "g": [8251, 8252] },
-    "NewHavenPeasant": { "b": "NewHavenEscortable" },
-    "NewHavenHealer": { "b": "NewHavenEscortable" },
+    "NewHavenMerchant": { "b": "NewHavenEscortable", "t": "the merchant" },
+    "NewHavenMage": { "b": "NewHavenEscortable", "t": "the mage" },
+    "NewHavenMessenger": { "b": "NewHavenEscortable", "t": "the messenger" },
+    "NewHavenSeekerOfAdventure": {
+      "b": "NewHavenEscortable",
+      "t": "the seeker of adventure"
+    },
+    "NewHavenNoble": { "b": "NewHavenEscortable", "t": "the noble" },
+    "NewHavenBrideGroom": {
+      "b": "NewHavenEscortable",
+      "g": [8251, 8252],
+      "t": "the bride"
+    },
+    "NewHavenPeasant": { "b": "NewHavenEscortable", "t": "the peasant" },
+    "NewHavenHealer": {
+      "b": "NewHavenEscortable",
+      "t": "the wandering healer"
+    },
     "Broolol": { "b": "MondainQuester", "g": [12239] },
     "GargishWarrior": { "b": "BaseCreature", "bodies": [667] },
-    "Shipwright": { "b": "BaseVendor", "sb": ["SBShipwright"] },
+    "Shipwright": {
+      "b": "BaseVendor",
+      "sb": ["SBShipwright"],
+      "t": "the shipwright"
+    },
     "GargishRefugee": { "b": "BaseCreature", "bodies": [667] },
     "GentleBladeQuest": { "b": "BaseQuest" },
     "Fabrizio": { "b": "MondainQuester", "g": [8253, 8255] },
-    "Farmer": { "b": "BaseVendor", "sb": ["SBFarmer"] },
+    "Farmer": { "b": "BaseVendor", "sb": ["SBFarmer"], "t": "the farmer" },
     "FleeAndFatigueQuest": { "b": "BaseQuest" },
     "Sadrah": { "b": "MondainQuester", "g": [8253] },
     "AlchemistsSatchel": { "b": "Backpack" },
@@ -6485,11 +6791,15 @@
     "TurnInEntry": { "b": "ContextMenuEntry" },
     "ClaimEntry": { "b": "ContextMenuEntry" },
     "TurnInGump": { "b": "BaseImageTileButtonsGump" },
-    "Mallew": { "b": "BaseVendor", "g": [12241] },
-    "Ranger": { "b": "BaseVendor", "sb": ["SBRanger"] },
+    "Mallew": { "b": "BaseVendor", "g": [12241], "t": "the wise" },
+    "Ranger": { "b": "BaseVendor", "sb": ["SBRanger"], "t": "the ranger" },
     "PixieDustToDustQuest": { "b": "BaseQuest" },
     "Oolua": { "b": "MondainQuester", "g": [12236] },
-    "Vagabond": { "b": "BaseVendor", "sb": ["SBTinker", "SBVagabond"] },
+    "Vagabond": {
+      "b": "BaseVendor",
+      "sb": ["SBTinker", "SBVagabond"],
+      "t": "the vagabond"
+    },
     "BlackOrderBadgesQuest": { "b": "BaseQuest" },
     "EvidenceQuest": { "b": "BaseQuest" },
     "Sarakki": { "b": "MondainQuester", "g": [8265] },
@@ -6505,7 +6815,11 @@
     "PlagueLordQuest": { "b": "BaseQuest" },
     "Nillaen": { "b": "MondainQuester", "g": [12239] },
     "ShrineHealer": { "b": "BaseHealer" },
-    "AttendantFortuneTeller": { "b": "PersonalAttendant", "own": 1 },
+    "AttendantFortuneTeller": {
+      "b": "PersonalAttendant",
+      "own": 1,
+      "t": "the Fortune Teller"
+    },
     "FortuneGump": { "b": "Gump" },
     "MoreOrePleaseQuest": { "b": "BaseQuest" },
     "Mugg": { "b": "MondainQuester", "g": [8263] },
@@ -6530,7 +6844,8 @@
       "b": "Mobile",
       "i": ["ITownCrierEntryList"],
       "own": 1,
-      "bodies": [401]
+      "bodies": [401],
+      "t": "the town crier"
     },
     "ThievesBeAfootQuest": { "b": "BaseQuest" },
     "BibliophileQuest": { "b": "BaseQuest" },
@@ -6542,13 +6857,21 @@
     "VendorBuyEntry": { "b": "ContextMenuEntry" },
     "VendorSellEntry": { "b": "ContextMenuEntry" },
     "UpgradeMageArmor": { "b": "ContextMenuEntry", "g": [1154114] },
-    "SeekerOfAdventure": { "b": "BaseEscortable" },
+    "SeekerOfAdventure": {
+      "b": "BaseEscortable",
+      "t": "the seeker of adventure"
+    },
     "MomentoQuest": { "b": "BaseQuest" },
     "Kia": { "b": "MondainQuester", "g": [8262] },
-    "HolyMage": { "b": "BaseVendor", "g": [8252, 8253], "sb": ["SBHolyMage"] },
+    "HolyMage": {
+      "b": "BaseVendor",
+      "g": [8252, 8253],
+      "sb": ["SBHolyMage"],
+      "t": "the Holy Mage"
+    },
     "Olla": { "b": "MondainQuester", "g": [12238] },
     "FreedomQuest": { "b": "BaseQuest" },
-    "Lenley": { "b": "BaseEscort", "bodies": [42] },
+    "Lenley": { "b": "BaseEscort", "bodies": [42], "t": "the Snitch" },
     "LenleyRegion": { "b": "BaseRegion" },
     "CreepyCrawliesQuest": { "b": "BaseQuest" },
     "VoraciousPlantsQuest": { "b": "BaseQuest" },
@@ -6598,17 +6921,25 @@
     "BuildingTheBetterCrossbowQuest": { "b": "BaseQuest" },
     "Beotham": { "b": "MondainQuester", "g": [12224] },
     "Thalia": { "b": "MondainQuester", "g": [8265] },
-    "Messenger": { "b": "BaseEscortable" },
-    "Tanner": { "b": "BaseVendor", "sb": ["SBTanner", "SBSATanner"] },
-    "Aluniol": { "b": "BaseVendor", "g": [12223] },
+    "Messenger": { "b": "BaseEscortable", "t": "the messenger" },
+    "Tanner": {
+      "b": "BaseVendor",
+      "sb": ["SBTanner", "SBSATanner"],
+      "t": "the tanner"
+    },
+    "Aluniol": { "b": "BaseVendor", "g": [12223], "t": "the healer" },
     "PricedHealer": { "b": "BaseHealer", "g": [5000] },
-    "Tyleelor": { "b": "BaseVendor", "g": [12225] },
-    "Fisherman": { "b": "BaseVendor", "sb": ["SBFisherman"] },
+    "Tyleelor": { "b": "BaseVendor", "g": [12225], "t": "the expeditionist" },
+    "Fisherman": {
+      "b": "BaseVendor",
+      "sb": ["SBFisherman"],
+      "t": "the fisher"
+    },
     "ChannelingTheSupernaturalQuest": { "b": "BaseQuest" },
     "Morganna": { "b": "MondainQuester", "sb": ["SBMage"] },
     "TheMagesApprenticeQuest": { "b": "BaseQuest" },
     "Kaelynna": { "b": "MondainQuester", "sb": ["SBMage"] },
-    "Healer": { "b": "BaseHealer", "sb": ["SBHealer"] },
+    "Healer": { "b": "BaseHealer", "sb": ["SBHealer"], "t": "the healer" },
     "BerserkAI": { "b": "BaseAI" },
     "AITimer": { "b": "Timer" },
     "AIControlMobileTarget": { "b": "Target" },
@@ -6628,11 +6959,15 @@
     "LadyMarai": { "b": "SkeletalKnight" },
     "GreenGoblinAlchemistRenowned": { "b": "BaseRenowned", "bodies": [723] },
     "FireDaemonRenowned": { "b": "BaseRenowned", "hue": 243, "bodies": [40] },
-    "LysanderGathenwale": { "b": "BaseCreature", "bodies": [400] },
+    "LysanderGathenwale": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the Cursed"
+    },
     "TikitaviRenowned": { "b": "BaseRenowned", "bodies": [42] },
     "Flurry": { "b": "BaseCreature", "bodies": [13] },
     "VitaviRenowned": { "b": "BaseRenowned", "bodies": [143] },
-    "Meraktus": { "b": "BaseChampion", "bodies": [263] },
+    "Meraktus": { "b": "BaseChampion", "bodies": [263], "t": "the Tormented" },
     "LadyJennifyr": { "b": "SkeletalKnight" },
     "AcidElementalRenowned": { "b": "BaseRenowned", "bodies": [158] },
     "Tempest": { "b": "BaseCreature", "bodies": [13] },
@@ -6643,14 +6978,23 @@
     "SirPatrick": { "b": "SkeletalKnight" },
     "NightTerror": { "b": "BaseCreature", "bodies": [780] },
     "Rend": { "b": "Reptalon" },
-    "MasterTheophilus": { "b": "EvilMageLord", "hue": 0 },
+    "MasterTheophilus": {
+      "b": "EvilMageLord",
+      "hue": 0,
+      "t": "the necromancer"
+    },
     "FireElementalRenowned": { "b": "BaseRenowned", "bodies": [15] },
     "Silk": { "b": "GiantBlackWidow" },
     "Swoop": { "b": "Eagle" },
     "Mistral": { "b": "BaseCreature", "bodies": [13] },
     "MasterJonath": { "b": "BoneMagi" },
     "Coil": { "b": "SilverSerpent" },
-    "Ilhenir": { "b": "BaseChampion", "hue": 1164, "bodies": [259] },
+    "Ilhenir": {
+      "b": "BaseChampion",
+      "hue": 1164,
+      "bodies": [259],
+      "t": "the Stained"
+    },
     "StainedOoze": { "b": "Item", "g": [4650, 4651] },
     "Guile": { "b": "Changeling" },
     "SkeletalDragonRenowned": {
@@ -6668,22 +7012,31 @@
     "DevourerRenowned": { "b": "BaseRenowned", "bodies": [303] },
     "Malefic": { "b": "DreadSpider" },
     "Chiikkaha": { "b": "RatmanMage" },
-    "ShadowKnight": { "b": "BaseCreature", "bodies": [311] },
+    "ShadowKnight": {
+      "b": "BaseCreature",
+      "bodies": [311],
+      "t": "the Shadow Knight"
+    },
     "Grobu": { "b": "BlackBear" },
-    "MorgBergen": { "b": "BaseCreature", "bodies": [400] },
+    "MorgBergen": { "b": "BaseCreature", "bodies": [400], "t": "the Cursed" },
     "GrayGoblinMageRenowned": {
       "b": "BaseRenowned",
       "hue": 1900,
       "bodies": [723]
     },
-    "GrimmochDrummel": { "b": "BaseCreature", "g": [8266], "bodies": [400] },
+    "GrimmochDrummel": {
+      "b": "BaseCreature",
+      "g": [8266],
+      "bodies": [400],
+      "t": "the Cursed"
+    },
     "Tangle": { "b": "BogThing" },
     "RedDeath": { "b": "SkeletalMount" },
     "MasterMikael": { "b": "BoneMagi" },
     "LadySabrix": { "b": "GiantBlackWidow" },
     "RakktaviRenowned": { "b": "BaseRenowned", "bodies": [142] },
     "Grim": { "b": "Drake", "hue": 1744 },
-    "TavaraSewel": { "b": "BaseCreature", "bodies": [401] },
+    "TavaraSewel": { "b": "BaseCreature", "bodies": [401], "t": "the Cursed" },
     "Miasma": { "b": "Scorpion" },
     "Thrasher": { "b": "BaseCreature", "bodies": [206] },
     "StoneGargoyle": { "b": "BaseCreature", "bodies": [67] },
@@ -6723,7 +7076,12 @@
     "Jwilson": { "b": "BaseCreature", "bodies": [51] },
     "Crane": { "b": "BaseCreature", "bodies": [254] },
     "Lifestealer": { "b": "BaseCreature", "hue": 2606, "bodies": [303] },
-    "TheButcher": { "b": "BaseCreature", "hue": 2075, "bodies": [306] },
+    "TheButcher": {
+      "b": "BaseCreature",
+      "hue": 2075,
+      "bodies": [306],
+      "t": "the Butcher"
+    },
     "Beetle": { "b": "BaseMount", "g": [791], "bodies": [791] },
     "SkeletalDrake": { "b": "BaseCreature", "hue": 2101, "bodies": [104] },
     "Doppleganger": { "b": "BaseCreature", "bodies": [777] },
@@ -6833,7 +7191,11 @@
     "SkeletalMage": { "b": "BaseCreature", "bodies": [148] },
     "Sewerrat": { "b": "BaseCreature", "bodies": [238] },
     "EnslavedGrayGoblin": { "b": "BaseCreature", "bodies": [334] },
-    "KhaldunSummoner": { "b": "BaseCreature", "bodies": [400] },
+    "KhaldunSummoner": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the Summoner"
+    },
     "IceSnake": { "b": "BaseCreature", "bodies": [52] },
     "Titan": { "b": "BaseCreature", "bodies": [76] },
     "CrystalWisp": { "b": "Wisp" },
@@ -6842,7 +7204,7 @@
       "i": ["IAuraCreature"],
       "bodies": [161]
     },
-    "Cursed": { "b": "BaseCreature", "bodies": [400] },
+    "Cursed": { "b": "BaseCreature", "bodies": [400], "t": "the Cursed" },
     "TigersClawThief": { "b": "BaseCreature" },
     "Efreet": { "b": "BaseCreature", "bodies": [131] },
     "ParoxysmusSwampDragon": { "b": "SwampDragon", "hue": 1155 },
@@ -6924,7 +7286,7 @@
     "YomotsuElder": { "b": "BaseCreature", "bodies": [255] },
     "Squirrel": { "b": "BaseCreature", "bodies": [278] },
     "SavageShaman": { "b": "BaseCreature", "bodies": [186] },
-    "Gregorio": { "b": "BaseCreature", "g": [8252, 8269] },
+    "Gregorio": { "b": "BaseCreature", "g": [8252, 8269], "t": "the brigand" },
     "HellSteed": {
       "b": "BaseMount",
       "i": ["IElementalCreature"],
@@ -6986,7 +7348,7 @@
     },
     "BunnyHole": { "b": "Item", "g": [2323], "hue": 1 },
     "CrystalVortex": { "b": "BaseCreature", "bodies": [13] },
-    "Niporailem": { "b": "BaseSABoss", "bodies": [722] },
+    "Niporailem": { "b": "BaseSABoss", "bodies": [722], "t": "the Thief" },
     "Mongbat": { "b": "BaseCreature", "bodies": [39] },
     "LavaSnake": { "b": "BaseCreature", "bodies": [52] },
     "StrongMongbat": { "b": "BaseCreature", "bodies": [39] },
@@ -7107,7 +7469,11 @@
     },
     "Zombie": { "b": "BaseCreature", "bodies": [3] },
     "FleshGolem": { "b": "BaseCreature", "bodies": [304] },
-    "GargishRouser": { "b": "BaseCreature", "bodies": [666] },
+    "GargishRouser": {
+      "b": "BaseCreature",
+      "bodies": [666],
+      "t": "the Gargish Rouser"
+    },
     "BlackSolenWorker": {
       "b": "BaseCreature",
       "i": ["IBlackSolen"],
@@ -7117,7 +7483,11 @@
     "RatmanMage": { "b": "BaseCreature", "bodies": [143] },
     "EnslavedGargoyle": { "b": "BaseCreature", "bodies": [753] },
     "Goat": { "b": "BaseCreature", "bodies": [209] },
-    "DemonKnight": { "b": "BaseCreature", "bodies": [318] },
+    "DemonKnight": {
+      "b": "BaseCreature",
+      "bodies": [318],
+      "t": "the Dark Father"
+    },
     "Wyvern": { "b": "BaseCreature", "bodies": [62] },
     "Triceratops": { "b": "BaseCreature", "bodies": [1415] },
     "SpeckledScorpion": { "b": "Scorpion" },
@@ -7171,7 +7541,11 @@
     "DragonWolf": { "b": "BaseCreature", "bodies": [719] },
     "GreaterDragon": { "b": "BaseCreature", "bodies": [12, 59] },
     "TigersClawMaster": { "b": "TigersClawThief" },
-    "GargishOutcast": { "b": "BaseCreature", "bodies": [666] },
+    "GargishOutcast": {
+      "b": "BaseCreature",
+      "bodies": [666],
+      "t": "the Gargish Outcast"
+    },
     "GreaterPoisonElemental": {
       "b": "BaseCreature",
       "hue": 667,
@@ -7183,7 +7557,11 @@
     "DespiseCreature": { "b": "BaseCreature" },
     "RenegadeChangeling": { "b": "Changeling", "bodies": [264] },
     "Protector": { "b": "BaseCreature", "bodies": [401] },
-    "MilitiaFighter": { "b": "BaseCreature", "bodies": [400] },
+    "MilitiaFighter": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the Militia Fighter"
+    },
     "MilitiaFighterCorpse": { "b": "Corpse" },
     "Imp": { "b": "BaseCreature", "bodies": [74] },
     "GrayGoblinMage": { "b": "BaseCreature", "hue": 1900, "bodies": [723] },
@@ -7228,7 +7606,12 @@
     "EarthElemental": { "b": "BaseCreature", "g": [6583], "bodies": [14] },
     "EtherealWarrior": { "b": "BaseCreature", "bodies": [123] },
     "ArcaneDaemon": { "b": "BaseCreature", "bodies": [784] },
-    "BakeKitsune": { "b": "BaseCreature", "hue": 0, "bodies": [246] },
+    "BakeKitsune": {
+      "b": "BaseCreature",
+      "hue": 0,
+      "bodies": [246],
+      "t": "the mystic llama herder"
+    },
     "Ghoul": { "b": "BaseCreature", "bodies": [153] },
     "TerathanWarrior": { "b": "BaseCreature", "bodies": [70] },
     "SerpentsFangHighExecutioner": { "b": "SerpentsFangAssassin" },
@@ -7251,7 +7634,11 @@
     "GrayGoblinKeeper": { "b": "BaseCreature", "hue": 1900, "bodies": [723] },
     "DarkGuardian": { "b": "BaseCreature", "bodies": [78] },
     "Sheep": { "b": "BaseCreature", "i": ["ICarvable"], "bodies": [207] },
-    "KhaldunZealot": { "b": "BaseCreature", "bodies": [400] },
+    "KhaldunZealot": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the Knight"
+    },
     "HeadlessOne": { "b": "BaseCreature", "bodies": [31] },
     "Palomino": { "b": "BaseMount", "g": [16077], "bodies": [1408] },
     "OrcishMage": { "b": "BaseCreature", "bodies": [140] },
@@ -7309,10 +7696,14 @@
       "g": [25, 6585],
       "bodies": [113]
     },
-    "ElfBrigand": { "b": "BaseCreature", "bodies": [606] },
+    "ElfBrigand": { "b": "BaseCreature", "bodies": [606], "t": "the brigand" },
     "LichLord": { "b": "BaseCreature", "bodies": [79] },
-    "GolemController": { "b": "BaseCreature", "bodies": [400] },
-    "Guardian": { "b": "BaseCreature", "bodies": [401] },
+    "GolemController": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the controller"
+    },
+    "Guardian": { "b": "BaseCreature", "bodies": [401], "t": "the guardian" },
     "EnragedRabbit": { "b": "BaseEnraged", "bodies": [205] },
     "EnragedHart": { "b": "BaseEnraged", "bodies": [234] },
     "EnragedHind": { "b": "BaseEnraged", "bodies": [237] },
@@ -7322,7 +7713,7 @@
     "RatmanArcher": { "b": "BaseCreature", "bodies": [142] },
     "Scorpion": { "b": "BaseCreature", "bodies": [48] },
     "UndeadGargoyle": { "b": "BaseCreature", "bodies": [722] },
-    "EvilMage": { "b": "BaseCreature", "bodies": [124] },
+    "EvilMage": { "b": "BaseCreature", "bodies": [124], "t": "the evil mage" },
     "ChaosDragoon": { "b": "BaseCreature", "bodies": [400] },
     "MeerMage": { "b": "BaseCreature", "bodies": [770] },
     "SabertoothedTiger": { "b": "BaseCreature", "bodies": [1416] },
@@ -7344,7 +7735,11 @@
     "Wight": { "b": "BaseCreature", "hue": 1153, "bodies": [252] },
     "ArchDaemon": { "b": "BaseCreature", "bodies": [40] },
     "Troglodyte": { "b": "BaseCreature", "bodies": [267] },
-    "Executioner": { "b": "BaseCreature", "bodies": [401] },
+    "Executioner": {
+      "b": "BaseCreature",
+      "bodies": [401],
+      "t": "the executioner"
+    },
     "OphidianWarrior": { "b": "BaseCreature", "bodies": [86] },
     "PredatorHellCat": { "b": "BaseCreature", "bodies": [127] },
     "AcidElemental": {
@@ -7391,7 +7786,7 @@
     "PatchworkSkeleton": { "b": "BaseCreature", "bodies": [309] },
     "GreenGoblin": { "b": "BaseCreature", "bodies": [723] },
     "Skree": { "b": "BaseCreature", "bodies": [733] },
-    "Brigand": { "b": "BaseCreature", "bodies": [401] },
+    "Brigand": { "b": "BaseCreature", "bodies": [401], "t": "the brigand" },
     "Pixie": { "b": "BaseCreature", "bodies": [128] },
     "GoldenElemental": {
       "b": "BaseCreature",
@@ -7464,7 +7859,12 @@
     "SlasherOfVeils": { "b": "BaseSABoss", "bodies": [741] },
     "MonstrousInterredGrizzle": { "b": "BasePeerless", "bodies": [259] },
     "InfernalOoze": { "b": "Item", "g": [4650] },
-    "Neira": { "b": "BaseChampion", "g": [16059], "bodies": [401] },
+    "Neira": {
+      "b": "BaseChampion",
+      "g": [16059],
+      "bodies": [401],
+      "t": "the necromancer"
+    },
     "VirtualMount": { "b": "IMount" },
     "VirtualMountItem": { "b": "Item", "i": ["IMountItem"], "g": [16032] },
     "Travesty": { "b": "BasePeerless", "bodies": [264] },
@@ -7472,14 +7872,27 @@
     "TeleportTimer": { "b": "Timer" },
     "Mephitis": { "b": "BaseChampion", "bodies": [173] },
     "LordOaks": { "b": "BaseChampion", "bodies": [175] },
-    "Barracoon": { "b": "BaseChampion", "g": [8251], "bodies": [400] },
+    "Barracoon": {
+      "b": "BaseChampion",
+      "g": [8251],
+      "bodies": [400],
+      "t": "the piper"
+    },
     "ExpirePolymorphTimer": { "b": "Timer" },
-    "Serado": { "b": "BaseChampion", "bodies": [249] },
+    "Serado": { "b": "BaseChampion", "bodies": [249], "t": "the awakened" },
     "ServantOfSemidar": { "b": "BaseCreature", "bodies": [38] },
     "DreadHorn": { "b": "BasePeerless", "bodies": [257] },
     "DespiseBoss": { "b": "BaseCreature" },
-    "AdrianTheGloriousLord": { "b": "DespiseBoss", "bodies": [400] },
-    "AndrosTheDreadLord": { "b": "DespiseBoss", "bodies": [400] },
+    "AdrianTheGloriousLord": {
+      "b": "DespiseBoss",
+      "bodies": [400],
+      "t": "the Glorious Lord"
+    },
+    "AndrosTheDreadLord": {
+      "b": "DespiseBoss",
+      "bodies": [400],
+      "t": "the Dread Lord"
+    },
     "EnsorcledWisp": { "b": "BaseCreature", "bodies": [165] },
     "CorruptedWisp": { "b": "BaseCreature", "hue": 1955, "bodies": [165] },
     "StygianDragon": { "b": "BaseSABoss", "bodies": [826] },
@@ -7626,7 +8039,7 @@
       "own": 1
     },
     "TelescopeGump": { "b": "BaseGump" },
-    "Willebrord": { "b": "BaseVendor", "own": 1 },
+    "Willebrord": { "b": "BaseVendor", "own": 1, "t": "the Astronomer" },
     "BrassOrrery": { "b": "Item", "g": [41340, 41339], "own": 1 },
     "StarChart": {
       "b": "Item",
@@ -7729,7 +8142,7 @@
     "LeatherBraid": { "b": "Item", "g": [5152], "hue": 2968 },
     "MalleableAlloy": { "b": "Item", "g": [7145], "hue": 2949 },
     "SolventFlask": { "b": "Item", "g": [7192], "hue": 2969 },
-    "ArmorRefiner": { "b": "BaseVendor", "own": 1 },
+    "ArmorRefiner": { "b": "BaseVendor", "own": 1, "t": "the armor refiner" },
     "ChatMessagePacket": { "b": "Packet", "g": [178] },
     "CoffeeGrounds": { "b": "Item", "g": [22331], "hue": 1022 },
     "CoffeePod": { "b": "Item" },
@@ -7883,9 +8296,17 @@
     "Sapphired20": { "b": "Item", "g": [12690], "own": 1 },
     "DisplayStatue": { "b": "Item", "hue": 2958 },
     "UOBoard": { "b": "Item", "g": [4010], "own": 1 },
-    "GaryTheDungeonMaster": { "b": "BaseCreature", "bodies": [400] },
+    "GaryTheDungeonMaster": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the Dungeon Master"
+    },
     "GameMaster": { "b": "BaseCreature", "bodies": [400] },
-    "GauntletSpawner": { "b": "Item", "g": [14078, 8265, 8254] },
+    "GauntletSpawner": {
+      "b": "Item",
+      "g": [14078, 8265, 8254],
+      "t": "the Variety Dealer"
+    },
     "GauntletRegion": { "b": "BaseRegion" },
     "LeverPuzzleController": { "b": "Item", "g": [6178, 4238] },
     "RockTimer": { "b": "Timer" },
@@ -8031,7 +8452,12 @@
     "ChucklesLuck": { "b": "BaseDiceGame" },
     "HiMiddleLow": { "b": "BaseDiceGame" },
     "DiceRider": { "b": "BaseDiceGame" },
-    "CasinoCashier": { "b": "Banker", "g": [12227], "own": 1 },
+    "CasinoCashier": {
+      "b": "Banker",
+      "g": [12227],
+      "own": 1,
+      "t": "the casino cashier"
+    },
     "CasinoDealer": {
       "b": "BaseVendor",
       "g": [12227],
@@ -8154,8 +8580,8 @@
     "FreezeItem": { "b": "Item", "hue": 1152 },
     "GreatApe": { "b": "BaseCreature", "bodies": [1308] },
     "TigerCub": { "b": "BaseCreature", "bodies": [1309] },
-    "Trapper": { "b": "Brigand" },
-    "Poacher": { "b": "Trapper" },
+    "Trapper": { "b": "Brigand", "t": "the trapper" },
+    "Poacher": { "b": "Trapper", "t": "the poacher" },
     "VolcanoElemental": { "b": "BaseCreature", "hue": 2726, "bodies": [15] },
     "MyrmidexHill": { "b": "Item", "g": [8754] },
     "EodonTribeRegion": { "b": "Region" },
@@ -8184,26 +8610,35 @@
       "b": "MondainQuester",
       "g": [8252],
       "hue": 34894,
-      "bodies": [401]
+      "bodies": [401],
+      "t": "the sakkhra high chieftess"
     },
     "UraliHighChieftess": {
       "b": "MondainQuester",
       "g": [12240],
       "hue": 35356,
-      "bodies": [606]
+      "bodies": [606],
+      "t": "the urali high chieftess"
     },
-    "JukariHighChief": { "b": "MondainQuester", "hue": 34723, "bodies": [400] },
+    "JukariHighChief": {
+      "b": "MondainQuester",
+      "hue": 34723,
+      "bodies": [400],
+      "t": "the jukari high chief"
+    },
     "KurakHighChief": {
       "b": "MondainQuester",
       "g": [8251],
       "hue": 33960,
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the kurak high chief"
     },
     "BarakoHighChief": {
       "b": "MondainQuester",
       "g": [8252],
       "hue": 35187,
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the barako high chief"
     },
     "TheZealotryOfZipactriotlQuest": { "b": "BaseQuest" },
     "DestructionOfZipactriotlQuest": { "b": "BaseQuest" },
@@ -8218,7 +8653,13 @@
     "TimeForLegendsObjective": { "b": "QuestObjective" },
     "TimeForLegendsQuest": { "b": "QuestSystem" },
     "ChooseMasteryGump": { "b": "Gump" },
-    "Hawkwind": { "b": "BaseQuester", "g": [30742], "own": 1, "hue": 33823 },
+    "Hawkwind": {
+      "b": "BaseQuester",
+      "g": [30742],
+      "own": 1,
+      "hue": 33823,
+      "t": "the Time Lord"
+    },
     "OtherGuildInfo": { "b": "BaseGuildGump" },
     "GuildInvitationRequest": { "b": "BaseGuildGump" },
     "GuildDiplomacyGump": { "b": "BaseGuildListGump" },
@@ -10173,7 +10614,7 @@
     "MercutioTheUnsavory": { "b": "BaseCreature", "bodies": [400] },
     "InternalSelfDeleteTimer": { "b": "Timer" },
     "RockMite": { "b": "BaseCreature", "hue": 2500, "bodies": [787] },
-    "OrcEngineer": { "b": "Orc" },
+    "OrcEngineer": { "b": "Orc", "t": "the Orcish Engineer" },
     "Paralithode": { "b": "BaseCreature", "hue": 1922, "bodies": [729] },
     "HideTimer": { "b": "Timer" },
     "ShipRat": { "b": "BaseCreature", "bodies": [215] },
@@ -10305,9 +10746,9 @@
     "CityPetDonation": { "b": "CityDonationItem", "g": [5351] },
     "CityTradeSystem": { "b": "PointsSystem" },
     "CityTradeEntry": { "b": "PointsEntry" },
-    "GuardCaptain": { "b": "BaseCreature" },
-    "Raider": { "b": "BaseCreature", "bodies": [401] },
-    "CityHerald": { "b": "BaseCreature" },
+    "GuardCaptain": { "b": "BaseCreature", "t": "the guard captain" },
+    "Raider": { "b": "BaseCreature", "bodies": [401], "t": "the raider" },
+    "CityHerald": { "b": "BaseCreature", "t": "the city herald" },
     "DonateGoldEntry": { "b": "ContextMenuEntry" },
     "AVisitToCastleBlackthornQuest": { "b": "BaseQuest" },
     "BuriedRichesQuest": { "b": "BaseQuest" },
@@ -10390,7 +10831,11 @@
     "TreasuresOfTokunoPersistence": { "b": "Item" },
     "TreasuresOfTokuno": { "b": "PointsSystem" },
     "TOTEntry": { "b": "PointsEntry" },
-    "IharaSoko": { "b": "BaseVendor", "bodies": [400] },
+    "IharaSoko": {
+      "b": "BaseVendor",
+      "bodies": [400],
+      "t": "the Imperial Minister of Trade"
+    },
     "ItemTileButtonInfo": { "b": "ImageTileButtonInfo" },
     "ToTTurnInGump": { "b": "BaseImageTileButtonsGump" },
     "ToTRedeemGump": { "b": "BaseImageTileButtonsGump", "g": [3839] },
@@ -10400,7 +10845,8 @@
     "SorcerersDungeonResearcher": {
       "b": "BaseTurnInMobile",
       "g": [8263],
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the Researcher"
     },
     "SorcerersDungeonRewardGump": { "b": "BaseRewardGump" },
     "TOSDSpawnerGump": { "b": "BaseGump" },
@@ -10412,18 +10858,24 @@
     "CaddelliteVendor": {
       "b": "BaseVendor",
       "bodies": [400],
-      "sb": ["SBCaddelliteTinker"]
+      "sb": ["SBCaddelliteTinker"],
+      "t": "the Tinker"
     },
     "KhaldunCampRegion": { "b": "BaseRegion" },
-    "KhaldunCampGuard": { "b": "BaseVendor" },
-    "LeadInvestigator": { "b": "BaseVendor", "own": 1 },
+    "KhaldunCampGuard": { "b": "BaseVendor", "t": "the Guard" },
+    "LeadInvestigator": {
+      "b": "BaseVendor",
+      "own": 1,
+      "t": "the Lead Investigator"
+    },
     "KhaldunCampBlocker": { "b": "Item", "g": [7107] },
     "KhaldunRewardGump": { "b": "BaseRewardGump" },
     "GumshoeItemGump": { "b": "Gump" },
     "KhaldunResearcher": {
       "b": "BaseTurnInMobile",
       "g": [8263],
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the Researcher"
     },
     "RisingTideRewardGump": { "b": "BaseRewardGump" },
     "PlunderBeacon": { "b": "Beacon" },
@@ -10433,7 +10885,11 @@
     "MannedBlundercannon": { "b": "MannedCannon" },
     "MaritimeCargo": { "b": "Item", "g": [41668, 41669], "hue": 1177 },
     "RisingTide": { "b": "PointsSystem" },
-    "BlackMarketMerchant": { "b": "BaseTurnInMobile", "bodies": [400] },
+    "BlackMarketMerchant": {
+      "b": "BaseTurnInMobile",
+      "bodies": [400],
+      "t": "the Pirate"
+    },
     "PlunderBeaconAddon": { "b": "BaseAddon" },
     "DragonCannon": {
       "b": "BaseAddon",
@@ -10483,7 +10939,8 @@
       "b": "BaseVendor",
       "g": [9860],
       "own": 1,
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the Silver Trader"
     },
     "VvVPriest": { "b": "BaseVendor", "bodies": [400] },
     "ChampionSpawnController": { "b": "Item" },
@@ -10840,7 +11297,8 @@
       "b": "BaseVendor",
       "g": [8260, 8255],
       "own": 1,
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the Cleanup Officer"
     },
     "XmlPersistenceReader": { "b": "PersistenceReader" },
     "XmlPersistenceWriter": { "b": "PersistenceWriter" },
@@ -10890,7 +11348,10 @@
     "Carroll": { "b": "MondainQuester", "bodies": [400] },
     "Bront": { "b": "MondainQuester", "bodies": [400] },
     "Eriathwen": { "b": "MondainQuester", "bodies": [605] },
-    "CollectorOfOddities": { "b": "BaseVendor" },
+    "CollectorOfOddities": {
+      "b": "BaseVendor",
+      "t": "the collector of oddities"
+    },
     "EllieRafkin": { "b": "MondainQuester", "bodies": [401] },
     "Foxx": { "b": "MondainQuester", "bodies": [400] },
     "Yero": { "b": "MondainQuester", "bodies": [400] },
@@ -11849,21 +12310,35 @@
     "LoyaltyBookBritain": { "b": "CityBook" },
     "MysteriousNote": { "b": "Item", "g": [5357], "own": 1 },
     "RewardSign": { "b": "Sign", "i": ["IEngravable"] },
-    "TradeMinister": { "b": "BaseCreature", "own": 1 },
+    "TradeMinister": {
+      "b": "BaseCreature",
+      "own": 1,
+      "t": "the minister of trade"
+    },
     "TradeOrderEntry": { "b": "ContextMenuEntry" },
     "InternalTradeOrderGump": { "b": "Gump" },
-    "SlimTheFence": { "b": "BaseCreature", "bodies": [400] },
+    "SlimTheFence": { "b": "BaseCreature", "bodies": [400], "t": "the Fence" },
     "FellowshipAdept": {
       "b": "BaseVendor",
       "g": [8260, 8255],
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the Fellowship Adept"
     },
     "BrowseShopEntry": { "b": "ContextMenuEntry" },
-    "Follower": { "b": "BaseQuester", "bodies": [400] },
+    "Follower": { "b": "BaseQuester", "bodies": [400], "t": "the Follower" },
     "FollowerGump": { "b": "Gump" },
-    "Worker": { "b": "BaseQuester", "own": 1, "bodies": [400] },
+    "Worker": {
+      "b": "BaseQuester",
+      "own": 1,
+      "bodies": [400],
+      "t": "the Worker"
+    },
     "WorkerGump": { "b": "Gump" },
-    "MiningCooperativeMerchant": { "b": "BaseVendor", "own": 1 },
+    "MiningCooperativeMerchant": {
+      "b": "BaseVendor",
+      "own": 1,
+      "t": "the Mining Cooperative Merchant"
+    },
     "MiningCooperativeGump": { "b": "Gump" },
     "BlackthornStep4": { "b": "BlackthornBaseAddon" },
     "BlackthornStep5": { "b": "BlackthornBaseAddon" },
@@ -11956,7 +12431,7 @@
       "hue": 2949,
       "bodies": [1293]
     },
-    "Hal": { "b": "BaseTurnInMobile", "bodies": [400] },
+    "Hal": { "b": "BaseTurnInMobile", "bodies": [400], "t": "the Researcher" },
     "SpectralMyrmidexWarrior": {
       "b": "BaseCreature",
       "hue": 2951,
@@ -11994,7 +12469,11 @@
     "StockingSerpent": { "b": "BaseCreature", "hue": 1459, "bodies": [1289] },
     "TwistedHolidayTree": { "b": "BaseCreature", "hue": 1175, "bodies": [47] },
     "HeadlessElf": { "b": "BaseCreature", "bodies": [31] },
-    "JackThePumpkinKing": { "b": "BaseCreature", "bodies": [400] },
+    "JackThePumpkinKing": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the pumpkin king"
+    },
     "UnholyPumpkin": { "b": "Item", "i": ["ICarvable"], "g": [3966] },
     "AbominableSnowman": { "b": "BaseCreature", "hue": 1150, "bodies": [241] },
     "GarishGingerman": { "b": "BaseCreature", "hue": 1461, "bodies": [14] },
@@ -12022,9 +12501,18 @@
     "AncientParchment": { "b": "Item", "g": [8809], "own": 1 },
     "CrookOfHumility": { "b": "ShepherdsCrook" },
     "ScepterOfPride": { "b": "Scepter" },
-    "Elizabeth": { "b": "BaseVendor", "own": 1, "bodies": [401] },
-    "Owain": { "b": "BaseVendor", "own": 1, "bodies": [400] },
-    "Carey": { "b": "BaseTurnInMobile", "bodies": [401] },
+    "Elizabeth": {
+      "b": "BaseVendor",
+      "own": 1,
+      "bodies": [401],
+      "t": "the Professor"
+    },
+    "Owain": { "b": "BaseVendor", "own": 1, "bodies": [400], "t": "the blind" },
+    "Carey": {
+      "b": "BaseTurnInMobile",
+      "bodies": [401],
+      "t": "the Researcher"
+    },
     "GoingGumshoeQuest": { "b": "BaseQuest" },
     "GoingGumshoeQuest2": { "b": "BaseQuest" },
     "GoingGumshoeQuest3": { "b": "BaseQuest" },
@@ -12378,14 +12866,25 @@
     "BritannianInfantry": {
       "b": "BaseCreature",
       "hue": 33779,
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the Britannian"
     },
     "Najasaurus": { "b": "BaseCreature", "bodies": [1289] },
     "ShadowguardBoss": { "b": "BaseCreature" },
-    "Anon": { "b": "ShadowguardBoss", "g": [8252], "bodies": [400] },
+    "Anon": {
+      "b": "ShadowguardBoss",
+      "g": [8252],
+      "bodies": [400],
+      "t": "the Mage"
+    },
     "Juonar": { "b": "ShadowguardBoss", "hue": 2951, "bodies": [78] },
     "Virtuebane": { "b": "ShadowguardBoss", "bodies": [1071] },
-    "Ozymandias": { "b": "ShadowguardBoss", "g": [8256], "bodies": [400] },
+    "Ozymandias": {
+      "b": "ShadowguardBoss",
+      "g": [8256],
+      "bodies": [400],
+      "t": "the Lord of Castle Barataria"
+    },
     "ShadowguardController": { "b": "Item", "g": [18059], "own": 1 },
     "ShadowguardGump": { "b": "Gump" },
     "ShadowguardRegion": { "b": "BaseRegion" },
@@ -12448,7 +12947,11 @@
     "FeedingBell": { "b": "BaseAddon" },
     "WitheringBones": { "b": "Container", "g": [3791] },
     "TatteredBook": { "b": "Item", "g": [7712], "own": 1 },
-    "ShadowguardPirate": { "b": "BaseCreature", "bodies": [400] },
+    "ShadowguardPirate": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the Pirate"
+    },
     "ShantyThePirate": { "b": "ShadowguardPirate" },
     "VileWaterElemental": {
       "b": "WaterElemental",
@@ -12460,7 +12963,12 @@
     "EnsorcelledArmor": { "b": "BaseCreature", "bodies": [400] },
     "VileDrake": { "b": "Drake" },
     "ShadowguardGreaterDragon": { "b": "GreaterDragon" },
-    "LadyMinax": { "b": "BaseCreature", "g": [8252], "bodies": [401] },
+    "LadyMinax": {
+      "b": "BaseCreature",
+      "g": [8252],
+      "bodies": [401],
+      "t": "the Enchantress"
+    },
     "BarEncounter": { "b": "ShadowguardEncounter" },
     "OrchardEncounter": { "b": "ShadowguardEncounter" },
     "ArmoryEncounter": { "b": "ShadowguardEncounter", "g": [5394] },
@@ -12482,7 +12990,12 @@
     "BoatPlacementGump": { "b": "Gump" },
     "BoatDriverLock": { "b": "Packet", "g": [191] },
     "BoatEquipPacket": { "b": "Packet", "g": [46] },
-    "BountyQuestSpawner": { "b": "Item", "g": [3796], "own": 1 },
+    "BountyQuestSpawner": {
+      "b": "Item",
+      "g": [3796],
+      "own": 1,
+      "t": "the orc captain"
+    },
     "SmugglersLiquor": { "b": "BaseBeverage", "hue": 692 },
     "OracleOfTheSea": { "b": "Spyglass", "own": 1, "hue": 1265 },
     "SeaMarketBuoy": { "b": "BaseAddon" },
@@ -12579,7 +13092,8 @@
     "AgentOfTheCrown": {
       "b": "BaseTurnInMobile",
       "g": [8263],
-      "bodies": [400]
+      "bodies": [400],
+      "t": "the Agent Of The Crown"
     },
     "Brightblade": { "b": "Katana", "hue": 1756 },
     "GargishBrightblade": { "b": "GargishKatana", "hue": 1756 },
@@ -12617,14 +13131,16 @@
       "i": ["IElementalCreature", "IAuraCreature"],
       "g": [8261],
       "hue": 1152,
-      "bodies": [401]
+      "bodies": [401],
+      "t": "the sorceress"
     },
     "ManaDrainItem": { "b": "Item", "hue": 1152 },
     "VelaTheSorceress": {
       "b": "BaseCreature",
       "g": [8252],
       "own": 1,
-      "bodies": [401]
+      "bodies": [401],
+      "t": "the sorceress"
     },
     "CovetousCreature": { "b": "BaseCreature" },
     "WarAlligator": { "b": "CovetousCreature", "bodies": [202] },
@@ -12714,7 +13230,12 @@
     "DupresSquire": { "b": "BaseCreature", "bodies": [400] },
     "ExodusSentinel": { "b": "BaseCreature", "bodies": [763] },
     "DupresKnight": { "b": "BaseCreature", "bodies": [400] },
-    "ExodusArchZealot": { "b": "Mobile", "hue": 0, "bodies": [400] },
+    "ExodusArchZealot": {
+      "b": "Mobile",
+      "hue": 0,
+      "bodies": [400],
+      "t": "the Arch Zealot"
+    },
     "ExodusArchZealotGumpEntry": { "b": "ContextMenuEntry" },
     "ExodusArchZealotGump": { "b": "Gump" },
     "ClockworkExodus": { "b": "BaseCreature", "hue": 2500, "bodies": [1248] },
@@ -12723,19 +13244,42 @@
     "ExodusJuggernaut": { "b": "BaseCreature", "bodies": [752] },
     "EscortToWrongEntrance": { "b": "BaseQuest" },
     "HungryOgre": { "b": "BaseCreature", "bodies": [1] },
-    "LizardmanDefender": { "b": "BaseCreature", "bodies": [35, 36] },
+    "LizardmanDefender": {
+      "b": "BaseCreature",
+      "bodies": [35, 36],
+      "t": "the defender"
+    },
     "Fezzik": { "b": "BaseCreature", "bodies": [1] },
-    "DemonicJailor": { "b": "BaseCreature", "bodies": [400] },
+    "DemonicJailor": {
+      "b": "BaseCreature",
+      "bodies": [400],
+      "t": "the demonic jailor"
+    },
     "CaveTrollWrong": { "b": "BaseCreature", "bodies": [53, 54] },
     "Archmage": { "b": "BaseCreature", "bodies": [125, 126] },
     "SavagePackWolf": { "b": "BaseCreature", "bodies": [225] },
-    "LizardmanSquatter": { "b": "BaseCreature", "bodies": [35, 36] },
+    "LizardmanSquatter": {
+      "b": "BaseCreature",
+      "bodies": [35, 36],
+      "t": "the squatter"
+    },
     "GooeyMaggots": { "b": "BaseCreature", "bodies": [319] },
     "GooeyMaggotSlime": { "b": "Item" },
-    "BrigandCannibalMage": { "b": "EvilMage" },
-    "BrigandCannibal": { "b": "Brigand", "hue": 33782 },
+    "BrigandCannibalMage": {
+      "b": "EvilMage",
+      "t": "the brigand cannibal mage"
+    },
+    "BrigandCannibal": {
+      "b": "Brigand",
+      "hue": 33782,
+      "t": "the brigand cannibal"
+    },
     "PrisonRat": { "b": "BaseCreature", "bodies": [238] },
-    "WrongPrisoner": { "b": "BaseEscort", "bodies": [400] },
+    "WrongPrisoner": {
+      "b": "BaseEscort",
+      "bodies": [400],
+      "t": "the prisoner"
+    },
     "Soap": { "b": "Item", "g": [5154] },
     "MysteriousTunnel": { "b": "Item", "g": [7025] },
     "WrongBarredMetalDoor": {
@@ -12753,7 +13297,7 @@
     "QuartzGrit": { "b": "Item", "g": [16954], "own": 1 },
     "WhetstoneOfEnervation": { "b": "Item", "g": [4968], "own": 1 },
     "CorrosiveAsh": { "b": "Item", "g": [16954], "own": 1 },
-    "ShameGuardian": { "b": "BaseCreature" },
+    "ShameGuardian": { "b": "BaseCreature", "t": "the guardian" },
     "QuartzElemental": { "b": "ShameGuardian", "hue": 2575, "bodies": [14] },
     "FlameElemental": {
       "b": "ShameGuardian",
@@ -12764,7 +13308,12 @@
     "WindElemental": { "b": "ShameGuardian", "hue": 33765, "bodies": [13] },
     "MudPie": { "b": "BaseCreature", "hue": 2012, "bodies": [779] },
     "StoneElemental": { "b": "EarthElemental", "hue": 2401 },
-    "CaveTroll": { "b": "Troll", "hue": 638, "bodies": [1] },
+    "CaveTroll": {
+      "b": "Troll",
+      "hue": 638,
+      "bodies": [1],
+      "t": "the wall guardian"
+    },
     "ClayGolem": { "b": "Golem", "hue": 654 },
     "GreaterEarthElemental": { "b": "EarthElemental", "hue": 1143 },
     "MudElemental": { "b": "EarthElemental", "hue": 542 },
@@ -12782,10 +13331,15 @@
       "bodies": [13]
     },
     "EternalGazer": { "b": "ElderGazer" },
-    "BurningMage": { "b": "BaseCreature", "hue": 1281, "bodies": [400] },
-    "CrazedMage": { "b": "BaseCreature", "bodies": [400] },
-    "CorruptedMage": { "b": "EvilMage" },
-    "VileMage": { "b": "CorruptedMage" },
+    "BurningMage": {
+      "b": "BaseCreature",
+      "hue": 1281,
+      "bodies": [400],
+      "t": "the burning"
+    },
+    "CrazedMage": { "b": "BaseCreature", "bodies": [400], "t": "the crazed" },
+    "CorruptedMage": { "b": "EvilMage", "t": "the corrupted mage" },
+    "VileMage": { "b": "CorruptedMage", "t": "the vile mage" },
     "ChaosVortex": { "b": "BaseCreature", "hue": 34212, "bodies": [164] },
     "UnboundEnergyVortex": { "b": "BaseCreature", "bodies": [13] },
     "DiseasedBloodElemental": {
@@ -12899,9 +13453,14 @@
     "GumshoeRope": { "b": "BaseGumshoeForensicItem", "g": [5370] },
     "GumshoeMap": { "b": "BaseGumshoeForensicItem", "g": [5355] },
     "GumshoeTools": { "b": "BaseGumshoeForensicItem", "g": [7867] },
-    "Cryptologist": { "b": "BaseVendor", "own": 1 },
-    "SageHumbolt": { "b": "BaseVendor" },
-    "GraveDigger": { "b": "BaseVendor", "g": [8252, 8254], "own": 1 },
+    "Cryptologist": { "b": "BaseVendor", "own": 1, "t": "the Cryptologist" },
+    "SageHumbolt": { "b": "BaseVendor", "t": "the Ghost" },
+    "GraveDigger": {
+      "b": "BaseVendor",
+      "g": [8252, 8254],
+      "own": 1,
+      "t": "the Grave Digger"
+    },
     "InspectorJasper": {
       "b": "MondainQuester",
       "g": [12239],
@@ -12960,16 +13519,20 @@
     },
     "ShameTileAddon": { "b": "BaseAddon" },
     "ShameTileDeed": { "b": "BaseAddonDeed", "i": ["IRewardOption"], "own": 1 },
-    "FactionDragoon": { "b": "BaseFactionGuard" },
-    "FactionSorceress": { "b": "BaseFactionGuard" },
-    "FactionBerserker": { "b": "BaseFactionGuard", "g": [8263, 8267] },
-    "FactionHenchman": { "b": "BaseFactionGuard" },
-    "FactionNecromancer": { "b": "BaseFactionGuard" },
-    "FactionPaladin": { "b": "BaseFactionGuard" },
-    "FactionWizard": { "b": "BaseFactionGuard" },
-    "FactionMercenary": { "b": "BaseFactionGuard" },
-    "FactionKnight": { "b": "BaseFactionGuard" },
-    "FactionDeathKnight": { "b": "BaseFactionGuard" },
+    "FactionDragoon": { "b": "BaseFactionGuard", "t": "the dragoon" },
+    "FactionSorceress": { "b": "BaseFactionGuard", "t": "the sorceress" },
+    "FactionBerserker": {
+      "b": "BaseFactionGuard",
+      "g": [8263, 8267],
+      "t": "the berserker"
+    },
+    "FactionHenchman": { "b": "BaseFactionGuard", "t": "the henchman" },
+    "FactionNecromancer": { "b": "BaseFactionGuard", "t": "the necromancer" },
+    "FactionPaladin": { "b": "BaseFactionGuard", "t": "the paladin" },
+    "FactionWizard": { "b": "BaseFactionGuard", "t": "the wizard" },
+    "FactionMercenary": { "b": "BaseFactionGuard", "t": "the mercenary" },
+    "FactionKnight": { "b": "BaseFactionGuard", "t": "the knight" },
+    "FactionDeathKnight": { "b": "BaseFactionGuard", "t": "the death knight" },
     "BelfryAddon": { "b": "BaseAddon" },
     "ShadowguardFountainAddon": { "b": "BaseAddon" },
     "OrchardAddon": { "b": "BaseAddon" },
@@ -12978,7 +13541,7 @@
     "FishQuestObjective": { "b": "BaseObjective" },
     "ShippingCrate": { "b": "SmallCrate" },
     "ProfessionalFisherQuest": { "b": "BaseQuest" },
-    "FishMonger": { "b": "MondainQuester" },
+    "FishMonger": { "b": "MondainQuester", "t": "the fish monger" },
     "ProfessionalBountyQuest": { "b": "BaseQuest" },
     "BountyQuestObjective": { "b": "BaseObjective" },
     "SmilingMoonBlade": { "b": "CrescentBlade", "hue": 2567 },
@@ -13263,14 +13826,31 @@
     "WinterDragonfish": { "b": "RareFish" },
     "ZombieFish": { "b": "RareFish" },
     "Bait": { "b": "Item", "g": [2454], "own": 1 },
-    "BoatPainter": { "b": "BaseVendor", "sb": ["SBBoatPainter"] },
-    "CrabFisher": { "b": "BaseVendor", "sb": ["SBCrabFisher"] },
-    "DocksAlchemist": { "b": "BaseVendor", "sb": ["SBDocksAlchemist"] },
+    "BoatPainter": {
+      "b": "BaseVendor",
+      "sb": ["SBBoatPainter"],
+      "t": "the boat painter"
+    },
+    "CrabFisher": {
+      "b": "BaseVendor",
+      "sb": ["SBCrabFisher"],
+      "t": "the crab fisher"
+    },
+    "DocksAlchemist": {
+      "b": "BaseVendor",
+      "sb": ["SBDocksAlchemist"],
+      "t": "the alchemist"
+    },
     "SeaMarketTavernKeeper": {
       "b": "BaseVendor",
-      "sb": ["SBSeaMarketTavernKeeper"]
+      "sb": ["SBSeaMarketTavernKeeper"],
+      "t": "the tavern keeper"
     },
-    "DockMaster": { "b": "BaseVendor", "sb": ["SBFisherman"] },
+    "DockMaster": {
+      "b": "BaseVendor",
+      "sb": ["SBFisherman"],
+      "t": "the dockmaster"
+    },
     "RetrieveHoldEntry": { "b": "ContextMenuEntry" },
     "SoulboundSwashbuckler": { "b": "BaseCreature", "bodies": [400] },
     "CorgulTheSoulBinder": {
@@ -13279,11 +13859,20 @@
       "bodies": [76]
     },
     "BoundSoul": { "b": "BaseCreature", "bodies": [970] },
-    "SoulboundApprenticeMage": { "b": "EvilMage" },
+    "SoulboundApprenticeMage": {
+      "b": "EvilMage",
+      "t": "the soulbound apprentice mage"
+    },
     "SoulboundPirateRaider": { "b": "BaseCreature", "bodies": [400] },
     "SoulboundPirateCaptain": { "b": "BaseCreature", "bodies": [400] },
-    "SoulboundSpellSlinger": { "b": "EvilMageLord" },
-    "SoulboundBattleMage": { "b": "EvilMageLord" },
+    "SoulboundSpellSlinger": {
+      "b": "EvilMageLord",
+      "t": "the soulbound spellslinger"
+    },
+    "SoulboundBattleMage": {
+      "b": "EvilMageLord",
+      "t": "the soulbound battle mage"
+    },
     "FemaleKimonoBearingTheCrestOfBlackthorn4": {
       "b": "FemaleKimono",
       "hue": 2107
@@ -14025,13 +14614,21 @@
     "BindingPole": { "b": "Item", "i": ["IGalleonFixture"], "g": [5696] },
     "DeathCertificate": { "b": "Item", "g": [5360] },
     "BindingRope": { "b": "Item", "g": [5368], "own": 1 },
-    "GBBigglesby": { "b": "BaseVendor", "own": 1 },
+    "GBBigglesby": { "b": "BaseVendor", "own": 1, "t": "the proprietor" },
     "PirateCrew": { "b": "BaseCreature" },
-    "BaseShipCaptain": { "b": "BaseCreature", "bodies": [401] },
-    "PirateCaptain": { "b": "BaseShipCaptain" },
-    "MerchantCaptain": { "b": "BaseShipCaptain" },
-    "MerchantCrew": { "b": "BaseCreature", "bodies": [401] },
-    "SeaMarketOfficer": { "b": "MondainQuester" }
+    "BaseShipCaptain": {
+      "b": "BaseCreature",
+      "bodies": [401],
+      "t": "the orc captain"
+    },
+    "PirateCaptain": { "b": "BaseShipCaptain", "t": "the dread pirate" },
+    "MerchantCaptain": { "b": "BaseShipCaptain", "t": "the merchant captain" },
+    "MerchantCrew": {
+      "b": "BaseCreature",
+      "bodies": [401],
+      "t": "the merchant"
+    },
+    "SeaMarketOfficer": { "b": "MondainQuester", "t": "the officer" }
   },
   "sb": {
     "SBBeekeeper": {

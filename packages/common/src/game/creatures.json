@@ -18,7 +18,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "AbominableSnowman": {
       "name": "the abominable snowman",
@@ -36,7 +37,8 @@
       "tactics": 100,
       "wrestling": 130,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Abscess": {
       "name": "Abscess",
@@ -54,7 +56,8 @@
       "tactics": 130.5,
       "wrestling": 143.8,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "AbysmalHorror": {
       "name": "an abyssmal horror",
@@ -72,7 +75,8 @@
       "tactics": 100,
       "wrestling": 88,
       "armor": 54,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "AbyssalAbomination": {
       "name": "an Abyssal Abomination",
@@ -90,7 +94,8 @@
       "tactics": 100,
       "wrestling": 88,
       "armor": 54,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "AcidElemental": {
       "name": "an acid elemental",
@@ -108,7 +113,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 70,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "AcidSlug": {
       "name": "an acid slug",
@@ -126,7 +132,8 @@
       "tactics": 50,
       "wrestling": 80,
       "armor": 0,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Actor": {
       "name": null,
@@ -144,7 +151,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "AdrianTheGloriousLord": {
       "name": "Adrian",
@@ -180,7 +188,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 32,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "AgentOfTheCrown": {
       "name": "the Agent Of The Crown",
@@ -198,7 +207,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "AirElemental": {
       "name": "an air elemental",
@@ -216,7 +226,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "AlbertaGiacco": {
       "name": "Alberta Giacco",
@@ -234,7 +245,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Alelle": {
       "name": "Alelle",
@@ -252,7 +264,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Alethanian": {
       "name": "Elder Alethanian",
@@ -270,7 +283,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Alida": {
       "name": "Alida",
@@ -288,7 +302,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Alligator": {
       "name": "an alligator",
@@ -307,6 +322,7 @@
       "wrestling": 60,
       "armor": 30,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 47.1
     },
     "Allosaurus": {
@@ -325,7 +341,8 @@
       "tactics": 140,
       "wrestling": 150,
       "armor": 0,
-      "gold": 4200
+      "gold": 4200,
+      "speed": 0.2
     },
     "Aluniol": {
       "name": "Aluniol",
@@ -343,7 +360,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Aminia": {
       "name": "Aminia",
@@ -361,7 +379,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Anchisaur": {
       "name": "an anchisaur",
@@ -379,7 +398,8 @@
       "tactics": 105,
       "wrestling": 110,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "AncientLich": {
       "name": null,
@@ -397,7 +417,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 60,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "AncientWyrm": {
       "name": "an ancient wyrm",
@@ -415,7 +436,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 70,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "AndrosTheDreadLord": {
       "name": "Andros",
@@ -451,7 +473,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "AngeredSpirit": {
       "name": "an angered spirit",
@@ -469,7 +492,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "AnimatedWeapon": {
       "name": "an animated weapon",
@@ -487,7 +511,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.3
     },
     "Anlorlem": {
       "name": "an Anlorlem",
@@ -505,7 +530,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 700
+      "gold": 700,
+      "speed": 0.2
     },
     "Anlorvaglem": {
       "name": "anlorvaglem",
@@ -523,7 +549,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 48,
-      "gold": 900
+      "gold": 900,
+      "speed": 0.6
     },
     "Anlorzen": {
       "name": "an anlorzen",
@@ -541,7 +568,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 56,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Anon": {
       "name": "Anon",
@@ -559,7 +587,8 @@
       "tactics": 125,
       "wrestling": 240,
       "armor": 0,
-      "gold": 10500
+      "gold": 10500,
+      "speed": 0.15
     },
     "AnsellaGryen": {
       "name": "Ansella Gryen",
@@ -577,7 +606,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "AntLion": {
       "name": "an ant lion",
@@ -595,7 +625,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 45,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "Anzuanord": {
       "name": "an Anzuanord",
@@ -613,7 +644,8 @@
       "tactics": 50,
       "wrestling": 50,
       "armor": 50,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "ArcaneDaemon": {
       "name": "an arcane daemon",
@@ -631,7 +663,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 55,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "ArcaneFey": {
       "name": null,
@@ -649,7 +682,8 @@
       "tactics": 20,
       "wrestling": 12.5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ArcaneFiend": {
       "name": "an imp",
@@ -667,7 +701,8 @@
       "tactics": 50,
       "wrestling": 44,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ArchDaemon": {
       "name": "an Arch Deamon",
@@ -685,7 +720,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 90,
-      "gold": 450
+      "gold": 450,
+      "speed": 0.2
     },
     "Archaeosaurus": {
       "name": "an Archaeosaurus",
@@ -703,7 +739,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Archmage": {
       "name": null,
@@ -721,7 +758,8 @@
       "tactics": 79.9,
       "wrestling": 92.6,
       "armor": 16,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "ArcticOgreLord": {
       "name": "an arctic ogre lord",
@@ -739,7 +777,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "ArenaManager": {
       "name": null,
@@ -757,7 +796,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Arielle": {
       "name": "Arielle",
@@ -775,7 +815,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Arnold": {
       "name": "Arnold",
@@ -793,7 +834,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Artist": {
       "name": null,
@@ -811,7 +853,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ArtsSection": {
       "name": "A Cookbook",
@@ -829,7 +872,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Athialon": {
       "name": "Athialon",
@@ -847,7 +891,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "AttendantFemaleGuide": {
       "name": null,
@@ -865,7 +910,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "AttendantFemaleHerald": {
       "name": null,
@@ -883,7 +929,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "AttendantFemaleLuckyDealer": {
       "name": null,
@@ -901,7 +948,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "AttendantFortuneTeller": {
       "name": "the Fortune Teller",
@@ -919,7 +967,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "AttendantMaleGuide": {
       "name": null,
@@ -937,7 +986,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "AttendantMaleHerald": {
       "name": null,
@@ -955,7 +1005,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "AttendantMaleLuckyDealer": {
       "name": null,
@@ -973,7 +1024,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "Axem": {
       "name": "Axem",
@@ -991,7 +1043,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BakeKitsune": {
       "name": "a bake kitsune",
@@ -1010,6 +1063,7 @@
       "wrestling": 55,
       "armor": 0,
       "gold": 750,
+      "speed": 0.2,
       "minTame": 80.7
     },
     "Ballem": {
@@ -1028,7 +1082,8 @@
       "tactics": 60,
       "wrestling": 80,
       "armor": 54,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "Balron": {
       "name": null,
@@ -1046,7 +1101,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 90,
-      "gold": 1250
+      "gold": 1250,
+      "speed": 0.2
     },
     "BaneDragon": {
       "name": "Bane Dragon",
@@ -1065,6 +1121,7 @@
       "wrestling": 90,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 107.1
     },
     "BarakoHighChief": {
@@ -1083,7 +1140,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Barreraak": {
       "name": "Barreraak",
@@ -1101,7 +1159,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseAmbitiousSolenQueen": {
       "name": "an ambitious solen queen",
@@ -1119,7 +1178,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseBazaarBroker": {
       "name": null,
@@ -1137,7 +1197,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseCollectionMobile": {
       "name": null,
@@ -1155,7 +1216,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseEnraged": {
       "name": null,
@@ -1173,7 +1235,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "BaseEscort": {
       "name": null,
@@ -1191,7 +1254,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseEscortable": {
       "name": null,
@@ -1209,7 +1273,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "BaseFactionGuard": {
       "name": null,
@@ -1227,7 +1292,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "BaseFactionVendor": {
       "name": null,
@@ -1245,7 +1311,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseFamiliar": {
       "name": null,
@@ -1281,7 +1348,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseHire": {
       "name": null,
@@ -1299,7 +1367,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "BaseShieldGuard": {
       "name": null,
@@ -1317,7 +1386,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.8
     },
     "BaseShipCaptain": {
       "name": null,
@@ -1335,7 +1405,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "BaseSolenMatriarch": {
       "name": "the solen matriarch",
@@ -1353,7 +1424,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BaseTalismanSummon": {
       "name": null,
@@ -1371,7 +1443,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "BaseVendor": {
       "name": null,
@@ -1389,7 +1462,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BattleChickenLizard": {
       "name": "a battle chicken lizard",
@@ -1408,6 +1482,7 @@
       "wrestling": 62,
       "armor": 0,
       "gold": 0,
+      "speed": 0.05,
       "minTame": 0
     },
     "Beetle": {
@@ -1427,6 +1502,7 @@
       "wrestling": 100,
       "armor": 0,
       "gold": 0,
+      "speed": 0.25,
       "minTame": 29.1
     },
     "Betballem": {
@@ -1445,7 +1521,8 @@
       "tactics": 30,
       "wrestling": 40,
       "armor": 38,
-      "gold": 290
+      "gold": 290,
+      "speed": 0.2
     },
     "Betrayer": {
       "name": "a betrayer",
@@ -1463,7 +1540,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 65,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Bexil": {
       "name": "Bexil",
@@ -1481,7 +1559,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BexilPunchingBag": {
       "name": "Bexil",
@@ -1499,7 +1578,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.4
     },
     "Bird": {
       "name": "a crow",
@@ -1518,6 +1598,7 @@
       "wrestling": 6.4,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -6.9
     },
     "BirlingBlades": {
@@ -1555,6 +1636,7 @@
       "wrestling": 60,
       "armor": 24,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 35.1
     },
     "BlackMarketMerchant": {
@@ -1573,7 +1655,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BlackSolenInfiltratorQueen": {
       "name": "a black solen infiltrator",
@@ -1591,7 +1674,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "BlackSolenInfiltratorWarrior": {
       "name": "a black solen infiltrator",
@@ -1609,7 +1693,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 40,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "BlackSolenQueen": {
       "name": "a black solen queen",
@@ -1627,7 +1712,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 45,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "BlackSolenWarrior": {
       "name": "a black solen warrior",
@@ -1645,7 +1731,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 35,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "BlackSolenWorker": {
       "name": "a black solen worker",
@@ -1663,7 +1750,8 @@
       "tactics": 65,
       "wrestling": 60,
       "armor": 28,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Blackheart": {
       "name": "Captain Blackheart",
@@ -1681,7 +1769,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BlackrockAutomaton": {
       "name": "blackrock automaton",
@@ -1699,7 +1788,8 @@
       "tactics": 94.8,
       "wrestling": 108.4,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "BladeSpirits": {
       "name": "a blade spirit",
@@ -1717,7 +1807,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.3
     },
     "BloodElemental": {
       "name": "a blood elemental",
@@ -1735,7 +1826,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 60,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "BloodFox": {
       "name": "Blood Fox",
@@ -1754,6 +1846,7 @@
       "wrestling": 90,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 72
     },
     "BloodWorm": {
@@ -1772,7 +1865,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "Boar": {
       "name": "a boar",
@@ -1791,6 +1885,7 @@
       "wrestling": 9,
       "armor": 10,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "BogThing": {
@@ -1809,7 +1904,8 @@
       "tactics": 85,
       "wrestling": 80,
       "armor": 28,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.6
     },
     "Bogle": {
       "name": "a bogle",
@@ -1827,7 +1923,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Bogling": {
       "name": "a bogling",
@@ -1845,7 +1942,8 @@
       "tactics": 80,
       "wrestling": 75,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Bolaevin": {
       "name": "Bolaevin",
@@ -1863,7 +1961,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BoneDemon": {
       "name": "a bone demon",
@@ -1881,7 +1980,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 44,
-      "gold": 4000
+      "gold": 4000,
+      "speed": 0.2
     },
     "BoneKnight": {
       "name": "a bone knight",
@@ -1899,7 +1999,8 @@
       "tactics": 100,
       "wrestling": 95,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "BoneMagi": {
       "name": "a bone mage",
@@ -1917,7 +2018,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 38,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "BoneSwordSlinger": {
       "name": "a bone swordslinger",
@@ -1935,7 +2037,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "BoundSoul": {
       "name": "a bound soul",
@@ -1953,7 +2056,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Bravehorn": {
       "name": "Bravehorn",
@@ -1971,7 +2075,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BravehornsMate": {
       "name": "bravehorn's mate",
@@ -1989,7 +2094,8 @@
       "tactics": 19,
       "wrestling": 26,
       "armor": 8,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Brigand": {
       "name": null,
@@ -2007,7 +2113,8 @@
       "tactics": 87.5,
       "wrestling": 37.5,
       "armor": 0,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "BrigandCannibal": {
       "name": null,
@@ -2025,7 +2132,8 @@
       "tactics": 94,
       "wrestling": 37.5,
       "armor": 16,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "BrigandCannibalMage": {
       "name": null,
@@ -2043,7 +2151,8 @@
       "tactics": 94,
       "wrestling": 54.3,
       "armor": 16,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "BritannianInfantry": {
       "name": null,
@@ -2061,7 +2170,8 @@
       "tactics": 120,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.15
     },
     "Bront": {
       "name": "Bront",
@@ -2079,7 +2189,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "BronzeElemental": {
       "name": "a bronze elemental",
@@ -2097,7 +2208,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 29,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "BrownBear": {
       "name": "a brown bear",
@@ -2116,6 +2228,7 @@
       "wrestling": 60,
       "armor": 24,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 41.1
     },
     "BulbousPutrification": {
@@ -2134,7 +2247,8 @@
       "tactics": 119.1,
       "wrestling": 114.7,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Bull": {
       "name": "a bull",
@@ -2153,6 +2267,7 @@
       "wrestling": 57.5,
       "armor": 28,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 71.1
     },
     "BullFrog": {
@@ -2172,6 +2287,7 @@
       "wrestling": 60,
       "armor": 6,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 23.1
     },
     "BurningMage": {
@@ -2190,7 +2306,8 @@
       "tactics": 120,
       "wrestling": 130,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.4
     },
     "CaddelliteVendor": {
       "name": "the Tinker",
@@ -2208,7 +2325,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Carey": {
       "name": "Carey",
@@ -2226,7 +2344,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Carroll": {
       "name": "Carroll",
@@ -2244,7 +2363,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "CasinoCashier": {
       "name": "Elven Pants",
@@ -2262,7 +2382,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "CasinoDealer": {
       "name": "Elven Pants",
@@ -2280,7 +2401,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "CasinoWaitress": {
       "name": "The drinks girl",
@@ -2298,7 +2420,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Cat": {
       "name": "a cat",
@@ -2317,6 +2440,7 @@
       "wrestling": 5,
       "armor": 8,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -0.9
     },
     "CaveTroll": {
@@ -2335,7 +2459,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 40,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "CaveTrollWrong": {
       "name": "a Cave Troll",
@@ -2353,7 +2478,8 @@
       "tactics": 125.8,
       "wrestling": 137.5,
       "armor": 40,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Centaur": {
       "name": null,
@@ -2371,7 +2497,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "Changeling": {
       "name": null,
@@ -2389,7 +2516,8 @@
       "tactics": 108.3,
       "wrestling": 12.5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ChaosDaemon": {
       "name": "a chaos daemon",
@@ -2407,7 +2535,8 @@
       "tactics": 80,
       "wrestling": 100,
       "armor": 15,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "ChaosDragoon": {
       "name": "a chaos dragoon",
@@ -2425,7 +2554,8 @@
       "tactics": 87.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.15
     },
     "ChaosDragoonElite": {
       "name": "a chaos dragoon elite",
@@ -2443,7 +2573,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.15
     },
     "ChaosVortex": {
       "name": "a chaos vortex",
@@ -2461,7 +2592,8 @@
       "tactics": 130,
       "wrestling": 140,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.4
     },
     "Charydbis": {
       "name": "charydbis",
@@ -2479,7 +2611,8 @@
       "tactics": 123.1,
       "wrestling": 121.2,
       "armor": 0,
-      "gold": 12000
+      "gold": 12000,
+      "speed": 0.2
     },
     "Chicken": {
       "name": "a chicken",
@@ -2498,6 +2631,7 @@
       "wrestling": 5,
       "armor": 2,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -0.9
     },
     "ChickenLizard": {
@@ -2517,6 +2651,7 @@
       "wrestling": 38.2,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 0
     },
     "ChiefParoxysmus": {
@@ -2535,7 +2670,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Chiikkaha": {
       "name": "Chiikkaha the Toothed",
@@ -2553,7 +2689,8 @@
       "tactics": 75,
       "wrestling": 75,
       "armor": 44,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Chiyo": {
       "name": "Chiyo",
@@ -2571,7 +2708,8 @@
       "tactics": 120,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Chyloth": {
       "name": "Chyloth",
@@ -2589,7 +2727,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "CityHerald": {
       "name": null,
@@ -2607,7 +2746,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.4
     },
     "ClanCA": {
       "name": "Clan Chitter Assistant",
@@ -2625,7 +2765,8 @@
       "tactics": 75,
       "wrestling": 75,
       "armor": 56,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "ClanCT": {
       "name": "Clan Scratch Tinkerer",
@@ -2643,7 +2784,8 @@
       "tactics": 84.4,
       "wrestling": 85,
       "armor": 56,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "ClanRC": {
       "name": "Clan Ribbon Courtier",
@@ -2661,7 +2803,8 @@
       "tactics": 70,
       "wrestling": 55,
       "armor": 48,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "ClanRS": {
       "name": "Clan Ribbon Supplicant",
@@ -2679,7 +2822,8 @@
       "tactics": 65,
       "wrestling": 60,
       "armor": 48,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "ClanRibbonPlagueRat": {
       "name": "Clan Ribbon Plague Rat",
@@ -2697,7 +2841,8 @@
       "tactics": 34,
       "wrestling": 40,
       "armor": 6,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "ClanSH": {
       "name": "Clan Scratch Henchrat",
@@ -2715,7 +2860,8 @@
       "tactics": 65,
       "wrestling": 65,
       "armor": 48,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "ClanSS": {
       "name": "Clan Scratch Scrounger",
@@ -2733,7 +2879,8 @@
       "tactics": 65,
       "wrestling": 75,
       "armor": 56,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "ClanSSW": {
       "name": "Clan Scratch Savage Wolf",
@@ -2751,7 +2898,8 @@
       "tactics": 70,
       "wrestling": 45.5,
       "armor": 50,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "ClayGolem": {
       "name": "a clay golem",
@@ -2769,7 +2917,8 @@
       "tactics": 120,
       "wrestling": 110,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.4
     },
     "ClockworkExodus": {
       "name": "Clockwork Exodus",
@@ -2787,7 +2936,8 @@
       "tactics": 105,
       "wrestling": 105,
       "armor": 20,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ClockworkScorpion": {
       "name": "a clockwork scorpion",
@@ -2805,7 +2955,8 @@
       "tactics": 90,
       "wrestling": 80,
       "armor": 0,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.4
     },
     "Clone": {
       "name": null,
@@ -2823,7 +2974,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "CoMWarHorse": {
       "name": null,
@@ -2841,7 +2993,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "CoconutCrab": {
       "name": "Coconut Crab",
@@ -2860,6 +3013,7 @@
       "wrestling": 35,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 30
     },
     "Coil": {
@@ -2878,7 +3032,8 @@
       "tactics": 142,
       "wrestling": 134.5,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ColdDrake": {
       "name": "a cold drake",
@@ -2897,6 +3052,7 @@
       "wrestling": 126,
       "armor": 60,
       "gold": 1500,
+      "speed": 0.2,
       "minTame": 96
     },
     "CopperElemental": {
@@ -2915,7 +3071,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 26,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "CoraTheSorceress": {
       "name": "Cora",
@@ -2933,7 +3090,8 @@
       "tactics": 118.5,
       "wrestling": 119.7,
       "armor": 0,
-      "gold": 7200
+      "gold": 7200,
+      "speed": 0.2
     },
     "CoralSnake": {
       "name": "a coral snake",
@@ -2951,7 +3109,8 @@
       "tactics": 98,
       "wrestling": 105,
       "armor": 16,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "CorgulTheSoulBinder": {
       "name": "Corgul the Soulbinder",
@@ -2987,7 +3146,8 @@
       "tactics": 115,
       "wrestling": 115,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Corpser": {
       "name": "a corpser",
@@ -3005,7 +3165,8 @@
       "tactics": 60,
       "wrestling": 60,
       "armor": 18,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "CorrosiveSlime": {
       "name": "a corrosive slime",
@@ -3024,6 +3185,7 @@
       "wrestling": 26.1,
       "armor": 8,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 23.1
     },
     "CorruptedMage": {
@@ -3042,7 +3204,8 @@
       "tactics": 120,
       "wrestling": 110,
       "armor": 16,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "CorruptedSoul": {
       "name": "a corrupted soul",
@@ -3060,7 +3223,8 @@
       "tactics": 89.9,
       "wrestling": 88.7,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "CorruptedWisp": {
       "name": "Corrupted Wisp",
@@ -3078,7 +3242,8 @@
       "tactics": 125,
       "wrestling": 125,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "CorruptedWyvern": {
       "name": "a corrupted wyvern",
@@ -3096,7 +3261,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Cougar": {
       "name": "a cougar",
@@ -3115,6 +3281,7 @@
       "wrestling": 60,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 41.1
     },
     "CovetousCreature": {
@@ -3133,7 +3300,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "CovetousDoppleganger": {
       "name": "a doppleganger",
@@ -3151,7 +3319,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "CovetousEarthElemental": {
       "name": "an earth elemental",
@@ -3169,7 +3338,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "CovetousFireDaemon": {
       "name": "a fire daemon",
@@ -3187,7 +3357,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "CovetousRevenant": {
       "name": "a covetous revenant",
@@ -3205,7 +3376,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "CovetousWaterElemental": {
       "name": "a water elemental",
@@ -3223,7 +3395,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "CovetousWyrm": {
       "name": "a covetous wyrm",
@@ -3241,7 +3414,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Cow": {
       "name": "a cow",
@@ -3260,6 +3434,7 @@
       "wrestling": 5.5,
       "armor": 10,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 11.1
     },
     "Crane": {
@@ -3278,7 +3453,8 @@
       "tactics": 11,
       "wrestling": 11,
       "armor": 5,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "CrazedMage": {
       "name": null,
@@ -3296,7 +3472,8 @@
       "tactics": 120,
       "wrestling": 140,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.4
     },
     "CrimsonDragon": {
       "name": "a crimson dragon",
@@ -3314,7 +3491,8 @@
       "tactics": 126.3,
       "wrestling": 128,
       "armor": 70,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "CrimsonDrake": {
       "name": "Crimson Drake",
@@ -3333,6 +3511,7 @@
       "wrestling": 80,
       "armor": 46,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 85
     },
     "Cryptologist": {
@@ -3351,7 +3530,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "CrystalDaemon": {
       "name": "a crystal daemon",
@@ -3369,7 +3549,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "CrystalElemental": {
       "name": "a crystal elemental",
@@ -3387,7 +3568,8 @@
       "tactics": 85,
       "wrestling": 75,
       "armor": 54,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "CrystalHydra": {
       "name": "a crystal hydra",
@@ -3405,7 +3587,8 @@
       "tactics": 110,
       "wrestling": 120,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "CrystalLatticeSeeker": {
       "name": "Crystal Lattice Seeker",
@@ -3423,7 +3606,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 2000
+      "gold": 2000,
+      "speed": 0.2
     },
     "CrystalSeaSerpent": {
       "name": "a crystal sea serpent",
@@ -3441,7 +3625,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 30,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "CrystalVortex": {
       "name": "a crystal vortex",
@@ -3459,7 +3644,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "CrystalWisp": {
       "name": "a crystal wisp",
@@ -3477,7 +3663,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "CuSidhe": {
       "name": "a cu sidhe",
@@ -3496,6 +3683,7 @@
       "wrestling": 96.8,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 101.1
     },
     "CultistAmbusher": {
@@ -3514,7 +3702,8 @@
       "tactics": 120,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Cursed": {
       "name": null,
@@ -3532,7 +3721,8 @@
       "tactics": 82.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "CursedSoul": {
       "name": "a cursed soul",
@@ -3550,7 +3740,8 @@
       "tactics": 15,
       "wrestling": 39,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Cyclops": {
       "name": "a cyclopean warrior",
@@ -3568,7 +3759,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 48,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "Daelas": {
       "name": "Daelas",
@@ -3586,7 +3778,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Daemon": {
       "name": null,
@@ -3604,7 +3797,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 58,
-      "gold": 450
+      "gold": 450,
+      "speed": 0.2
     },
     "DaemonMongbat": {
       "name": "a dameon mongbat",
@@ -3622,7 +3816,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "DarkGuardian": {
       "name": "a dark guardian",
@@ -3640,7 +3835,8 @@
       "tactics": 70,
       "wrestling": 0,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "DarkWisp": {
       "name": "a wisp",
@@ -3658,7 +3854,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 40,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "DarkWolfFamiliar": {
       "name": "a dark wolf",
@@ -3712,7 +3909,8 @@
       "tactics": 100,
       "wrestling": 90.9,
       "armor": 34,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "DazzledHarpy": {
       "name": "a dazzled harpy",
@@ -3730,7 +3928,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "DeadlyImp": {
       "name": "a deadly imp",
@@ -3748,7 +3947,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DeathAdder": {
       "name": "a death adder",
@@ -3785,6 +3985,7 @@
       "wrestling": 60,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 41.1
     },
     "DeathwatchBeetleHatchling": {
@@ -3803,7 +4004,8 @@
       "tactics": 57,
       "wrestling": 40,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DeepSeaSerpent": {
       "name": "a deep sea serpent",
@@ -3821,7 +4023,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 60,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "DemonKnight": {
       "name": "unholy bones",
@@ -3839,7 +4042,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 64,
-      "gold": 3000
+      "gold": 3000,
+      "speed": 0.2
     },
     "DemonicJailor": {
       "name": null,
@@ -3857,7 +4061,8 @@
       "tactics": 125,
       "wrestling": 0,
       "armor": 40,
-      "gold": 540
+      "gold": 540,
+      "speed": 0.1
     },
     "Dendrite": {
       "name": "Dendrite",
@@ -3893,7 +4098,8 @@
       "tactics": 70,
       "wrestling": 60,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DesertOstard": {
       "name": "a desert ostard",
@@ -3912,6 +4118,7 @@
       "wrestling": 44,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "DesertScorpion": {
@@ -3930,7 +4137,8 @@
       "tactics": 90,
       "wrestling": 60,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "DespiseCreature": {
       "name": null,
@@ -3984,7 +4192,8 @@
       "tactics": 85,
       "wrestling": 100,
       "armor": 44,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "DiabolicalSeaweed": {
       "name": "Diabolical Seaweed",
@@ -4002,7 +4211,8 @@
       "tactics": 114.8,
       "wrestling": 59.5,
       "armor": 60,
-      "gold": 40
+      "gold": 40,
+      "speed": 0
     },
     "Dierdre": {
       "name": "Dierdre",
@@ -4020,7 +4230,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Dimetrosaur": {
       "name": "a dimetrosaur",
@@ -4039,6 +4250,7 @@
       "wrestling": 125,
       "armor": 0,
       "gold": 2800,
+      "speed": 0.2,
       "minTame": 102
     },
     "DireWolf": {
@@ -4058,6 +4270,7 @@
       "wrestling": 80,
       "armor": 22,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 83.1
     },
     "DiseasedBloodElemental": {
@@ -4076,7 +4289,8 @@
       "tactics": 140,
       "wrestling": 140,
       "armor": 60,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "DiseasedCat": {
       "name": "a diseased cat",
@@ -4094,7 +4308,8 @@
       "tactics": 4,
       "wrestling": 5,
       "armor": 8,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DiseasedLich": {
       "name": "a diseased lich",
@@ -4112,7 +4327,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "DivineGuardian": {
       "name": "Divine Guardian",
@@ -4148,7 +4364,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Dog": {
       "name": "a dog",
@@ -4167,6 +4384,7 @@
       "wrestling": 31,
       "armor": 12,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -21.3
     },
     "Dolphin": {
@@ -4185,7 +4403,8 @@
       "tactics": 29,
       "wrestling": 29,
       "armor": 16,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Doppleganger": {
       "name": "a doppleganger",
@@ -4203,7 +4422,8 @@
       "tactics": 80,
       "wrestling": 90,
       "armor": 55,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Dragon": {
       "name": "a dragon",
@@ -4222,6 +4442,7 @@
       "wrestling": 92.5,
       "armor": 60,
       "gold": 1000,
+      "speed": 0.2,
       "minTame": 93.9
     },
     "DragonTurtleHatchling": {
@@ -4241,6 +4462,7 @@
       "wrestling": 150,
       "armor": 0,
       "gold": 300,
+      "speed": 0.2,
       "minTame": 104.7
     },
     "DragonWolf": {
@@ -4260,6 +4482,7 @@
       "wrestling": 105,
       "armor": 0,
       "gold": 350,
+      "speed": 0.2,
       "minTame": 102
     },
     "DragonsFlameGrandMage": {
@@ -4278,7 +4501,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 60,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DragonsFlameMage": {
       "name": "Black Order Mage",
@@ -4296,7 +4520,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 58,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Drake": {
       "name": "a drake",
@@ -4315,6 +4540,7 @@
       "wrestling": 80,
       "armor": 46,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 84.3
     },
     "DreadHorn": {
@@ -4333,7 +4559,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DreadSpider": {
       "name": "a dread spider",
@@ -4352,6 +4579,7 @@
       "wrestling": 75,
       "armor": 36,
       "gold": 500,
+      "speed": 0.2,
       "minTame": 96
     },
     "DreadWarhorse": {
@@ -4371,6 +4599,7 @@
       "wrestling": 98.2,
       "armor": 60,
       "gold": 350,
+      "speed": 0.2,
       "minTame": 108
     },
     "DreamWraith": {
@@ -4389,7 +4618,8 @@
       "tactics": 80,
       "wrestling": 100,
       "armor": 28,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Drelgor": {
       "name": "Drelgor the Impaler",
@@ -4407,7 +4637,8 @@
       "tactics": 60,
       "wrestling": 60,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Dryad": {
       "name": "Anwin Brenna",
@@ -4425,7 +4656,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Dugan": {
       "name": "Elder Dugan",
@@ -4443,7 +4675,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "DullCopperElemental": {
       "name": "a dull copper elemental",
@@ -4461,7 +4694,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 20,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "DummyAssassin": {
       "name": "Hybrid Assassin",
@@ -4479,7 +4713,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummyFence": {
       "name": "Fencer",
@@ -4497,7 +4732,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummyHealer": {
       "name": "Healer",
@@ -4515,7 +4751,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummyMace": {
       "name": "Macer",
@@ -4533,7 +4770,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummyNox": {
       "name": "Nox Mage",
@@ -4551,7 +4789,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummyStun": {
       "name": "Stun Mage",
@@ -4569,7 +4808,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummySuper": {
       "name": "Super Mage",
@@ -4587,7 +4827,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummySword": {
       "name": "Swordsman",
@@ -4605,7 +4846,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DummyThief": {
       "name": "Hybrid Thief",
@@ -4623,7 +4865,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DupresChampion": {
       "name": null,
@@ -4641,7 +4884,8 @@
       "tactics": 220,
       "wrestling": 220,
       "armor": 70,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DupresKnight": {
       "name": null,
@@ -4659,7 +4903,8 @@
       "tactics": 220,
       "wrestling": 220,
       "armor": 70,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "DupresSquire": {
       "name": null,
@@ -4677,7 +4922,8 @@
       "tactics": 220,
       "wrestling": 220,
       "armor": 70,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Eagle": {
       "name": "an eagle",
@@ -4696,6 +4942,7 @@
       "wrestling": 30,
       "armor": 22,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 17.1
     },
     "EarthElemental": {
@@ -4714,7 +4961,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 34,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Echidnite": {
       "name": "Echidnite",
@@ -4750,7 +4998,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EffetePutridGargoyle": {
       "name": "an Effete putrid gargoyle",
@@ -4768,7 +5017,8 @@
       "tactics": 66,
       "wrestling": 70,
       "armor": 32,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "EffeteUndeadGargoyle": {
       "name": "an Effete Undead Gargoyle",
@@ -4786,7 +5036,8 @@
       "tactics": 50,
       "wrestling": 50,
       "armor": 32,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Efreet": {
       "name": "an efreet",
@@ -4804,7 +5055,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 56,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "Egwexem": {
       "name": "Egwexem",
@@ -4822,7 +5074,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "ElderGazer": {
       "name": "an elder gazer",
@@ -4840,7 +5093,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "ElfBrigand": {
       "name": null,
@@ -4858,7 +5112,8 @@
       "tactics": 87.5,
       "wrestling": 37.5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EliteNinja": {
       "name": "an elite ninja",
@@ -4876,7 +5131,8 @@
       "tactics": 130,
       "wrestling": 120,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Elizabeth": {
       "name": "Elizabeth",
@@ -4894,7 +5150,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "EllieRafkin": {
       "name": "Ellie Rafkin",
@@ -4912,7 +5169,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "ElwoodMcCarrin": {
       "name": "Elwood McCarrin",
@@ -4930,7 +5188,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Emino": {
       "name": "Daimyo Emino",
@@ -4948,7 +5207,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "EnergyVortex": {
       "name": "an energy vortex",
@@ -4966,7 +5226,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Enigma": {
       "name": "Enigma",
@@ -4984,7 +5245,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "EnragedBlackBear": {
       "name": "a black bear",
@@ -5002,7 +5264,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EnragedColossus": {
       "name": "Rising Colossus",
@@ -5020,7 +5283,8 @@
       "tactics": 130,
       "wrestling": 140,
       "armor": 58,
-      "gold": 2000
+      "gold": 2000,
+      "speed": 0.4
     },
     "EnragedEagle": {
       "name": "an eagle",
@@ -5038,7 +5302,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EnragedEarthElemental": {
       "name": "Enraged Earth Elemental",
@@ -5056,7 +5321,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 34,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "EnragedHart": {
       "name": "a great hart",
@@ -5074,7 +5340,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EnragedHind": {
       "name": "a hind",
@@ -5092,7 +5359,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EnragedRabbit": {
       "name": "a rabbit",
@@ -5110,7 +5378,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EnshroudedFigure": {
       "name": "enshrouded figure",
@@ -5128,7 +5397,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "EnslavedGargoyle": {
       "name": "an enslaved gargoyle",
@@ -5146,7 +5416,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 35,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "EnslavedGoblinKeeper": {
       "name": "Enslaved Goblin Keeper",
@@ -5164,7 +5435,8 @@
       "tactics": 82.8,
       "wrestling": 100.7,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "EnslavedGoblinMage": {
       "name": "Enslaved Goblin Mage",
@@ -5182,7 +5454,8 @@
       "tactics": 85.2,
       "wrestling": 106.4,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "EnslavedGoblinScout": {
       "name": "Enslaved Goblin Scout",
@@ -5200,7 +5473,8 @@
       "tactics": 86.9,
       "wrestling": 113.7,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "EnslavedGrayGoblin": {
       "name": "Enslaved Gray Goblin",
@@ -5218,7 +5492,8 @@
       "tactics": 90,
       "wrestling": 99.2,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "EnslavedGreenGoblin": {
       "name": "Enslaved Green Goblin",
@@ -5236,7 +5511,8 @@
       "tactics": 81.2,
       "wrestling": 99.4,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "EnslavedGreenGoblinAlchemist": {
       "name": "Green Goblin Alchemist",
@@ -5254,7 +5530,8 @@
       "tactics": 83.6,
       "wrestling": 94.7,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "EnslavedSatyr": {
       "name": "an enslaved satyr",
@@ -5272,7 +5549,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 28,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "EnsorcelledArmor": {
       "name": "ensorcelled armor",
@@ -5290,7 +5568,8 @@
       "tactics": 125,
       "wrestling": 0,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "EnsorcledWisp": {
       "name": "Ensorcled Wisp",
@@ -5308,7 +5587,8 @@
       "tactics": 125,
       "wrestling": 125,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Eowmu": {
       "name": "Eowmu",
@@ -5327,6 +5607,7 @@
       "wrestling": 35,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 30
     },
     "Eriathwen": {
@@ -5345,7 +5626,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "EscortableHealer": {
       "name": null,
@@ -5363,7 +5645,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "EternalGazer": {
       "name": "an eternal gazer",
@@ -5381,7 +5664,8 @@
       "tactics": 130,
       "wrestling": 130,
       "armor": 50,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "EtherealWarrior": {
       "name": null,
@@ -5399,7 +5683,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 120,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Ettin": {
       "name": "an ettin",
@@ -5417,7 +5702,8 @@
       "tactics": 70,
       "wrestling": 60,
       "armor": 38,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "EvilMage": {
       "name": null,
@@ -5435,7 +5721,8 @@
       "tactics": 87.5,
       "wrestling": 60,
       "armor": 16,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "EvilMageLord": {
       "name": null,
@@ -5453,7 +5740,8 @@
       "tactics": 87.5,
       "wrestling": 80,
       "armor": 16,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Executioner": {
       "name": null,
@@ -5471,7 +5759,8 @@
       "tactics": 125,
       "wrestling": 0,
       "armor": 40,
-      "gold": 540
+      "gold": 540,
+      "speed": 0.2
     },
     "ExodusDrone": {
       "name": "Exodus Drone",
@@ -5489,7 +5778,8 @@
       "tactics": 94.9,
       "wrestling": 95.9,
       "armor": 65,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "ExodusJuggernaut": {
       "name": "Exodus Juggernaut",
@@ -5507,7 +5797,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 65,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "ExodusMinion": {
       "name": "exodus minion",
@@ -5525,7 +5816,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 65,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "ExodusMinionLord": {
       "name": "Exodus Minion Lord",
@@ -5543,7 +5835,8 @@
       "tactics": 100,
       "wrestling": 99.7,
       "armor": 65,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "ExodusOverseer": {
       "name": "exodus overseer",
@@ -5561,7 +5854,8 @@
       "tactics": 98,
       "wrestling": 98,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "ExodusSentinel": {
       "name": "Exodus Sentinel",
@@ -5579,7 +5873,8 @@
       "tactics": 99.4,
       "wrestling": 98.9,
       "armor": 65,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "ExodusZealot": {
       "name": null,
@@ -5597,7 +5892,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 30,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "FactionBerserker": {
       "name": "the berserker",
@@ -5615,7 +5911,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 24,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionDeathKnight": {
       "name": "the death knight",
@@ -5633,7 +5930,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 24,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionDragoon": {
       "name": "the dragoon",
@@ -5651,7 +5949,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 32,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionHenchman": {
       "name": "the henchman",
@@ -5669,7 +5968,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 8,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionKnight": {
       "name": "the knight",
@@ -5687,7 +5987,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 24,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionMercenary": {
       "name": "the mercenary",
@@ -5705,7 +6006,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 16,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionNecromancer": {
       "name": "the necromancer",
@@ -5723,7 +6025,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 32,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionPaladin": {
       "name": "the paladin",
@@ -5741,7 +6044,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 32,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionSorceress": {
       "name": "the sorceress",
@@ -5759,7 +6063,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 24,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionWarHorse": {
       "name": "a war horse",
@@ -5777,7 +6082,8 @@
       "tactics": 44,
       "wrestling": 44,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FactionWizard": {
       "name": "the wizard",
@@ -5795,7 +6101,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 32,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Fairy": {
       "name": "Fairy",
@@ -5831,7 +6138,8 @@
       "tactics": 68.2,
       "wrestling": 92.5,
       "armor": 39,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "FanDancer": {
       "name": "a fan dancer",
@@ -5849,7 +6157,8 @@
       "tactics": 95,
       "wrestling": 95,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "FellowshipAdept": {
       "name": "the Fellowship Adept",
@@ -5867,7 +6176,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "FeralTreefellow": {
       "name": "a feral treefellow",
@@ -5885,7 +6195,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 24,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Ferret": {
       "name": "a ferret",
@@ -5904,6 +6215,7 @@
       "wrestling": 4,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -21.3
     },
     "FetidEssence": {
@@ -5922,7 +6234,8 @@
       "tactics": 84.6,
       "wrestling": 83.9,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Fezzik": {
       "name": "Fezzik",
@@ -5940,7 +6253,8 @@
       "tactics": 130,
       "wrestling": 128.9,
       "armor": 52,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "FierceDragon": {
       "name": "a fierce dragon",
@@ -5958,7 +6272,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FireAnt": {
       "name": "a fire ant",
@@ -5976,7 +6291,8 @@
       "tactics": 77.2,
       "wrestling": 75.4,
       "armor": 0,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "FireBeetle": {
       "name": "a fire beetle",
@@ -5995,6 +6311,7 @@
       "wrestling": 100,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 93.9
     },
     "FireDaemon": {
@@ -6013,7 +6330,8 @@
       "tactics": 98.6,
       "wrestling": 78.7,
       "armor": 58,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "FireElemental": {
       "name": "a fire elemental",
@@ -6031,7 +6349,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "FireGargoyle": {
       "name": null,
@@ -6049,7 +6368,8 @@
       "tactics": 100,
       "wrestling": 80,
       "armor": 32,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "FireRabbit": {
       "name": "a fire rabbit",
@@ -6067,7 +6387,8 @@
       "tactics": 0,
       "wrestling": 80,
       "armor": 4,
-      "gold": 1250
+      "gold": 1250,
+      "speed": 0.1
     },
     "FireSteed": {
       "name": "a fire steed",
@@ -6086,6 +6407,7 @@
       "wrestling": 100,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 106
     },
     "FishMonger": {
@@ -6104,7 +6426,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "FleshGolem": {
       "name": "a flesh golem",
@@ -6122,7 +6445,8 @@
       "tactics": 80,
       "wrestling": 70,
       "armor": 34,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "FleshRenderer": {
       "name": "a fleshrenderer",
@@ -6140,7 +6464,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 24,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Flurry": {
       "name": "Flurry",
@@ -6158,7 +6483,8 @@
       "tactics": 119.8,
       "wrestling": 106.4,
       "armor": 54,
-      "gold": 2540
+      "gold": 2540,
+      "speed": 0.2
     },
     "Follower": {
       "name": "the Follower",
@@ -6176,7 +6502,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "ForestNymph": {
       "name": "Forest Nymph",
@@ -6213,6 +6540,7 @@
       "wrestling": 44,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "ForgottenServant": {
@@ -6231,7 +6559,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 0,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Foxx": {
       "name": "Foxx",
@@ -6249,7 +6578,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Frederic": {
       "name": "The Ghost of Frederic Smithson",
@@ -6267,7 +6597,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "FrenziedOstard": {
       "name": "a frenzied ostard",
@@ -6286,6 +6617,7 @@
       "wrestling": 94,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 77.1
     },
     "FrightenedDryad": {
@@ -6304,7 +6636,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "FrostDragon": {
       "name": "a frost dragon",
@@ -6323,6 +6656,7 @@
       "wrestling": 130,
       "armor": 60,
       "gold": 1800,
+      "speed": 0.2,
       "minTame": 105
     },
     "FrostDrake": {
@@ -6341,7 +6675,8 @@
       "tactics": 140,
       "wrestling": 126,
       "armor": 60,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "FrostMite": {
       "name": "Frost Mite",
@@ -6360,6 +6695,7 @@
       "wrestling": 110,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 102
     },
     "FrostOoze": {
@@ -6378,7 +6714,8 @@
       "tactics": 34,
       "wrestling": 40,
       "armor": 38,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "FrostSpider": {
       "name": "a frost spider",
@@ -6397,6 +6734,7 @@
       "wrestling": 65,
       "armor": 28,
       "gold": 55,
+      "speed": 0.2,
       "minTame": 74.7
     },
     "FrostTroll": {
@@ -6415,7 +6753,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "GBBigglesby": {
       "name": "G.B. Bigglesby",
@@ -6433,7 +6772,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GabrielPiete": {
       "name": "Gabriel Piete",
@@ -6451,7 +6791,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GadgetryTableGolem": {
       "name": "a golem",
@@ -6469,7 +6810,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.4
     },
     "GalleonPilot": {
       "name": null,
@@ -6487,7 +6829,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Gallusaurus": {
       "name": "a gallusaurus",
@@ -6506,6 +6849,7 @@
       "wrestling": 91,
       "armor": 0,
       "gold": 500,
+      "speed": 0.2,
       "minTame": 102
     },
     "Gaman": {
@@ -6525,6 +6869,7 @@
       "wrestling": 57.5,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 68.7
     },
     "GameMaster": {
@@ -6543,7 +6888,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Gareth": {
       "name": "Gareth",
@@ -6561,7 +6907,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GargishNoble": {
       "name": null,
@@ -6579,7 +6926,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "GargishOutcast": {
       "name": null,
@@ -6597,7 +6945,8 @@
       "tactics": 60,
       "wrestling": 0,
       "armor": 0,
-      "gold": 900
+      "gold": 900,
+      "speed": 0.2
     },
     "GargishRefugee": {
       "name": "Refugee",
@@ -6615,7 +6964,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "GargishRouser": {
       "name": null,
@@ -6633,7 +6983,8 @@
       "tactics": 130,
       "wrestling": 90,
       "armor": 0,
-      "gold": 900
+      "gold": 900,
+      "speed": 0.2
     },
     "GargishWanderingHealer": {
       "name": null,
@@ -6651,7 +7002,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GargishWarrior": {
       "name": "Warrior",
@@ -6669,7 +7021,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Gargoyle": {
       "name": "a gargoyle",
@@ -6687,7 +7040,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 32,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "GargoyleAssassin": {
       "name": "a gargoyle assassin",
@@ -6705,7 +7059,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "GargoyleDestroyer": {
       "name": "Gargoyle Destroyer",
@@ -6723,7 +7078,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "GargoyleEnforcer": {
       "name": "Gargoyle Enforcer",
@@ -6741,7 +7097,8 @@
       "tactics": 80,
       "wrestling": 90,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "GargoyleGuardian": {
       "name": "Abyss Guardian",
@@ -6759,7 +7116,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "GargoylePet": {
       "name": "a gargoyle pet",
@@ -6778,6 +7136,7 @@
       "wrestling": 81.5,
       "armor": 0,
       "gold": 500,
+      "speed": 0.2,
       "minTame": 65.1
     },
     "GargoyleShade": {
@@ -6796,7 +7155,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "GarishGingerman": {
       "name": "a garish gingerman",
@@ -6814,7 +7174,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "GaryTheDungeonMaster": {
       "name": "Gary",
@@ -6832,7 +7193,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Gazer": {
       "name": "a gazer",
@@ -6850,7 +7212,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 36,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "GazerLarva": {
       "name": "a gazer larva",
@@ -6868,7 +7231,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 25,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "Ghoul": {
       "name": "a ghoul",
@@ -6886,7 +7250,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "GiantBlackWidow": {
       "name": "a giant black widow",
@@ -6904,7 +7269,8 @@
       "tactics": 80,
       "wrestling": 85,
       "armor": 24,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "GiantIceWorm": {
       "name": "a giant ice worm",
@@ -6923,6 +7289,7 @@
       "wrestling": 80,
       "armor": 40,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 71.1
     },
     "GiantRat": {
@@ -6942,6 +7309,7 @@
       "wrestling": 44,
       "armor": 18,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "GiantSerpent": {
@@ -6960,7 +7328,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 32,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "GiantSpider": {
       "name": "a giant spider",
@@ -6979,6 +7348,7 @@
       "wrestling": 65,
       "armor": 16,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 59.1
     },
     "GiantTentacle": {
@@ -6997,7 +7367,8 @@
       "tactics": 0,
       "wrestling": 70,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "GiantToad": {
       "name": "a giant toad",
@@ -7016,6 +7387,7 @@
       "wrestling": 60,
       "armor": 24,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 77.1
     },
     "GiantTurkey": {
@@ -7034,7 +7406,8 @@
       "tactics": 110,
       "wrestling": 120,
       "armor": 0,
-      "gold": 900
+      "gold": 900,
+      "speed": 0.2
     },
     "Gibberling": {
       "name": "a gibberling",
@@ -7052,7 +7425,8 @@
       "tactics": 92.5,
       "wrestling": 80,
       "armor": 27,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Glassblower": {
       "name": "the alchemist",
@@ -7070,7 +7444,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Gnaw": {
       "name": "Gnaw",
@@ -7088,7 +7463,8 @@
       "tactics": 107.7,
       "wrestling": 119.7,
       "armor": 22,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Goat": {
       "name": "a goat",
@@ -7107,6 +7483,7 @@
       "wrestling": 5,
       "armor": 10,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 11.1
     },
     "GoldenElemental": {
@@ -7125,7 +7502,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 60,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Golem": {
       "name": "a golem",
@@ -7143,7 +7521,8 @@
       "tactics": 100,
       "wrestling": 190,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.4
     },
     "GolemController": {
       "name": null,
@@ -7161,7 +7540,8 @@
       "tactics": 87.5,
       "wrestling": 87.5,
       "armor": 16,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "GooeyMaggots": {
       "name": "Gooey Maggots",
@@ -7179,7 +7559,8 @@
       "tactics": 89.7,
       "wrestling": 87.5,
       "armor": 24,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "GoreFiend": {
       "name": "a gore fiend",
@@ -7197,7 +7578,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 24,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Gorilla": {
       "name": "a gorilla",
@@ -7216,6 +7598,7 @@
       "wrestling": 58,
       "armor": 20,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -18.9
     },
     "GrandpaCharley": {
@@ -7234,7 +7617,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GraveDigger": {
       "name": "the Grave Digger",
@@ -7252,7 +7636,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GrayGoblin": {
       "name": "a gray goblin",
@@ -7270,7 +7655,8 @@
       "tactics": 89.4,
       "wrestling": 105.5,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "GrayGoblinKeeper": {
       "name": "a gray goblin keeper",
@@ -7288,7 +7674,8 @@
       "tactics": 86.7,
       "wrestling": 103.6,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "GrayGoblinMage": {
       "name": "a gray goblin mage",
@@ -7306,7 +7693,8 @@
       "tactics": 86.9,
       "wrestling": 104.2,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "GreatApe": {
       "name": "a great ape",
@@ -7324,7 +7712,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 3000
+      "gold": 3000,
+      "speed": 0.08
     },
     "GreatHart": {
       "name": "a great hart",
@@ -7343,6 +7732,7 @@
       "wrestling": 47.5,
       "armor": 24,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 59.1
     },
     "GreaterAirElemental": {
@@ -7361,7 +7751,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 40,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "GreaterBloodElemental": {
       "name": "a blood elemental",
@@ -7379,7 +7770,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 60,
-      "gold": 1400
+      "gold": 1400,
+      "speed": 0.2
     },
     "GreaterDragon": {
       "name": "a greater dragon",
@@ -7398,6 +7790,7 @@
       "wrestling": 145,
       "armor": 60,
       "gold": 2000,
+      "speed": 0.3,
       "minTame": 104.7
     },
     "GreaterEarthElemental": {
@@ -7416,7 +7809,8 @@
       "tactics": 90,
       "wrestling": 95,
       "armor": 34,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "GreaterMongbat": {
       "name": "a greater mongbat",
@@ -7435,6 +7829,7 @@
       "wrestling": 35,
       "armor": 10,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 71.1
     },
     "GreaterPhoenix": {
@@ -7453,7 +7848,8 @@
       "tactics": 70,
       "wrestling": 77,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "GreaterPoisonElemental": {
       "name": "Greater Poison Elemental",
@@ -7471,7 +7867,8 @@
       "tactics": 100,
       "wrestling": 88.3,
       "armor": 70,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "GreaterWaterElemental": {
       "name": "a water elemental",
@@ -7489,7 +7886,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 40,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "GreenGoblin": {
       "name": "a green goblin",
@@ -7507,7 +7905,8 @@
       "tactics": 89.9,
       "wrestling": 108.3,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "GreenGoblinAlchemist": {
       "name": "a green goblin alchemist",
@@ -7525,7 +7924,8 @@
       "tactics": 87.1,
       "wrestling": 106.9,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "GreenGoblinScout": {
       "name": "a green goblin scout",
@@ -7543,7 +7943,8 @@
       "tactics": 86.3,
       "wrestling": 119.5,
       "armor": 0,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Gregorio": {
       "name": "Gregorio",
@@ -7561,7 +7962,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Gremlin": {
       "name": "a gremlin",
@@ -7579,7 +7981,8 @@
       "tactics": 65.3,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "GreyWolf": {
       "name": "a grey wolf",
@@ -7598,6 +8001,7 @@
       "wrestling": 60,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 53.1
     },
     "Grim": {
@@ -7616,7 +8020,8 @@
       "tactics": 120.8,
       "wrestling": 119.2,
       "armor": 54,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "GrimmochDrummel": {
       "name": "Grimmoch Drummel",
@@ -7634,7 +8039,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Grizelda": {
       "name": "Grizelda",
@@ -7652,7 +8058,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GrizzledMare": {
       "name": "Grizzled Mare",
@@ -7671,6 +8078,7 @@
       "wrestling": 85,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 30
     },
     "GrizzlyBear": {
@@ -7690,6 +8098,7 @@
       "wrestling": 70,
       "armor": 24,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 59.1
     },
     "Grobu": {
@@ -7708,7 +8117,8 @@
       "tactics": 116.5,
       "wrestling": 119,
       "armor": 24,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Grubber": {
       "name": "a grubber",
@@ -7726,7 +8136,8 @@
       "tactics": 5,
       "wrestling": 5,
       "armor": 4,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.06
     },
     "Grubbix": {
       "name": "Grubbix",
@@ -7744,7 +8155,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "GuardCaptain": {
       "name": null,
@@ -7762,7 +8174,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Guardian": {
       "name": null,
@@ -7780,7 +8193,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Guile": {
       "name": null,
@@ -7798,7 +8212,8 @@
       "tactics": 131,
       "wrestling": 16.7,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Gypsy": {
       "name": null,
@@ -7816,7 +8231,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Hal": {
       "name": "Hal",
@@ -7834,7 +8250,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Haochi": {
       "name": "Daimyo Haochi",
@@ -7852,7 +8269,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HaochisGuardsman": {
       "name": "the Guardsman of Daimyo Haochi",
@@ -7870,7 +8288,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HarborMaster": {
       "name": "a ship key",
@@ -7888,7 +8307,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Harpy": {
       "name": "a harpy",
@@ -7906,7 +8326,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 28,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "Harrower": {
       "name": "the harrower",
@@ -7924,7 +8345,8 @@
       "tactics": 110,
       "wrestling": 100,
       "armor": 60,
-      "gold": 3040
+      "gold": 3040,
+      "speed": 0.2
     },
     "HarrowerTentacles": {
       "name": "tentacles of the harrower",
@@ -7942,7 +8364,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 60,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Hawkwind": {
       "name": "Hawkwind",
@@ -7960,7 +8383,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HeadlessElf": {
       "name": "a headless elf",
@@ -7978,7 +8402,8 @@
       "tactics": 140,
       "wrestling": 130,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "HeadlessMiner": {
       "name": "headless miner",
@@ -7996,7 +8421,8 @@
       "tactics": 60,
       "wrestling": 60,
       "armor": 18,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "HeadlessOne": {
       "name": "a headless one",
@@ -8014,7 +8440,8 @@
       "tactics": 40,
       "wrestling": 40,
       "armor": 18,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "HellCat": {
       "name": "a hell cat",
@@ -8033,6 +8460,7 @@
       "wrestling": 40,
       "armor": 30,
       "gold": 40,
+      "speed": 0.2,
       "minTame": 71.1
     },
     "HellHound": {
@@ -8052,6 +8480,7 @@
       "wrestling": 80,
       "armor": 30,
       "gold": 140,
+      "speed": 0.2,
       "minTame": 85.5
     },
     "HellSteed": {
@@ -8070,7 +8499,8 @@
       "tactics": 50,
       "wrestling": 110,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Hellion": {
       "name": "Hellion",
@@ -8106,7 +8536,8 @@
       "tactics": 50,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "HeplerPaulson": {
       "name": "Hepler Paulson",
@@ -8124,7 +8555,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HeritageQuester": {
       "name": null,
@@ -8142,7 +8574,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HiddenFigure": {
       "name": null,
@@ -8160,7 +8593,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HighPlainsBoura": {
       "name": "a high plains boura",
@@ -8179,6 +8613,7 @@
       "wrestling": 115.3,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 47.1
     },
     "Hind": {
@@ -8198,6 +8633,7 @@
       "wrestling": 26,
       "armor": 8,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 23.1
     },
     "HireBard": {
@@ -8216,7 +8652,8 @@
       "tactics": 57,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireBardArcher": {
       "name": null,
@@ -8234,7 +8671,8 @@
       "tactics": 57,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireBeggar": {
       "name": null,
@@ -8252,7 +8690,8 @@
       "tactics": 27,
       "wrestling": 27,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireFighter": {
       "name": null,
@@ -8270,7 +8709,8 @@
       "tactics": 67,
       "wrestling": 47,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireMage": {
       "name": null,
@@ -8288,7 +8728,8 @@
       "tactics": 125,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HirePaladin": {
       "name": null,
@@ -8306,7 +8747,8 @@
       "tactics": 87.5,
       "wrestling": 37.5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HirePeasant": {
       "name": null,
@@ -8324,7 +8766,8 @@
       "tactics": 27,
       "wrestling": 5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireRanger": {
       "name": null,
@@ -8342,7 +8785,8 @@
       "tactics": 87,
       "wrestling": 37,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireRangerArcher": {
       "name": null,
@@ -8360,7 +8804,8 @@
       "tactics": 87,
       "wrestling": 37,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireSailor": {
       "name": null,
@@ -8378,7 +8823,8 @@
       "tactics": 87.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "HireThief": {
       "name": null,
@@ -8396,7 +8842,8 @@
       "tactics": 87.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "Hiryu": {
       "name": "a hiryu",
@@ -8415,6 +8862,7 @@
       "wrestling": 120,
       "armor": 0,
       "gold": 1500,
+      "speed": 0.2,
       "minTame": 98.7
     },
     "HolyFamiliar": {
@@ -8433,7 +8881,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 22,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "HolySteed": {
       "name": "a silver steed",
@@ -8451,7 +8900,8 @@
       "tactics": 100,
       "wrestling": 92.5,
       "armor": 60,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "HordeMinion": {
       "name": "a horde minion",
@@ -8469,7 +8919,8 @@
       "tactics": 15,
       "wrestling": 40,
       "armor": 18,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "HordeMinionFamiliar": {
       "name": "a horde minion",
@@ -8506,6 +8957,7 @@
       "wrestling": 44,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "Horus": {
@@ -8524,7 +8976,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HumilityQuestMobile": {
       "name": null,
@@ -8542,7 +8995,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HungryCoconutCrab": {
       "name": "hungry coconut crab",
@@ -8561,6 +9015,7 @@
       "wrestling": 5,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 0
     },
     "HungryOgre": {
@@ -8579,7 +9034,8 @@
       "tactics": 109.6,
       "wrestling": 108.7,
       "armor": 32,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Huntsman": {
       "name": "Huntsman",
@@ -8597,7 +9053,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "HurricaneElemental": {
       "name": "a hurricane elemental",
@@ -8615,7 +9072,8 @@
       "tactics": 110,
       "wrestling": 110,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Hydra": {
       "name": "a hydra",
@@ -8633,7 +9091,8 @@
       "tactics": 109.8,
       "wrestling": 117.4,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "IceElemental": {
       "name": "an ice elemental",
@@ -8651,7 +9110,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 40,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "IceFiend": {
       "name": "an ice fiend",
@@ -8669,7 +9129,8 @@
       "tactics": 90,
       "wrestling": 100,
       "armor": 60,
-      "gold": 600
+      "gold": 600,
+      "speed": 0.2
     },
     "IceHound": {
       "name": "an ice hound",
@@ -8688,6 +9149,7 @@
       "wrestling": 0,
       "armor": 30,
       "gold": 140,
+      "speed": 0.2,
       "minTame": 85.5
     },
     "IceSerpent": {
@@ -8706,7 +9168,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 32,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "IceSnake": {
       "name": "an ice snake",
@@ -8724,7 +9187,8 @@
       "tactics": 54,
       "wrestling": 54,
       "armor": 30,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "IceWyrm": {
       "name": "Ice Wyrm",
@@ -8742,7 +9206,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 64,
-      "gold": 1100
+      "gold": 1100,
+      "speed": 0.2
     },
     "IgnisFatalis": {
       "name": "Ignis Fatalis",
@@ -8760,7 +9225,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "IharaSoko": {
       "name": "Ihara Soko",
@@ -8778,7 +9244,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Imp": {
       "name": "an imp",
@@ -8797,6 +9264,7 @@
       "wrestling": 44,
       "armor": 30,
       "gold": 40,
+      "speed": 0.2,
       "minTame": 83.1
     },
     "Impaler": {
@@ -8815,7 +9283,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 49,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Impresario": {
       "name": "the impresario",
@@ -8833,7 +9302,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Infernus": {
       "name": "an infernus",
@@ -8851,7 +9321,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "InjuredWolf": {
       "name": "an injured wolf",
@@ -8869,7 +9340,8 @@
       "tactics": 5,
       "wrestling": 30,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "InsaneDryad": {
       "name": "an insane dryad",
@@ -8887,7 +9359,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 28,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "InterredGrizzle": {
       "name": "an interred grizzle",
@@ -8905,7 +9378,8 @@
       "tactics": 105.1,
       "wrestling": 109.4,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Invader": {
       "name": null,
@@ -8923,7 +9397,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "InvaderCaptain": {
       "name": null,
@@ -8941,7 +9416,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 3300
+      "gold": 3300,
+      "speed": 0.2
     },
     "Irk": {
       "name": null,
@@ -8959,7 +9435,8 @@
       "tactics": 131.8,
       "wrestling": 123,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "IronBeetle": {
       "name": "an iron beetle",
@@ -8978,6 +9455,7 @@
       "wrestling": 110,
       "armor": 38,
       "gold": 40,
+      "speed": 0.25,
       "minTame": 71.1
     },
     "Jaacar": {
@@ -8996,7 +9474,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "JackInTheBox": {
       "name": "jack in the box",
@@ -9014,7 +9493,8 @@
       "tactics": 110,
       "wrestling": 140,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "JackRabbit": {
       "name": "a jack rabbit",
@@ -9033,6 +9513,7 @@
       "wrestling": 5,
       "armor": 4,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -18.9
     },
     "JackThePumpkinKing": {
@@ -9051,7 +9532,8 @@
       "tactics": 110,
       "wrestling": 140,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Jason": {
       "name": "Jason",
@@ -9069,7 +9551,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "JedahEntille": {
       "name": "Jedah Entille",
@@ -9087,7 +9570,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Jothan": {
       "name": "Elder Jothan",
@@ -9105,7 +9589,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Juggernaut": {
       "name": "a blackthorn juggernaut",
@@ -9123,7 +9608,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 70,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.3
     },
     "JukaLord": {
       "name": "a juka lord",
@@ -9141,7 +9627,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 28,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "JukaMage": {
       "name": "a juka mage",
@@ -9159,7 +9646,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 16,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "JukaWarrior": {
       "name": "a juka warrior",
@@ -9177,7 +9665,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 22,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "JukariHighChief": {
       "name": null,
@@ -9195,7 +9684,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Juonar": {
       "name": "Juo'nar",
@@ -9213,7 +9703,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 0,
-      "gold": 10500
+      "gold": 10500,
+      "speed": 0.15
     },
     "Jwilson": {
       "name": null,
@@ -9231,7 +9722,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 8,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Kane": {
       "name": "Kane",
@@ -9249,7 +9741,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Kappa": {
       "name": "a kappa",
@@ -9267,7 +9760,8 @@
       "tactics": 89,
       "wrestling": 70,
       "armor": 0,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "KazeKemono": {
       "name": "a kaze kemono",
@@ -9285,7 +9779,8 @@
       "tactics": 65,
       "wrestling": 95,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Kepetch": {
       "name": "a kepetch",
@@ -9303,7 +9798,8 @@
       "tactics": 123.5,
       "wrestling": 113.9,
       "armor": 0,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "KepetchAmbusher": {
       "name": "a kepetch ambusher",
@@ -9321,7 +9817,8 @@
       "tactics": 123.5,
       "wrestling": 113.9,
       "armor": 0,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "Kevin": {
       "name": "Kevin",
@@ -9339,7 +9836,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "KhalAnkurWarriors": {
       "name": null,
@@ -9357,7 +9855,8 @@
       "tactics": 130,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "KhaldunBlood": {
       "name": "Blood",
@@ -9375,7 +9874,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 8,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "KhaldunCampGuard": {
       "name": "the Guard",
@@ -9393,7 +9893,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "KhaldunResearcher": {
       "name": "the Researcher",
@@ -9411,7 +9912,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "KhaldunRevenant": {
       "name": "a revenant",
@@ -9429,7 +9931,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 60,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.18
     },
     "KhaldunSummoner": {
       "name": "Zealot of Khaldun",
@@ -9447,7 +9950,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 36,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "KhaldunZealot": {
       "name": "Zealot of Khaldun",
@@ -9465,7 +9969,8 @@
       "tactics": 100,
       "wrestling": 80,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Kirin": {
       "name": "a ki-rin",
@@ -9484,6 +9989,7 @@
       "wrestling": 92.5,
       "armor": 0,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 95.1
     },
     "Kodar": {
@@ -9502,7 +10008,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Korpre": {
       "name": "Korpre",
@@ -9520,7 +10027,8 @@
       "tactics": 26.1,
       "wrestling": 26.1,
       "armor": 8,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "KotlAutomaton": {
       "name": "kotl automaton",
@@ -9538,7 +10046,8 @@
       "tactics": 94.8,
       "wrestling": 108.4,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Kraken": {
       "name": "a kraken",
@@ -9556,7 +10065,8 @@
       "tactics": 60,
       "wrestling": 60,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Krampus": {
       "name": "Krampus",
@@ -9574,7 +10084,8 @@
       "tactics": 120,
       "wrestling": 125,
       "armor": 0,
-      "gold": 7500
+      "gold": 7500,
+      "speed": 0.2
     },
     "KrampusMinion": {
       "name": "Minion",
@@ -9592,7 +10103,8 @@
       "tactics": 120,
       "wrestling": 110,
       "armor": 0,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "KurakHighChief": {
       "name": null,
@@ -9610,7 +10122,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "LadyJennifyr": {
       "name": "Lady Jennifyr",
@@ -9628,7 +10141,8 @@
       "tactics": 141.9,
       "wrestling": 137.1,
       "armor": 40,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "LadyLissith": {
       "name": "Lady Lissith",
@@ -9646,7 +10160,8 @@
       "tactics": 119,
       "wrestling": 123,
       "armor": 24,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "LadyMarai": {
       "name": "Lady Marai",
@@ -9664,7 +10179,8 @@
       "tactics": 134.5,
       "wrestling": 137.2,
       "armor": 40,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "LadyMelisande": {
       "name": "a lady melisande",
@@ -9682,7 +10198,8 @@
       "tactics": 105,
       "wrestling": 105,
       "armor": 50,
-      "gold": 12000
+      "gold": 12000,
+      "speed": 0.2
     },
     "LadyMinax": {
       "name": "Minax",
@@ -9700,7 +10217,8 @@
       "tactics": 125,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "LadyOfTheSnow": {
       "name": "a lady of the snow",
@@ -9718,7 +10236,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "LadySabrix": {
       "name": "Lady Sabrix",
@@ -9736,7 +10255,8 @@
       "tactics": 120,
       "wrestling": 122.8,
       "armor": 24,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Lasher": {
       "name": "Lasher",
@@ -9754,7 +10274,8 @@
       "tactics": 40,
       "wrestling": 35,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "LavaElemental": {
       "name": "a lava elemental",
@@ -9772,7 +10293,8 @@
       "tactics": 94,
       "wrestling": 85.4,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "LavaLizard": {
       "name": "a lava lizard",
@@ -9791,6 +10313,7 @@
       "wrestling": 80,
       "armor": 40,
       "gold": 40,
+      "speed": 0.2,
       "minTame": 80.7
     },
     "LavaSerpent": {
@@ -9809,7 +10332,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 40,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "LavaSnake": {
       "name": "a lava snake",
@@ -9827,7 +10351,8 @@
       "tactics": 34,
       "wrestling": 34,
       "armor": 24,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "LeadInvestigator": {
       "name": "the Lead Investigator",
@@ -9845,7 +10370,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "LeatherWolf": {
       "name": "a leather wolf",
@@ -9863,7 +10389,8 @@
       "tactics": 89.4,
       "wrestling": 88.4,
       "armor": 0,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "LeatherWolfFellow": {
       "name": "a leather wolf",
@@ -9881,7 +10408,8 @@
       "tactics": 64.8,
       "wrestling": 79,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "LegendaryCartographer": {
       "name": null,
@@ -9899,7 +10427,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Lenley": {
       "name": "Lenley",
@@ -9917,7 +10446,8 @@
       "tactics": 75,
       "wrestling": 75,
       "armor": 28,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "LesserFlameElemental": {
       "name": "a flame elemental",
@@ -9935,7 +10465,8 @@
       "tactics": 130,
       "wrestling": 120,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.4
     },
     "LesserHiryu": {
       "name": "a lesser hiryu",
@@ -9954,6 +10485,7 @@
       "wrestling": 120,
       "armor": 0,
       "gold": 1000,
+      "speed": 0.2,
       "minTame": 98.7
     },
     "LesserOni": {
@@ -9972,7 +10504,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "LesserWindElemental": {
       "name": "a wind elemental",
@@ -9990,7 +10523,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.4
     },
     "Leviathan": {
       "name": "a leviathan",
@@ -10008,7 +10542,8 @@
       "tactics": 107.5,
       "wrestling": 107.5,
       "armor": 50,
-      "gold": 2500
+      "gold": 2500,
+      "speed": 0.2
     },
     "Lich": {
       "name": "a lich",
@@ -10026,7 +10561,8 @@
       "tactics": 90,
       "wrestling": 0,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "LichLord": {
       "name": "a lich lord",
@@ -10044,7 +10580,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 50,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Lifestealer": {
       "name": "a lifestealer",
@@ -10062,7 +10599,8 @@
       "tactics": 85,
       "wrestling": 100,
       "armor": 44,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Lion": {
       "name": "Lion",
@@ -10081,6 +10619,7 @@
       "wrestling": 110,
       "armor": 0,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 96
     },
     "Lissbet": {
@@ -10099,7 +10638,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Lizardman": {
       "name": null,
@@ -10117,7 +10657,8 @@
       "tactics": 80,
       "wrestling": 70,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "LizardmanDefender": {
       "name": null,
@@ -10135,7 +10676,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "LizardmanSquatter": {
       "name": null,
@@ -10153,7 +10695,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "LizardmanWitchdoctor": {
       "name": "a lizardman witchdoctor",
@@ -10171,7 +10714,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Llama": {
       "name": "a llama",
@@ -10190,6 +10734,7 @@
       "wrestling": 29,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 35.1
     },
     "LordOaks": {
@@ -10227,6 +10772,7 @@
       "wrestling": 97.3,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 19.1
     },
     "Lurg": {
@@ -10245,7 +10791,8 @@
       "tactics": 118.5,
       "wrestling": 130.5,
       "armor": 28,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "LysanderGathenwale": {
       "name": "Lysander Gathenwale",
@@ -10263,7 +10810,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MLDryad": {
       "name": "a dryad",
@@ -10281,7 +10829,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 28,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Maabus": {
       "name": "Maabus",
@@ -10299,7 +10848,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Macaw": {
       "name": "vicious macaw",
@@ -10317,7 +10867,8 @@
       "tactics": 140,
       "wrestling": 140,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.15
     },
     "MaddeningHorror": {
       "name": "a maddening horror",
@@ -10335,7 +10886,8 @@
       "tactics": 100,
       "wrestling": 85,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MagmaLizard": {
       "name": "a magma lizard",
@@ -10353,7 +10905,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Malefic": {
       "name": "Malefic",
@@ -10371,7 +10924,8 @@
       "tactics": 105.4,
       "wrestling": 112.4,
       "armor": 36,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "Mallew": {
       "name": "Elder Mallew",
@@ -10389,7 +10943,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Mannequin": {
       "name": "a Mannequin",
@@ -10407,7 +10962,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MansionGuard": {
       "name": "the Mansion Guard",
@@ -10425,7 +10981,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "MantraEffervescence": {
       "name": "a mantra effervescence",
@@ -10443,7 +11000,8 @@
       "tactics": 85,
       "wrestling": 85,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Mardoth": {
       "name": "Mardoth",
@@ -10461,7 +11019,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Maribel": {
       "name": "Maribel",
@@ -10479,7 +11038,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "MasterJonath": {
       "name": "Master Jonath",
@@ -10497,7 +11057,8 @@
       "tactics": 95.1,
       "wrestling": 88.6,
       "armor": 38,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "MasterMikael": {
       "name": "Master Mikael",
@@ -10515,7 +11076,8 @@
       "tactics": 90.9,
       "wrestling": 87.2,
       "armor": 38,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "MasterProvisioner": {
       "name": null,
@@ -10533,7 +11095,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "MasterTheophilus": {
       "name": "Master Theophilus",
@@ -10551,7 +11114,8 @@
       "tactics": 117.9,
       "wrestling": 105.3,
       "armor": 16,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "MaulBear": {
       "name": "Maul",
@@ -10569,7 +11133,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Medusa": {
       "name": "Medusa",
@@ -10587,7 +11152,8 @@
       "tactics": 134.5,
       "wrestling": 128.9,
       "armor": 60,
-      "gold": 12000
+      "gold": 12000,
+      "speed": 0.1
     },
     "MedusaClone": {
       "name": null,
@@ -10605,7 +11171,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MeerCaptain": {
       "name": "a meer captain",
@@ -10623,7 +11190,8 @@
       "tactics": 100,
       "wrestling": 89.9,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "MeerEternal": {
       "name": "a meer eternal",
@@ -10641,7 +11209,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 34,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "MeerMage": {
       "name": "a meer mage",
@@ -10659,7 +11228,8 @@
       "tactics": 90,
       "wrestling": 80,
       "armor": 16,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "MeerWarrior": {
       "name": "a meer warrior",
@@ -10677,7 +11247,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 22,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "MerchantCaptain": {
       "name": null,
@@ -10695,7 +11266,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 3000
+      "gold": 3000,
+      "speed": 0.2
     },
     "MerchantCrew": {
       "name": null,
@@ -10713,7 +11285,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "MercutioTheUnsavory": {
       "name": "Mercutio",
@@ -10731,7 +11304,8 @@
       "tactics": 117.5,
       "wrestling": 87.5,
       "armor": 0,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Miasma": {
       "name": "Miasma",
@@ -10749,7 +11323,8 @@
       "tactics": 110.6,
       "wrestling": 73.3,
       "armor": 28,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "MilitiaCanoneer": {
       "name": "the Militia Cannoneer",
@@ -10767,7 +11342,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "MilitiaFighter": {
       "name": null,
@@ -10785,7 +11361,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Mimic": {
       "name": "a mimic",
@@ -10803,7 +11380,8 @@
       "tactics": 98.5,
       "wrestling": 92.2,
       "armor": 0,
-      "gold": 2000
+      "gold": 2000,
+      "speed": 0.2
     },
     "MinaxWarHorse": {
       "name": null,
@@ -10821,7 +11399,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MinionOfScelestus": {
       "name": "a minion of scelestus",
@@ -10839,7 +11418,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 2400
+      "gold": 2400,
+      "speed": 0.2
     },
     "Minotaur": {
       "name": "a minotaur",
@@ -10857,7 +11437,8 @@
       "tactics": 97.8,
       "wrestling": 92.1,
       "armor": 28,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "MinotaurCaptain": {
       "name": "a minotaur captain",
@@ -10875,7 +11456,8 @@
       "tactics": 109.9,
       "wrestling": 107.2,
       "armor": 28,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "MinotaurGeneral": {
       "name": "a minotaur general",
@@ -10893,7 +11475,8 @@
       "tactics": 104.8,
       "wrestling": 129.7,
       "armor": 28,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "MinotaurScout": {
       "name": "a minotaur scout",
@@ -10911,7 +11494,8 @@
       "tactics": 103.6,
       "wrestling": 104.5,
       "armor": 28,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Mistral": {
       "name": "Mistral",
@@ -10929,7 +11513,8 @@
       "tactics": 117.1,
       "wrestling": 104,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Moloch": {
       "name": "a moloch",
@@ -10947,7 +11532,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 32,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "MoltenEarthElemental": {
       "name": "a molten earth elemental",
@@ -10965,7 +11551,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 34,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "MondainQuester": {
       "name": null,
@@ -10983,7 +11570,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Mongbat": {
       "name": "a mongbat",
@@ -11002,6 +11590,7 @@
       "wrestling": 10,
       "armor": 10,
       "gold": 15,
+      "speed": 0.2,
       "minTame": -18.9
     },
     "MonstrousInterredGrizzle": {
@@ -11020,7 +11609,8 @@
       "tactics": 119.2,
       "wrestling": 116.9,
       "armor": 80,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MorgBergen": {
       "name": "Morg Bergen",
@@ -11038,7 +11628,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Morz": {
       "name": "Morz",
@@ -11056,7 +11647,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "MougGuur": {
       "name": "Moug-Guur",
@@ -11074,7 +11666,8 @@
       "tactics": 81.7,
       "wrestling": 99.4,
       "armor": 38,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "MoundOfMaggots": {
       "name": "a mound of maggots",
@@ -11092,7 +11685,8 @@
       "tactics": 50,
       "wrestling": 60,
       "armor": 24,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "MountainGoat": {
       "name": "a mountain goat",
@@ -11111,6 +11705,7 @@
       "wrestling": 44,
       "armor": 10,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -0.9
     },
     "MudElemental": {
@@ -11129,7 +11724,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 34,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "MudPie": {
       "name": "a mud pie",
@@ -11147,7 +11743,8 @@
       "tactics": 85,
       "wrestling": 85,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.4
     },
     "Mummy": {
       "name": "a mummy",
@@ -11165,7 +11762,8 @@
       "tactics": 50,
       "wrestling": 50,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.4
     },
     "MyrmidexDrone": {
       "name": "a myrmidex drone",
@@ -11183,7 +11781,8 @@
       "tactics": 49,
       "wrestling": 49.8,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MyrmidexLarvae": {
       "name": "a myrmidex larvae",
@@ -11201,7 +11800,8 @@
       "tactics": 49,
       "wrestling": 50,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "MyrmidexQueen": {
       "name": "Myrmidex Queen",
@@ -11219,7 +11819,8 @@
       "tactics": 130,
       "wrestling": 120,
       "armor": 0,
-      "gold": 7500
+      "gold": 7500,
+      "speed": 0.15
     },
     "MyrmidexWarrior": {
       "name": "a myrmidex warrior",
@@ -11237,7 +11838,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "MysteriousWisp": {
       "name": "a mysterious wisp",
@@ -11255,7 +11857,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Naba": {
       "name": "Naba",
@@ -11292,6 +11895,7 @@
       "wrestling": 100,
       "armor": 0,
       "gold": 500,
+      "speed": 0.2,
       "minTame": 102
     },
     "Naturalist": {
@@ -11310,7 +11914,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "NatureFury": {
       "name": "a nature's fury",
@@ -11328,7 +11933,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "NaughtyTwin": {
       "name": null,
@@ -11346,7 +11952,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Navrey": {
       "name": "Navrey Night-Eyes",
@@ -11364,7 +11971,8 @@
       "tactics": 100,
       "wrestling": 98.2,
       "armor": 90,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Naxatilor": {
       "name": "Naxatillor",
@@ -11382,7 +11990,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Nelson": {
       "name": "Nelson",
@@ -11400,7 +12009,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Neville": {
       "name": "Neville Brightwhistle",
@@ -11418,7 +12028,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "NewHavenHealer": {
       "name": null,
@@ -11436,7 +12047,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "NightTerror": {
       "name": "Night Terror",
@@ -11454,7 +12066,8 @@
       "tactics": 120,
       "wrestling": 110,
       "armor": 54,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Nightmare": {
       "name": "a nightmare",
@@ -11473,6 +12086,7 @@
       "wrestling": 92.5,
       "armor": 60,
       "gold": 350,
+      "speed": 0.2,
       "minTame": 95.1
     },
     "NightmareFairy": {
@@ -11491,7 +12105,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Ninja": {
       "name": null,
@@ -11509,7 +12124,8 @@
       "tactics": 85,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Niporailem": {
       "name": "Niporailem",
@@ -11527,7 +12143,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 0,
-      "gold": 3000
+      "gold": 3000,
+      "speed": 0.2
     },
     "Nythalia": {
       "name": "Nythalia",
@@ -11545,7 +12162,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "ObsidianWyvern": {
       "name": "Obsidian Wyvern",
@@ -11563,7 +12181,8 @@
       "tactics": 125,
       "wrestling": 115,
       "armor": 70,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Ogre": {
       "name": "an ogre",
@@ -11581,7 +12200,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 32,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "OgreBoneCrusher": {
       "name": "an ogre bone crusher",
@@ -11599,7 +12219,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "OgreLord": {
       "name": "an ogre lord",
@@ -11617,7 +12238,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Olaeni": {
       "name": "Olaeni",
@@ -11635,7 +12257,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Oni": {
       "name": "an oni",
@@ -11653,7 +12276,8 @@
       "tactics": 101,
       "wrestling": 100,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "OphidianArchmage": {
       "name": null,
@@ -11671,7 +12295,8 @@
       "tactics": 87.5,
       "wrestling": 60,
       "armor": 44,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "OphidianKnight": {
       "name": null,
@@ -11689,7 +12314,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 40,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "OphidianMage": {
       "name": null,
@@ -11707,7 +12333,8 @@
       "tactics": 87.5,
       "wrestling": 60,
       "armor": 30,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "OphidianMatriarch": {
       "name": "an ophidian matriarch",
@@ -11725,7 +12352,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 50,
-      "gold": 450
+      "gold": 450,
+      "speed": 0.2
     },
     "OphidianWarrior": {
       "name": null,
@@ -11743,7 +12371,8 @@
       "tactics": 90,
       "wrestling": 0,
       "armor": 36,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Orc": {
       "name": null,
@@ -11761,7 +12390,8 @@
       "tactics": 80,
       "wrestling": 70,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "OrcBomber": {
       "name": "an orc bomber",
@@ -11779,7 +12409,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 30,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "OrcBrute": {
       "name": "an orc brute",
@@ -11797,7 +12428,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "OrcCaptain": {
       "name": null,
@@ -11815,7 +12447,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 34,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "OrcChopper": {
       "name": "an orc chopper",
@@ -11833,7 +12466,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 54,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "OrcEngineer": {
       "name": null,
@@ -11851,7 +12485,8 @@
       "tactics": 120,
       "wrestling": 130,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "OrcFootSoldier": {
       "name": "an orc foot soldier",
@@ -11869,7 +12504,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "OrcScout": {
       "name": "an orc scout",
@@ -11887,7 +12523,8 @@
       "tactics": 80,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "OrcishLord": {
       "name": "an orcish lord",
@@ -11905,7 +12542,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 0,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "OrcishMage": {
       "name": "an orcish mage",
@@ -11923,7 +12561,8 @@
       "tactics": 65,
       "wrestling": 50,
       "armor": 30,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Ortanord": {
       "name": "Ortanord",
@@ -11941,7 +12580,8 @@
       "tactics": 19.8,
       "wrestling": 16.6,
       "armor": 40,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.6
     },
     "Osiredon": {
       "name": "osiredon the scalis enforcer",
@@ -11978,6 +12618,7 @@
       "wrestling": 100,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 72
     },
     "Owain": {
@@ -11996,7 +12637,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Ozymandias": {
       "name": "Ozymandias",
@@ -12014,7 +12656,8 @@
       "tactics": 125,
       "wrestling": 150,
       "armor": 0,
-      "gold": 10500
+      "gold": 10500,
+      "speed": 0.15
     },
     "PackHorse": {
       "name": "a pack horse",
@@ -12033,6 +12676,7 @@
       "wrestling": 44,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "PackLlama": {
@@ -12052,6 +12696,7 @@
       "wrestling": 29,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "Paladin": {
@@ -12070,7 +12715,8 @@
       "tactics": 120,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Palomino": {
       "name": "a horse",
@@ -12089,6 +12735,7 @@
       "wrestling": 44,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "Panther": {
@@ -12108,6 +12755,7 @@
       "wrestling": 65,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 53.1
     },
     "Paralithode": {
@@ -12127,6 +12775,7 @@
       "wrestling": 109,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 47.1
     },
     "ParasiticEel": {
@@ -12145,7 +12794,8 @@
       "tactics": 0,
       "wrestling": 70,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "ParoxysmusSwampDragon": {
       "name": "Chief Paroxysmus' Swamp Dragon",
@@ -12163,7 +12813,8 @@
       "tactics": 55,
       "wrestling": 55,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Parrot": {
       "name": null,
@@ -12182,6 +12833,7 @@
       "wrestling": 0,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 0
     },
     "PatchworkSkeleton": {
@@ -12200,7 +12852,8 @@
       "tactics": 80,
       "wrestling": 70,
       "armor": 54,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "PersonalAttendant": {
       "name": null,
@@ -12218,7 +12871,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.15
     },
     "PestilentBandage": {
       "name": "a pestilent bandage",
@@ -12236,7 +12890,8 @@
       "tactics": 85,
       "wrestling": 75,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "PetParrot": {
       "name": "a pet parrot",
@@ -12254,7 +12909,8 @@
       "tactics": 4,
       "wrestling": 4,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Phantom": {
       "name": "Phantom",
@@ -12291,6 +12947,7 @@
       "wrestling": 100,
       "armor": 60,
       "gold": 750,
+      "speed": 0.2,
       "minTame": 102
     },
     "Pig": {
@@ -12310,6 +12967,7 @@
       "wrestling": 5,
       "armor": 12,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 11.1
     },
     "PirateCaptain": {
@@ -12328,7 +12986,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 3000
+      "gold": 3000,
+      "speed": 0.2
     },
     "PirateCrew": {
       "name": "Orcish Crew",
@@ -12346,7 +13005,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "PitFiend": {
       "name": "a Pit fiend",
@@ -12364,7 +13024,8 @@
       "tactics": 90,
       "wrestling": 100,
       "armor": 60,
-      "gold": 450
+      "gold": 450,
+      "speed": 0.2
     },
     "Pixie": {
       "name": null,
@@ -12382,7 +13043,8 @@
       "tactics": 20,
       "wrestling": 12.5,
       "armor": 100,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "PlagueBeast": {
       "name": "a plague beast",
@@ -12400,7 +13062,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 30,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "PlagueBeastLord": {
       "name": "a plague beast lord",
@@ -12418,7 +13081,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "PlagueRat": {
       "name": "a Clan Ribbon Plague Rat",
@@ -12436,7 +13100,8 @@
       "tactics": 40,
       "wrestling": 45,
       "armor": 38,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "PlagueSpawn": {
       "name": "a plague spawn",
@@ -12454,7 +13119,8 @@
       "tactics": 25,
       "wrestling": 50,
       "armor": 20,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "PlatinumDrake": {
       "name": "Platinum Drake",
@@ -12473,6 +13139,7 @@
       "wrestling": 80,
       "armor": 46,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 85
     },
     "PlayerBarkeeper": {
@@ -12491,7 +13158,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "PoisonElemental": {
       "name": "a poison elemental",
@@ -12509,7 +13177,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 70,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "PolarBear": {
       "name": "a polar bear",
@@ -12528,6 +13197,7 @@
       "wrestling": 70,
       "armor": 18,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 35.1
     },
     "Prassel": {
@@ -12546,7 +13216,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "PredatorHellCat": {
       "name": "a predator hellcat",
@@ -12565,6 +13236,7 @@
       "wrestling": 65,
       "armor": 30,
       "gold": 100,
+      "speed": 0.2,
       "minTame": 90
     },
     "PrimevalLich": {
@@ -12601,7 +13273,8 @@
       "tactics": 17,
       "wrestling": 19.5,
       "armor": 6,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "Prometheoid": {
       "name": "Prometheoid",
@@ -12637,7 +13310,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "PumpkinHead": {
       "name": "a killer pumpkin",
@@ -12655,7 +13329,8 @@
       "tactics": 100,
       "wrestling": 80,
       "armor": 49,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.05
     },
     "Putrefier": {
       "name": "Putrefier",
@@ -12673,7 +13348,8 @@
       "tactics": 125.2,
       "wrestling": 128,
       "armor": 90,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "PutridUndeadGargoyle": {
       "name": "a putrid undead gargoyle",
@@ -12691,7 +13367,8 @@
       "tactics": 100,
       "wrestling": 102,
       "armor": 32,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "PutridUndeadGuardian": {
       "name": "an putrid undead guardian",
@@ -12709,7 +13386,8 @@
       "tactics": 45.4,
       "wrestling": 50.7,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Pyre": {
       "name": "Pyre",
@@ -12727,7 +13405,8 @@
       "tactics": 117.4,
       "wrestling": 130.6,
       "armor": 60,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "Quagmire": {
       "name": "a quagmire",
@@ -12745,7 +13424,8 @@
       "tactics": 60,
       "wrestling": 80,
       "armor": 32,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.4
     },
     "QueenZhah": {
       "name": "Zhah",
@@ -12763,7 +13443,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Rabbit": {
       "name": "a rabbit",
@@ -12782,6 +13463,7 @@
       "wrestling": 5,
       "armor": 6,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -18.9
     },
     "RabidReindeer": {
@@ -12800,7 +13482,8 @@
       "tactics": 100,
       "wrestling": 130,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "RagingGrizzlyBear": {
       "name": "a raging grizzly bear",
@@ -12818,7 +13501,8 @@
       "tactics": 110.5,
       "wrestling": 88.1,
       "armor": 24,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "RaiJu": {
       "name": "a Rai-Ju",
@@ -12836,7 +13520,8 @@
       "tactics": 65,
       "wrestling": 95,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Raider": {
       "name": null,
@@ -12854,7 +13539,8 @@
       "tactics": 105.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Raptor": {
       "name": "a raptor",
@@ -12872,7 +13558,8 @@
       "tactics": 100,
       "wrestling": 95.1,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.175
     },
     "Rat": {
       "name": "a rat",
@@ -12891,6 +13578,7 @@
       "wrestling": 4,
       "armor": 6,
       "gold": 15,
+      "speed": 0.2,
       "minTame": -0.9
     },
     "Ratman": {
@@ -12909,7 +13597,8 @@
       "tactics": 75,
       "wrestling": 75,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "RatmanArcher": {
       "name": null,
@@ -12927,7 +13616,8 @@
       "tactics": 75,
       "wrestling": 75,
       "armor": 56,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "RatmanAssassin": {
       "name": "ratman assassin",
@@ -12945,7 +13635,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "RatmanMage": {
       "name": null,
@@ -12963,7 +13654,8 @@
       "tactics": 75,
       "wrestling": 75,
       "armor": 44,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Ravager": {
       "name": "a ravager",
@@ -12981,7 +13673,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 54,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Reaper": {
       "name": "a reaper",
@@ -12999,7 +13692,8 @@
       "tactics": 60,
       "wrestling": 60,
       "armor": 40,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Rebinil": {
       "name": "Rebinil",
@@ -13017,7 +13711,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "RedDeath": {
       "name": "Red Death",
@@ -13035,7 +13730,8 @@
       "tactics": 142.2,
       "wrestling": 143.7,
       "armor": 0,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "RedSolenInfiltratorQueen": {
       "name": "a red solen infiltrator",
@@ -13053,7 +13749,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "RedSolenInfiltratorWarrior": {
       "name": "a red solen infiltrator",
@@ -13071,7 +13768,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 40,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "RedSolenQueen": {
       "name": "a red solen queen",
@@ -13089,7 +13787,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 45,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "RedSolenWarrior": {
       "name": "a red solen warrior",
@@ -13107,7 +13806,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 35,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "RedSolenWorker": {
       "name": "a red solen worker",
@@ -13125,7 +13825,8 @@
       "tactics": 65,
       "wrestling": 60,
       "armor": 28,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Relanord": {
       "name": "a relanord",
@@ -13143,7 +13844,8 @@
       "tactics": 60,
       "wrestling": 70,
       "armor": 50,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Relnia": {
       "name": "Disheveled Relnia",
@@ -13161,7 +13863,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Rend": {
       "name": "Rend",
@@ -13179,7 +13882,8 @@
       "tactics": 141.4,
       "wrestling": 150.3,
       "armor": 0,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "RenegadeChangeling": {
       "name": "a renegade changeling",
@@ -13197,7 +13901,8 @@
       "tactics": 130,
       "wrestling": 130,
       "armor": 0,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "Reptalon": {
       "name": "a reptalon",
@@ -13216,6 +13921,7 @@
       "wrestling": 118.2,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 101.1
     },
     "RestlessSoul": {
@@ -13234,7 +13940,8 @@
       "tactics": 30,
       "wrestling": 30,
       "armor": 6,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.4
     },
     "Revenant": {
       "name": "a revenant",
@@ -13252,7 +13959,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 32,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.18
     },
     "RevenantLion": {
       "name": "a Revenant Lion",
@@ -13270,7 +13978,8 @@
       "tactics": 80,
       "wrestling": 88,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "RidableLlama": {
       "name": "a ridable llama",
@@ -13289,6 +13998,7 @@
       "wrestling": 29,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 29.1
     },
     "Ridgeback": {
@@ -13308,6 +14018,7 @@
       "wrestling": 45,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 83.1
     },
     "RisingColossus": {
@@ -13326,7 +14037,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 58,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.4
     },
     "RockMite": {
       "name": "a rock mite",
@@ -13344,7 +14056,8 @@
       "tactics": 112.9,
       "wrestling": 119.8,
       "armor": 40,
-      "gold": 1100
+      "gold": 1100,
+      "speed": 0.2
     },
     "Ronin": {
       "name": "a ronin",
@@ -13362,7 +14075,8 @@
       "tactics": 130,
       "wrestling": 107.5,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.3
     },
     "RottingCorpse": {
       "name": "a rotting corpse",
@@ -13380,7 +14094,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 40,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "Rotworm": {
       "name": "a rotworm",
@@ -13398,7 +14113,8 @@
       "tactics": 25,
       "wrestling": 50,
       "armor": 0,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.25
     },
     "RuddyBoura": {
       "name": "a ruddy boura",
@@ -13417,6 +14133,7 @@
       "wrestling": 87.9,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 19.1
     },
     "RuneBeetle": {
@@ -13436,6 +14153,7 @@
       "wrestling": 77.5,
       "armor": 0,
       "gold": 1000,
+      "speed": 0.2,
       "minTame": 93.9
     },
     "SAPixie": {
@@ -13454,7 +14172,8 @@
       "tactics": 20,
       "wrestling": 12.5,
       "armor": 100,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SLWarHorse": {
       "name": null,
@@ -13472,7 +14191,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SabertoothedTiger": {
       "name": "saber-toothed tiger",
@@ -13491,6 +14211,7 @@
       "wrestling": 105,
       "armor": 0,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 102
     },
     "SageHumbolt": {
@@ -13509,7 +14230,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Sagittarri": {
       "name": "Sagittarri",
@@ -13545,7 +14267,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Saliva": {
       "name": "a saliva",
@@ -13563,7 +14286,8 @@
       "tactics": 141,
       "wrestling": 128.8,
       "armor": 28,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Samurai": {
       "name": null,
@@ -13581,7 +14305,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SandVortex": {
       "name": "a sand vortex",
@@ -13599,7 +14324,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 28,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "Satyr": {
       "name": "a satyr",
@@ -13617,7 +14343,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 28,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Saurosaurus": {
       "name": "a saurosaurus",
@@ -13636,6 +14363,7 @@
       "wrestling": 130,
       "armor": 0,
       "gold": 1500,
+      "speed": 0.2,
       "minTame": 102
     },
     "Savage": {
@@ -13654,7 +14382,8 @@
       "tactics": 82.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "SavagePackWolf": {
       "name": "a savage pack wolf",
@@ -13672,7 +14401,8 @@
       "tactics": 94.4,
       "wrestling": 97.1,
       "armor": 26,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SavageRider": {
       "name": null,
@@ -13690,7 +14420,8 @@
       "tactics": 95,
       "wrestling": 0,
       "armor": 0,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.15
     },
     "SavageRidgeback": {
       "name": "a savage ridgeback",
@@ -13709,6 +14440,7 @@
       "wrestling": 45,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 83.1
     },
     "SavageShaman": {
@@ -13727,7 +14459,8 @@
       "tactics": 85,
       "wrestling": 85,
       "armor": 0,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "ScaledSwampDragon": {
       "name": "a swamp dragon",
@@ -13746,6 +14479,7 @@
       "wrestling": 55,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 93.9
     },
     "Schmendrick": {
@@ -13764,7 +14498,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Scorpion": {
       "name": "a scorpion",
@@ -13783,6 +14518,7 @@
       "wrestling": 65,
       "armor": 28,
       "gold": 40,
+      "speed": 0.2,
       "minTame": 47.1
     },
     "Sculptor": {
@@ -13801,7 +14537,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SeaHorse": {
       "name": "a sea horse",
@@ -13819,7 +14556,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SeaMarketOfficer": {
       "name": null,
@@ -13837,7 +14575,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SeaSerpent": {
       "name": "a sea serpent",
@@ -13855,7 +14594,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 30,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "SeaSnake": {
       "name": "a sea snake",
@@ -13873,7 +14613,8 @@
       "tactics": 95,
       "wrestling": 100,
       "armor": 40,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Sean": {
       "name": "Sean",
@@ -13891,7 +14632,8 @@
       "tactics": 83,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SearingElemental": {
       "name": "a searing elemental",
@@ -13909,7 +14651,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "SentinelSpider": {
       "name": "a Sentinel spider",
@@ -13927,7 +14670,8 @@
       "tactics": 105,
       "wrestling": 120,
       "armor": 28,
-      "gold": 55
+      "gold": 55,
+      "speed": 0.2
     },
     "SerpentineDragon": {
       "name": "a serpentine dragon",
@@ -13946,6 +14690,7 @@
       "wrestling": 100,
       "armor": 36,
       "gold": 1000,
+      "speed": 0.2,
       "minTame": 108
     },
     "SerpentsFangAssassin": {
@@ -13964,7 +14709,8 @@
       "tactics": 130,
       "wrestling": 120,
       "armor": 58,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SerpentsFangHighExecutioner": {
       "name": "Black Order High Executioner",
@@ -13982,7 +14728,8 @@
       "tactics": 130,
       "wrestling": 120,
       "armor": 60,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ServantOfSemidar": {
       "name": "a servant of Semidar",
@@ -14000,7 +14747,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Sewerrat": {
       "name": "a sewer rat",
@@ -14019,6 +14767,7 @@
       "wrestling": 5,
       "armor": 6,
       "gold": 15,
+      "speed": 0.2,
       "minTame": -0.9
     },
     "Shade": {
@@ -14037,7 +14786,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "ShadowDweller": {
       "name": "a shadow dweller",
@@ -14055,7 +14805,8 @@
       "tactics": 90,
       "wrestling": 0,
       "armor": 50,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "ShadowFiend": {
       "name": "a shadow fiend",
@@ -14073,7 +14824,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "ShadowIronElemental": {
       "name": "a shadow iron elemental",
@@ -14091,7 +14843,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 23,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "ShadowKnight": {
       "name": null,
@@ -14109,7 +14862,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 54,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "ShadowWisp": {
       "name": "a shadow wisp",
@@ -14127,7 +14881,8 @@
       "tactics": 15,
       "wrestling": 40,
       "armor": 18,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.3
     },
     "ShadowWispFamiliar": {
       "name": "a shadow wisp",
@@ -14164,6 +14919,7 @@
       "wrestling": 100,
       "armor": 70,
       "gold": 1500,
+      "speed": 0.2,
       "minTame": 105
     },
     "ShadowguardBoss": {
@@ -14182,7 +14938,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 10500
+      "gold": 10500,
+      "speed": 0.15
     },
     "ShadowguardGreaterDragon": {
       "name": "a greater dragon",
@@ -14200,7 +14957,8 @@
       "tactics": 155,
       "wrestling": 155,
       "armor": 60,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.3
     },
     "ShadowguardPirate": {
       "name": null,
@@ -14218,7 +14976,8 @@
       "tactics": 125,
       "wrestling": 125,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Shadowlord": {
       "name": null,
@@ -14236,7 +14995,8 @@
       "tactics": 115,
       "wrestling": 115,
       "armor": 20,
-      "gold": 6500
+      "gold": 6500,
+      "speed": 0.2
     },
     "ShameEarthElemental": {
       "name": "an earth elemental",
@@ -14254,7 +15014,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 34,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "ShameGreaterPoisonElemental": {
       "name": "a poison elemental",
@@ -14272,7 +15033,8 @@
       "tactics": 120,
       "wrestling": 115,
       "armor": 70,
-      "gold": 1400
+      "gold": 1400,
+      "speed": 0.2
     },
     "ShantyThePirate": {
       "name": "Shanty",
@@ -14290,7 +15052,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Sheep": {
       "name": "a sheep",
@@ -14309,6 +15072,7 @@
       "wrestling": 5,
       "armor": 6,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 11.1
     },
     "SheriffOfMinoc": {
@@ -14327,7 +15091,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "ShimmeringEffusion": {
       "name": "a shimmering effusion",
@@ -14345,7 +15110,8 @@
       "tactics": 105,
       "wrestling": 105,
       "armor": 0,
-      "gold": 12000
+      "gold": 12000,
+      "speed": 0.2
     },
     "ShipBat": {
       "name": "a ship bat",
@@ -14363,7 +15129,8 @@
       "tactics": 55,
       "wrestling": 100,
       "armor": 14,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "ShipRat": {
       "name": "Ship Rat",
@@ -14381,7 +15148,8 @@
       "tactics": 44,
       "wrestling": 44,
       "armor": 18,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "Silenii": {
       "name": "Silenii",
@@ -14417,7 +15185,8 @@
       "tactics": 118.3,
       "wrestling": 123.7,
       "armor": 24,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Silvani": {
       "name": "Silvani",
@@ -14435,7 +15204,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.1
     },
     "SilverSerpent": {
       "name": "a silver serpent",
@@ -14453,7 +15223,8 @@
       "tactics": 95,
       "wrestling": 100,
       "armor": 40,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "SilverSteed": {
       "name": "a silver steed",
@@ -14471,7 +15242,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SilverTrader": {
       "name": "a robe",
@@ -14489,7 +15261,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SilverbackGorilla": {
       "name": "a silverback gorilla",
@@ -14507,7 +15280,8 @@
       "tactics": 49,
       "wrestling": 50,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SirBerran": {
       "name": "Sir Berran",
@@ -14525,7 +15299,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SirFelean": {
       "name": "Sir Felean",
@@ -14543,7 +15318,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SirGeoffery": {
       "name": "Sir Geoffrey",
@@ -14561,7 +15337,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SirHareus": {
       "name": "Sir Hareus",
@@ -14579,7 +15356,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SirPatrick": {
       "name": "Sir Patrick",
@@ -14597,7 +15375,8 @@
       "tactics": 143.8,
       "wrestling": 136.5,
       "armor": 40,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "SkelementalKnight": {
       "name": "Skelemental Knight",
@@ -14615,7 +15394,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "SkelementalMage": {
       "name": "Skelemental Mage",
@@ -14633,7 +15413,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 38,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "SkeletalCat": {
       "name": "Skeletal Cat",
@@ -14652,6 +15433,7 @@
       "wrestling": 35,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 30
     },
     "SkeletalDragon": {
@@ -14670,7 +15452,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 80,
-      "gold": 2000
+      "gold": 2000,
+      "speed": 0.2
     },
     "SkeletalDrake": {
       "name": "a skeletal drake",
@@ -14688,7 +15471,8 @@
       "tactics": 85,
       "wrestling": 75,
       "armor": 80,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "SkeletalKnight": {
       "name": "a skeletal knight",
@@ -14706,7 +15490,8 @@
       "tactics": 100,
       "wrestling": 95,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "SkeletalLich": {
       "name": "a skeletal lich",
@@ -14724,7 +15509,8 @@
       "tactics": 91.7,
       "wrestling": 98.5,
       "armor": 40,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "SkeletalMage": {
       "name": "a skeletal mage",
@@ -14742,7 +15528,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 38,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "SkeletalMount": {
       "name": "a skeletal steed",
@@ -14760,7 +15547,8 @@
       "tactics": 50,
       "wrestling": 80,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Skeleton": {
       "name": "a skeleton",
@@ -14778,7 +15566,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 16,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "Skeletrex": {
       "name": "Skeletrex",
@@ -14815,6 +15604,7 @@
       "wrestling": 60,
       "armor": 12,
       "gold": 40,
+      "speed": 0.2,
       "minTame": -12.9
     },
     "Skree": {
@@ -14834,6 +15624,7 @@
       "wrestling": 117.9,
       "armor": 0,
       "gold": 100,
+      "speed": 0.2,
       "minTame": 95.1
     },
     "SlasherOfVeils": {
@@ -14852,7 +15643,8 @@
       "tactics": 126.3,
       "wrestling": 130,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Sliem": {
       "name": "Sliem",
@@ -14870,7 +15662,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SlimTheFence": {
       "name": "Slim",
@@ -14888,7 +15681,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.4
     },
     "Slime": {
       "name": "a slime",
@@ -14907,6 +15701,7 @@
       "wrestling": 34,
       "armor": 8,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 23.1
     },
     "Slith": {
@@ -14926,6 +15721,7 @@
       "wrestling": 77.1,
       "armor": 0,
       "gold": 200,
+      "speed": 0.2,
       "minTame": 80.7
     },
     "Snake": {
@@ -14945,6 +15741,7 @@
       "wrestling": 34,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 59.1
     },
     "SnowElemental": {
@@ -14963,7 +15760,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "SnowLeopard": {
       "name": "a snow leopard",
@@ -14982,6 +15780,7 @@
       "wrestling": 50,
       "armor": 24,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 53.1
     },
     "SorcerersDungeonResearcher": {
@@ -15000,7 +15799,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "SoulboundApprenticeMage": {
       "name": null,
@@ -15018,7 +15818,8 @@
       "tactics": 87.5,
       "wrestling": 50,
       "armor": 16,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "SoulboundBattleMage": {
       "name": null,
@@ -15036,7 +15837,8 @@
       "tactics": 120,
       "wrestling": 125,
       "armor": 16,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "SoulboundPirateCaptain": {
       "name": "a soulbound pirate captain",
@@ -15054,7 +15856,8 @@
       "tactics": 120,
       "wrestling": 0,
       "armor": 0,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "SoulboundPirateRaider": {
       "name": "a soulbound pirate raider",
@@ -15072,7 +15875,8 @@
       "tactics": 105.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "SoulboundSpellSlinger": {
       "name": null,
@@ -15090,7 +15894,8 @@
       "tactics": 90,
       "wrestling": 100,
       "armor": 16,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "SoulboundSwashbuckler": {
       "name": "a soulbound swashbuckler",
@@ -15108,7 +15913,8 @@
       "tactics": 87.5,
       "wrestling": 0,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "SpeckledScorpion": {
       "name": "a speckled scorpion",
@@ -15126,7 +15932,8 @@
       "tactics": 75,
       "wrestling": 65,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "SpectralArmour": {
       "name": "spectral armour",
@@ -15144,7 +15951,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SpectralKotlWarrior": {
       "name": "a spectral kotl warrior",
@@ -15162,7 +15970,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "SpectralMyrmidexWarrior": {
       "name": "a spectral myrmidex warrior",
@@ -15180,7 +15989,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Spectre": {
       "name": "a spectre",
@@ -15198,7 +16008,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Spellbinder": {
       "name": "a spectral spellbinder",
@@ -15216,7 +16027,8 @@
       "tactics": 50,
       "wrestling": 50,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Sphynx": {
       "name": "The Sphynx",
@@ -15234,7 +16046,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "Spite": {
       "name": null,
@@ -15252,7 +16065,8 @@
       "tactics": 131,
       "wrestling": 16.7,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Squirrel": {
       "name": "a squirrel",
@@ -15271,6 +16085,7 @@
       "wrestling": 4,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -21.3
     },
     "Steward": {
@@ -15289,7 +16104,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "StockingSerpent": {
       "name": "a stocking serpent",
@@ -15307,7 +16123,8 @@
       "tactics": 100,
       "wrestling": 130,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "StoneElemental": {
       "name": "a stone elemental",
@@ -15325,7 +16142,8 @@
       "tactics": 96,
       "wrestling": 97,
       "armor": 34,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "StoneGargoyle": {
       "name": "a stone gargoyle",
@@ -15343,7 +16161,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "StoneHarpy": {
       "name": "a stone harpy",
@@ -15361,7 +16180,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "StoneMonster": {
       "name": "Stone Monster",
@@ -15379,7 +16199,8 @@
       "tactics": 90,
       "wrestling": 70,
       "armor": 40,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.6
     },
     "StoneSlith": {
       "name": "a stone slith",
@@ -15398,6 +16219,7 @@
       "wrestling": 87.4,
       "armor": 0,
       "gold": 200,
+      "speed": 0.2,
       "minTame": 65.1
     },
     "StrangeGazer": {
@@ -15416,7 +16238,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 36,
-      "gold": 80
+      "gold": 80,
+      "speed": 0.2
     },
     "StrongMongbat": {
       "name": "a mongbat",
@@ -15435,6 +16258,7 @@
       "wrestling": 35,
       "armor": 10,
       "gold": 15,
+      "speed": 0.2,
       "minTame": 71.1
     },
     "Strongroot": {
@@ -15453,7 +16277,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "StygianDragon": {
       "name": "Stygian Dragon",
@@ -15471,7 +16296,8 @@
       "tactics": 125,
       "wrestling": 117.7,
       "armor": 60,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.3
     },
     "StygianDrake": {
       "name": "Stygian Drake",
@@ -15490,6 +16316,7 @@
       "wrestling": 100,
       "armor": 46,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 85
     },
     "Succubus": {
@@ -15508,7 +16335,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 80,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "SummonedAirElemental": {
       "name": "an air elemental",
@@ -15526,7 +16354,8 @@
       "tactics": 100,
       "wrestling": 80,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SummonedAntLion": {
       "name": "an ant lion",
@@ -15544,7 +16373,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedArcticOgreLord": {
       "name": "an arctic ogre lord",
@@ -15562,7 +16392,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedBakeKitsune": {
       "name": "a bake kitsune",
@@ -15580,7 +16411,8 @@
       "tactics": 90,
       "wrestling": 55,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedBogling": {
       "name": "a bogling",
@@ -15598,7 +16430,8 @@
       "tactics": 80,
       "wrestling": 75,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedBullFrog": {
       "name": "a bull frog",
@@ -15616,7 +16449,8 @@
       "tactics": 60,
       "wrestling": 60,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedChicken": {
       "name": "a chicken",
@@ -15634,7 +16468,8 @@
       "tactics": 5,
       "wrestling": 5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedCow": {
       "name": "a cow",
@@ -15652,7 +16487,8 @@
       "tactics": 5.5,
       "wrestling": 5.5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedDaemon": {
       "name": null,
@@ -15670,7 +16506,8 @@
       "tactics": 100,
       "wrestling": 99,
       "armor": 58,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SummonedDoppleganger": {
       "name": "a doppleganger",
@@ -15688,7 +16525,8 @@
       "tactics": 80,
       "wrestling": 90,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedEarthElemental": {
       "name": "an earth elemental",
@@ -15706,7 +16544,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 34,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SummonedFireElemental": {
       "name": "a fire elemental",
@@ -15724,7 +16563,8 @@
       "tactics": 100,
       "wrestling": 92,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SummonedFrostSpider": {
       "name": "a frost spider",
@@ -15742,7 +16582,8 @@
       "tactics": 50,
       "wrestling": 65,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedGreatHart": {
       "name": "a great hart",
@@ -15760,7 +16601,8 @@
       "tactics": 47.5,
       "wrestling": 47.5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedLavaSerpent": {
       "name": "a lava serpent",
@@ -15778,7 +16620,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedOrcBrute": {
       "name": "an orc brute",
@@ -15796,7 +16639,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedPaladin": {
       "name": null,
@@ -15814,7 +16658,8 @@
       "tactics": 50,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SummonedPanther": {
       "name": "a panther",
@@ -15832,7 +16677,8 @@
       "tactics": 65,
       "wrestling": 65,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedReaper": {
       "name": "a reaper",
@@ -15850,7 +16696,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SummonedSheep": {
       "name": "a sheep",
@@ -15868,7 +16715,8 @@
       "tactics": 6,
       "wrestling": 5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedSkeletalKnight": {
       "name": "a skeletal knight",
@@ -15886,7 +16734,8 @@
       "tactics": 100,
       "wrestling": 95,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedVorpalBunny": {
       "name": "a vorpal bunny",
@@ -15904,7 +16753,8 @@
       "tactics": 5,
       "wrestling": 5,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedWailingBanshee": {
       "name": "a wailing banshee",
@@ -15922,7 +16772,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "SummonedWaterElemental": {
       "name": "a water elemental",
@@ -15940,7 +16791,8 @@
       "tactics": 100,
       "wrestling": 85,
       "armor": 40,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "SwampDragon": {
       "name": "a swamp dragon",
@@ -15959,6 +16811,7 @@
       "wrestling": 55,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 93.9
     },
     "SwampTentacle": {
@@ -15977,7 +16830,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 28,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Swoop": {
       "name": "Swoop",
@@ -15995,7 +16849,8 @@
       "tactics": 140,
       "wrestling": 140,
       "armor": 22,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "Szandor": {
       "name": "Szandor",
@@ -16013,7 +16868,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Szavetra": {
       "name": "Szavetra",
@@ -16031,7 +16887,8 @@
       "tactics": 92.8,
       "wrestling": 86.4,
       "armor": 80,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.2
     },
     "TBWarHorse": {
       "name": null,
@@ -16049,7 +16906,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "TRex": {
       "name": "Tyrannosaurus Rex",
@@ -16067,7 +16925,8 @@
       "tactics": 130,
       "wrestling": 150,
       "armor": 0,
-      "gold": 3000
+      "gold": 3000,
+      "speed": 0.08
     },
     "Taellia": {
       "name": "Elder Taellia",
@@ -16085,7 +16944,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Tangle": {
       "name": "Tangle",
@@ -16103,7 +16963,8 @@
       "tactics": 100.4,
       "wrestling": 94.6,
       "armor": 54,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.6
     },
     "TanglingRoots": {
       "name": "a tangling root",
@@ -16121,7 +16982,8 @@
       "tactics": 60,
       "wrestling": 60,
       "armor": 18,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "TavaraSewel": {
       "name": "Tavara Sewel",
@@ -16139,7 +17001,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Tempest": {
       "name": "Tempest",
@@ -16157,7 +17020,8 @@
       "tactics": 111.8,
       "wrestling": 116,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "TerathanAvenger": {
       "name": "a terathan avenger",
@@ -16175,7 +17039,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "TerathanDrone": {
       "name": "a terathan drone",
@@ -16193,7 +17058,8 @@
       "tactics": 50,
       "wrestling": 50,
       "armor": 24,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "TerathanMatriarch": {
       "name": "a terathan matriarch",
@@ -16211,7 +17077,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 0,
-      "gold": 450
+      "gold": 450,
+      "speed": 0.2
     },
     "TerathanWarrior": {
       "name": "a terathan warrior",
@@ -16229,7 +17096,8 @@
       "tactics": 100,
       "wrestling": 90,
       "armor": 30,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "TheButcher": {
       "name": null,
@@ -16247,7 +17115,8 @@
       "tactics": 100,
       "wrestling": 80,
       "armor": 49,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "TheCleanupOfficer": {
       "name": "the Cleanup Officer",
@@ -16265,7 +17134,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "TheMasterInstructor": {
       "name": "Anshu",
@@ -16283,7 +17153,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 60,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Thrasher": {
       "name": "Thrasher",
@@ -16301,7 +17172,8 @@
       "tactics": 117.3,
       "wrestling": 118.3,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.1
     },
     "TigerCub": {
       "name": "a tiger cub",
@@ -16319,7 +17191,8 @@
       "tactics": 40,
       "wrestling": 50,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "TigersClawMaster": {
       "name": "Black Order Master",
@@ -16337,7 +17210,8 @@
       "tactics": 130,
       "wrestling": 120,
       "armor": 60,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "TigersClawThief": {
       "name": "Black Order Thief",
@@ -16355,7 +17229,8 @@
       "tactics": 130,
       "wrestling": 120,
       "armor": 58,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "TimberWolf": {
       "name": "a timber wolf",
@@ -16374,6 +17249,7 @@
       "wrestling": 60,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 23.1
     },
     "Titan": {
@@ -16392,7 +17268,8 @@
       "tactics": 80,
       "wrestling": 50,
       "armor": 40,
-      "gold": 600
+      "gold": 600,
+      "speed": 0.2
     },
     "TitanRockHunter": {
       "name": "a titan rockhurler",
@@ -16410,7 +17287,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "TomasONeerlan": {
       "name": "Tomas O'Neerlan",
@@ -16428,7 +17306,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "TormentedMinotaur": {
       "name": "Tormented Minotaur",
@@ -16446,7 +17325,8 @@
       "tactics": 102.8,
       "wrestling": 111,
       "armor": 0,
-      "gold": 5000
+      "gold": 5000,
+      "speed": 0.2
     },
     "ToxicElemental": {
       "name": "an acid elemental",
@@ -16464,7 +17344,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 40,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "ToxicSlith": {
       "name": "a toxic slith",
@@ -16482,7 +17363,8 @@
       "tactics": 90.9,
       "wrestling": 95.1,
       "armor": 0,
-      "gold": 200
+      "gold": 200,
+      "speed": 0.2
     },
     "TradeMinister": {
       "name": null,
@@ -16500,7 +17382,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.4
     },
     "TrapdoorSpider": {
       "name": "a trapdoor spider",
@@ -16518,7 +17401,8 @@
       "tactics": 78.9,
       "wrestling": 94.6,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Trapper": {
       "name": null,
@@ -16536,7 +17420,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "Travesty": {
       "name": "Travesty",
@@ -16554,7 +17439,8 @@
       "tactics": 120,
       "wrestling": 320,
       "armor": 50,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "TravestyDog": {
       "name": "a dog",
@@ -16572,7 +17458,8 @@
       "tactics": 31,
       "wrestling": 31,
       "armor": 12,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Treefellow": {
       "name": "a treefellow",
@@ -16590,7 +17477,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 24,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "TreefellowGuardian": {
       "name": "a Treefellow Guardian",
@@ -16608,7 +17496,8 @@
       "tactics": 90,
       "wrestling": 85,
       "armor": 24,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "Triceratops": {
       "name": "Triceratops",
@@ -16627,6 +17516,7 @@
       "wrestling": 105,
       "armor": 0,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 102
     },
     "Triton": {
@@ -16646,6 +17536,7 @@
       "wrestling": 130,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 96
     },
     "Troglodyte": {
@@ -16664,7 +17555,8 @@
       "tactics": 94.7,
       "wrestling": 93.5,
       "armor": 28,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Troll": {
       "name": "a troll",
@@ -16682,7 +17574,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 40,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "TropicalBird": {
       "name": "a tropical bird",
@@ -16701,6 +17594,7 @@
       "wrestling": 6.4,
       "armor": 0,
       "gold": 0,
+      "speed": 0.2,
       "minTame": -6.9
     },
     "TsukiWolf": {
@@ -16720,6 +17614,7 @@
       "wrestling": 107.5,
       "armor": 0,
       "gold": 500,
+      "speed": 0.2,
       "minTame": 96
     },
     "Turkey": {
@@ -16738,7 +17633,8 @@
       "tactics": 5,
       "wrestling": 5,
       "armor": 2,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Twaulo": {
       "name": "Twaulo",
@@ -16774,7 +17670,8 @@
       "tactics": 100,
       "wrestling": 120,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.2
     },
     "TyballsShadow": {
       "name": "Tyball's Shadow",
@@ -16792,7 +17689,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 65,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.15
     },
     "Tyleelor": {
       "name": "Tyeelor",
@@ -16810,7 +17708,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "UnboundEnergyVortex": {
       "name": "an unbound energy vortex",
@@ -16828,7 +17727,8 @@
       "tactics": 130,
       "wrestling": 140,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.4
     },
     "UndeadGargoyle": {
       "name": "an Undead Gargoyle",
@@ -16846,7 +17746,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 32,
-      "gold": 100
+      "gold": 100,
+      "speed": 0.2
     },
     "UndeadGuardian": {
       "name": "an undead guardian",
@@ -16864,7 +17765,8 @@
       "tactics": 86.2,
       "wrestling": 86.9,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "UnfrozenMummy": {
       "name": "an unfrozen mummy",
@@ -16882,7 +17784,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 0,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.4
     },
     "UnholyFamiliar": {
       "name": "a dark wolf",
@@ -16900,7 +17803,8 @@
       "tactics": 70,
       "wrestling": 80,
       "armor": 22,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "UnholySteed": {
       "name": "a dark steed",
@@ -16918,7 +17822,8 @@
       "tactics": 100,
       "wrestling": 92.5,
       "armor": 60,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Unicorn": {
       "name": "a unicorn",
@@ -16937,6 +17842,7 @@
       "wrestling": 92.5,
       "armor": 0,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 95.1
     },
     "UraliHighChieftess": {
@@ -16955,7 +17861,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Ursadane": {
       "name": "Ursadane",
@@ -16991,7 +17898,8 @@
       "tactics": 90,
       "wrestling": 90,
       "armor": 64,
-      "gold": 1900
+      "gold": 1900,
+      "speed": 0.2
     },
     "Uzeraan": {
       "name": "Uzeraan",
@@ -17009,7 +17917,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "ValoriteElemental": {
       "name": "a valorite elemental",
@@ -17027,7 +17936,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 38,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "VampireBat": {
       "name": "a vampire bat",
@@ -17045,7 +17955,8 @@
       "tactics": 80,
       "wrestling": 55,
       "armor": 14,
-      "gold": 15
+      "gold": 15,
+      "speed": 0.2
     },
     "VampireBatFamiliar": {
       "name": "a vampire bat",
@@ -17081,7 +17992,8 @@
       "tactics": 20,
       "wrestling": 20,
       "armor": 10,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Vasanord": {
       "name": "vasanord",
@@ -17099,7 +18011,8 @@
       "tactics": 110,
       "wrestling": 98.6,
       "armor": 28,
-      "gold": 1800
+      "gold": 1800,
+      "speed": 0.6
     },
     "VelaTheSorceress": {
       "name": "Vela",
@@ -17117,7 +18030,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "VenomElemental": {
       "name": "a venom elemental",
@@ -17135,7 +18049,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "VeriteElemental": {
       "name": "a verite elemental",
@@ -17153,7 +18068,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 35,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Vernix": {
       "name": "Vernix",
@@ -17171,7 +18087,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Vicaie": {
       "name": "Elder Vicaie",
@@ -17189,7 +18106,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "ViciousDrake": {
       "name": "a vicious drake",
@@ -17207,7 +18125,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Victoria": {
       "name": "Victoria",
@@ -17225,7 +18144,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "VileCadaver": {
       "name": "a vile cadaver",
@@ -17243,7 +18163,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "VileDrake": {
       "name": "a vile drake",
@@ -17261,7 +18182,8 @@
       "tactics": 90,
       "wrestling": 130,
       "armor": 46,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "VileMage": {
       "name": null,
@@ -17279,7 +18201,8 @@
       "tactics": 115,
       "wrestling": 110,
       "armor": 16,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "VileTreefellow": {
       "name": "a vile treefellow",
@@ -17297,7 +18220,8 @@
       "tactics": 90,
       "wrestling": 105,
       "armor": 24,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "VileWaterElemental": {
       "name": "a vile water elemental",
@@ -17315,7 +18239,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Virtuebane": {
       "name": "Virtuebane",
@@ -17333,7 +18258,8 @@
       "tactics": 130,
       "wrestling": 130,
       "armor": 0,
-      "gold": 10500
+      "gold": 10500,
+      "speed": 0.15
     },
     "Virulent": {
       "name": "Virulent",
@@ -17351,7 +18277,8 @@
       "tactics": 107.4,
       "wrestling": 111.7,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Viscera": {
       "name": "Viscera",
@@ -17369,7 +18296,8 @@
       "tactics": 100,
       "wrestling": 100,
       "armor": 50,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "VoidManifestation": {
       "name": "a void manifestation",
@@ -17387,7 +18315,8 @@
       "tactics": 130,
       "wrestling": 130,
       "armor": 0,
-      "gold": 2700
+      "gold": 2700,
+      "speed": 0.2
     },
     "VolcanoElemental": {
       "name": "a volcano elemental",
@@ -17405,7 +18334,8 @@
       "tactics": 94,
       "wrestling": 85.4,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "Vollem": {
       "name": "a vollem",
@@ -17423,7 +18353,8 @@
       "tactics": 99.5,
       "wrestling": 87.7,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "VorpalBunny": {
       "name": "a vorpal bunny",
@@ -17441,7 +18372,8 @@
       "tactics": 5,
       "wrestling": 5,
       "armor": 4,
-      "gold": 1000
+      "gold": 1000,
+      "speed": 0.1
     },
     "VortexElemental": {
       "name": "a vortex elemental",
@@ -17459,7 +18391,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "Vrulkax": {
       "name": "Vrulkax",
@@ -17477,7 +18410,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "VvVMount": {
       "name": null,
@@ -17496,6 +18430,7 @@
       "wrestling": 44,
       "armor": 0,
       "gold": 0,
+      "speed": 0.4,
       "minTame": 29.1
     },
     "VvVPriest": {
@@ -17514,7 +18449,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "WailingBanshee": {
       "name": "a wailing banshee",
@@ -17532,7 +18468,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 19,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "Walrus": {
       "name": "a walrus",
@@ -17551,6 +18488,7 @@
       "wrestling": 29,
       "armor": 18,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 35.1
     },
     "Walton": {
@@ -17569,7 +18507,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "WandererOfTheVoid": {
       "name": "a wanderer of the void",
@@ -17587,7 +18526,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 44,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "WanderingShaman": {
       "name": null,
@@ -17605,7 +18545,8 @@
       "tactics": 100,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "WarAlligator": {
       "name": "a war alligator",
@@ -17623,7 +18564,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 250
+      "gold": 250,
+      "speed": 0.2
     },
     "WarehouseSuperintendent": {
       "name": null,
@@ -17641,7 +18583,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "WaterElemental": {
       "name": "a water elemental",
@@ -17659,7 +18602,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "WhippingVine": {
       "name": "a whipping vine",
@@ -17677,7 +18621,8 @@
       "tactics": 70,
       "wrestling": 70,
       "armor": 45,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "WhiteWolf": {
       "name": "a white wolf",
@@ -17696,6 +18641,7 @@
       "wrestling": 60,
       "armor": 16,
       "gold": 0,
+      "speed": 0.2,
       "minTame": 65.1
     },
     "WhiteWyrm": {
@@ -17715,6 +18661,7 @@
       "wrestling": 100,
       "armor": 64,
       "gold": 1100,
+      "speed": 0.2,
       "minTame": 96.3
     },
     "Wight": {
@@ -17733,7 +18680,8 @@
       "tactics": 55,
       "wrestling": 60,
       "armor": 19,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "WildTiger": {
       "name": "a wild tiger",
@@ -17752,6 +18700,7 @@
       "wrestling": 94.4,
       "armor": 0,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 95.1
     },
     "Willebrord": {
@@ -17770,7 +18719,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Windrunner": {
       "name": "Windrunner",
@@ -17788,7 +18738,8 @@
       "tactics": 40,
       "wrestling": 35,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Wisp": {
       "name": "a wisp",
@@ -17806,7 +18757,8 @@
       "tactics": 80,
       "wrestling": 80,
       "armor": 40,
-      "gold": 350
+      "gold": 350,
+      "speed": 0.2
     },
     "WolfSpider": {
       "name": "a Wolf spider",
@@ -17825,6 +18777,7 @@
       "wrestling": 90,
       "armor": 0,
       "gold": 250,
+      "speed": 0.2,
       "minTame": 59.1
     },
     "Worker": {
@@ -17843,7 +18796,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Wraith": {
       "name": "a wraith",
@@ -17861,7 +18815,8 @@
       "tactics": 60,
       "wrestling": 55,
       "armor": 28,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "WrongPrisoner": {
       "name": null,
@@ -17879,7 +18834,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Wyvern": {
       "name": "a wyvern",
@@ -17897,7 +18853,8 @@
       "tactics": 90,
       "wrestling": 80,
       "armor": 40,
-      "gold": 140
+      "gold": 140,
+      "speed": 0.2
     },
     "Xeninlor": {
       "name": "Xeninlor",
@@ -17915,7 +18872,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Xenrr": {
       "name": "Xenrr",
@@ -17933,7 +18891,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "XmlQuestNPC": {
       "name": null,
@@ -17951,7 +18910,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.8
     },
     "Yamandon": {
       "name": "a yamandon",
@@ -17969,7 +18929,8 @@
       "tactics": 132,
       "wrestling": 132.5,
       "armor": 0,
-      "gold": 1900
+      "gold": 1900,
+      "speed": 0.2
     },
     "Yar": {
       "name": "Yar",
@@ -17987,7 +18948,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Yellienir": {
       "name": "Yellienir",
@@ -18005,7 +18967,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Yero": {
       "name": "Yero",
@@ -18023,7 +18986,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "YomotsuElder": {
       "name": "a yomotsu elder",
@@ -18041,7 +19005,8 @@
       "tactics": 130,
       "wrestling": 130,
       "armor": 0,
-      "gold": 1500
+      "gold": 1500,
+      "speed": 0.2
     },
     "YomotsuPriest": {
       "name": "a yomotsu priest",
@@ -18059,7 +19024,8 @@
       "tactics": 105,
       "wrestling": 57.5,
       "armor": 0,
-      "gold": 750
+      "gold": 750,
+      "speed": 0.2
     },
     "YomotsuWarrior": {
       "name": "a yomotsu warrior",
@@ -18077,7 +19043,8 @@
       "tactics": 105,
       "wrestling": 107.5,
       "armor": 0,
-      "gold": 500
+      "gold": 500,
+      "speed": 0.2
     },
     "YoungNinja": {
       "name": "a young ninja",
@@ -18095,7 +19062,8 @@
       "tactics": 50,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "YoungRonin": {
       "name": "a young ronin",
@@ -18113,7 +19081,8 @@
       "tactics": 50,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.2
     },
     "Zeefzorpul": {
       "name": "Zeefzorpul",
@@ -18131,7 +19100,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Zipactriotl": {
       "name": "Zipactriotl",
@@ -18149,7 +19119,8 @@
       "tactics": 120,
       "wrestling": 120,
       "armor": 0,
-      "gold": 7500
+      "gold": 7500,
+      "speed": 0.15
     },
     "Zoel": {
       "name": "Elite Ninja Zoel",
@@ -18167,7 +19138,8 @@
       "tactics": 0,
       "wrestling": 0,
       "armor": 0,
-      "gold": 0
+      "gold": 0,
+      "speed": 0.5
     },
     "Zombie": {
       "name": "a zombie",
@@ -18185,7 +19157,8 @@
       "tactics": 50,
       "wrestling": 50,
       "armor": 18,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     },
     "ZombieSkeleton": {
       "name": null,
@@ -18203,7 +19176,8 @@
       "tactics": 100,
       "wrestling": 95,
       "armor": 18,
-      "gold": 40
+      "gold": 40,
+      "speed": 0.2
     }
   }
 }

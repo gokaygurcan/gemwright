@@ -18,6 +18,9 @@ export interface CreatureFacts {
   wrestling: number;
   armor: number;
   gold: number;
+  // Seconds a step while it fights or chases (BaseCreature activeSpeed): a running player on foot
+  // takes 0.2 a step, mounted 0.1.
+  speed?: number;
   minTame?: number;
 }
 
@@ -34,6 +37,13 @@ const packGold: Record<string, number> = {
 const range = (body: string, call: string) => {
   const match = new RegExp(`${call}\\(\\s*(\\d+)(?:\\s*,\\s*(\\d+))?\\s*\\)`).exec(body);
   return match ? [Number(match[1]), Number(match[2] ?? match[1])] : null;
+};
+
+// Its active speed: the fifth argument of its base constructor (AIType, FightMode, perception range,
+// fight range, active speed, passive speed), else its base's.
+const speedOf = (body: string, base?: CreatureFacts) => {
+  const own = /FightMode\.\w+\s*,\s*\d+\s*,\s*\d+\s*,\s*([\d.]+)/.exec(body)?.[1];
+  return own === undefined ? base?.speed : Number(own);
 };
 
 // The facts of a creature class, from its whole body; the AI and FightMode its base constructor
@@ -78,6 +88,7 @@ export function creatureFacts(body: string, base?: CreatureFacts): CreatureFacts
     gold: loot.length
       ? loot.reduce((sum, [, pack, times]) => sum + (packGold[pack ?? ''] ?? 0) * Number(times ?? 1), 0)
       : (base?.gold ?? 0),
+    ...(speedOf(body, base) !== undefined && { speed: speedOf(body, base) }),
     ...(tamable && Number.isFinite(minTame) && { minTame })
   };
 }

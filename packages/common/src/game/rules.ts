@@ -18,6 +18,8 @@ interface ClassFacts {
   hue?: number;
   bodies?: number[];
   sb?: string[];
+  // Its title as its name shows it ("the blacksmith").
+  t?: string;
 }
 type Tiles = { land: number[]; statics: number[] };
 type BySex = { female: number[]; male: number[] };
@@ -188,6 +190,14 @@ export const boughtTypes: ReadonlySet<string> = new Set(
 export const npcTypes = Object.keys(classes).filter(
   (name) => listsOf(name).length || isA(name, 'Banker') || name === 'Banker' || isA(name, 'BaseHealer')
 );
+// The townspeople a title names ("the blacksmith": Blacksmith), as their hover shows it.
+export const titled = (title: string) => {
+  const shown = title
+    .trim()
+    .toLowerCase()
+    .replace(/guildmistress$/, 'guildmaster');
+  return npcTypes.filter((type) => classes[type]?.t === shown);
+};
 export const banks = (npc: string) => npc === 'Banker' || isA(npc, 'Banker');
 export const heals = (npc: string) => isA(npc, 'BaseHealer');
 // Every ServUO creature's facts (rules-creatures.ts) with the bodies it wears and whether it is ridden.
