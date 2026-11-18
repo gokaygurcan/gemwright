@@ -124,6 +124,7 @@ export const itemPackets: [number, Decoder][] = [
         parents.add(packet.readUInt32BE(19 + i * 20));
       }
       world.lastContainerContents = [...present];
+      for (const parent of parents) world.shown.add(parent);
       for (const parent of parents)
         for (const serial of [...world.entities.childSerials(parent)]) if (!present.has(serial)) world.remove(serial);
       for (let i = 0; i < count; i++) world.containerEntry(packet, 5 + i * 20);

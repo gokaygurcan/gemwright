@@ -28,6 +28,10 @@ export function unicode(buffer: Buffer, offset: number, little = false): string 
   return bytes.toString('utf16le').split('\0', 1)[0] ?? '';
 }
 
+// A client sees 18 tiles around itself and nothing beyond, whatever the server sends or leaves out
+// (ServUO never removes what leaves range by walking).
+export const SIGHT = 18;
+
 export class WorldView {
   connected = true;
   viewRange = 18;
@@ -38,7 +42,17 @@ export class WorldView {
     this.observations.publish(null);
   }
   serial: number | null = null;
-  position: Position | null = null;
+  private here: Position | null = null;
+  get position(): Position | null {
+    return this.here;
+  }
+  set position(value: Position | null) {
+    const moved = !!value && (value.x !== this.here?.x || value.y !== this.here?.y);
+    this.here = value;
+    if (!moved) return;
+    this.shown.clear();
+    for (const entity of [...this.entities.values()]) this.cull(entity);
+  }
   map: number | null = null;
   ready = false;
   combatant: number | null = null;
@@ -70,6 +84,9 @@ export class WorldView {
   readonly damage = new Map<number, { at: number; amount: number }>();
   readonly deaths = new Map<number, { corpse: number; position?: Position }>();
   lastContainerContents: number[] = [];
+  // Containers whose contents were shown since its last step: a step closes a bank box (ServUO
+  // Mobile.Move), and what lies in one closed can no longer be looked at.
+  readonly shown = new Set<number>();
   readonly houseDesigns = new Map<number, HouseDesign>();
   readonly houseRevisions = new Map<number, number>();
   readonly entities = new EntityMap((serial, removed) => this.observations.entity(serial, removed));
@@ -88,6 +105,22 @@ export class WorldView {
     this.houseRevisions.delete(serial);
   }
 
+  // Gone from view with everything it holds.
+  forget(serial: number): void {
+    const pending = [serial];
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+      pending.push(...this.entities.childSerials(next));
+      this.remove(next);
+    }
+  }
+
+  private cull(entity: Entity): void {
+    const here = this.here;
+    const at = entity.position;
+    if (!here || !at || entity.serial === this.serial || entity.parent !== undefined) return;
+    if (Math.max(Math.abs(at.x - here.x), Math.abs(at.y - here.y)) > SIGHT) this.forget(entity.serial);
+  }
+
   put(entity: Entity): void {
     if (!this.entities.has(entity.serial) && this.entities.size >= 20000)
       throw new Error('Observed entity limit exceeded');
@@ -100,6 +133,7 @@ export class WorldView {
     }
     this.entities.set(entity.serial, next);
     if (entity.serial === this.serial && entity.position) this.position = entity.position;
+    else this.cull(next);
   }
 
   // How many of its oldest lines the journal has let go.

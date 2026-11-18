@@ -49,14 +49,5 @@ export const entityPackets: [number, Decoder][] = [
   BYTE[1] Packet identifier
   BYTE[4] Serial
   */
-  [
-    0x1d,
-    (world, packet) => {
-      const pending = [packet.readUInt32BE(1)];
-      for (let serial = pending.pop(); serial !== undefined; serial = pending.pop()) {
-        pending.push(...world.entities.childSerials(serial));
-        world.remove(serial);
-      }
-    }
-  ]
+  [0x1d, (world, packet) => world.forget(packet.readUInt32BE(1))]
 ];
