@@ -16,8 +16,9 @@ afterEach(async () => {
 const ready = { user: 'deploy', ubuntu: true, compose: true, access: true };
 
 test('the inspection script runs and parses on a real shell', async () => {
-  const report = parseInspection(await command(['sh', '-c', inspectionScript], '/'));
+  const report = parseInspection(await command(['sh', '-c', `docker() { return 1; }\n${inspectionScript}`], '/'));
   expect(report.user).toBeTruthy();
+  expect(report.compose).toBe(false);
 });
 
 test('setup does only what is missing and always keeps the SSH port open', () => {
