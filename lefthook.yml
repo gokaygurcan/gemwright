@@ -3,10 +3,19 @@ pre-commit:
   commands:
     typecheck:
       run: bun run typecheck
+      skip:
+        - run: test "$SKIP" -eq 1
     lint:
       run: bun run lint
+      skip:
+        - run: test "$SKIP" -eq 1
 
+
+# Only the test files the pushed commits changed; the full suite runs in CI and before releases.
 pre-push:
   commands:
     test:
-      run: bun run test
+      glob: "**/*.test.ts"
+      run: for f in {push_files}; do [ -f "$f" ] && echo "./$f"; done | xargs -r bun test
+      skip:
+        - run: test "$SKIP" -eq 1
