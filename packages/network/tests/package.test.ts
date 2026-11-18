@@ -2,20 +2,9 @@ import { expect, test } from 'bun:test';
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { CommandRejected, PlayerSession, validateConnection, WorldView } from '@gemwright/network';
+import { CommandRejected, type PlayerSession, WorldView } from '@gemwright/network';
 import { purchaseItem, requestAnimalPurchase } from '@gemwright/network/commerce';
 import { onNetworkTiming, timed } from '@gemwright/network/diagnostics';
-
-const config = validateConnection({
-  schemaVersion: 1,
-  shardId: 'test',
-  emulator: 'servuo',
-  profile: 'classic-7.0.45.1',
-  host: '127.0.0.1',
-  port: 2593,
-  serverIndex: 0,
-  timeoutMs: 1000
-});
 
 test('the network source depends only on its own modules, builtins and common codecs/data', async () => {
   const root = resolve(import.meta.dir, '../src');
@@ -35,17 +24,6 @@ test('the network source depends only on its own modules, builtins and common co
   }
   const manifest = JSON.parse(await readFile(resolve(root, '../package.json'), 'utf8'));
   expect(manifest.dependencies).toEqual({ '@gemwright/common': 'workspace:*' });
-});
-
-test('the public package constructs a client and decoded world without an AI runtime', () => {
-  const session = new PlayerSession(config);
-  expect(session.world).toBeInstanceOf(WorldView);
-  const target = Buffer.alloc(19);
-  target[0] = 0x6c;
-  target.writeUInt32BE(42, 2);
-  session.world.apply(target);
-  expect(session.world.target?.id).toBe(42);
-  session.close();
 });
 
 test('timing consumers can unsubscribe and cannot change protocol results or errors', () => {

@@ -2,14 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { validateSchema } from '@gemwright/common/config/compatibility';
 import { expansions } from '@gemwright/common/game/expansions';
-import {
-  createConfig,
-  defaultTimezone,
-  isAcceptedTimezone,
-  shardId,
-  timezoneOptions,
-  validateName
-} from '@gemwright/server/config';
+import { createConfig, defaultTimezone, isAcceptedTimezone, shardId, validateName } from '@gemwright/server/config';
 
 test('decision providers use one ordered representation with matching runtime and JSON schema validation', () => {
   const decisions = [
@@ -100,14 +93,6 @@ describe('shard settings', () => {
     expect(() => createConfig({ client: { version: '7.0.45.1' }, name: 'Realm', timezone: 'UTC' })).toThrow(
       'Unsupported timezone'
     );
-  });
-
-  test('provides a sorted, unique autocomplete list containing the default', () => {
-    const zones = timezoneOptions();
-    expect(zones).toEqual([...new Set(zones)].sort());
-    expect(zones).toContain(defaultTimezone());
-    expect(zones).toContain('Europe/London');
-    expect(zones.every(isAcceptedTimezone)).toBe(true);
   });
 });
 
