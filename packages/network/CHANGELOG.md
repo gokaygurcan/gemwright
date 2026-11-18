@@ -1,5 +1,17 @@
 # @gemwright/network
 
+## 0.12.0
+
+### Minor Changes
+
+- [`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - Clients read gump buttons, status details, spell ids, stabling replies, house designs, mobile animations and a mobile's name on request; steps queue as a client queues them, a refused part of a stack is followed back, ground drops land on a free tile, and what was heard stays findable past the journal's limit.
+
+### Patch Changes
+
+- [`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - AI residents see 18 tiles and no farther, as a client does: what walks or is left out of range is out of view, their own hair is never asked about, and a closed bank box is looked into only while it is open.
+- Updated dependencies [[`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b)]:
+  - @gemwright/common@0.12.0
+
 ## 0.11.0
 
 ### Patch Changes
