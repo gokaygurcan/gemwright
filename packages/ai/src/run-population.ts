@@ -1,21 +1,18 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+import { loopLag } from './activity';
 import { logger } from './log';
 import { startRecording } from './recording';
 import { type ResidentOptions, runResident, withRuntime } from './run-session';
+import { onlineResidents } from './store';
 import { inTrace } from './telemetry';
-import { loopLag } from './v1/activity';
-import { decisionReport } from './v1/decisions';
-import { onlineResidents } from './v1/store';
-import { temperamentOf } from './v1/temperament';
 
 // Runs every desired-active resident in this one process under the single shard lease. Logins are
 // staggered as real players arrive at different times; each resident has its own session,
 // reconnect budget, and behavior supervision, and one resident's failure never stops the others.
 export async function runPopulation(
-  options: Omit<ResidentOptions, 'minerAssets' | 'fighterAssets' | 'lumberjackAssets' | 'exercise' | 'reconnect'> & {
-    assets: string;
+  options: Omit<ResidentOptions, 'exercise' | 'reconnect' | 'live'> & {
     staggerSeconds: number;
     limit?: number;
     // Residents stay online: a finished or failed session logs back in after a pause.
@@ -54,51 +51,17 @@ export async function runPopulation(
       const arriveAt = Date.now() + index * options.staggerSeconds * 1000;
       while (Date.now() < arriveAt && !shared.stopping()) await Bun.sleep(250);
       if (shared.stopping()) return { residentId: resident.id, outcome: 'not-started' as const };
-      const template = shared.store.template(resident.templateId, resident.policyVersion);
-      const activities = template?.behavior.activities ?? [];
-      // Newer professions run through the profession runtime, chosen by the template's activities;
-      // world templates name the behavior (`miner`), hand-written ones may name the activity (`mine`).
-      const profession = (['tamer', 'thief', 'bard', 'fisher', 'tailor', 'alchemist', 'bowyer'] as const).find(
-        (behavior) => activities.includes(behavior)
-      );
-      const role =
-        profession ??
-        (activities.includes('miner') || activities.includes('mine')
-          ? 'miner'
-          : activities.includes('lumberjack') || activities.includes('chop')
-            ? 'lumberjack'
-            : 'fighter');
       const log = (text: string) =>
         inTrace(
           { actor: () => ({ residentId: resident.id, name: resident.proposedName, sessionId: null, position: null }) },
-          () => logger('population').info(text, { role })
+          () => logger('population').info(text)
         );
-      log(`arriving as ${role}`);
+      log('arriving');
       let failures = 0;
-      const naturalSessions = options.naturalSessions ?? !options.continuous;
       while (true) {
-        const offlineUntil = naturalSessions
-          ? (shared.store.get(resident.id)?.checkpoint.personal?.habits?.offlineUntil ?? 0)
-          : 0;
-        while (Date.now() < offlineUntil && !shared.stopping()) await Bun.sleep(1000);
-        if (shared.stopping()) return { residentId: resident.id, outcome: 'finished' as const };
         try {
-          const outcome = await runResident(
-            shared,
-            {
-              ...options,
-              exercise: false,
-              reconnect: false,
-              naturalSessions,
-              shadow: online?.get(resident.id)?.shadow === true,
-              v2: online?.get(resident.id)?.v2 === true,
-              ...(profession
-                ? { profession: { behavior: profession, assets: options.assets } }
-                : { [`${role}Assets`]: options.assets })
-            },
-            resident.id
-          );
-          log(outcome?.sessionBreak ? 'session break' : 'session finished');
+          await runResident(shared, { ...options, exercise: false, reconnect: false, live: true }, resident.id);
+          log('session finished');
           failures = 0;
           if (!options.continuous || shared.stopping())
             return { residentId: resident.id, outcome: 'finished' as const };
@@ -121,23 +84,12 @@ export async function runPopulation(
     const summary = shared.store.list().flatMap((resident) => {
       const outcome = outcomes.find((entry) => entry.residentId === resident.id);
       if (!outcome) return [];
-      const checkpoint = resident.checkpoint;
       return [
         {
           ...outcome,
           name: resident.proposedName,
           template: resident.templateId,
-          serial: resident.binding?.characterSerial ?? null,
-          temperament: temperamentOf(resident.id),
-          goal: checkpoint.goal,
-          funds: checkpoint.funds ?? null,
-          stock: checkpoint.stock ?? null,
-          mount: checkpoint.mount?.state ?? null,
-          decisions: decisionReport(checkpoint.decisions),
-          peersSeen: Object.entries(checkpoint.relationships)
-            .filter(([, entry]) => entry.peer)
-            .map(([name, entry]) => ({ name, seen: entry.seen ?? 0 })),
-          recentMemories: checkpoint.memories.slice(-8).map((memory) => memory.text)
+          serial: resident.binding?.characterSerial ?? null
         }
       ];
     });

@@ -1,4 +1,4 @@
-import { afterAll, expect, spyOn, test } from 'bun:test';
+import { afterAll, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,10 +6,10 @@ import { join } from 'node:path';
 import { TileFlag } from '@gemwright/common/assets/tiledata';
 
 import { geometryView, houseBarriers } from '../src/geometry';
+import { type Component, decodeMultiUop, expandDesign } from '../src/multi-assets';
+import { observedTerrain } from '../src/observed-terrain';
 import { PathPool } from '../src/path-pool';
 import { Terrain, type TerrainBuffers } from '../src/terrain';
-import { type Component, decodeMultiUop, expandDesign } from '../src/v1/multi-assets';
-import { observedTerrain } from '../src/v1/observed-terrain';
 import { behaviorFixture } from './behavior-fixture';
 
 const directories: string[] = [];
@@ -55,7 +55,7 @@ function fixture(parts: Component[] = []) {
   writeFileSync(join(directory, 'multi.idx'), multiIndex);
   writeFileSync(join(directory, 'multi.mul'), data);
   const base = new Terrain(directory, 1, buffers);
-  const f = behaviorFixture('swordsman');
+  const f = behaviorFixture();
   f.world.position = { x: 10, y: 10, z: 24, direction: 2 };
   const view = observedTerrain(base, f.session);
   return { ...f, base, view };
@@ -230,104 +230,6 @@ test('overlapping floors, low ceilings and walls are separated by height', () =>
   expect(view.path({ x: 11, y: 10, z: 24 }, { x: 11, y: 10 }, 0, new Set(), 44)).toBeNull();
 });
 
-test('a house moved after planning is re-read before the navigator attempts its first stair step', async () => {
-  const f = fixture(stairs);
-  f.world.put({ serial: 50, kind: 'item', multi: true, graphic: 1, position: { x: 10, y: 10, z: 0, direction: 0 } });
-  const { createNavigator } = await import('../src/v1/navigation');
-  const attempted: { x: number; y: number; z: number }[] = [];
-  let replaced = false;
-  const search = f.view.pathAsync.bind(f.view);
-  // Force the worker path rather than the direct-path optimization.
-  const stand = f.view.stand.bind(f.view);
-  let planning = true;
-  f.view.stand = (...args) => (planning ? null : stand(...args));
-  f.view.pathAsync = async (...args) => {
-    planning = false;
-    const route = await search(...args);
-    if (!replaced) {
-      replaced = true;
-      f.world.put({
-        serial: 50,
-        kind: 'item',
-        multi: true,
-        graphic: 1,
-        position: { x: 50, y: 50, z: 0, direction: 0 }
-      });
-    }
-    return route;
-  };
-  f.session.walk = async (_direction, z) => {
-    attempted.push({ x: 11, y: 10, z: z ?? 24 });
-    return false;
-  };
-  f.session.resyncPosition = async () => false;
-  const navigate = createNavigator({
-    session: f.session,
-    terrain: f.view,
-    check: () => {},
-    phase: () => {},
-    log: () => {},
-    localOnly: true
-  });
-  await expect(navigate({ x: 22, y: 10, z: 0 }, 0)).rejects.toThrow('No observed walkable surface');
-  expect(replaced).toBe(true);
-  expect(attempted).toEqual([]);
-});
-
-test('navigation follows the house stairs to outdoor ground instead of retrying a distant gate', async () => {
-  const f = fixture(stairs);
-  f.world.put({ serial: 50, kind: 'item', multi: true, graphic: 1, position: { x: 10, y: 10, z: 0, direction: 0 } });
-  const { createNavigator } = await import('../src/v1/navigation');
-  const accepted: number[] = [];
-  f.session.walk = async (direction, z) => {
-    const from = f.world.position;
-    if (!from) throw new Error('Missing position');
-    if (from.direction !== direction) {
-      f.world.position = { ...from, direction };
-      return true;
-    }
-    const deltas = [
-      [0, -1],
-      [1, -1],
-      [1, 0],
-      [1, 1],
-      [0, 1],
-      [-1, 1],
-      [-1, 0],
-      [-1, -1]
-    ];
-    const [dx = 0, dy = 0] = deltas[direction] ?? [];
-    const x = from.x + dx,
-      y = from.y + dy;
-    const expected = y === 10 && x >= 10 && x <= 22 ? 24 - (x - 10) * 2 : undefined;
-    if (expected === undefined || expected !== z) throw new Error('Attempted an unsupported movement');
-    const next = { x, y, z: expected };
-    f.world.position = { ...next, direction };
-    accepted.push(next.z);
-    return true;
-  };
-  const sleep = spyOn(Bun, 'sleep').mockImplementation(async () => {});
-  const random = spyOn(Math, 'random').mockReturnValue(0);
-  let now = Date.now();
-  const clock = spyOn(Date, 'now').mockImplementation(() => (now += 1000));
-  try {
-    await createNavigator({
-      session: f.session,
-      terrain: f.view,
-      check: () => {},
-      phase: () => {},
-      log: () => {},
-      localOnly: true
-    })({ x: 22, y: 10, z: 0 }, 0);
-    expect(f.world.position).toMatchObject({ x: 22, y: 10, z: 0 });
-    expect(accepted.slice(0, 3)).toEqual([22, 20, 18]);
-  } finally {
-    sleep.mockRestore();
-    random.mockRestore();
-    clock.mockRestore();
-  }
-});
-
 test('changing house overlays reuses the immutable map buffers instead of copying them per revision', () => {
   const { base } = fixture();
   const a = geometryView(base, { revision: 'first', tiles: [{ id: 3, x: 10, y: 10, z: 24 }] });
@@ -337,10 +239,10 @@ test('changing house overlays reuses the immutable map buffers instead of copyin
   expect(base.geometry).toBeUndefined();
 });
 
-test('v2 hands use the same observed house stairs as v1', async () => {
+test('hands use the observed house stairs', async () => {
   const f = fixture(stairs);
   f.world.put({ serial: 50, kind: 'item', multi: true, graphic: 1, position: { x: 10, y: 10, z: 0, direction: 0 } });
-  const { Hands } = await import('../src/v2/hands');
+  const { Hands } = await import('../src/hands');
   f.session.walk = async (direction, z) => {
     const from = f.world.position;
     if (!from) throw new Error('Missing position');

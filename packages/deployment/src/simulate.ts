@@ -6,13 +6,13 @@ import { command } from './process';
 import { requireTarget, vpsRunner } from './target';
 
 // One traced decision of a resident weighed again where its history and world live: inside the
-// deployed AI container (packages/ai v2/simulate-cli.ts). Returns its JSON report.
+// deployed AI container (packages/ai simulate-cli.ts). Returns its JSON report.
 export async function simulateDecision(
   directory: string,
   config: Pick<ShardConfig, 'id' | 'railway' | 'vps' | 'target'>,
   id: number
 ): Promise<unknown> {
-  const args = ['exec', '-T', 'ai', 'bun', 'dist/v2/simulate-cli.js', '--id', String(id)];
+  const args = ['exec', '-T', 'ai', 'bun', 'dist/simulate-cli.js', '--id', String(id)];
   const target = requireTarget(directory, config);
   let output: string;
   if (target === 'local') {

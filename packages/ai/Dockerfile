@@ -4,7 +4,7 @@ COPY dist/ ./dist/
 COPY catalogs/ ./catalogs/
 COPY templates/ ./templates/
 COPY world/ ./world/
-COPY tuning.json start.sh ./
+COPY start.sh ./
 ENV NODE_ENV=production
 ENV AI_DATA=/app/data
 RUN chmod +x /app/start.sh

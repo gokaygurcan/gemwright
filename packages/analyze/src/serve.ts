@@ -1,4 +1,4 @@
-import { basename, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { loadShard } from '@gemwright/common/config/shard';
@@ -7,14 +7,17 @@ import { simulateDecision } from '@gemwright/deployment/simulate';
 import { pullFrom } from '@gemwright/deployment/target';
 
 import { type Analysis, analyze } from './analysis';
+import { choiceDoc } from './choice';
+import { choicesDoc, residentChoicesDoc, spanOf } from './choices';
 import { findClientFiles } from './client';
-import { decisionDoc, decisionsDoc } from './decisions';
 import type { Doc } from './doc';
 import { economyDoc } from './economy';
 import { historyDoc, readHistory, recordHistory } from './history';
+import { Lab } from './lab/lab';
+import { labRoutes } from './lab/routes';
+import { landOf } from './land';
 import { readLived, withLived } from './lived';
 import { livedDecisionsDoc, livedLoopsDoc, livedSpentDoc, livedTroubleDoc } from './lived-pages';
-import { loopsDoc } from './loops';
 import { mapData } from './map';
 import { mindsDoc } from './minds';
 import { overviewDoc } from './overview';
@@ -24,13 +27,10 @@ import { deletePull, isStamp, listPulls, savesOf } from './pull-store';
 import { savedAt } from './pulls';
 import type { PullsResponse } from './pulls-api';
 import { readPulse } from './pulse';
-import { questionDoc, questionsDoc } from './questions';
-import { replayDoc } from './replay';
 import { readResidents, residentsDoc } from './residents';
+import { Runs } from './runs';
 import { search } from './search';
-import { spentDoc } from './spent';
 import { eventDoc, simulationDoc, traceDoc } from './trace';
-import { readLasting, troubleDoc } from './trouble';
 
 // The app: built with Tailwind by web/build.ts, read from dist/web when built, and from source
 // rebuilt in memory on each page load (its scripts and styles come from the latest build).
@@ -66,6 +66,7 @@ const { values } = parseArgs({
   }
 });
 const client = findClientFiles(values.files);
+const clientDirectory = client?.directory;
 if (!client) console.log('No client files found: character pages show tables only (pass --files).');
 const directory = resolve(values.shard ?? '.');
 
@@ -76,14 +77,17 @@ interface Open {
   savedAt: string;
   analysis: Analysis;
   saves: string;
-  lasting: ReturnType<typeof readLasting>;
   residents: ReturnType<typeof readResidents>;
   history: ReturnType<typeof readHistory>;
   pulse: ReturnType<typeof readPulse>;
   lived: ReturnType<typeof readLived>;
+  runs?: Runs;
+  lab?: Lab;
 }
 let open: Open | undefined;
 const load = (saves: string, label: string, stamp?: string) => {
+  open?.runs?.stopAll();
+  open?.lab?.stop();
   const started = performance.now();
   const analysis = analyze(saves);
   const lived = readLived(saves);
@@ -95,12 +99,20 @@ const load = (saves: string, label: string, stamp?: string) => {
     savedAt: savedAt(saves).toISOString(),
     analysis,
     saves,
-    lasting: readLasting(saves),
     residents,
     history: readHistory(saves),
     pulse: readPulse(saves),
     lived
   };
+  // Decisions are made again on the land of the deployment the pull came from, with the client's map
+  // files: in order by a run (runs.ts), and one at a time or over a stretch by the lab (lab/lab.ts).
+  if (lived && clientDirectory) {
+    const pull = join(saves, '../..');
+    const landOfPull = async () => landOf(directory, await loadShard(directory, () => {}), pull, clientDirectory);
+    const runs = new Runs(pull, landOfPull, () => open?.lab?.forget());
+    open.runs = runs;
+    open.lab = new Lab(pull, lived, runs, landOfPull);
+  }
   console.log(`Read ${saves} in ${Math.round(performance.now() - started)} ms.`);
 };
 if (values.local) load(resolve(values.local), `Local save ${values.local}`);
@@ -147,6 +159,20 @@ const page = (make: (o: Open) => Doc | undefined, what = 'page') => {
   return doc ? Response.json(doc) : notFound(what);
 };
 
+const hoursOf = (request: Request) => Number(new URL(request.url).searchParams.get('hours')) || undefined;
+// Starting or stopping runs of the open pull's decisions (runs.ts).
+const run = (act: (o: Open & { lived: NonNullable<Open['lived']> }, runs: Runs) => void) => {
+  if (!open) return Response.json({ error: 'No pull is open.' }, { status: 409 });
+  if (!open.lived || !open.runs)
+    return Response.json({ error: 'Runs need a pull with history and the client’s files (--files).' }, { status: 409 });
+  act(open as Open & { lived: NonNullable<Open['lived']> }, open.runs);
+  return Response.json({ ok: true });
+};
+process.on('SIGINT', () => {
+  open?.runs?.stopAll();
+  process.exit(130);
+});
+
 const server = Bun.serve({
   hostname: '127.0.0.1',
   port: Number(values.port ?? 4100),
@@ -183,27 +209,57 @@ const server = Bun.serve({
       }
     },
     '/api/page/overview': () =>
-      page((o) =>
-        overviewDoc(o.analysis, o.residents, o.lasting, o.history, o.pulse, o.savedAt, Boolean(client), o.lived)
-      ),
+      page((o) => overviewDoc(o.analysis, o.residents, o.history, o.pulse, o.savedAt, Boolean(client), o.lived)),
     '/api/page/players': () => page((o) => playersDoc(o.analysis)),
     '/api/page/residents': () => page((o) => residentsDoc(o.analysis, o.residents)),
-    '/api/page/trouble': () => page((o) => (o.lived ? livedTroubleDoc(o.lived) : troubleDoc(o.lasting))),
-    '/api/page/loops': () => page((o) => (o.lived ? livedLoopsDoc(o.lived) : loopsDoc(o.lasting))),
+    '/api/page/trouble': () => page((o) => o.lived && livedTroubleDoc(o.lived)),
+    '/api/page/loops': () => page((o) => o.lived && livedLoopsDoc(o.lived)),
     '/api/page/history': () => page((o) => historyDoc(o.history)),
     '/api/page/economy': () => page((o) => economyDoc(o.saves)),
-    '/api/page/spent': () => page((o) => (o.lived ? livedSpentDoc(o.lived, o.saves) : spentDoc(o.saves))),
+    '/api/page/spent': () => page((o) => o.lived && livedSpentDoc(o.lived, o.saves)),
     '/api/page/minds': () => page((o) => mindsDoc(o.saves)),
     '/api/page/decisions': (request) => {
       const query = new URL(request.url).searchParams;
       const at = Math.max(0, Number(query.get('page')) || 0);
       const kind = query.get('kind') ?? undefined;
-      return page((o) => (o.lived ? livedDecisionsDoc(o.lived, at, kind) : decisionsDoc(o.saves, at, kind)));
+      return page((o) => o.lived && livedDecisionsDoc(o.lived, at, kind));
     },
-    '/api/page/decision/:id': (request) => page((o) => decisionDoc(o.saves, request.params.id), 'decision'),
-    '/api/page/questions': (request) =>
-      page((o) => questionsDoc(o.saves, Math.max(0, Number(new URL(request.url).searchParams.get('page')) || 0))),
-    '/api/page/question/:id': (request) => page((o) => questionDoc(o.saves, request.params.id), 'question'),
+    '/api/page/choices': (request) => page((o) => o.lived && choicesDoc(o.lived, o.runs, hoursOf(request))),
+    '/api/page/choices/:resident': (request) => {
+      const query = new URL(request.url).searchParams;
+      return page(
+        (o) =>
+          o.lived &&
+          residentChoicesDoc(
+            o.lived,
+            o.runs,
+            request.params.resident,
+            Math.max(0, Number(query.get('page')) || 0),
+            hoursOf(request),
+            query.get('only') ?? undefined
+          ),
+        'resident'
+      );
+    },
+    '/api/page/choice/:id': (request) =>
+      page((o) => o.lived && choiceDoc(o.lived, o.runs, Number(request.params.id)), 'decision'),
+    '/api/runs/all': {
+      POST: (request) =>
+        run((o, runs) => {
+          const { since, until } = spanOf(o.lived, hoursOf(request));
+          for (const r of o.lived.residents.values()) runs.start(r.id, since, until);
+        })
+    },
+    '/api/runs/stop': { POST: () => run((_, runs) => runs.stopAll()) },
+    '/api/runs/:resident': {
+      POST: (request) =>
+        run((o, runs) => {
+          const { since, until } = spanOf(o.lived, hoursOf(request));
+          runs.start(request.params.resident, since, until);
+        })
+    },
+    '/api/runs/:resident/stop': { POST: (request) => run((_, runs) => runs.stop(request.params.resident)) },
+    ...labRoutes(() => open && { lived: open.lived, runs: open.runs, lab: open.lab }),
     '/api/page/search': (request) => {
       const query = new URL(request.url).searchParams.get('q') ?? '';
       return page((o) => searchDoc(o.analysis, query, search(o.analysis, query), client));
@@ -234,8 +290,8 @@ const server = Bun.serve({
     '/api/page/replay/:serial': (request) =>
       page((o) => {
         const serial = Number(request.params.serial);
-        const v2 = o.lived && [...o.lived.residents.values()].find((r) => r.serial === serial);
-        return v2 ? traceDoc(o.saves, v2.id, 0) : replayDoc(o.saves, serial);
+        const lived = o.lived && [...o.lived.residents.values()].find((r) => r.serial === serial);
+        return lived && traceDoc(o.saves, lived.id, 0);
       }, 'resident'),
     '/api/page/mobile/:serial': (request) =>
       page((o) => {
@@ -249,7 +305,7 @@ const server = Bun.serve({
       }, 'item'),
     '/api/map/:map': (request) => {
       if (!open) return Response.json({ error: 'No pull is open.' }, { status: 409 });
-      const data = mapData(open.analysis, Number(request.params.map), open.lasting);
+      const data = mapData(open.analysis, Number(request.params.map), open.lived);
       return data ? Response.json({ ...data, drawn: Boolean(client) }) : notFound('facet');
     },
     '/maptile/:map/:level/:tx/:ty': (request) => {

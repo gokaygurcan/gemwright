@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@gemwright/simulator",
+  "description": "What a resident perceives, could do, and what comes of it",
+  "version": "0.11.0",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "homepage": "https://gemwright.org/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaygurcan/gemwright.git",
+    "directory": "packages/simulator"
+  },
+  "engines": {
+    "bun": ">=1.4.3"
+  },
+  "scripts": {
+    "dev": "bun --watch src/serve.ts"
+  },
+  "devDependencies": {
+    "@gemwright/common": "workspace:*"
+  }
+}

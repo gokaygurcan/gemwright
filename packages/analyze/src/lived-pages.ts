@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { type Cell, type Doc, link, num } from './doc';
 import type { Lived, Moment } from './lived';
 
-// The pages of what the v2 residents lived (lived.ts): their decisions, where they broke off or
+// The pages of what the residents lived (lived.ts): their decisions, where they broke off or
 // found nowhere to go, where they came to grief, and what their days brought.
 const PAGE = 500;
 const time = (at: number) => new Date(at).toISOString().slice(0, 19).replace('T', ' ');

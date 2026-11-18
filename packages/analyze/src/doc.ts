@@ -32,6 +32,8 @@ export type Block =
       empty?: string;
     }
   | { kind: 'pre'; text: string }
+  // Buttons that each send a request to the analyzer server (POST /api<post>), then load the page again.
+  | { kind: 'actions'; items: { label: string; post: string; tone?: 'primary' | 'danger' }[] }
   // A picture drawn from the client's art, such as an item's.
   | { kind: 'art'; src: string; alt: string }
   // Server-made markup (the character scene drawn from the client's art), with its own style.
@@ -43,25 +45,7 @@ export type Block =
   // How a whole splits into parts, in a fixed order so each part keeps its colour.
   | { kind: 'shares'; label: string; parts: { label: string; value: number }[] }
   // A small world map with dots, linking to the full map.
-  | { kind: 'minimap'; map: number; width: number; height: number; drawn: boolean; dots: Dot[] }
-  // One decision's path from its start to where it ended (packages/ai/src/v1/decision-flow.ts).
-  | { kind: 'flow'; start: FlowEnd; steps: FlowStep[]; end: FlowEnd };
-
-export interface FlowEnd {
-  label: string;
-  detail?: string;
-}
-export interface FlowOption {
-  id: string;
-  weight?: number;
-  factors?: Record<string, number>;
-  note?: string;
-  about?: string;
-}
-export type FlowStep =
-  | { kind: 'check'; label: string; passed: boolean; detail?: string; exit?: string; more?: string }
-  | { kind: 'fork'; label: string; options: FlowOption[]; taken: string; detail?: string }
-  | { kind: 'note'; label: string; detail?: string };
+  | { kind: 'minimap'; map: number; width: number; height: number; drawn: boolean; dots: Dot[] };
 
 export interface Stat {
   label: string;
@@ -83,6 +67,8 @@ export interface Doc {
   title: string;
   subtitle?: Cell[];
   blocks: Block[];
+  // Loaded again every so many seconds while what it shows is still changing (a run under way).
+  refresh?: number;
 }
 
 export const link = (text: string, href: string, muted?: string): Cell => ({ text, href, muted });

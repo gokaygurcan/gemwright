@@ -1,27 +1,29 @@
 import { expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gzipSync } from 'node:zlib';
 
-import { configureTelemetry, emitEvent, inSession, inTrace, makeEvent, operational } from '../src/telemetry';
+import { openLifeJournal } from '../src/life-journal';
+import { openPersistence } from '../src/persistence';
+import {
+  configureTelemetry,
+  emitEvent,
+  inSession,
+  inTrace,
+  makeEvent,
+  operational,
+  registerActor
+} from '../src/telemetry';
+import { startRuntimeHealth } from '../src/telemetry-health';
 import { RuntimeMetrics } from '../src/telemetry-metrics';
 import type { TelemetryEvent } from '../src/telemetry-schema';
-import { EventReplay, replayFiles } from '../src/v1/event-replay';
-import { actionScope, installExecution } from '../src/v1/execution-session';
-import { registerLifeEvents } from '../src/v1/life-events';
-import { openLifeJournal } from '../src/v1/life-journal';
-import { openPersistence } from '../src/v1/persistence';
-import { startRuntimeHealth } from '../src/v1/telemetry-health';
-import { observePerception } from '../src/v1/telemetry-perception';
 import { behaviorFixture } from './behavior-fixture';
 
 const fixture = () => {
   const f = behaviorFixture();
   f.world.connected = true;
-  const events: TelemetryEvent[] = [];
-  registerLifeEvents(f.session, 'resident-1', 'Resident', (event) => events.push(event));
-  return { ...f, events };
+  registerActor(f.session, 'resident-1', 'Resident');
+  return f;
 };
 
 test('parallel resident traces preserve actor, intent and parents across awaits and redact secrets', async () => {
@@ -62,101 +64,14 @@ test('parallel resident traces preserve actor, intent and parents across awaits 
   }
 });
 
-test('execution correlates authorization, dispatch and observed outcome', async () => {
-  const f = fixture();
-  const arbiter = installExecution(f.session);
-  try {
-    await inSession(f.session, () =>
-      inTrace({ intentId: 'earn-1', traceId: 'earn-1' }, () =>
-        actionScope(f.session, 'work', 'earn', async () => {
-          await arbiter.execute(
-            { name: 'use', args: [42], resources: [], async: true, atomic: false, confirmed: true },
-            async () => {}
-          );
-        })
-      )
-    );
-    const lifecycle = f.events.filter((event) => event.type === 'action_lifecycle' && event.details.command === 'use');
-    expect(lifecycle.map((event) => event.result)).toEqual([
-      'proposed',
-      'authorized',
-      'dispatched',
-      'observed',
-      'completed'
-    ]);
-    expect(new Set(lifecycle.map((event) => event.actionId)).size).toBe(1);
-    expect(lifecycle.every((event) => event.intentId === 'earn-1')).toBe(true);
-  } finally {
-    f.session.signal?.dispatchEvent(new Event('abort'));
-    arbiter.close();
-  }
-});
-
-test('decoded observations replay state, removals and unknowns without inventing outcomes', () => {
-  const f = fixture();
-  const stop = observePerception(f.session);
-  try {
-    f.world.ready = true;
-    f.world.apply(Buffer.from([0x72, 0, 0, 0, 0]));
-    const packet = Buffer.alloc(13);
-    packet[0] = 0xaf;
-    packet.writeUInt32BE(42, 1);
-    packet.writeUInt32BE(99, 5);
-    f.world.apply(packet);
-    const replay = new EventReplay();
-    for (const event of f.events) replay.accept(event);
-    const state = replay.sessions.values().next().value;
-    expect(state?.self.health).toMatchObject({ kind: 'observed', value: { current: 100 } });
-    expect(
-      replay.timeline.some(
-        (event) => event.details.events && JSON.stringify(event.details.events).includes('entity-death')
-      )
-    ).toBe(true);
-    expect(JSON.stringify(replay.summary())).not.toContain('creditedKill":true');
-    expect(state?.entities.has(10)).toBe(true);
-  } finally {
-    stop();
-  }
-});
-
-test('streaming replay handles concatenated gzip, duplicate IDs, gaps, legacy records and damaged tails', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'gemwright-replay-'));
-  try {
-    const a = makeEvent('test', 'one', 'observed', {});
-    const b = makeEvent('test', 'two', 'failed', {});
-    const file = join(directory, 'events.jsonl.gz');
-    await writeFile(file, Buffer.concat([gzipSync(`${JSON.stringify(a)}\n`), gzipSync(`${JSON.stringify(b)}\n`)]));
-    const summary = await replayFiles([file]);
-    expect(summary.matched).toBe(2);
-    expect(summary.issues.incompleteInput).toBe(0);
-    const replay = new EventReplay({ limit: 1 });
-    replay.accept(a);
-    replay.accept(a);
-    replay.accept({ ...b, sequence: b.sequence + 2 });
-    replay.accept({ schemaVersion: 1 });
-    replay.accept('invalid');
-    expect(replay.summary().issues).toMatchObject({ duplicate: 1, gaps: 2, legacy: 1, malformed: 1, omitted: 1 });
-    expect(replay.summary().replayComplete).toBe(false);
-    const bytes = await readFile(file);
-    await writeFile(file, bytes.subarray(0, bytes.length - 6));
-    expect((await replayFiles([file])).issues.incompleteInput).toBeGreaterThan(0);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
-
-test('metrics and retained timelines stay bounded under high-cardinality input', () => {
+test('metrics stay bounded under high-cardinality input', () => {
   const metrics = new RuntimeMetrics();
-  const replay = new EventReplay({ limit: 10 });
   for (let i = 0; i < 10000; i++) {
     metrics.increment(`entity-${i}`);
     metrics.duration(`latency-${i}`, i);
-    replay.accept(makeEvent('test', `event-${i}`, 'observed', {}));
   }
   expect(Object.keys(metrics.snapshot().counters).length).toBeLessThanOrEqual(513);
   expect(Object.keys(metrics.snapshot().histograms).length).toBeLessThanOrEqual(65);
-  expect(replay.timeline).toHaveLength(10);
-  expect(Object.keys(replay.counts).length).toBeLessThanOrEqual(513);
 });
 
 test('population event load keeps timers moving and acknowledges journal and state durability', async () => {
@@ -247,57 +162,4 @@ test('service console and component logs use JSON while standalone CLI output st
   expect(await new Response(cli.stdout).text()).toBe('report\n');
   expect(await new Response(cli.stderr).text()).toBe('plain\n');
   expect(await cli.exited).toBe(0);
-});
-
-test('resident health telemetry exposes observed status and the reason work is blocked', async () => {
-  const f = fixture();
-  const { registerGoal, chooseGoal } = await import('../src/v1/resident-goal');
-  Reflect.set(f.session, 'timing', { snapshot: () => ({}) });
-  registerGoal(f.session, f.checkpoint);
-  chooseGoal(f.checkpoint, {
-    safe: true,
-    ready: true,
-    learning: false,
-    earningNeeded: true,
-    evidence: { funds: 0, bankKnown: true, gold: 0, products: 0, orders: 0, goods: 10, skills: {}, health: 100 },
-    planning: {
-      condition: 'assets',
-      coarse: 'coarse-condition',
-      available: true,
-      riskTolerance: 0,
-      exposed: 2000,
-      securable: 2000,
-      escapeKnown: false,
-      uncertainty: 0.2,
-      deathRisk: 0.05
-    }
-  });
-  const events: TelemetryEvent[] = [];
-  const restore = configureTelemetry({ sink: (event) => events.push(event) });
-  const stop = startRuntimeHealth({
-    sessions: new Map([['resident-1', f.session]]),
-    directory: tmpdir(),
-    persistence: () => ({}),
-    journal: () => ({}),
-    intervalMs: 5
-  });
-  try {
-    const until = Date.now() + 1000;
-    while (!events.some((event) => event.type === 'resident_health') && Date.now() < until) await Bun.sleep(5);
-    const event = events.find((event) => event.type === 'resident_health');
-    expect(event?.details).toMatchObject({
-      perception: {
-        self: {
-          health: { kind: 'observed', value: { current: 100, max: 100 } },
-          mana: { kind: 'observed' },
-          stamina: { kind: 'observed' },
-          weight: { kind: 'observed' }
-        }
-      },
-      goal: { assessment: { safe: true, reason: 'risk-over-budget', exposed: 2000, deathRisk: 0.05 } }
-    });
-  } finally {
-    stop();
-    restore();
-  }
 });

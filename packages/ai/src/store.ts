@@ -1,0 +1,414 @@
+import { Database } from 'bun:sqlite';
+import { chmodSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+import { ActivityRecorder, activitySchema } from './activity';
+import { lookOf } from './appearance';
+import { allocatePopulation, type CharacterTemplate, type PopulationConfig, validateConfig } from './config';
+import { playerName } from './names';
+import { shardProfile } from './shard-profile';
+import { timed } from './stall-probe';
+import { professionOf } from './world';
+
+// One skill as the server reported it: base and modified value, cap, and lock (0 up, 1 down, 2 locked).
+export interface SkillReading {
+  base: number;
+  value: number;
+  cap?: number;
+  lock?: number;
+}
+
+export interface Resident {
+  id: string;
+  templateId: string;
+  creationVersion: number;
+  policyVersion: number;
+  ordinal: number;
+  proposedName: string;
+  desiredActive: boolean;
+  binding: { accountRef: string; characterSerial: string } | null;
+  revision: number;
+}
+
+interface ResidentRow {
+  id: string;
+  template_id: string;
+  creation_version: number;
+  policy_version: number;
+  ordinal: number;
+  proposed_name: string;
+  desired_active: number;
+  binding_json: string | null;
+  revision: number;
+}
+
+function decode(row: ResidentRow): Resident {
+  return {
+    id: row.id,
+    templateId: row.template_id,
+    creationVersion: row.creation_version,
+    policyVersion: row.policy_version,
+    ordinal: row.ordinal,
+    proposedName: row.proposed_name,
+    desiredActive: row.desired_active === 1,
+    binding: row.binding_json ? JSON.parse(row.binding_json) : null,
+    revision: row.revision
+  };
+}
+
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+// Residents a world no longer plays: retired.json beside that world's database (its data folder),
+// so each shard keeps its own list and none ships with the package.
+export const retiredResidents = (dir: string): Set<string> => {
+  const file = join(dir, 'retired.json');
+  if (!existsSync(file)) return new Set();
+  return new Set(
+    (JSON.parse(readFileSync(file, 'utf8')) as { residents: { id: string }[] }).residents.map((r) => r.id)
+  );
+};
+
+// online.json beside retired.json: when present, only the residents it lists log in; the others
+// stay active (not retired), just offline, until they are added. `record: true` records everything
+// that resident does and receives (recording.ts).
+export const onlineResidents = (dir: string): Map<string, { record: boolean }> | undefined => {
+  const file = join(dir, 'online.json');
+  if (!existsSync(file)) return undefined;
+  const list = (JSON.parse(readFileSync(file, 'utf8')) as { residents: { id: string; record?: boolean }[] }).residents;
+  return new Map(list.map((r) => [r.id, { record: r.record === true }]));
+};
+
+export class ResidentStore {
+  private readonly db: Database;
+
+  constructor(
+    private readonly path: string,
+    readonly shardId: string,
+    database?: Database,
+    readonly flush: () => Promise<void> = () => Promise.resolve()
+  ) {
+    if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+    this.db = database ?? new Database(path, { create: true, strict: true });
+    // The database holds game-account passwords: owner-only, like the credential files it replaces.
+    if (path !== ':memory:')
+      for (const file of [path, `${path}-wal`, `${path}-shm`]) if (existsSync(file)) chmodSync(file, 0o600);
+    try {
+      this.db.run('PRAGMA busy_timeout = 5000');
+      this.db.run('PRAGMA foreign_keys = ON');
+      this.db.run('PRAGMA journal_mode = WAL');
+      this.db.run('PRAGMA synchronous = FULL');
+      this.db
+        .transaction(() => {
+          const version = this.db.query<{ user_version: number }, []>('PRAGMA user_version').get()?.user_version;
+          if (version === undefined || version < 0 || version > 5)
+            throw new Error(`Unsupported resident database version: ${version}`);
+          if (version === 0) {
+            this.db.exec(`
+            CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE templates (
+              id TEXT NOT NULL, version INTEGER NOT NULL, snapshot TEXT NOT NULL,
+              PRIMARY KEY (id, version)
+            );
+            CREATE TABLE residents (
+              id TEXT PRIMARY KEY,
+              template_id TEXT NOT NULL,
+              creation_version INTEGER NOT NULL,
+              policy_version INTEGER NOT NULL,
+              ordinal INTEGER NOT NULL,
+              proposed_name TEXT NOT NULL,
+              desired_active INTEGER NOT NULL CHECK (desired_active IN (0, 1)),
+              binding_json TEXT,
+              checkpoint_json TEXT NOT NULL,
+              revision INTEGER NOT NULL DEFAULT 0,
+              UNIQUE (template_id, ordinal),
+              FOREIGN KEY (template_id, creation_version) REFERENCES templates(id, version),
+              FOREIGN KEY (template_id, policy_version) REFERENCES templates(id, version)
+            );
+            PRAGMA user_version = 1;
+          `);
+          }
+          if (version === 0 || version === 1) {
+            this.db.exec(`CREATE TABLE runtime_lease (
+              id INTEGER PRIMARY KEY CHECK (id = 1), token TEXT NOT NULL, expires_at INTEGER NOT NULL
+            ); PRAGMA user_version = 2;`);
+          }
+          // Version 3: game-account credentials and hourly skill snapshots live with the residents,
+          // so a population's container keeps everything in this one private file.
+          if (version !== undefined && version < 3) {
+            this.db.exec(`CREATE TABLE credentials (
+              resident_id TEXT PRIMARY KEY,
+              username TEXT NOT NULL UNIQUE,
+              password TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+            CREATE TABLE skill_snapshots (
+              resident_id TEXT PRIMARY KEY,
+              recorded_at INTEGER NOT NULL,
+              skills_json TEXT NOT NULL
+            );
+            PRAGMA user_version = 3;`);
+          }
+          // Version 5: activity totals and position samples for population reports (activity.ts).
+          if (version < 5) this.db.exec(`${activitySchema}\nPRAGMA user_version = 5;`);
+          const existing = this.db
+            .query<{ value: string }, [string]>('SELECT value FROM metadata WHERE key = ?')
+            .get('shardId');
+          if (existing && existing.value !== shardId) throw new Error('Resident database belongs to a different shard');
+          this.db.query('INSERT OR IGNORE INTO metadata (key, value) VALUES (?, ?)').run('shardId', shardId);
+        })
+        .immediate();
+    } catch (error) {
+      this.db.close();
+      throw error;
+    }
+  }
+
+  metadata(key: string): string | null {
+    return (
+      this.db.query<{ value: string }, [string]>('SELECT value FROM metadata WHERE key = ?').get(key)?.value ?? null
+    );
+  }
+
+  setMetadata(key: string, value: string) {
+    this.db.query('INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)').run(key, value);
+  }
+
+  credentials(residentId: string): { username: string; password: string } | null {
+    return (
+      this.db
+        .query<{ username: string; password: string }, [string]>(
+          'SELECT username, password FROM credentials WHERE resident_id = ?'
+        )
+        .get(residentId) ?? null
+    );
+  }
+
+  // Inserts unless the resident already has an account; returns the stored credentials either way.
+  storeCredentials(residentId: string, credentials: { username: string; password: string }) {
+    this.db
+      .query('INSERT OR IGNORE INTO credentials (resident_id, username, password, created_at) VALUES (?, ?, ?, ?)')
+      .run(residentId, credentials.username, credentials.password, new Date().toISOString());
+    const stored = this.credentials(residentId);
+    if (!stored) throw new Error('Resident credentials could not be stored');
+    return stored;
+  }
+
+  skillSnapshot(residentId: string): { recordedAt: number; skills: Record<string, SkillReading> } | null {
+    const row = this.db
+      .query<{ recorded_at: number; skills_json: string }, [string]>(
+        'SELECT recorded_at, skills_json FROM skill_snapshots WHERE resident_id = ?'
+      )
+      .get(residentId);
+    return row ? { recordedAt: row.recorded_at, skills: JSON.parse(row.skills_json) } : null;
+  }
+
+  saveSkillSnapshot(residentId: string, skills: Record<string, SkillReading>, now = Date.now()) {
+    this.db
+      .query(
+        `INSERT INTO skill_snapshots (resident_id, recorded_at, skills_json) VALUES (?, ?, ?)
+         ON CONFLICT (resident_id) DO UPDATE SET recorded_at = excluded.recorded_at, skills_json = excluded.skills_json`
+      )
+      .run(residentId, now, JSON.stringify(skills));
+  }
+
+  close(): void {
+    this.db.close();
+  }
+
+  acquireLease(ttlMs = 30000, now = Date.now()): string {
+    const token = crypto.randomUUID();
+    const result = this.db
+      .query(`INSERT INTO runtime_lease (id, token, expires_at) VALUES (1, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET token = excluded.token, expires_at = excluded.expires_at
+      WHERE runtime_lease.expires_at <= ?`)
+      .run(token, now + ttlMs, now);
+    if (result.changes !== 1) throw new Error('Another AI runtime owns this shard; wait for its lease to expire');
+    return token;
+  }
+
+  renewLease(token: string, ttlMs = 30000, now = Date.now()): void {
+    const result = this.db
+      .query('UPDATE runtime_lease SET expires_at = ? WHERE id = 1 AND token = ? AND expires_at > ?')
+      .run(now + ttlMs, token, now);
+    if (result.changes !== 1) throw new Error('AI runtime lease lost or expired');
+  }
+
+  releaseLease(token: string): void {
+    this.db.query('DELETE FROM runtime_lease WHERE id = 1 AND token = ?').run(token);
+  }
+
+  list(): Resident[] {
+    return this.db.query<ResidentRow, []>('SELECT * FROM residents ORDER BY template_id, ordinal').all().map(decode);
+  }
+
+  activityRecorder() {
+    return new ActivityRecorder(this.db);
+  }
+
+  get(id: string): Resident | undefined {
+    const row = this.db.query<ResidentRow, [string]>('SELECT * FROM residents WHERE id = ?').get(id);
+    return row ? decode(row) : undefined;
+  }
+
+  bindings(): { id: string; name: string; serial: number }[] {
+    return this.db
+      .query<{ id: string; proposed_name: string; binding_json: string }, []>(
+        'SELECT id, proposed_name, binding_json FROM residents WHERE binding_json IS NOT NULL'
+      )
+      .all()
+      .map((row) => ({
+        id: row.id,
+        name: row.proposed_name,
+        serial: Number(JSON.parse(row.binding_json).characterSerial)
+      }));
+  }
+
+  template(id: string, version: number): CharacterTemplate | null {
+    const row = this.db
+      .query<{ snapshot: string }, [string, number]>('SELECT snapshot FROM templates WHERE id = ? AND version = ?')
+      .get(id, version);
+    return row ? JSON.parse(row.snapshot) : null;
+  }
+
+  // `retired`: resident ids that no longer play (retired.json in the database's folder). They
+  // stay counted in their template's allocation, so nobody is created in their place, and are
+  // never activated.
+  reconcile(
+    input: PopulationConfig,
+    retired: ReadonlySet<string> = this.path === ':memory:' ? new Set() : retiredResidents(dirname(this.path))
+  ): { created: number; active: number; parked: number } {
+    const config = validateConfig(input);
+    if (config.shardId !== this.shardId) throw new Error('Configuration belongs to a different shard');
+    const allocation = allocatePopulation(config);
+    return this.db
+      .transaction(() => {
+        for (const template of config.templates) {
+          const snapshot = canonical(template);
+          const previous = this.db
+            .query<{ snapshot: string }, [string, number]>(
+              'SELECT snapshot FROM templates WHERE id = ? AND version = ?'
+            )
+            .get(template.id, template.version);
+          if (previous && previous.snapshot !== snapshot)
+            throw new Error(`Template ${template.id}@${template.version} changed; increment its version`);
+          const latest = this.db
+            .query<{ version: number | null }, [string]>('SELECT MAX(version) AS version FROM templates WHERE id = ?')
+            .get(template.id)?.version;
+          if (latest && template.version < latest)
+            throw new Error(`Template ${template.id} cannot downgrade from version ${latest}`);
+          this.db
+            .query('INSERT OR IGNORE INTO templates (id, version, snapshot) VALUES (?, ?, ?)')
+            .run(template.id, template.version, snapshot);
+        }
+
+        // A resident of a former city-prefixed `<city>-<profession>` template moves to its
+        // profession's template, keeping its id, character, account and progress, and
+        // takes the next ordinal there (ordinals are per template).
+        const configured = new Set(config.templates.map((t) => t.id));
+        const versions = new Map(config.templates.map((t) => [t.id, t.version]));
+        const nextOrdinal = new Map<string, number>();
+        for (const resident of this.list()) {
+          if (configured.has(resident.templateId)) continue;
+          const profession = professionOf(resident.templateId)?.[0];
+          const version = profession && versions.get(profession);
+          if (!profession || !version) continue;
+          const ordinal =
+            nextOrdinal.get(profession) ??
+            (this.db
+              .query<{ last: number | null }, [string]>(
+                'SELECT MAX(ordinal) AS last FROM residents WHERE template_id = ?'
+              )
+              .get(profession)?.last ?? 0) + 1;
+          nextOrdinal.set(profession, ordinal + 1);
+          this.db
+            .query(
+              'UPDATE residents SET template_id = ?, ordinal = ?, creation_version = ?, policy_version = ?, revision = revision + 1 WHERE id = ?'
+            )
+            .run(profession, ordinal, version, version, resident.id);
+        }
+
+        const desired = new Set<string>();
+        const reservedNames = new Set(this.list().map((resident) => resident.proposedName));
+        // A population no larger than the residents already playing keeps exactly those: lowering
+        // the setting to today's count must not swap anyone for the allocation's own picks.
+        const total = Object.values(allocation).reduce((sum, n) => sum + n, 0);
+        const playing = this.list().filter(
+          (resident) => resident.desiredActive && !retired.has(resident.id) && configured.has(resident.templateId)
+        );
+        const pinned = playing.length > 0 && total <= playing.length;
+        if (pinned) for (const resident of playing.slice(0, total)) desired.add(resident.id);
+        let created = 0;
+        for (const template of config.templates) {
+          const target = allocation[template.id] ?? 0;
+          const existing = this.db
+            .query<ResidentRow, [string]>('SELECT * FROM residents WHERE template_id = ? ORDER BY ordinal')
+            .all(template.id);
+          for (const row of existing) {
+            if (row.binding_json || row.proposed_name !== `${template.creation.namePrefix} ${row.ordinal}`) continue;
+            const name = playerName(row.id, reservedNames, lookOf(row.id, shardProfile().races));
+            reservedNames.add(name);
+            this.db
+              .query('UPDATE residents SET proposed_name = ?, revision = revision + 1 WHERE id = ?')
+              .run(name, row.id);
+          }
+          if (pinned) continue;
+          for (const row of existing.filter((r) => !retired.has(r.id)).slice(0, target)) desired.add(row.id);
+          let ordinal = existing.at(-1)?.ordinal ?? 0;
+          for (let index = existing.length; index < target; index++) {
+            ordinal++;
+            const id = crypto.randomUUID();
+            const name = playerName(id, reservedNames, lookOf(id, shardProfile().races));
+            reservedNames.add(name);
+            this.db
+              .query(`INSERT INTO residents
+            (id, template_id, creation_version, policy_version, ordinal, proposed_name, desired_active, checkpoint_json)
+            VALUES (?, ?, ?, ?, ?, ?, 0, ?)`)
+              .run(id, template.id, template.version, template.version, ordinal, name, '{}');
+            desired.add(id);
+            created++;
+          }
+        }
+
+        for (const resident of this.list()) {
+          const active = desired.has(resident.id);
+          const version = versions.get(resident.templateId) ?? resident.policyVersion;
+          if (resident.desiredActive !== active || resident.policyVersion !== version) {
+            this.db
+              .query(
+                'UPDATE residents SET desired_active = ?, policy_version = ?, revision = revision + 1 WHERE id = ?'
+              )
+              .run(Number(active), version, resident.id);
+          }
+        }
+        const residents = this.list();
+        return { created, active: desired.size, parked: residents.length - desired.size };
+      })
+      .immediate();
+  }
+
+  // The character a resident plays, once the shard has named it.
+  bind(id: string, expectedRevision: number, binding: Resident['binding']): Resident {
+    return timed('save', () =>
+      this.db
+        .transaction(() => {
+          const result = this.db
+            .query('UPDATE residents SET binding_json = ?, revision = revision + 1 WHERE id = ? AND revision = ?')
+            .run(binding ? JSON.stringify(binding) : null, id, expectedRevision);
+          if (result.changes !== 1) throw new Error('Resident missing or revision conflict; reload before saving');
+          const row = this.db.query<ResidentRow, [string]>('SELECT * FROM residents WHERE id = ?').get(id);
+          if (!row) throw new Error('Resident disappeared during transaction');
+          return decode(row);
+        })
+        .immediate()
+    );
+  }
+}

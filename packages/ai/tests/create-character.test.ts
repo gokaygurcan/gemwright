@@ -4,9 +4,9 @@ import { skillId } from '@gemwright/common/game/skills';
 import { PlayerSession } from '@gemwright/network/session';
 
 import { mockShard } from '../../network/tests/mock-shard';
-import { validateConfig } from '../src/v1/config';
-import { creationRequest } from '../src/v1/creation-request';
-import { ResidentStore } from '../src/v1/store';
+import { validateConfig } from '../src/config';
+import { creationRequest } from '../src/creation-request';
+import { ResidentStore } from '../src/store';
 import example from '../templates/population.example.json';
 
 // A new resident's first login creates its character from its template (creation-request.ts): the

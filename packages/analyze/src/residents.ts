@@ -5,9 +5,8 @@ import { join } from 'node:path';
 import type { Analysis } from './analysis';
 import { type Doc, link, noDatabase, num } from './doc';
 
-// One row per AI resident: what it is doing, whether it is getting anywhere, and its trouble,
-// from the resident database a pull brings along (<pull>/ai/residents.sqlite: each checkpoint and
-// the kept timers, packages/ai/src/lasting.ts) joined with the save (skills, carried gold).
+// One row per AI resident: the roster a pull brings along (<pull>/ai/residents.sqlite), what it is
+// doing and its trouble as it lived them (lived.ts withLived), joined with the save (skills, gold).
 export interface ResidentRow {
   serial: number;
   name: string;
@@ -19,7 +18,6 @@ export interface ResidentRow {
   setbacks: number;
   deaths: number;
   stranded: number;
-  sideTrade: boolean;
 }
 
 export function readResidents(saves: string): ResidentRow[] | undefined {
@@ -27,48 +25,23 @@ export function readResidents(saves: string): ResidentRow[] | undefined {
   if (!existsSync(file)) return undefined;
   const db = new Database(file, { readonly: true });
   try {
-    const lasting = JSON.parse(
-      db.query<{ value: string }, [string]>('SELECT value FROM metadata WHERE key = ?').get('lasting')?.value ?? '{}'
-    ) as Record<string, [string, number][]>;
-    const per = (table: string) => {
-      const counts = new Map<number, number>();
-      for (const [key, until] of lasting[table] ?? [])
-        if (until > Date.now() - 6 * 3_600_000) {
-          const serial = Number(key.split('|')[0]);
-          counts.set(serial, (counts.get(serial) ?? 0) + 1);
-        }
-      return counts;
-    };
-    const deaths = per('deaths');
-    const stranded = per('stranded');
     const rows = db
-      .query<{ name: string; template: string; binding: string | null; checkpoint: string }, []>(
-        'SELECT proposed_name AS name, template_id AS template, binding_json AS binding, checkpoint_json AS checkpoint FROM residents WHERE desired_active = 1'
+      .query<{ name: string; template: string; binding: string | null }, []>(
+        'SELECT proposed_name AS name, template_id AS template, binding_json AS binding FROM residents WHERE desired_active = 1'
       )
       .all();
-    return rows.map((row) => {
-      const checkpoint = JSON.parse(row.checkpoint) as {
-        goal?: { phase?: string; note?: string } | null;
-        memories?: { at: string }[];
-        funds?: { bank: number };
-        objectives?: Record<string, unknown>;
-        sideTrade?: { until: number };
-      };
-      const serial = Number((JSON.parse(row.binding ?? '{}') as { characterSerial?: string }).characterSerial ?? 0);
-      return {
-        serial,
-        name: row.name,
-        trade: row.template,
-        phase: checkpoint.goal?.phase ?? '',
-        note: checkpoint.goal?.note ?? '',
-        lastActive: Date.parse(checkpoint.memories?.at(-1)?.at ?? '') || 0,
-        bank: checkpoint.funds?.bank ?? 0,
-        setbacks: Object.keys(checkpoint.objectives ?? {}).length,
-        deaths: deaths.get(serial) ?? 0,
-        stranded: stranded.get(serial) ?? 0,
-        sideTrade: (checkpoint.sideTrade?.until ?? 0) > Date.now()
-      };
-    });
+    return rows.map((row) => ({
+      serial: Number((JSON.parse(row.binding ?? '{}') as { characterSerial?: string }).characterSerial ?? 0),
+      name: row.name,
+      trade: row.template,
+      phase: '',
+      note: '',
+      lastActive: 0,
+      bank: 0,
+      setbacks: 0,
+      deaths: 0,
+      stranded: 0
+    }));
   } catch {
     return undefined;
   } finally {
@@ -109,7 +82,7 @@ export function residentsDoc(a: Analysis, rows: ResidentRow[] | undefined): Doc 
             return [
               link(r.name, `/replay/${r.serial}`),
               r.trade,
-              `${r.phase}${r.sideTrade ? ' (side trade)' : ''}`,
+              r.phase,
               r.note.slice(0, 90),
               { text: ago < 0 ? '' : `${ago} min`, sort: ago },
               num(c?.skillTotal ?? 0, 1),

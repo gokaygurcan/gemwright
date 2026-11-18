@@ -1,214 +1,158 @@
 import { expect, test } from 'bun:test';
 
-import { skillId } from '@gemwright/common/game/skills';
+import { harvestTiles } from '@gemwright/common/game/rules';
+import type { PlayerSession } from '@gemwright/network/session';
 
-import { type CombatCapability, comparableCapability } from '../src/v1/combat-capability';
-import { encounterAdvice, rememberExperience } from '../src/v1/experience';
-import { proposeGoals, riskBudget, selectGoal } from '../src/v1/goal-policy';
-import { planningCondition } from '../src/v1/intent';
-import { planAdvice } from '../src/v1/plan-memory';
-import { blockGoal, chooseGoal, type GoalSituation, goalAllows, goalPermission } from '../src/v1/resident-goal';
-import type { Checkpoint } from '../src/v1/store';
-import { behaviorFixture, required } from './behavior-fixture';
+import { Mind } from '../src/mind';
+import { choices } from '../src/planning';
+import type { Terrain } from '../src/terrain';
+import { WorkIndex } from '../src/terrain-work';
+import { traitsOf } from '../src/traits';
+import { seeing } from './fixtures/mind-sync';
 
-const now = 1_000_000_000;
-const checkpoint = (): Checkpoint => ({ goal: null, memories: [], relationships: {} });
-const situation = (): GoalSituation => ({
-  safe: true,
-  ready: true,
-  learning: true,
-  earningNeeded: false,
-  evidence: {
-    funds: 1000,
-    bankKnown: true,
-    gold: 0,
-    products: 0,
-    orders: 0,
-    goods: 4,
-    skills: { '41': 50 },
-    health: 100
-  },
-  planning: {
-    condition: 'skills50-tool1',
-    coarse: 'coarse-condition',
-    available: true,
-    riskTolerance: 0.5,
-    exposed: 100,
-    securable: 100,
-    escapeKnown: true,
-    uncertainty: 0.2,
-    deathRisk: 0.002
-  }
+const rock = harvestTiles.rock.land[0] as number;
+
+test('world indexing finds a distant alternative when the nearest tile is exhausted', () => {
+  const map = Buffer.alloc(512 * 196);
+  for (let block = 0; block < 512; block++)
+    for (let cell = 0; cell < 64; cell++) map.writeUInt16LE(3, block * 196 + 4 + cell * 3);
+  for (const y of [10, 400]) map.writeUInt16LE(rock, (y >> 3) * 196 + 4 + ((y % 8) * 8 + 1) * 3);
+  const index = new WorkIndex(map, Buffer.alloc(0), Buffer.alloc(0));
+  const found = index.best(
+    { land: [rock], statics: [] },
+    { x: 1, y: 10, z: 0 },
+    (point) => (point.y === 10 ? -Infinity : -Math.abs(point.y - 10)),
+    (_kind, distance) => -distance
+  );
+  expect(found).toEqual([{ x: 1, y: 400, z: 0, land: rock }]);
 });
 
-test('intent explains prerequisites, future payoff and evidence for a multi-step order', () => {
-  const c = checkpoint(),
-    s = situation();
-  s.order = 'order:123';
-  const goal = chooseGoal(c, s, now);
-  expect(goal.intent).toMatchObject({
-    outcome: 'Fulfil the accepted bulk order',
-    currentStep: 'order',
-    estimate: { source: 'policy-estimate' }
+test('execution failure changes confidence for that destination without banning its terrain type', () => {
+  const history: { kind: string; data: object }[] = [];
+  const mind = new Mind('r', (e) => history.push(e), traitsOf([], () => 0.5).traits);
+  mind.complete('harvest shovel 2493,560,0', false);
+  expect(mind.chance('harvest shovel 2493,560,0')).toBe(0.5);
+  expect(mind.chance('harvest shovel 2600,500,0')).toBe(1);
+  const replay = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  for (const e of history) replay.observe({ resident: 'r', at: 0, ...e });
+  expect(replay.chance('harvest shovel 2493,560,0')).toBe(0.5);
+});
+
+test('a full pack can choose processing that enables further harvesting', () => {
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits, [], ['Mining']);
+  const observe = (kind: string, data: object) => mind.observe({ resident: 'r', at: 0, kind, data });
+  observe('awake', { serial: 1, self: {}, skills: { Mining: 80 } });
+  observe('revealed', { serial: 2, kind: 'item', parent: 1, layer: 21, is: ['Backpack'] });
+  observe('revealed', { serial: 10, kind: 'item', parent: 2, graphic: 3718, is: ['Pickaxe'] });
+  observe('revealed', { serial: 11, kind: 'item', parent: 2, graphic: 0x19b8, amount: 10, is: ['IronOre'] });
+  observe('changed', { serial: 11, properties: [{ cliloc: 1072789, arguments: '40' }] });
+  const session = {
+    world: {
+      serial: 1,
+      position: { x: 10, y: 10, z: 0, direction: 0 },
+      status: { weight: 40, maxWeight: 40, stamina: 100 },
+      entities: new Map<number, object>([
+        [2, { serial: 2, kind: 'item', parent: 1, layer: 21 }],
+        [10, { serial: 10, kind: 'item', parent: 2, graphic: 3718 }],
+        [11, { serial: 11, kind: 'item', parent: 2, graphic: 0x19b8 }]
+      ])
+    }
+  } as unknown as PlayerSession;
+  const terrain = {
+    bestTiles: () => [{ x: 12, y: 10, z: 0, land: rock }],
+    findTiles: () => []
+  } as unknown as Terrain;
+  const plans = choices(seeing(mind, session), terrain, new Set(), {
+    bankers: [],
+    vendors: [],
+    forges: [{ x: 11, y: 10, z: 0, id: 4017 }]
   });
-  expect(goal.intent?.steps).toEqual(['equip', 'order', 'settle']);
-  expect(goal.intent?.completionEvidence).toContain('Vendor acceptance');
-  s.evidence.products += 10;
-  chooseGoal(c, s, now + 1);
-  expect(c.workGoal?.last).toBeUndefined();
-  s.evidence.orders++;
-  delete s.order;
-  chooseGoal(c, s, now + 2);
-  expect(c.workGoal?.outcomes?.[0]).toMatchObject({ result: 'completed', key: 'order:123' });
+  const processing = plans.find((p) => p.id.startsWith('smelt '));
+  expect(processing).toBeDefined();
+  expect(processing?.steps.filter((s) => s.verb === 'use').map((s) => s.serial)).toEqual([11]);
+  expect(processing?.steps.some((s) => s.verb === 'drop')).toBe(false);
 });
 
-test('risk constraint rejects profitable work with stale evidence or excessive death risk', () => {
-  for (const patch of [{ available: false }, { deathRisk: null }, { deathRisk: 0.9 }]) {
-    const s = situation();
-    Object.assign(required(s.planning), patch);
-    const proposals = proposeGoals(checkpoint(), s, now);
-    expect(proposals.find((p) => p.kind === 'earn')?.allowed).toBe(false);
-    expect(selectGoal(checkpoint(), s, now).kind).toBe('recover');
-  }
-  const s = situation();
-  const usual = riskBudget(s);
-  Object.assign(required(s.planning), { uncertainty: 1 });
-  expect(riskBudget(s)).toBeLessThan(usual);
-  Object.assign(required(s.planning), { uncertainty: 0.2 });
-  Object.assign(required(s.planning), { securable: 5000, escapeKnown: false });
-  expect(riskBudget(s)).toBeLessThan(usual);
+test('resource depletion follows the shard bank boundary and survives replay', () => {
+  const history: { kind: string; data: object }[] = [];
+  const mind = new Mind('r', (e) => history.push(e), traitsOf([], () => 0.5).traits);
+  mind.exhausted({ x: 2493, y: 560, width: 8, height: 8, respawn: 20 * 60_000 });
+  expect(mind.availability(2492, 565)).toBeLessThan(1);
+  expect(mind.availability(2493, 559)).toBe(1);
+  const replay = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  for (const e of history) replay.observe({ resident: 'r', at: 0, ...e });
+  expect(replay.availability(2492, 565)).toBeLessThan(1);
+  expect(replay.availability(2493, 559)).toBe(1);
 });
 
-test('a risky context suspends work and resumes it only after current prerequisites are safe', () => {
-  const c = checkpoint(),
-    s = situation();
-  s.order = 'order:123';
-  const original = chooseGoal(c, s, now);
-  Object.assign(required(s.planning), { deathRisk: 1 });
-  expect(chooseGoal(c, s, now + 1).kind).toBe('recover');
-  expect(c.workGoal?.suspended?.intent?.id).toBe(original.intent?.id);
-  Object.assign(required(s.planning), { deathRisk: 0.002 });
-  expect(chooseGoal(c, s, now + 2).intent?.id).toBe(original.intent?.id);
-});
-
-test('unchanged failures change choice; materially changed skills reopen the candidate', () => {
-  const c = checkpoint(),
-    s = situation();
-  for (let i = 0; i < 6; i++) {
-    const goal = chooseGoal(c, s, now + i * 600_000);
-    if (goal.kind !== 'learn') break;
-    blockGoal(c, 'No verified skill gain', now + i * 600_000);
-  }
-  expect(selectGoal(c, s, now + 3600_000).kind).toBe('earn');
-  expect(planAdvice(c, 'learn', planningCondition(s), now + 3600_000).samples).toBeGreaterThanOrEqual(2);
-  Object.assign(required(s.planning), { condition: 'skills90-tool1' });
-  expect(selectGoal(c, s, now + 3600_000).kind).toBe('learn');
-  expect(planAdvice(c, 'learn', planningCondition(s), now + 86400_001).penalty).toBe(0);
-});
-
-test('a changed prerequisite reopens a short cooldown without waiting for its timer', () => {
-  const c = checkpoint(),
-    s = situation();
-  s.ready = false;
-  expect(chooseGoal(c, s, now).kind).toBe('equip');
-  blockGoal(c, 'No affordable tool', now);
-  expect(chooseGoal(c, s, now + 1).step).toBe('income');
-  delete c.workGoal?.active;
-  Object.assign(required(s.planning), { condition: 'new-funds-new-tool-availability' });
-  expect(chooseGoal(c, s, now + 2).kind).toBe('equip');
-});
-
-test('learning requires observed capability gains and bounded memory survives serialization', () => {
-  const c = checkpoint(),
-    s = situation();
-  chooseGoal(c, s, now);
-  s.evidence.funds += 100;
-  chooseGoal(c, s, now + 1);
-  expect(c.workGoal?.last).toBeUndefined();
-  s.evidence.skills['41'] = 51;
-  chooseGoal(c, s, now + 2);
-  const restored = JSON.parse(JSON.stringify(c)) as Checkpoint;
-  expect(restored.workGoal?.outcomes?.[0]).toMatchObject({ result: 'completed', capability: 1, wealth: 100 });
-  for (let i = 0; i < 50; i++) {
-    delete c.workGoal?.active;
-    chooseGoal(c, s, now + i + 3);
-    blockGoal(c, 'blocked', now + i + 3);
-  }
-  expect(c.workGoal?.outcomes?.length).toBeLessThanOrEqual(32);
-});
-
-test('permissions are local to an async plan and do not leak into a concurrent action', async () => {
-  const { session } = behaviorFixture();
-  let release!: () => void;
-  const waiting = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const optional = goalPermission(session, 'optional', async () => {
-    expect(goalAllows(session, 'optional')).toBe(true);
-    await waiting;
-    expect(goalAllows(session, 'optional')).toBe(true);
-  });
-  expect(goalAllows(session, 'optional')).toBe(false);
-  await goalPermission(session, 'income', async () => {
-    expect(goalAllows(session, 'optional')).toBe(false);
-    expect(goalAllows(session, 'income')).toBe(true);
-  });
-  release();
-  await optional;
-  expect(goalAllows(session, 'optional')).toBe(false);
-});
-
-const capability = (swords: number): CombatCapability => ({
-  skills: { [skillId('Swordsmanship')]: swords },
-  armor: 20,
-  maxHits: 100,
-  weapons: [0xf61]
-});
-test('combat inference is revised after skill growth without rewriting observed defeats', () => {
-  const c = checkpoint();
-  const place = { map: 1, x: 100, y: 100 };
-  for (let i = 0; i < 2; i++)
-    rememberExperience(
-      c,
+test('entering sight retains the combat intention and values the observed target', () => {
+  const where = { x: 0, y: 10, z: 0, map: 1 };
+  const mind = new Mind(
+    'r',
+    () => {},
+    traitsOf([], () => 0.5).traits,
+    [
       {
-        id: `loss${i}`,
-        kind: 'combat',
-        at: now + i,
-        ...place,
-        body: 3,
-        creatureName: 'a zombie',
-        capability: capability(50),
-        outcome: 'death',
-        largestLossRatio: 0.5,
-        lowestHealthRatio: 0,
-        damageRatio: 1
-      },
-      now + i
-    );
-  const before = encounterAdvice(c, place, 3, now + 2, capability(50), 'a zombie');
-  const after = encounterAdvice(c, place, 3, now + 2, capability(90), 'a zombie');
-  expect(before.avoidUntil).toBe(0);
-  expect(before.caution).toBeGreaterThan(0);
-  expect(after.avoidUntil).toBe(0);
-  expect(after.caution).toBeLessThan(before.caution);
-  expect(c.experience?.events).toHaveLength(2);
-  expect(c.experience?.events[0]?.kind).toBe('combat');
-  expect(encounterAdvice(c, place, 3, now + 2, capability(90), 'a custom boss').samples).toBe(0);
-  expect(comparableCapability(capability(50), capability(10))).toBe(1);
-  const craft = { ...capability(50), skills: { ...capability(50).skills, [skillId('Blacksmith')]: 100 } };
-  expect(comparableCapability(capability(50), craft)).toBe(1);
+        name: 'undead',
+        x: 100,
+        y: 10,
+        z: 0,
+        map: 'Trammel',
+        range: 10,
+        max: 1,
+        kinds: ['zombie'],
+        mx: {},
+        delay: [5, 10]
+      }
+    ],
+    ['Macing', 'Tactics']
+  );
+  mind.observe({
+    resident: 'r',
+    at: 0,
+    where,
+    kind: 'awake',
+    data: { serial: 1, self: { health: { current: 100, max: 100 } }, skills: { Macing: 80, Tactics: 80 } }
+  });
+  // It passed the undead spawn once (none in sight then), and knows the way back along the road.
+  mind.observe({ resident: 'r', at: 0, where: { ...where, x: 95 }, kind: 'acted', data: { verb: 'walk' } });
+  mind.observe({ resident: 'r', at: 5000, where, kind: 'acted', data: { verb: 'walk' } });
+  mind.steps = (from, to) => Math.abs(to.x - from.x);
+  const world = { serial: 1, position: { ...where, direction: 2 }, entities: new Map<number, object>() };
+  const session = { world } as unknown as PlayerSession;
+  const places = { bankers: [], vendors: [] };
+  const trip = choices(seeing(mind, session), undefined, new Set(), places).find((p) => p.key.startsWith('go '));
+  expect(trip).toBeDefined();
+  world.position.x = 95;
+  mind.observe({ resident: 'r', at: 1000, where: { ...where, x: 95 }, kind: 'acted', data: { verb: 'walk' } });
+  world.entities.set(20, { serial: 20, kind: 'mobile', name: 'a zombie', position: { x: 96, y: 10, z: 0 } });
+  mind.observe({
+    resident: 'r',
+    at: 1000,
+    kind: 'seen',
+    data: { serial: 20, kind: 'mobile', is: ['Zombie'], hits: 20, maxHits: 100 }
+  });
+  const nearby = choices(seeing(mind, session), undefined, new Set(), places, trip?.source);
+  const continuation = nearby.find((p) => p.id === trip?.id);
+  expect(continuation?.steps.some((s) => s.verb === 'seek')).toBe(true);
+  expect(continuation?.rate).toBe(nearby.find((p) => p.id === 'attack 20')?.rate);
 });
 
-test('a safe resident whose recovery cannot lower a residual risk goes back to work instead of waiting', () => {
-  const c = checkpoint(),
-    s = situation();
-  Object.assign(required(s.planning), { deathRisk: riskBudget(s) * 1.05 });
-  expect(chooseGoal(c, s, now).kind).toBe('recover');
-  blockGoal(c, 'Objective recover exceeded its bounded action time', now, s);
-  const next = chooseGoal(c, s, now + 1);
-  expect(next.step).not.toBe('wait');
-  expect(next.kind).toBe('earn');
-  // A threat is still no residual risk: nothing works through an attack.
-  Object.assign(required(s.planning), { deathRisk: 1 });
-  expect(chooseGoal(checkpoint(), s, now + 2).kind).toBe('recover');
+test('observed movement costs can make walking preferable to running', async () => {
+  const { movement } = await import('../src/motion');
+  const choose = movement({ mounted: false, flying: false, winged: false, stamina: 10 }, (key) => ({
+    steps: 10,
+    seconds: key.includes('run') ? 2 : 4,
+    stamina: key.includes('run') ? 10 : 0
+  }));
+  expect(choose(100).running).toBe(false);
+});
+
+test('movement experience survives history replay', () => {
+  const history: { kind: string; data: object }[] = [];
+  const mind = new Mind('r', (e) => history.push(e), traitsOf([], () => 0.5).traits);
+  mind.locomotion.observed('foot run', 10, 2, 8);
+  const replay = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  for (const event of history) replay.observe({ resident: 'r', at: 0, ...event });
+  expect(replay.locomotion.experience('foot run')).toEqual({ steps: 10, seconds: 2, stamina: 8 });
 });

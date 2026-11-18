@@ -2,7 +2,7 @@ import { Database } from 'bun:sqlite';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-// What the v2 residents lived, from their history (<pull>/ai/history.sqlite, packages/ai v2/history.ts):
+// What the residents lived, from their history (<pull>/ai/history.sqlite, packages/ai history.ts):
 // the facts the pages count, each over the hours before the history's newest event, so an old pull
 // reads as of when it was taken. Residents are matched to the save by their character serial
 // (<pull>/ai/residents.sqlite).
@@ -160,7 +160,7 @@ function identities(file: string) {
   return found;
 }
 
-// The resident rows (residents.ts) as the v2 residents lived them: what they are doing and why, when
+// The resident rows (residents.ts) as the residents lived them: what they are doing and why, when
 // last active, their recent deaths, strandings and refused plans, and their bank as last sampled.
 export function withLived<
   T extends {

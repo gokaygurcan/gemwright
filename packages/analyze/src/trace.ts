@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { type Cell, type Doc, link } from './doc';
 
-// Everything a v2 resident lived, newest first: each thing it perceived, noticed, said to itself,
+// Everything a resident lived, newest first: each thing it perceived, noticed, said to itself,
 // decided and did, as its history holds it (ai/history.sqlite). A decision can be weighed again
 // from what it knew then (/simulate/<id>).
 const PAGE = 500;
@@ -17,7 +17,7 @@ const opened = (saves: string) => {
 
 export function traceDoc(saves: string, resident: string, page: number, kinds?: string, before?: number): Doc {
   const db = opened(saves);
-  if (!db) return { title: 'Trace', blocks: [{ kind: 'note', text: 'This pull has no v2 history.' }] };
+  if (!db) return { title: 'Trace', blocks: [{ kind: 'note', text: 'This pull has no history.' }] };
   try {
     const where = ['resident = ?'];
     const args: (string | number)[] = [resident];
@@ -82,7 +82,7 @@ export function traceDoc(saves: string, resident: string, page: number, kinds?: 
 }
 
 // What a decision chose, and a narration in words; anything else as its data, shortened.
-function summary(kind: string, raw: string) {
+export function summary(kind: string, raw: string) {
   const data = JSON.parse(raw) as Record<string, unknown>;
   if (kind === 'considered')
     return `${data.doing} (rate ${Number(data.rate ?? 0).toFixed(3)}, ${data.ms} ms after ${data.trigger || 'start'})`;
@@ -136,7 +136,7 @@ type Simulation = {
   ms: number;
 };
 
-// A decision weighed again (the AI's v2/simulate.ts), beside what it weighed live.
+// A decision weighed again (the AI's simulate.ts), beside what it weighed live.
 export function simulationDoc(report: Simulation): Doc {
   const rows = (options: Option[]) =>
     options.map((o) => [o.key, o.id, round(o.rate, 4), round(o.value, 2), round(o.seconds, 1)]);

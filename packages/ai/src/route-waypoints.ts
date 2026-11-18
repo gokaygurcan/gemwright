@@ -1,7 +1,7 @@
 import type { RouteRequest, RouteResult, RouteSearch } from './path-search';
 import type { Point, Terrain } from './terrain';
 
-// A public-terrain walk between two hubs (route-build.ts), every 24th step; `both` when it can be
+// A public-terrain walk between two hubs (routes.ts), every 24th step; `both` when it can be
 // walked back the same way.
 export interface Corridor {
   name: string;

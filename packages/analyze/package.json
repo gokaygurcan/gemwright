@@ -18,7 +18,7 @@
   "scripts": {
     "start": "bun dist/src/serve.js",
     "dev": "bun --watch src/serve.ts",
-    "build": "rm -rf dist && bun build src/index.ts src/serve.ts --outdir dist/src --target bun && bun web/build.ts dist/web"
+    "build": "rm -rf dist && bun build src/index.ts src/serve.ts src/replay-runner.ts src/lab/worker.ts --outdir dist/src --target bun && bun web/build.ts dist/web"
   },
   "dependencies": {
     "preact": "11.2.0"

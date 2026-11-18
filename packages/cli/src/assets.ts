@@ -19,7 +19,7 @@ export function workspacePath(path: string): string {
 export const images = {
   ai: {
     root: ['Dockerfile', 'railway.json'],
-    files: ['dist', 'catalogs', 'templates', 'world', 'tuning.json', 'start.sh']
+    files: ['dist', 'catalogs', 'templates', 'world', 'start.sh']
   },
   client: {
     root: ['Dockerfile', 'railway.json', '.dockerignore', '.railwayignore'],

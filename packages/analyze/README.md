@@ -21,10 +21,14 @@ Report: bun dist/src/index.js [options]
 Browser: bun dist/src/serve.js [options]
   --shard <directory>  Shard folder whose pulls to browse (default: current directory)
   --local <directory>  Inspect a local Saves folder
-  --files <directory>  Game files for rendering character art
+  --files <directory>  Game files for rendering character art and making decisions again
   --port <number>      HTTP port (default: 4100)
 
 Without --local, the browser uses .gemwright/pulls in the shard folder.
+Choices lists every decision of a span; Run makes them again from the pull with the AI's source,
+on the land copied once from the local or VPS deployment into <pull>/land, and keeps the mind every
+50 decisions in <pull>/runs/minds. Lab takes a decision up from those minds and makes it again with any
+input, AI judgement (packages/ai tuning.ts) or option changed, alone or over a stretch of many.
 ```
 
 ## License

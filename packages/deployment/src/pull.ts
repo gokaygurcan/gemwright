@@ -95,15 +95,9 @@ export async function pull(
           }
         };
         await record('ai', 'ai/residents.sqlite', () => snapshot('residents.sqlite', 'residents.sqlite', false));
-        // The v2 minds' histories, when any resident has one: opened read-only, so a pull never
+        // The minds' histories, when any resident has one: opened read-only, so a pull never
         // creates one, and copied with a plain journal, so the copy opens read-only on its own.
         await record('ai', 'ai/history.sqlite', () => snapshot('history.sqlite', 'history.sqlite', true));
-        await record('ai', 'ai/report.md', async () =>
-          writeFile(
-            join(out, 'ai/report.md'),
-            `${await command(vps.shell(compose(['exec', '-T', 'ai', 'bun', 'dist/v1/report.js', '--db', '/app/data/residents.sqlite'])), directory)}\n`
-          )
-        );
         await record('ai', 'ai/retired.json', async () =>
           keepRetired(out, await command(vps.shell(compose(['exec', '-T', 'ai', 'sh', '-c', RETIRED])), directory))
         );
@@ -182,19 +176,6 @@ export async function pull(
         for (const file of ['residents.sqlite', 'residents.sqlite-wal'])
           await record('ai', `ai/${file}`, () => download(aiVolume, `/${file}`, `ai/${file}`));
       }
-      await record('ai', 'ai/report.md', async () => {
-        const report = await railway(
-          [
-            'ssh',
-            ...scope,
-            '--service',
-            aiService,
-            'cd /app && if [ -f dist/v1/report.js ]; then bun dist/v1/report.js --db /app/data/residents.sqlite; else bun packages/ai/src/v1/report.ts --db /app/data/residents.sqlite; fi'
-          ],
-          directory
-        );
-        await writeFile(join(out, 'ai/report.md'), `${report}\n`);
-      });
       await record('ai', 'ai/retired.json', async () =>
         keepRetired(out, await railway(['ssh', ...scope, '--service', aiService, RETIRED], directory))
       );

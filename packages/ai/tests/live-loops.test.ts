@@ -1,0 +1,372 @@
+import { expect, spyOn, test } from 'bun:test';
+
+import type { PlayerSession } from '@gemwright/network/session';
+import { WorldView } from '@gemwright/network/world';
+
+import { Hands } from '../src/hands';
+import { live } from '../src/live';
+import { Mind } from '../src/mind';
+import * as planning from '../src/planning';
+import type { Terrain } from '../src/terrain';
+import { traitsOf } from '../src/traits';
+
+test('a resident with no worthwhile work changes location instead of resting indefinitely', async () => {
+  const world = new WorldView();
+  world.serial = 1;
+  world.position = { x: 100, y: 100, z: 0, direction: 0 };
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  let stopped = false;
+  const walks: number[] = [];
+  const session = {
+    world,
+    phase: 'ready',
+    emote: () => {},
+    refreshSkills: async () => {},
+    setWarMode: (enabled: boolean) => {
+      world.warMode = enabled;
+    },
+    walk: async (direction: number) => {
+      walks.push(direction);
+      const [dx, dy] = [
+        [0, -1],
+        [1, -1],
+        [1, 0],
+        [1, 1],
+        [0, 1],
+        [-1, 1],
+        [-1, 0],
+        [-1, -1]
+      ][direction] ?? [0, 0];
+      const here = world.position;
+      if (!here) throw new Error('Missing player position');
+      world.position = { ...here, x: here.x + (dx ?? 0), y: here.y + (dy ?? 0), direction };
+      return true;
+    }
+  } as unknown as PlayerSession;
+  const timer = setTimeout(() => {
+    stopped = true;
+  }, 100);
+  try {
+    await live(
+      session,
+      mind,
+      undefined,
+      { shrines: [], bankers: [{ x: 130, y: 100 }], vendors: [] },
+      () => stopped,
+      (kind, data) => {
+        if (kind === 'course-changed') {
+          expect(data).toMatchObject({ reached: true });
+          stopped = true;
+        }
+      }
+    );
+    expect(walks.length).toBeGreaterThan(0);
+    expect(world.position?.x).not.toBe(100);
+  } finally {
+    clearTimeout(timer);
+  }
+}, 7000);
+
+test('with every way refused it says so and keeps on, never ending its life', async () => {
+  const world = new WorldView();
+  world.serial = 1;
+  world.position = { x: 100, y: 100, z: 0, direction: 0 };
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  mind.routeScope = 'unreachable-recovery-fixture';
+  const destinations: string[] = [];
+  const terrain = {
+    bestTiles: () => [],
+    findTiles: () => [],
+    pathAsync: async (_here: object, goal: { x: number; y: number }) => {
+      destinations.push(`${goal.x},${goal.y}`);
+      return [];
+    }
+  } as unknown as Terrain;
+  const session = {
+    world,
+    phase: 'ready',
+    emote: () => {},
+    refreshSkills: async () => {},
+    setWarMode: (enabled: boolean) => {
+      world.warMode = enabled;
+    }
+  } as unknown as PlayerSession;
+  let helpRequests = 0;
+  session.requestHelp = () => {
+    helpRequests++;
+  };
+  const events: string[] = [];
+  let stopped = false;
+  await live(
+    session,
+    mind,
+    terrain,
+    {
+      shrines: [],
+      bankers: [
+        { x: 130, y: 100 },
+        { x: 130, y: 100 }
+      ],
+      vendors: []
+    },
+    () => stopped,
+    (kind) => {
+      events.push(kind);
+      // Blocked twice: it went on to think and try again after the first.
+      if (events.filter((e) => e === 'loop-blocked').length >= 2) stopped = true;
+    }
+  );
+  expect(destinations.length).toBeGreaterThan(1);
+  expect(events.filter((e) => e === 'loop-blocked')).toHaveLength(2);
+  expect(helpRequests).toBe(1);
+  expect(mind.care.helpAfter).toBeGreaterThan(Date.now());
+}, 20_000);
+
+test('over its limit with nothing worth doing it puts down the least it can, and never stops', async () => {
+  const world = new WorldView();
+  world.serial = 1;
+  world.position = { x: 100, y: 100, z: 0, direction: 0 };
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const observe = (kind: string, data: object) =>
+    mind.observe({ resident: 'r', at: 0, kind, data, where: { x: 100, y: 100, z: 0, map: 1 } });
+  observe('awake', { serial: 1, self: {} });
+  observe('self', { weight: { current: 389, max: 386 } });
+  observe('revealed', { serial: 2, kind: 'item', parent: 1, layer: 21, is: ['Backpack'] });
+  observe('revealed', { serial: 10, kind: 'item', parent: 2, graphic: 0x19b8, amount: 14, is: ['IronOre'] });
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
+  let stopped = false;
+  const choose = spyOn(planning, 'liveChoices').mockResolvedValue([]);
+  const dropped: object[] = [];
+  const act = spyOn(Hands.prototype, 'do').mockImplementation(async (step) => {
+    if (step.verb === 'drop') {
+      dropped.push(step);
+      stopped = true;
+    }
+    return true;
+  });
+  try {
+    await live(
+      session,
+      mind,
+      undefined,
+      { shrines: [], bankers: [], vendors: [] },
+      () => stopped,
+      () => {}
+    );
+    expect(dropped).toEqual([{ verb: 'drop', serial: 10, amount: 1 }]);
+  } finally {
+    choose.mockRestore();
+    act.mockRestore();
+  }
+});
+
+for (const completed of [false, true]) {
+  test(`the live loop changes plans after ${completed ? 'six empty completions' : 'three refusals'}`, async () => {
+    const world = new WorldView();
+    world.serial = 1;
+    world.position = { x: 100, y: 100, z: 0, direction: 0 };
+    const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+    const session = {
+      world,
+      phase: 'ready',
+      emote: () => {},
+      refreshSkills: async () => {}
+    } as unknown as PlayerSession;
+    let stopped = false;
+    const tried: string[] = [];
+    const plans = ['first', 'different'].map((key, index) => {
+      const source = { key, steps: [{ verb: 'say' as const, text: key }] };
+      return { ...source, source, id: key, value: 10 - index, rate: 10 - index, seconds: 1 };
+    });
+    const choose = spyOn(planning, 'liveChoices').mockResolvedValue(plans);
+    const act = spyOn(Hands.prototype, 'do').mockImplementation(async (step) => {
+      if (step.verb === 'say') {
+        tried.push(step.text);
+        if (step.text === 'different') stopped = true;
+        return completed;
+      }
+      return true;
+    });
+    const timer = setTimeout(() => {
+      stopped = true;
+    }, 12_000);
+    try {
+      await live(
+        session,
+        mind,
+        undefined,
+        { shrines: [], bankers: [], vendors: [] },
+        () => stopped,
+        () => {}
+      );
+      expect(tried).toEqual([...Array(completed ? 6 : 3).fill('first'), 'different']);
+    } finally {
+      clearTimeout(timer);
+      choose.mockRestore();
+      act.mockRestore();
+    }
+  }, 15_000);
+}
+
+test('urgent safety work is performed even when its score would otherwise trigger relocation', async () => {
+  const world = new WorldView();
+  world.serial = 1;
+  world.position = { x: 100, y: 100, z: 0, direction: 0 };
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
+  let stopped = false;
+  const source = { key: 'leave danger', urgent: true, steps: [{ verb: 'escape' as const }] };
+  const choose = spyOn(planning, 'liveChoices').mockResolvedValue([
+    { ...source, source, id: 'escape', value: -1, rate: -1, seconds: 1 }
+  ]);
+  const performed: string[] = [];
+  const act = spyOn(Hands.prototype, 'do').mockImplementation(async (step) => {
+    performed.push(step.verb);
+    if (step.verb === 'escape') stopped = true;
+    return true;
+  });
+  try {
+    await live(
+      session,
+      mind,
+      undefined,
+      { shrines: [], bankers: [], vendors: [] },
+      () => stopped,
+      () => {}
+    );
+    expect(performed).toContain('escape');
+    expect(performed).not.toContain('walk');
+  } finally {
+    choose.mockRestore();
+    act.mockRestore();
+  }
+});
+
+test('a plan abandoned for a better one is an unrealized experience and never counts against it', async () => {
+  const world = new WorldView();
+  world.serial = 1;
+  world.position = { x: 100, y: 100, z: 0, direction: 0 };
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
+  let stopped = false;
+  const tried: string[] = [];
+  const plan = (key: string, value: number) => {
+    const source = { key, steps: [{ verb: 'say' as const, text: key }] };
+    return { ...source, source, id: key, value, rate: value, seconds: 1 };
+  };
+  // Weighed again every time the world changes, the better course wins: the live loop breaks the
+  // walk off itself. That must never read as the walk having failed.
+  let calls = 0;
+  const choose = spyOn(planning, 'liveChoices').mockImplementation(async () => {
+    calls++;
+    return calls % 2 ? [plan('first', 10), plan('different', 5)] : [plan('different', 30), plan('first', 10)];
+  });
+  const act = spyOn(Hands.prototype, 'do').mockImplementation(async (step, going) => {
+    if (step.verb !== 'say') return true;
+    tried.push(step.text);
+    if (tried.length >= 6) {
+      stopped = true;
+      return true;
+    }
+    mind.observe({
+      resident: 'r',
+      at: Date.now(),
+      kind: 'seen',
+      data: { serial: 900, kind: 'mobile', is: ['Mongbat'] }
+    });
+    return (await going?.()) ?? true;
+  });
+  const timer = setTimeout(() => {
+    stopped = true;
+  }, 30_000);
+  try {
+    await live(
+      session,
+      mind,
+      undefined,
+      { shrines: [], bankers: [], vendors: [] },
+      () => stopped,
+      () => {}
+    );
+    // Six times over: had a broken-off walk counted as a failure, the third would have been its
+    // last and the other course would have taken its place.
+    expect(tried.length).toBeGreaterThanOrEqual(6);
+    expect(tried.every((text) => text === 'first')).toBe(true);
+  } finally {
+    clearTimeout(timer);
+    choose.mockRestore();
+    act.mockRestore();
+  }
+}, 40_000);
+
+test('in danger with no way out it fights back the nearest attacker, and never stops', async () => {
+  const { Encounter } = await import('../src/encounter');
+  const world = new WorldView();
+  world.serial = 1;
+  world.position = { x: 100, y: 100, z: 0, direction: 0 };
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
+  let stopped = false;
+  const choose = spyOn(planning, 'liveChoices').mockResolvedValue([]);
+  const danger = spyOn(Encounter.prototype, 'needsEscape').mockReturnValue(true);
+  const nearest = spyOn(Encounter.prototype, 'attacker').mockReturnValue(50);
+  const fought: object[] = [];
+  const act = spyOn(Hands.prototype, 'do').mockImplementation(async (step) => {
+    if (step.verb === 'fight') {
+      fought.push(step);
+      stopped = true;
+    }
+    return true;
+  });
+  try {
+    await live(
+      session,
+      mind,
+      undefined,
+      { shrines: [], bankers: [], vendors: [] },
+      () => stopped,
+      () => {}
+    );
+    expect(fought).toEqual([{ verb: 'fight', serial: 50, back: true }]);
+  } finally {
+    choose.mockRestore();
+    danger.mockRestore();
+    nearest.mockRestore();
+    act.mockRestore();
+  }
+});
+
+// Everything refused at once, with nothing new from the shard: it waits for the world to move on
+// before thinking again, so the one thread every resident shares is never held.
+test('a resident whose every try is refused at once never spins', async () => {
+  const world = new WorldView();
+  world.serial = 1;
+  world.position = { x: 100, y: 100, z: 0, direction: 0 };
+  const mind = new Mind('r', () => {}, traitsOf([], () => 0.5).traits);
+  const session = { world, phase: 'ready', emote: () => {}, refreshSkills: async () => {} } as unknown as PlayerSession;
+  let stopped = false;
+  let turns = 0;
+  const choose = spyOn(planning, 'liveChoices').mockImplementation(async () => {
+    turns++;
+    return [];
+  });
+  const act = spyOn(Hands.prototype, 'do').mockResolvedValue(false);
+  const timer = setTimeout(() => {
+    stopped = true;
+  }, 2000);
+  try {
+    await live(
+      session,
+      mind,
+      undefined,
+      { shrines: [], bankers: [{ x: 130, y: 100 }], vendors: [] },
+      () => stopped,
+      () => {}
+    );
+    expect(turns).toBeLessThanOrEqual(4);
+  } finally {
+    clearTimeout(timer);
+    choose.mockRestore();
+    act.mockRestore();
+  }
+}, 10_000);

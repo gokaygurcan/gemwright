@@ -190,13 +190,14 @@ export const boughtTypes: ReadonlySet<string> = new Set(
 export const npcTypes = Object.keys(classes).filter(
   (name) => listsOf(name).length || isA(name, 'Banker') || name === 'Banker' || isA(name, 'BaseHealer')
 );
-// The townspeople a title names ("the blacksmith": Blacksmith), as their hover shows it.
+// The townspeople, and the creatures that look like people, a title names ("the blacksmith":
+// Blacksmith, "the brigand": Brigand), as their hover shows it.
 export const titled = (title: string) => {
   const shown = title
     .trim()
     .toLowerCase()
     .replace(/guildmistress$/, 'guildmaster');
-  return npcTypes.filter((type) => classes[type]?.t === shown);
+  return [...new Set([...npcTypes, ...creatures.map((c) => c.type)])].filter((type) => classes[type]?.t === shown);
 };
 export const banks = (npc: string) => npc === 'Banker' || isA(npc, 'Banker');
 export const heals = (npc: string) => isA(npc, 'BaseHealer');

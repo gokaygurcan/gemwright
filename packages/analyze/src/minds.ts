@@ -4,13 +4,13 @@ import { join } from 'node:path';
 
 import { type Block, type Cell, type Doc, num } from './doc';
 
-// The v2 minds (packages/ai/src/v2): each resident's traits, how often what it would have chosen
+// The minds (packages/ai/src): each resident's traits, how often what it would have chosen
 // agrees with what it did, its latest choices beside the alternative it valued most, what each kind
 // of attempt has brought, how far its predictions miss over time, which spawners bear out what
 // they spawn, and how long each kind of thing stays where it was seen.
 export function mindsDoc(saves: string): Doc {
   const file = join(saves, '../../ai/history.sqlite');
-  if (!existsSync(file)) return { title: 'Minds', blocks: [{ kind: 'note', text: 'This pull has no v2 history.' }] };
+  if (!existsSync(file)) return { title: 'Minds', blocks: [{ kind: 'note', text: 'This pull has no history.' }] };
   const db = new Database(file, { readonly: true });
   const names = residentNames(join(saves, '../../ai/residents.sqlite'));
   try {
@@ -175,7 +175,7 @@ function mind(db: Database, resident: string, name: string | undefined, events: 
   ];
 }
 
-// What it knows at once (packages/ai/src/v2): where it is, what it is and what it has, as last
+// What it knows at once (packages/ai/src): where it is, what it is and what it has, as last
 // written down.
 function perception(db: Database, resident: string): Block[] {
   const latest = <T>(kind: string) => {

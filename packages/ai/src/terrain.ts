@@ -11,8 +11,6 @@ import { teleporterTiles } from './links';
 import { PathPool } from './path-pool';
 import { RouteSearch, routeSeed } from './path-search';
 import { WorkIndex } from './terrain-work';
-import { deadlyCells, troubleCells } from './trouble';
-import { tuning } from './tuning';
 
 interface Tile {
   flags: number;
@@ -383,10 +381,6 @@ export class Terrain {
             ...houseBarriers(this.geometry, start, goal),
             ...[...teleporterTiles].filter((tile) => tile !== `${goal.x},${goal.y}`)
           ],
-          penalties: troubleCells(),
-          penaltyCost: tuning.trouble.stepCost,
-          deadly: deadlyCells(),
-          deadlyCost: tuning.trouble.deadlyStepCost,
           targetZ,
           partial,
           wide,

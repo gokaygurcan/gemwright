@@ -7,18 +7,14 @@ import { validateConnection } from '@gemwright/network/connection';
 import type { PlayerSession } from '@gemwright/network/session';
 import { Latency } from '@gemwright/network/session-observation';
 
+import { validateConfig } from './config';
+import { prepareLand } from './land';
 import { PathPool } from './path-pool';
 import { runResident, withRuntime } from './run-session';
-import { readShardWorld } from './spawns';
 import { drainSlices } from './stall-probe';
+import { ResidentStore } from './store';
 import { Terrain } from './terrain';
-import { useShardAreas } from './v1/area-build';
-import { validateConfig } from './v1/config';
-import { useShardRoutes } from './v1/route-build';
-import { useShardWorld } from './v1/shard-world';
-import { ResidentStore } from './v1/store';
-import { buildWorkAreas } from './v1/work-area-build';
-import { applyWorld, behaviorOf, professionOf, weightedPick } from './v1/world';
+import { applyWorld } from './world';
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -35,15 +31,7 @@ const seconds = Number(values.seconds ?? 300);
 if (!Number.isInteger(count) || count < 1 || count > 300 || !Number.isFinite(seconds) || seconds < 60 || seconds > 3600)
   throw new Error('Invalid load-test bounds');
 const data = resolve(values.data);
-// The shard's own spawners, from its world files beside the assets (serve.ts reads them the same way).
-const shardWorld = readShardWorld(`${data}/world`);
-if (!shardWorld) throw new Error(`No world files in ${data}/world: copy Spawns/ and Regions.xml there.`);
-useShardWorld(shardWorld);
-// Where each town's mines and woods lie, from the map.
-buildWorkAreas(Terrain.shared(`${data}/assets`, 1));
-await useShardAreas(data, Terrain.shared(`${data}/assets`, 1), `${data}/assets`, shardWorld.teleporters);
-// The public roads long walks follow: kept on the volume, walked again only for new hubs or a new map.
-useShardRoutes(data, Terrain.shared(`${data}/assets`, 1), `${data}/assets`);
+await prepareLand(data, undefined);
 const output = resolve(values.output);
 mkdirSync(output, { recursive: true, mode: 0o700 });
 const save = (name: string, value: unknown) =>
@@ -84,34 +72,19 @@ let sampler: ReturnType<typeof setInterval> | undefined;
 let cutoff: ReturnType<typeof setTimeout> | undefined;
 const outcomes: unknown[] = [];
 const completedTimings: unknown[] = [];
-const assignments = new Map<string, { role: string; name: string }>();
+const assignments = new Map<string, { name: string }>();
 let result: unknown;
 try {
   result = await withRuntime(options, async (shared) => {
     const terrain = Terrain.shared(`${data}/assets`, 1);
     await terrain.pathAsync({ x: 1434, y: 1694, z: 0 }, { x: 1435, y: 1694 }, 0);
     const residents = shared.store.list().filter((r) => r.desiredActive);
-    const grounds = ['Britain', 'Yew', 'Vesper', 'Jhelom', 'Moonglow', 'Cove'];
-    let fighter = 0;
-    for (const r of residents) {
-      const role =
-        behaviorOf(r.templateId) ??
-        (r.templateId.includes('miner') ? 'miner' : r.templateId.includes('lumberjack') ? 'lumberjack' : 'fighter');
-      assignments.set(r.id, { role, name: r.proposedName });
-      if (role === 'fighter') {
-        const cp = structuredClone(r.checkpoint);
-        cp.hunting ??= { loot: [], killsSinceBank: 0, pending: 'hunt' };
-        // Each fighter starts at a ground its profession favours (weighted, see world.json).
-        const favoured = professionOf(r.templateId)?.[1].grounds;
-        cp.hunting.ground = (favoured && weightedPick(favoured, r.id)) ?? grounds[fighter++ % grounds.length];
-        shared.store.saveProgress(r.id, r.revision, cp, r.binding);
-      }
-    }
+    for (const r of residents) assignments.set(r.id, { name: r.proposedName });
     save('assignments.json', Object.fromEntries(assignments));
     save('before.json', shared.store.list());
     const tracked = {
       ...shared,
-      track: (id: string, session: PlayerSession | null, v2?: boolean) => {
+      track: (id: string, session: PlayerSession | null) => {
         if (session) sessions.set(id, session);
         else {
           const last = sessions.get(id);
@@ -128,7 +101,7 @@ try {
           }
           sessions.delete(id);
         }
-        shared.track(id, session, v2);
+        shared.track(id, session);
       }
     };
     started = Date.now();
@@ -203,8 +176,7 @@ try {
       ordered.map(async (r, index) => {
         while (Date.now() < started + index * 750 && !shared.stopping()) await Bun.sleep(100);
         if (shared.stopping()) return;
-        const role = assignments.get(r.id)?.role ?? 'fighter';
-        append('lifecycle.ndjson', { at: new Date().toISOString(), id: r.id, event: 'start', role });
+        append('lifecycle.ndjson', { at: new Date().toISOString(), id: r.id, event: 'start' });
         try {
           const residentResult = await runResident(
             tracked,
@@ -215,9 +187,7 @@ try {
               reconnect: false,
               reconnectAttempts: 3,
               durationSeconds: Math.max(0, (deadline - Date.now()) / 1000),
-              ...(['miner', 'lumberjack', 'fighter'].includes(role)
-                ? { [`${role}Assets`]: `${data}/assets` }
-                : { profession: { behavior: role as 'fisher', assets: `${data}/assets` } })
+              live: true
             },
             r.id
           );
@@ -226,13 +196,7 @@ try {
           save(`resident-${r.id}.json`, residentResult);
           append('lifecycle.ndjson', {
             ...outcome,
-            result: {
-              mining: residentResult.mining,
-              hunting: residentResult.hunting,
-              lumber: residentResult.lumber,
-              profession: residentResult.profession,
-              recoveryAttempts: residentResult.recoveryAttempts
-            }
+            result: { behaviorRuns: residentResult.behaviorRuns, recoveryAttempts: residentResult.recoveryAttempts }
           });
         } catch (error) {
           const outcome = {

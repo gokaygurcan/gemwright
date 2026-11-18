@@ -21,9 +21,9 @@ interface Slot {
 }
 export class PathPool {
   private static readonly pools = new Map<string, PathPool>();
-  // The public road corridors (route-build.ts), handed to every path worker.
+  // The public road corridors (routes.ts), handed to every path worker.
   private static corridors: Corridor[] = [];
-  // The roads as last handed out, for whoever reads the land (v2/roads.ts).
+  // The roads as last handed out, for whoever reads the land (roads.ts).
   static roads(): readonly Corridor[] {
     return PathPool.corridors;
   }

@@ -95,7 +95,7 @@ export const ItemProperty = {
   exceptional: 1060636,
   artifact: 1061078,
   blessed: 1038021,
-  // The labels fighter-gear.ts and inventory-use.ts read to decide what a piece is worth.
+  // The labels inventory-use.ts reads to decide what a piece is worth.
   durability: 1060639, // durability ~1_val~ / ~2_val~
   weaponDamage: 1061168, // weapon damage ~1_val~ - ~2_val~
   weaponSpeed: 1061167, // weapon speed ~1_val~

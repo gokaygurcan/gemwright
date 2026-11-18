@@ -1,0 +1,133 @@
+import { dirname, join } from 'node:path';
+
+import type { PlayerSession } from '@gemwright/network/session';
+
+import { openLifeJournal } from './life-journal';
+import { logger } from './log';
+import { RuntimeOwnership } from './ownership';
+import { PathPool } from './path-pool';
+import { openPersistence } from './persistence';
+import type { ResidentOptions, RuntimeShared } from './run-session';
+import { ResidentStore } from './store';
+import { configureTelemetry, registerActor } from './telemetry';
+import { startRuntimeHealth } from './telemetry-health';
+
+// Opens the store, takes the single shard lease, and closes every tracked session on SIGINT,
+// SIGTERM, or a lost lease. One runtime process may drive one or many residents.
+export async function withRuntime<T>(
+  options: Pick<ResidentOptions, 'population' | 'connection' | 'dbPath'>,
+  body: (shared: RuntimeShared) => Promise<T>
+): Promise<T | { stoppedBySignal: true }> {
+  if (options.population.shardId !== options.connection.shardId)
+    throw new Error('Connection and population belong to different shards');
+  let persistenceFailure: Error | undefined;
+  let stopOnFailure = () => {};
+  const persistence = await openPersistence(options.dbPath, options.population.shardId, (error) => {
+    // Write pressure is not a reason to end the town: the queue sheds telemetry and the writer
+    // catches up. Only a database that cannot commit at all stops the runtime.
+    if (/queue is full/i.test(error.message)) {
+      logger('runtime').error(`[persistence] ${error.message} (shedding telemetry, population kept)`);
+      return;
+    }
+    persistenceFailure = error;
+    logger('runtime').error(`[persistence] ${error.message}`);
+    stopOnFailure();
+  });
+  const journal = await openLifeJournal(join(dirname(options.dbPath), 'life-events'), (error) => {
+    // The journal is history, not state: if it cannot be written (disk reserve, a broken writer)
+    // the residents keep playing and their events are dropped until it recovers on the next start.
+    logger('runtime').error(`[life-events] ${error.message} (journal stopped; residents continue)`);
+  }).catch(async (error) => {
+    await persistence.close();
+    throw error;
+  });
+  const store = new ResidentStore(options.dbPath, options.population.shardId, persistence.database, persistence.flush);
+  const sessions = new Map<string, PlayerSession>();
+  const restoreTelemetry = configureTelemetry({ sink: journal.append });
+  const stopHealth = startRuntimeHealth({
+    sessions,
+    directory: dirname(options.dbPath),
+    persistence: persistence.statistics,
+    journal: journal.statistics
+  });
+  const activity = store.activityRecorder();
+  // Reports are never worth a resident: a failed save is logged and skipped.
+  const recordActivity = () => {
+    try {
+      activity.save(sessions);
+    } catch (error) {
+      logger('runtime').error(`[activity] save failed: ${error instanceof Error ? error.message : error}`);
+    }
+  };
+  const saveActivity = setInterval(recordActivity, 5 * 60_000);
+  let ownership: RuntimeOwnership | null = null;
+  let stopping = false;
+  const controller = new AbortController();
+  let shutdown: ReturnType<typeof setTimeout> | undefined;
+  const closeAll = () => {
+    for (const session of sessions.values()) session.close();
+  };
+  const stop = () => {
+    if (stopping) return;
+    stopping = true;
+    // A stuck behavior must not leave a live container with no population after lease loss.
+    shutdown = setTimeout(() => {
+      logger('runtime').error('[runtime] Shutdown exceeded 30 seconds; exiting for supervisor recovery');
+      process.exit(1);
+    }, 30_000);
+    shutdown.unref();
+    controller.abort();
+    closeAll();
+  };
+  stopOnFailure = stop;
+  process.once('SIGINT', stop);
+  process.once('SIGTERM', stop);
+  try {
+    if (persistenceFailure) throw persistenceFailure;
+    ownership = new RuntimeOwnership(store, stop);
+    store.reconcile(options.population);
+    await store.flush();
+    return await body({
+      store,
+      signal: controller.signal,
+      ownership,
+      stopping: () => stopping,
+      track: (id, session) => {
+        if (session) {
+          registerActor(session, id, store.get(id)?.proposedName ?? id);
+        }
+        const previous = sessions.get(id);
+        if (previous && previous !== session) activity.collect(id, previous);
+        if (session) sessions.set(id, session);
+        else sessions.delete(id);
+      }
+    });
+  } catch (error) {
+    if (stopping) return { stoppedBySignal: true };
+    throw error;
+  } finally {
+    stopHealth();
+    clearInterval(saveActivity);
+    if (ownership) recordActivity();
+    closeAll();
+    PathPool.closeAll();
+    try {
+      ownership?.close();
+    } catch {
+      logger('runtime').error('[persistence] Could not release the runtime lease');
+    }
+    try {
+      try {
+        await journal.close();
+      } finally {
+        await persistence.close();
+      }
+    } finally {
+      restoreTelemetry();
+      store.close();
+      process.off('SIGINT', stop);
+      process.off('SIGTERM', stop);
+      clearTimeout(shutdown);
+    }
+  }
+}

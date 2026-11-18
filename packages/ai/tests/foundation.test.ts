@@ -4,8 +4,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { allocatePopulation, validateConfig } from '../src/v1/config';
-import { ResidentStore } from '../src/v1/store';
+import { allocatePopulation, validateConfig } from '../src/config';
+import { ResidentStore } from '../src/store';
 import example from '../templates/population.example.json';
 
 function required<T>(value: T | undefined): T {
@@ -115,13 +115,8 @@ describe('resident persistence', () => {
     try {
       store.reconcile(c);
       const resident = required(store.list()[0]);
-      const checkpoint = {
-        goal: { kind: 'mine', phase: 'return-to-bank' },
-        memories: [{ at: '2026-10-19T00:00:00Z', text: 'The eastern mine was dangerous.' }],
-        relationships: { companion: { affinity: 0.8, note: 'Helped me.' } }
-      };
       const binding = { accountRef: 'secret-store/resident-1', characterSerial: '0x123' };
-      store.saveProgress(resident.id, resident.revision, checkpoint, binding);
+      store.bind(resident.id, resident.revision, binding);
       const miner = required(c.templates.find((t) => t.id === 'britain-miner'));
       miner.version = 2;
       miner.creation.cities = { Minoc: 1 };
@@ -130,14 +125,10 @@ describe('resident persistence', () => {
       const updated = required(store.list().find((r) => r.id === resident.id));
       expect(updated.creationVersion).toBe(1);
       expect(updated.policyVersion).toBe(2);
-      // Loading upgrades the checkpoint shape but preserves its content.
-      expect(updated.checkpoint).toEqual({ ...checkpoint, schemaVersion: 2 });
       expect(updated.binding).toEqual(binding);
       expect(store.template('britain-miner', 1)?.creation.cities).toEqual({ Britain: 1 });
       expect(store.template('britain-miner', 2)?.creation.cities).toEqual({ Minoc: 1 });
-      expect(() => store.saveProgress(resident.id, resident.revision, checkpoint, binding)).toThrow(
-        'revision conflict'
-      );
+      expect(() => store.bind(resident.id, resident.revision, binding)).toThrow('revision conflict');
     } finally {
       store.close();
     }
@@ -195,12 +186,10 @@ describe('resident persistence', () => {
     try {
       store.reconcile(c);
       const resident = required(store.list()[0]);
-      const saved = store.saveProgress(
-        resident.id,
-        resident.revision,
-        { goal: { kind: 'hunt', phase: 'recover-corpse' }, memories: [], relationships: {} },
-        null
-      );
+      const saved = store.bind(resident.id, resident.revision, {
+        accountRef: `resident:${resident.id}`,
+        characterSerial: '7'
+      });
       store.close();
       const script = `import { Database } from 'bun:sqlite'; const db = new Database(process.argv[1]); db.exec('BEGIN IMMEDIATE; UPDATE residents SET desired_active = 0'); process.kill(process.pid, 'SIGKILL');`;
       const child = Bun.spawnSync([process.execPath, '-e', script, path]);

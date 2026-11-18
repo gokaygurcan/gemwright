@@ -3,42 +3,33 @@ import { join } from 'node:path';
 import { moongateList } from '@gemwright/common/game/rules';
 
 import { logger } from './log';
+import { useLand } from './reach';
+import { useRoutes } from './routes';
+import { confine, prepareArea } from './shadow';
 import { readShardWorld } from './spawns';
 import { Terrain } from './terrain';
-import { useShardAreas } from './v1/area-build';
-import { useShardRoutes } from './v1/route-build';
-import { useShardWorld } from './v1/shard-world';
-import { buildWorkAreas } from './v1/work-area-build';
-import { useCities } from './v1/world';
-import { useLand } from './v2/reach';
-import { confine, prepareArea } from './v2/shadow';
 import { WalkGraph } from './walk-graph';
 import { useWalkGraph } from './walk-graph-store';
+import { checkCities } from './world';
 
 // The world residents live in, from the data folder: the shard's spawners and world files, the map,
 // and how the land joins up. Read before anyone wakes (serve.ts), and before a decision is
-// simulated (v2/simulate-cli.ts), so both meet the same world.
+// simulated (simulate-cli.ts), so both meet the same world.
 export async function prepareLand(data: string, cities: string[] | undefined) {
-  // The cities residents may go to (world.ts useCities): every city when unset.
-  useCities(cities);
+  // The cities residents are kept to: every city when unset.
+  checkCities(cities);
   confine(cities);
-  // The shard's own spawners (the deployment's world files) decide where vendors stand and residents
-  // hunt.
+  // The shard's own world files: spawners, regions, teleporters.
   const shardWorld = readShardWorld(join(data, 'world'));
   if (!shardWorld)
     throw new Error(
       `No world files in ${join(data, 'world')} (Spawns/ and Regions.xml): run gemwright shard deploy --ai to upload them.`
     );
-  useShardWorld(shardWorld);
-  logger('serve').info(`[serve] vendors and hunting grounds from ${shardWorld.spawners.length} spawners`);
+  logger('serve').info(`[serve] ${shardWorld.spawners.length} spawners in the world files`);
   const terrain = Terrain.shared(join(data, 'assets'), 1);
-  // Where each town's mines and woods lie, from the map.
-  buildWorkAreas(terrain);
-  // Which places can be walked to from which, and the public roads long walks follow: kept on the
-  // volume, built again only for a new world or map.
-  await useShardAreas(data, terrain, join(data, 'assets'), shardWorld.teleporters);
-  useShardRoutes(data, terrain, join(data, 'assets'));
-  // How the land joins up on foot, by teleporter and by moongate (walk-graph.ts), for the v2 mind.
+  // The public roads long walks follow: kept on the volume, walked again only for new ends or a new map.
+  useRoutes(data, shardWorld, terrain, join(data, 'assets'), cities);
+  // How the land joins up on foot, by teleporter and by moongate (walk-graph.ts), for the mind.
   const teleporters = shardWorld.teleporters;
   useLand(
     new WalkGraph(

@@ -5,22 +5,9 @@ import { join } from 'node:path';
 import { type Doc, noDatabase, num } from './doc';
 
 // The residents' economy from the resident database a pull brings along: per trade, what they
-// own and how it moves day by day (activity_samples: gold and bank over time), what they made,
-// gathered, sold and bought (activity totals), and the deals between residents (trade_log).
-const COUNTS = [
-  'mined',
-  'chopped',
-  'fished',
-  'crafted',
-  'kills',
-  'goldFromShops',
-  'goldToShops',
-  'trades',
-  'tradeGoldIn',
-  'boughtFromResidents',
-  'soldToResidents',
-  'recalls'
-] as const;
+// own and how it moves day by day (activity_samples: gold and bank over time), and how far they
+// walked (activity totals).
+const COUNTS = ['steps'] as const;
 
 export function economyDoc(saves: string): Doc {
   const file = join(saves, '../../ai/residents.sqlite');
@@ -77,11 +64,6 @@ export function economyDoc(saves: string): Doc {
     const mean = (values: number[] = []) =>
       values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
     const names = [...new Set([...worth.keys(), ...totals.keys()])].sort();
-    const deals = db
-      .query<{ day: string; n: number; done: number; gold: number }, []>(
-        "SELECT strftime('%Y-%m-%d', at / 1000, 'unixepoch') AS day, COUNT(*) AS n, SUM(completed) AS done, SUM(CASE WHEN completed THEN price ELSE 0 END) AS gold FROM trade_log WHERE role = 'seller' GROUP BY day ORDER BY day"
-      )
-      .all();
     const shownDays = allDays.slice(1);
     return {
       title: 'Economy',
@@ -117,14 +99,6 @@ export function economyDoc(saves: string): Doc {
           head: ['Trade', ...shownDays.map((d) => d.slice(5))],
           numeric: shownDays.map((_, i) => i + 1),
           rows: names.map((name) => [name, ...shownDays.map((d) => num(mean(worth.get(name)?.change.get(d))))])
-        },
-        { kind: 'heading', text: 'Deals between residents' },
-        {
-          kind: 'table',
-          head: ['Day', 'Agreed', 'Completed', 'Gold'],
-          numeric: [1, 2, 3],
-          empty: 'None yet.',
-          rows: deals.map((d) => [d.day, num(d.n), num(d.done), num(d.gold ?? 0)])
         }
       ]
     };

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'preact/hooks';
 
 import type { Block, Cell } from '../src/doc';
+import { api } from './api';
 import { LineChart, MiniMap, Shares, Stats } from './charts';
-import { FlowChart } from './flow';
 
 // Renders a page's blocks (src/doc.ts): notes, headings, fact lists, tables that sort and filter,
 // preformatted text, item art and the server-drawn character scene.
@@ -114,7 +114,40 @@ function Table({ block }: { block: Extract<Block, { kind: 'table' }> }) {
   );
 }
 
-export function BlockView({ block }: { block: Block }) {
+function Actions({ block, reload }: { block: Extract<Block, { kind: 'actions' }>; reload: () => void }) {
+  const [busy, setBusy] = useState<string>();
+  const [error, setError] = useState<string>();
+  const act = (post: string) => {
+    setBusy(post);
+    setError(undefined);
+    api
+      .act(post)
+      .then(reload, (e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setBusy(undefined));
+  };
+  return (
+    <div class="actions">
+      {block.items.map((item) => (
+        <button
+          class={item.tone}
+          disabled={busy !== undefined}
+          key={item.post}
+          onClick={() => act(item.post)}
+          type="button"
+        >
+          {busy === item.post ? `${item.label}…` : item.label}
+        </button>
+      ))}
+      {error && (
+        <span class="tone-error" role="alert">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function BlockView({ block, reload = () => {} }: { block: Block; reload?: () => void }) {
   switch (block.kind) {
     case 'note':
       return <p class="muted">{block.text}</p>;
@@ -139,6 +172,8 @@ export function BlockView({ block }: { block: Block }) {
       return <Table block={block} />;
     case 'pre':
       return <pre class="scroll">{block.text}</pre>;
+    case 'actions':
+      return <Actions block={block} reload={reload} />;
     case 'stats':
       return <Stats block={block} />;
     case 'line':
@@ -153,8 +188,6 @@ export function BlockView({ block }: { block: Block }) {
           <img alt={block.alt} src={block.src} />
         </figure>
       );
-    case 'flow':
-      return <FlowChart block={block} />;
     case 'html':
       return (
         <>

@@ -3,8 +3,8 @@ import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { residentCredentials } from '../src/v1/credentials';
-import { ResidentStore } from '../src/v1/store';
+import { residentCredentials } from '../src/credentials';
+import { ResidentStore } from '../src/store';
 
 test('leases exclude a second runtime and expired owners cannot renew or release a replacement', () => {
   const store = new ResidentStore(':memory:', 'test');

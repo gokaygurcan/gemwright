@@ -7,7 +7,6 @@ import type { Snapshot } from './history';
 import type { Lived } from './lived';
 import type { Pulse } from './pulse';
 import type { ResidentRow } from './residents';
-import type { readLasting } from './trouble';
 
 // The shard at a glance: how the residents are doing now, against the previous pull, over the
 // last day (pulse.ts), who needs a look, and where everyone is. The other pages hold the detail.
@@ -40,7 +39,6 @@ const delta = (now: number, before: number | undefined, better: 1 | -1, digits =
 export function overviewDoc(
   a: Analysis,
   rows: ResidentRow[] | undefined,
-  lasting: ReturnType<typeof readLasting>,
   history: Snapshot[],
   pulse: Pulse | undefined,
   savedAt: string,
@@ -64,16 +62,11 @@ export function overviewDoc(
   const skills = rows.reduce((n, r) => n + (bySerial.get(r.serial)?.skillTotal ?? 0), 0) / (rows.length || 1);
   const deaths = rows.reduce((n, r) => n + r.deaths, 0);
   const troubleCells = new Map<string, number>();
-  if (lived)
-    for (const m of lived.trouble)
-      if (m.kind !== 'died' && m.x !== null && m.y !== null) {
-        const cell = `${(m.x >> 3) << 3},${(m.y >> 3) << 3}`;
-        troubleCells.set(cell, (troubleCells.get(cell) ?? 0) + 1);
-      } else
-        for (const [key] of lasting?.trouble ?? []) {
-          const cell = key.split('|')[0] ?? '';
-          troubleCells.set(cell, (troubleCells.get(cell) ?? 0) + 1);
-        }
+  for (const m of lived?.trouble ?? [])
+    if (m.kind !== 'died' && m.x !== null && m.y !== null) {
+      const cell = `${(m.x >> 3) << 3},${(m.y >> 3) << 3}`;
+      troubleCells.set(cell, (troubleCells.get(cell) ?? 0) + 1);
+    }
   const online = pulse?.online.at(-1)?.[1];
   const stats: Stat[] = [
     {
@@ -124,7 +117,7 @@ export function overviewDoc(
     },
     {
       label: 'Loops',
-      value: gold(lived ? lived.loops.length : (lasting?.loops ?? []).length),
+      value: gold(lived?.loops.length ?? 0),
       note: 'last 24 hours',
       href: '/loops'
     }

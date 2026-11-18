@@ -161,7 +161,7 @@ export interface TamingReplies {
 }
 export const Taming: TamingReplies = { tamed: 502799, failed: 502798 };
 
-// ServUO Stealing.cs replies (see thief-skills.ts for the pinned-revision list).
+// ServUO Stealing.cs replies.
 export interface StealingReplies {
   failed: number;
   success: number;

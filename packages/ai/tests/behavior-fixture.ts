@@ -2,11 +2,8 @@ import { PlayerSession } from '@gemwright/network/session';
 import { WorldView } from '@gemwright/network/world';
 
 import type { Terrain } from '../src/terrain';
-import type { CharacterTemplate } from '../src/v1/config';
-import type { LifeContext } from '../src/v1/life';
-import type { Checkpoint } from '../src/v1/store';
 
-export function behaviorFixture(profession = 'tailor') {
+export function behaviorFixture() {
   const world = new WorldView();
   world.serial = 1;
   world.map = 1;
@@ -49,35 +46,13 @@ export function behaviorFixture(profession = 'tailor') {
         world.received.set(0x3c, (world.received.get(0x3c) ?? 0) + 1);
     }
   } as unknown as PlayerSession;
-  const checkpoint: Checkpoint = { goal: null, memories: [], relationships: {} };
-  const template = {
-    id: 'test-resident',
-    archetype: { id: profession, primarySkills: [], supportingSkills: [] },
-    behavior: { sociability: 0.5, riskTolerance: 0.5, trainingGoals: {} }
-  } as unknown as CharacterTemplate;
   const terrain = {
     stand: (x: number, y: number, z: number) => ({ x, y, z }),
     tile: () => ({ flags: 0, height: 0, layer: 2 }),
     cell: () => ({ statics: [] }),
     pathAsync: async (_from: unknown, goal: { x: number; y: number }) => [{ ...goal, z: 0 }]
   } as unknown as Terrain;
-  const ctx: LifeContext = {
-    session,
-    checkpoint,
-    template,
-    terrain,
-    city: 'Britain',
-    position: () => required(world.position),
-    check: () => {},
-    phase: () => {},
-    log: () => {},
-    persist: () => {},
-    navigate: async (goal) => {
-      world.position = { ...required(world.position), ...goal };
-    },
-    practise: async () => {}
-  };
-  return { world, session, checkpoint, template, terrain, ctx };
+  return { world, session, terrain };
 }
 
 export function required<T>(value: T): NonNullable<T> {

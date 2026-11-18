@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gemwright Simulator</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Simulator</strong>
+      <select id="who"></select>
+      <span id="now"></span>
+      <label>wait <input id="seconds" size="4" value="60" />s</label>
+      <button id="wait">Wait</button>
+      <button id="undo">Undo</button>
+      <button id="reset">Reset to history</button>
+      <span id="busy"></span>
+      <span id="error" class="error"></span>
+    </header>
+    <ol id="steps"></ol>
+    <main>
+      <section>
+        <h2>What it is — the mind's state</h2>
+        <p class="hint">Click a value to change it. Every part of the mind is here.</p>
+        <div id="state"></div>
+      </section>
+      <section>
+        <h2>What it asked while deciding</h2>
+        <p class="hint">Every question planning put to the mind, with the answer. Click one to pin a different answer.</p>
+        <input id="filter" placeholder="filter, e.g. appraise or Skeleton" />
+        <label><input type="checkbox" id="pinnedOnly" /> pinned only</label>
+        <div id="reads"></div>
+      </section>
+      <section>
+        <h2>What it could do</h2>
+        <table>
+          <thead><tr><th></th><th>option</th><th>value</th><th>rate</th><th>s</th><th>chance</th></tr></thead>
+          <tbody id="options"></tbody>
+        </table>
+        <div id="detail"></div>
+        <h2>Judgements (tuning)</h2>
+        <div id="tuning"></div>
+        <h2>Tell it something</h2>
+        <textarea id="event" rows="4" placeholder='{"kind":"self","data":{"health":{"current":10}}}'></textarea>
+        <button id="tell">Tell</button>
+        <h2>What happened</h2>
+        <pre id="log"></pre>
+      </section>
+    </main>
+    <script type="module" src="./app.ts"></script>
+  </body>
+</html>

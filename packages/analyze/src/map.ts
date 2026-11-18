@@ -2,8 +2,8 @@ import { FACET_SIZES } from '@gemwright/common/assets/facet';
 import { MAPS } from '@gemwright/common/game/maps';
 
 import type { Analysis } from './analysis';
+import type { Lived } from './lived';
 import { itemLabel } from './owners';
-import type { readLasting } from './trouble';
 
 // What the world map (web/map.tsx) draws over a facet: player characters and residents where they
 // are (or logged out), houses and boats, and from the resident database the failed-walk cells
@@ -31,7 +31,7 @@ export interface MapResponse {
 
 const RESIDENT_FACET = 1;
 
-export function mapData(a: Analysis, map: number, lasting: ReturnType<typeof readLasting>): MapResponse | undefined {
+export function mapData(a: Analysis, map: number, lived: Lived | undefined): MapResponse | undefined {
   const size = FACET_SIZES[map];
   if (!size) return undefined;
   const markers: Marker[] = [];
@@ -47,10 +47,15 @@ export function mapData(a: Analysis, map: number, lasting: ReturnType<typeof rea
   for (const i of a.world.items.values())
     if (i.parent === undefined && i.map === map && i.type.startsWith('Server.Multis.'))
       markers.push({ kind: 'house', x: i.location.x, y: i.location.y, label: itemLabel(i), href: `/item/${i.serial}` });
-  if (map === RESIDENT_FACET && lasting) {
+  if (map === RESIDENT_FACET && lived) {
     const cells = new Map<string, number>();
-    for (const [key] of lasting.trouble ?? []) {
-      const cell = key.split('|')[0] ?? '';
+    for (const m of lived.trouble) {
+      if (m.x === null || m.y === null) continue;
+      if (m.kind === 'died') {
+        markers.push({ kind: 'death', x: m.x, y: m.y, label: `${m.name} died`, href: `/mobile/${m.serial}` });
+        continue;
+      }
+      const cell = `${m.x >> 3},${m.y >> 3}`;
       cells.set(cell, (cells.get(cell) ?? 0) + 1);
     }
     for (const [cell, n] of cells) {
@@ -59,20 +64,8 @@ export function mapData(a: Analysis, map: number, lasting: ReturnType<typeof rea
         kind: 'trouble',
         x: cx * 8 + 4,
         y: cy * 8 + 4,
-        label: `${n} failed walk${n === 1 ? '' : 's'}${n >= 3 ? ', avoided by routes' : ''}`,
+        label: `${n} failed walk${n === 1 ? '' : 's'}`,
         href: '/trouble'
-      });
-    }
-    for (const [key] of lasting['death-log'] ?? []) {
-      const [resident = '', place = '', cause = 'unknown'] = key.split('|');
-      const [x = 0, y = 0] = place.split(',').map(Number);
-      const m = a.world.mobiles.get(Number(resident));
-      markers.push({
-        kind: 'death',
-        x,
-        y,
-        label: `${m?.name ?? resident} died near ${cause}`,
-        href: `/mobile/${resident}`
       });
     }
   }

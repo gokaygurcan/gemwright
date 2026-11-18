@@ -1,24 +1,19 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { clientVersion, decisionProviders } from '@gemwright/common/config/shard';
-import type { DecisionSettings } from '@gemwright/common/config/types';
+import { clientVersion } from '@gemwright/common/config/shard';
 import { validateConnection } from '@gemwright/network/connection';
 
+import { type PopulationConfig, validateConfig } from './config';
 import { setDebug } from './debug';
 import { prepareLand } from './land';
 import { logger, logToStdout } from './log';
 import { startExport, stopExport } from './otlp-export';
 import { runPopulation } from './run-population';
-import { setPopulationChaos } from './v1/chaos';
-import { type PopulationConfig, validateConfig } from './v1/config';
-import { validateDecisionConfig } from './v1/decision-provider';
-import { setWars } from './v1/guild-wars';
-import { enablePhrasing } from './v1/phrasing';
-import { checkProvisioning, loadShardProfile } from './v1/shard-profile';
-import { ResidentStore } from './v1/store';
-import { applyWorld, useCities, world } from './v1/world';
-import { confine } from './v2/shadow';
+import { confine } from './shadow';
+import { checkProvisioning, loadShardProfile } from './shard-profile';
+import { ResidentStore } from './store';
+import { applyWorld, checkCities } from './world';
 
 // The deployed AI service (gemwright shard deploy --ai): builds the population from world.json and the
 // shard's AI settings, reconciles the roster, and keeps every resident online for as long as the
@@ -40,24 +35,15 @@ const shard = JSON.parse(required('GEMWRIGHT_SHARD')) as {
   client?: { version: string };
   ai?: {
     population?: number;
-    decisions?: DecisionSettings;
-    speech?: string;
-    chaos?: number;
-    wars?: boolean;
     debug?: boolean;
     cities?: string[];
   };
 };
-enablePhrasing(shard.ai?.speech === 'claude');
 // Visible debugging (debug.ts): every resident emotes the phase it is in above its head.
 setDebug(shard.ai?.debug === true);
 if (shard.ai?.debug) logger('debug').info('ai.debug is on: residents emote their phase above their heads');
-// How unpredictable residents are (chaos.ts): the shard's setting, else the world's, else 0.3.
-setPopulationChaos(shard.ai?.chaos ?? world.lifecycle?.chaos ?? 0.3);
-// Order and Chaos guild wars (guild-wars.ts) only when the shard turns them on.
-setWars(shard.ai?.wars === true);
-// The cities residents may go to (world.ts useCities): every city when unset.
-useCities(shard.ai?.cities);
+// The cities residents are kept to: every city when unset.
+checkCities(shard.ai?.cities);
 confine(shard.ai?.cities);
 const shardFile = join(data, 'gemwright.json');
 await mkdir(data, { recursive: true });
@@ -84,13 +70,6 @@ const connection = validateConnection({
   port: Number(process.env.UO_PORT ?? 2593),
   serverIndex: 0,
   timeoutMs: 20000
-});
-const decisionConfig = validateDecisionConfig({
-  providers: decisionProviders(shard.ai?.decisions),
-  minIntervalMs: 5000,
-  maxRequestsPerRun: 1000,
-  maxRequestsPerDay: 200,
-  share: shard.ai?.decisions === 'jev' ? 0.5 : 1
 });
 const dbPath = join(data, 'residents.sqlite');
 const store = new ResidentStore(dbPath, shard.id);
@@ -126,8 +105,6 @@ while (!stopping) {
       create: true,
       reconnectAttempts: 5,
       durationSeconds: Number.POSITIVE_INFINITY,
-      decisionConfig,
-      assets: join(data, 'assets'),
       staggerSeconds: 2,
       continuous: true
     });

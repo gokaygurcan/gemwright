@@ -7,16 +7,16 @@ import { moongateList } from '@gemwright/common/game/rules';
 import type { PlayerSession } from '@gemwright/network/session';
 
 import { type Link, parseTeleporters } from '../src/links';
+import { Mind } from '../src/mind';
+import { choices } from '../src/planning';
+import { Reach } from '../src/reach';
 import { readShardWorld } from '../src/spawns';
 import { Terrain } from '../src/terrain';
-import { Mind } from '../src/v2/mind';
-import { choices } from '../src/v2/planning';
-import { Reach } from '../src/v2/reach';
-import { traitsOf } from '../src/v2/traits';
+import { traitsOf } from '../src/traits';
 import { WalkGraph } from '../src/walk-graph';
 import { buildWalkGraph, type Spot, spotKey, steps } from '../src/walk-graph-build';
 import { useWalkGraph } from '../src/walk-graph-store';
-import { seeing } from './fixtures/v2/mind-sync';
+import { seeing } from './fixtures/mind-sync';
 
 // Against the real map: the client's map files (files/) and a shard's world files, both kept out of
 // the repository; without them there is nothing to test against.
@@ -289,16 +289,19 @@ describe.skipIf(!available)('walk graph on the real map', () => {
     };
     visit(3407, 2645, 0);
     visit(1122, 725, 10_000);
-    // Both spawns have refilled, so only the journey distinguishes them.
+    // Both spawns have refilled.
     mind.observe({ resident: 'r', at: 1_200_000, where: home, kind: 'acted', data: { verb: 'walk' } });
     const reach = new Reach(graph, terrain);
     mind.steps = reach.steps;
     const journeys = [...mind.journeys()].filter((journey) => journey.key === 'attack Zombie');
     // Every zombie spawn the shard names is somewhere it could go; the two it has walked past are the
-    // ones it knows anything about, and it knows the same of both.
+    // ones it knows anything about. It saw the same of both, so the shard's word on each tells them
+    // apart: New Haven's graveyard spawns mostly zombies, the far spawner few.
     const visited = journeys.filter((journey) => journey.where.x === 3407 || journey.where.x === 1122);
     expect(visited).toHaveLength(2);
-    expect(visited[0]?.chance).toBe(visited[1]?.chance);
+    const near = visited.find((journey) => journey.where.x === 3407)?.chance ?? 0;
+    const far = visited.find((journey) => journey.where.x === 1122)?.chance ?? 0;
+    expect(near).toBeGreaterThan(far);
     const started = performance.now();
     const session = {
       world: { serial: 1, position: { ...home, direction: 0 }, entities: new Map() }
@@ -318,7 +321,7 @@ describe.skipIf(!available)('walk graph on the real map', () => {
     expect(times[Math.floor(times.length * 0.95)] ?? 0).toBeLessThan(5);
   }, 600_000);
 
-  test('v2 estimates and follows the same moongate route across water', () => {
+  test('estimates and follows the same moongate route across water', () => {
     const reach = new Reach(graph, terrain);
     const from = britain();
     const to = moonglow();

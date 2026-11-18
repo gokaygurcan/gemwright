@@ -5,6 +5,7 @@ import type { Doc } from '../src/doc';
 import type { PullsResponse } from '../src/pulls-api';
 import { ApiError, api } from './api';
 import { BlockView, CellView } from './blocks';
+import { LabPage } from './lab';
 import { MapPage } from './map';
 import './paperdoll';
 import { PullsPage } from './pulls';
@@ -22,14 +23,22 @@ const SECTIONS = [
   ['/history', 'History'],
   ['/economy', 'Economy'],
   ['/decisions', 'Decisions'],
+  ['/choices', 'Choices'],
+  ['/lab', 'Lab'],
   ['/spent', 'Spent'],
-  ['/minds', 'Minds'],
-  ['/questions', 'Questions']
+  ['/minds', 'Minds']
 ] as const;
 
 function DocPage({ path }: { path: string }) {
   const [doc, setDoc] = useState<Doc>();
   const [error, setError] = useState<string>();
+  const [loads, setLoads] = useState(0);
+  const reload = useCallback(() => setLoads((n) => n + 1), []);
+  useEffect(() => {
+    if (!doc?.refresh) return;
+    const timer = setTimeout(reload, doc.refresh * 1000);
+    return () => clearTimeout(timer);
+  }, [doc, reload]);
   useEffect(() => {
     let live = true;
     setError(undefined);
@@ -48,7 +57,7 @@ function DocPage({ path }: { path: string }) {
     return () => {
       live = false;
     };
-  }, [path]);
+  }, [path, loads]);
   if (error)
     return (
       <p class="tone-error" role="alert">
@@ -69,7 +78,7 @@ function DocPage({ path }: { path: string }) {
         </p>
       )}
       {doc.blocks.map((b, i) => (
-        <BlockView block={b} key={i} />
+        <BlockView block={b} key={i} reload={reload} />
       ))}
     </article>
   );
@@ -137,9 +146,11 @@ function App() {
           </nav>
         )}
       </header>
-      <main class={path.startsWith('/map') ? 'max-w-none pb-4' : undefined}>
+      <main class={path.startsWith('/map') ? 'max-w-none pb-4' : path.startsWith('/lab') ? 'max-w-none' : undefined}>
         {home ? (
           <PullsPage data={pulls} onChange={update} />
+        ) : path.startsWith('/lab') ? (
+          <LabPage path={path} />
         ) : path.startsWith('/map') ? (
           <MapPage key={new URLSearchParams(path.split('?')[1]).get('m') ?? '1'} path={path} />
         ) : (

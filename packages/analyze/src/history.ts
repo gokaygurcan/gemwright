@@ -13,7 +13,6 @@ export interface Snapshot {
   residents: number;
   deaths: number;
   stranded: number;
-  sideTrade: number;
   robes: number;
   trades: Record<string, { n: number; gold: number; skills: number }>;
 }
@@ -67,7 +66,6 @@ export function recordHistory(saves: string, a: Analysis, rows: ResidentRow[] | 
     residents: rows.length,
     deaths: rows.reduce((n, r) => n + r.deaths, 0),
     stranded: rows.reduce((n, r) => n + r.stranded, 0),
-    sideTrade: rows.filter((r) => r.sideTrade).length,
     robes,
     trades
   };
@@ -94,14 +92,13 @@ export function historyDoc(history: Snapshot[]): Doc {
     blocks: [
       {
         kind: 'table',
-        head: ['Pull', 'Residents', 'Deaths', 'Stranded', 'Side trade', 'Death robes'],
-        numeric: [1, 2, 3, 4, 5],
+        head: ['Pull', 'Residents', 'Deaths', 'Stranded', 'Death robes'],
+        numeric: [1, 2, 3, 4],
         rows: sorted.map((s) => [
           s.at.slice(0, 16).replace('T', ' '),
           num(s.residents),
           num(s.deaths),
           num(s.stranded),
-          num(s.sideTrade),
           num(s.robes)
         ])
       },

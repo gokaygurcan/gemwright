@@ -4,10 +4,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { validateConfig } from '../src/v1/config';
-import { openPersistence } from '../src/v1/persistence';
-import { PersistenceQueue } from '../src/v1/persistence-queue';
-import { ResidentStore } from '../src/v1/store';
+import { validateConfig } from '../src/config';
+import { openPersistence } from '../src/persistence';
+import { PersistenceQueue } from '../src/persistence-queue';
+import { ResidentStore } from '../src/store';
 import example from '../templates/population.example.json';
 import { required } from './behavior-fixture';
 
@@ -41,27 +41,24 @@ async function fixture(count?: number) {
   };
 }
 
-test('repeated checkpoints coalesce while revisions, credentials and the final state remain durable', async () => {
+test('bindings and credentials stay durable in one commit', async () => {
   const f = await fixture();
   try {
     let resident = required(f.store.list()[0]);
     const start = resident.revision;
     const commits = f.persistence.statistics().commits;
-    for (let i = 0; i < 1000; i++)
-      resident = f.store.saveProgress(
-        resident.id,
-        resident.revision,
-        { ...resident.checkpoint, memories: [{ at: 'test', text: `step ${i}` }] },
-        resident.binding
-      );
-    expect(f.persistence.statistics().coalesced).toBe(999);
+    for (let i = 0; i < 10; i++)
+      resident = f.store.bind(resident.id, resident.revision, {
+        accountRef: `resident:${resident.id}`,
+        characterSerial: String(i)
+      });
     f.store.storeCredentials(resident.id, { username: 'test-account', password: 'test-password' });
     await f.store.flush();
     expect(f.persistence.statistics().commits - commits).toBe(1);
     const disk = new ResidentStore(f.path, example.shardId);
     try {
-      expect(disk.get(resident.id)?.revision).toBe(start + 1000);
-      expect(disk.get(resident.id)?.checkpoint.memories[0]?.text).toBe('step 999');
+      expect(disk.get(resident.id)?.revision).toBe(start + 10);
+      expect(disk.get(resident.id)?.binding?.characterSerial).toBe('9');
       expect(disk.credentials(resident.id)?.username).toBe('test-account');
     } finally {
       disk.close();
@@ -129,9 +126,9 @@ test('an external revision conflict stops persistence instead of overwriting a n
   try {
     const resident = required(f.store.list()[0]);
     const external = new ResidentStore(f.path, example.shardId);
-    external.saveProgress(resident.id, resident.revision, resident.checkpoint, resident.binding);
+    external.bind(resident.id, resident.revision, resident.binding);
     external.close();
-    f.store.saveProgress(resident.id, resident.revision, resident.checkpoint, resident.binding);
+    f.store.bind(resident.id, resident.revision, resident.binding);
     const failure = await f.store.flush().then(
       () => undefined,
       (error: unknown) => error
@@ -151,35 +148,11 @@ test('write pressure sheds telemetry and lets state through instead of stopping'
   queue.push([{ sql: 'INSERT INTO activity_samples (at) VALUES (?)', args: ['x'.repeat(300)] }]);
   expect(queue.dropped).toBe(1);
   expect(queue.pendingBytes).toBe(0);
-  // A resident's state always goes through; it is coalesced to one pending write per resident.
-  const checkpoint =
-    'UPDATE residents SET checkpoint_json = ?, binding_json = ?, revision = revision + 1 WHERE id = ? AND revision = ?';
-  expect(() => queue.push([{ sql: checkpoint, args: ['x'.repeat(300), null, 'resident-1', 1] }])).not.toThrow();
+  // A resident's state always goes through.
+  const binding = 'UPDATE residents SET binding_json = ?, revision = revision + 1 WHERE id = ? AND revision = ?';
+  expect(() => queue.push([{ sql: binding, args: ['x'.repeat(300), 'resident-1', 1] }])).not.toThrow();
   expect(queue.overflow).toBe(1);
   expect(queue.pendingBytes).toBeGreaterThan(0);
-});
-
-test('a full resident cohort is coalesced into one durable transaction', async () => {
-  const f = await fixture(109);
-  try {
-    const commits = f.persistence.statistics().commits;
-    for (const original of f.store.list()) {
-      let resident = original;
-      for (let i = 0; i < 10; i++)
-        resident = f.store.saveProgress(
-          resident.id,
-          resident.revision,
-          { ...resident.checkpoint, memories: [{ at: 'test', text: 'x'.repeat(100000) }] },
-          resident.binding
-        );
-    }
-    expect(f.persistence.statistics().coalesced).toBe(109 * 9);
-    expect(f.persistence.statistics().pendingBytes).toBeLessThan(64 * 1024 * 1024);
-    await f.store.flush();
-    expect(f.persistence.statistics().commits - commits).toBe(1);
-  } finally {
-    await f.close();
-  }
 });
 
 test('future row-returning mutations cannot bypass durable replay', async () => {

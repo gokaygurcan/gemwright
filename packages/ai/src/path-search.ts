@@ -11,13 +11,7 @@ export interface RouteRequest {
   goal: { x: number; y: number };
   range: number;
   blocked: string[];
-  // 8-tile cells where walks keep failing (trouble.ts): each step there costs more.
-  penalties?: number[];
-  penaltyCost?: number;
-  // 8-tile cells where residents keep dying (trouble.ts): crossed only when no way round is shorter.
-  deadly?: number[];
-  deadlyCost?: number;
-  // A ghost's walk: every open tile costs the same, roads and trouble alike.
+  // A ghost's walk: every open tile costs the same, roads or not.
   ghost?: boolean;
   wide?: boolean;
   targetZ?: number;
@@ -80,7 +74,7 @@ export class RouteSearch {
     private readonly budgetMs = 500,
     private readonly expansionBudget?: number,
     // Cost of a step off the road; live searches prefer roads mildly, the corridor build at start
-    // (route-build.ts) strongly, so stored town-to-town routes follow the actual roads.
+    // (routes.ts) strongly, so stored town-to-town routes follow the actual roads.
     private readonly offRoad = 1.12
   ) {
     if (!Number.isInteger(capacity) || capacity < 1024 || capacity > 1048576 || capacity & (capacity - 1))
@@ -160,8 +154,6 @@ export class RouteSearch {
     // refused: a path that contains a step the shard will not take is not a path.
     const MAX_STEP_Z = 8;
     const blocked = new Set(request.blocked);
-    const penalties = new Set(request.ghost ? [] : (request.penalties ?? []));
-    const deadly = new Set(request.ghost ? [] : (request.deadly ?? []));
     const offRoad = request.ghost ? 1 : this.offRoad;
     const estimate = (x: number, y: number) => {
       const dx = Math.abs(x - goal.x),
@@ -232,13 +224,8 @@ export class RouteSearch {
         const turn =
           parent >= 0 &&
           (Math.sign(current.x - this.x[parent]!) !== dx || Math.sign(current.y - this.y[parent]!) !== dy);
-        const cell = (x >> 3) * 1024 + (y >> 3);
-        const trouble =
-          (penalties.size && penalties.has(cell) ? (request.penaltyCost ?? 4) : 0) +
-          (deadly.size && deadly.has(cell) ? (request.deadlyCost ?? 30) : 0);
         const vary = request.seed ? ((((x >> 2) * 73856093) ^ ((y >> 2) * 19349663) ^ request.seed) & 1023) / 3000 : 0;
-        const cost =
-          this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : offRoad) + (turn ? 0.08 : 0) + trouble + vary;
+        const cost = this.costs[index]! + (dx && dy ? 1.4 : 1) * (road ? 1 : offRoad) + (turn ? 0.08 : 0) + vary;
         if (other >= 0 && this.costs[other]! <= cost) continue;
         if (other < 0) {
           if (this.count === this.capacity) {
