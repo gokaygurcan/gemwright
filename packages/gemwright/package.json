@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/package.json",
   "name": "gemwright",
   "description": "Forge your own shard",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "license": "MIT",
   "private": false,
@@ -23,7 +23,7 @@
     "build": "rm -rf dist && bun build src/index.ts --outdir dist --target node --external @gemwright/cli && cp ../../LICENSE ."
   },
   "dependencies": {
-    "@gemwright/cli": "0.11.0"
+    "@gemwright/cli": "0.12.0"
   },
   "files": [
     "dist/index.js",

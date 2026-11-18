@@ -1,5 +1,11 @@
 # @gemwright/common
 
+## 0.12.0
+
+### Minor Changes
+
+- [`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - Rules carry each creature's speed and each townsperson's title, regions their entrances and unguarded parts, tools their craft, and creature facts read single-value skills, Evaluating Intelligence and Int. `gemwright.json` no longer accepts `ai.cohorts`, and every field has a schema description.
+
 ## 0.11.0
 
 ### Minor Changes

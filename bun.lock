@@ -16,7 +16,7 @@
     },
     "apps/website": {
       "name": "@gemwright/website",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "dependencies": {
         "@astrojs/react": "7.1.9",
         "@astrojs/starlight": "0.43.1",
@@ -33,7 +33,7 @@
     },
     "packages/ai": {
       "name": "@gemwright/ai",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "devDependencies": {
         "@anthropic-ai/sdk": "1.10.0",
         "@gemwright/common": "workspace:*",
@@ -47,7 +47,7 @@
     },
     "packages/analyze": {
       "name": "@gemwright/analyze",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "dependencies": {
         "preact": "11.2.0",
       },
@@ -60,7 +60,7 @@
     },
     "packages/cli": {
       "name": "@gemwright/cli",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "bin": {
         "gemwright-cli": "dist/index.js",
       },
@@ -79,7 +79,7 @@
     },
     "packages/client": {
       "name": "@gemwright/client",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "devDependencies": {
         "@gemwright/common": "workspace:*",
         "@opentelemetry/api-logs": "0.223.0",
@@ -90,14 +90,14 @@
     },
     "packages/common": {
       "name": "@gemwright/common",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "dependencies": {
         "ajv": "8.20.0",
       },
     },
     "packages/deployment": {
       "name": "@gemwright/deployment",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "dependencies": {
         "@gemwright/client": "workspace:*",
         "@gemwright/common": "workspace:*",
@@ -105,24 +105,24 @@
     },
     "packages/gemwright": {
       "name": "gemwright",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "bin": {
         "gemwright": "dist/index.js",
       },
       "dependencies": {
-        "@gemwright/cli": "0.11.0",
+        "@gemwright/cli": "0.12.0",
       },
     },
     "packages/network": {
       "name": "@gemwright/network",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "dependencies": {
         "@gemwright/common": "workspace:*",
       },
     },
     "packages/server": {
       "name": "@gemwright/server",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "devDependencies": {
         "@gemwright/common": "workspace:*",
         "@gemwright/deployment": "workspace:*",
@@ -130,7 +130,7 @@
     },
     "packages/simulator": {
       "name": "@gemwright/simulator",
-      "version": "0.11.0",
+      "version": "0.12.0",
       "devDependencies": {
         "@gemwright/common": "workspace:*",
       },

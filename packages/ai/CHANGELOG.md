@@ -1,5 +1,19 @@
 # @gemwright/ai
 
+## 0.12.0
+
+### Minor Changes
+
+- [`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - AI residents perceive, believe and plan with the v2 mind: they judge fights by what they see, belong to no town, never stand still, think again only on what changes their plan, forget what they no longer believe is where they saw it, and trace every decision in `history.sqlite` for replay.
+
+- [`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - AI residents are lived by the v2 mind alone: v1 and its runners are removed. The `decisions` and `dungeons` commands and the `--speech`, `--decisions`, `--miner-assets`, `--fighter-assets` and `--assets` options are gone; `session --live --data <dir>` lets the mind live a resident, and `population` takes `--data`. `online.json` no longer reads `mind`, and `tuning.json` is no longer shipped. The `ai.speech`, `ai.decisions`, `ai.chaos` and `ai.wars` settings are accepted but unused for now.
+
+### Patch Changes
+
+- [`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - AI residents see 18 tiles and no farther, as a client does: what walks or is left out of range is out of view, their own hair is never asked about, and a closed bank box is looked into only while it is open.
+
+- [`c562909`](https://github.com/gokaygurcan/gemwright/commit/c5629092e477d5ba5013e679305004c73f0dc19b) Thanks [@gokaygurcan](https://github.com/gokaygurcan)! - The walk graph keeps each tile's steps as packed keys, and the public roads are built from the shard's own banks, moongates and work grounds, keeping roads already saved.
+
 ## 0.11.0
 
 ### Minor Changes
